@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: page-fade-in 0.3s ease-out both;
+}
+
+@layer base {
+  :root {
+    --background: 213 60% 97%;
+    --foreground: 0 0% 4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+
+    --primary: 213 96% 37%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 26 95% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 213 30% 92%;
+    --muted-foreground: 0 0% 38%;
+
+    --accent: 26 95% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 142 72% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 4%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 4%;
+    --input: 0 0% 4%;
+    --ring: 213 96% 37%;
+
+    --radius: 0rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 4%;
+    --sidebar-primary: 213 96% 37%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 60% 95%;
+    --sidebar-accent-foreground: 0 0% 4%;
+    --sidebar-border: 0 0% 4%;
+    --sidebar-ring: 213 96% 37%;
+
+    --chart-1: 213 96% 37%;
+    --chart-2: 26 95% 55%;
+    --chart-3: 142 72% 42%;
+    --chart-4: 0 84% 55%;
+    --chart-5: 270 75% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family:
+      "DM Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "DM Sans", system-ui, sans-serif;
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer base {
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: #024bab !important;
+    background-color: #f0f6ff !important;
+    box-shadow: 0 0 0 3px rgba(2, 75, 171, 0.15);
+  }
+}
+
+@layer utilities {
+  .nb-shadow {
+    box-shadow: 4px 4px 0px #0a0a0a;
+  }
+  .nb-shadow-sm {
+    box-shadow: 2px 2px 0px #0a0a0a;
+  }
+  .nb-shadow-lg {
+    box-shadow: 6px 6px 0px #0a0a0a;
+  }
+  .nb-shadow-blue {
+    box-shadow: 4px 4px 0px #024bab;
+  }
+  .nb-shadow-orange {
+    box-shadow: 4px 4px 0px #fa731c;
+  }
+
+  .nb-card {
+    @apply bg-white border-2 border-black;
+    box-shadow: 4px 4px 0px #0a0a0a;
+  }
+  .nb-card-hover {
+    @apply transition-all duration-150;
+  }
+  .nb-card-hover:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #0a0a0a;
+  }
+
+  .nb-btn {
+    @apply border-2 border-black font-bold transition-all duration-100;
+    box-shadow: 3px 3px 0px #0a0a0a;
+  }
+  .nb-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #0a0a0a;
+  }
+  .nb-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px #0a0a0a;
+  }
+
+  .nb-input {
+    @apply border-2 border-black bg-white font-medium rounded-none;
+    box-shadow: 2px 2px 0px #0a0a0a;
+  }
+  .nb-input:focus {
+    outline: none;
+    box-shadow: 3px 3px 0px #024bab;
+  }
+
+  .nb-badge {
+    @apply border-2 border-black font-bold text-xs px-2 py-0.5;
+    box-shadow: 2px 2px 0px #0a0a0a;
+  }
+
+  .nb-tag-blue {
+    @apply bg-[#024BAB] text-white;
+  }
+  .nb-tag-orange {
+    @apply bg-[#FA731C] text-white;
+  }
+  .nb-tag-green {
+    @apply bg-[#00C48C] text-black;
+  }
+  .nb-tag-red {
+    @apply bg-[#EF4444] text-white;
+  }
+  .nb-tag-yellow {
+    @apply bg-[#FFD60A] text-black;
+  }
+  .nb-tag-purple {
+    @apply bg-[#A855F7] text-white;
+  }
+  .nb-tag-white {
+    @apply bg-white text-black;
+  }
+  .nb-tag-teal {
+    @apply bg-[#0D9488] text-white;
+  }
+  .nb-tag-lime {
+    @apply bg-[#A3E635] text-black;
+  }
+}

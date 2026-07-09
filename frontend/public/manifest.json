@@ -1,0 +1,22 @@
+{
+  "name": "NestHR",
+  "short_name": "NestHR",
+  "description": "Staff Attendance Management System",
+  "theme_color": "#1e293b",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/nesthr_bgwhite.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/nesthr_bgwhite.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

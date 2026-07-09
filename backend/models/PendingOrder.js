@@ -1,0 +1,40 @@
+const mongoose = require("mongoose");
+
+// Staging record for a signup that hasn't paid yet. No Company/Subscription
+// is created until the linked payment is verified — see billingController.
+const pendingOrderSchema = new mongoose.Schema(
+  {
+    orderId: { type: String, required: true, unique: true, index: true },
+    gateway: { type: String, enum: ["razorpay", "hdfc"], required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+    companyName: { type: String, required: true },
+    companyEmail: { type: String, required: true },
+    companyPhone: { type: String, required: true },
+    industry: { type: String },
+    website: { type: String },
+    gstNumber: { type: String },
+    panNumber: { type: String },
+
+    employeeCount: { type: Number, required: true },
+    billingCycle: { type: String, enum: ["monthly", "yearly"], required: true },
+    tier: {
+      type: String,
+      enum: ["web", "web_mobile", "web_mobile_whatsapp"],
+      required: true,
+    },
+    ratePerEmployee: { type: Number, required: true },
+    tierLabel: { type: String, required: true },
+    monthlyPrice: { type: Number, required: true },
+    yearlyPrice: { type: Number, required: true },
+
+    offerCode: { type: String, default: null },
+    offerBonusMonths: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+
+// Abandoned/unpaid pending orders auto-expire after 24h.
+pendingOrderSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 });
+
+module.exports = mongoose.model("PendingOrder", pendingOrderSchema);
