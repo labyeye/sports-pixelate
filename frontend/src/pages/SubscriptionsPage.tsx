@@ -365,58 +365,8 @@ export default function SubscriptionsPage() {
         </div>
       ) : (
         <>
-          {/* Mobile cards */}
-          <div className="grid grid-cols-1 gap-3 sm:hidden">
-            {displayed.map((s) => {
-              const m = STATUS_META[s.status] || STATUS_META.inactive;
-              return (
-                <div key={s._id} className="border-2 border-black bg-white p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-bold text-black">{s.student?.firstName} {s.student?.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{s.planName}</p>
-                    </div>
-                    <span className={cn("border-2 border-black/10 text-[10px] font-bold uppercase px-1.5 py-0.5 shrink-0", m.bg, m.text)}>
-                      {s.status.replace("_", " ")}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
-                    <div>
-                      <span className="text-muted-foreground">Cycle: </span>
-                      <span className="font-bold text-black capitalize">{s.billingCycle}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Amount: </span>
-                      <span className="font-bold text-black">₹{s.amount}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Renewal: </span>
-                      <span className="font-bold text-black">{new Date(s.renewalDate).toLocaleDateString("en-IN")}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">Payment: </span>
-                      {s.paymentStatus === "completed" ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                      ) : (
-                        <XCircle className="w-3.5 h-3.5 text-red-500" />
-                      )}
-                    </div>
-                  </div>
-                  {s.status === "active" && (
-                    <button
-                      onClick={() => handleCancel(s._id)}
-                      className="w-full border-2 border-black bg-white py-2 text-xs font-bold text-red-600 hover:bg-red-50"
-                    >
-                      Cancel Subscription
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden sm:block border-2 border-black bg-white overflow-auto">
+          {/* Table (scrolls horizontally on small screens) */}
+          <div className="border-2 border-black bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">

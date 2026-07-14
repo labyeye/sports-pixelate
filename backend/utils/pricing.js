@@ -1,27 +1,17 @@
-const { TIER_RATES } = require("./planFeatures");
+// Single flat plan now — no more per-tier rates. ₹150 per student per year;
+// monthly is just the yearly price prorated over 12 months (no separate
+// monthly-billing discount).
+const RATE_PER_STUDENT = 150;
 
-const TIER_LABELS = {
-  web: "Web",
-  web_mobile: "Web + Mobile",
-  web_mobile_whatsapp: "Web + Mobile + WhatsApp",
-};
-
-// Flat per-employee-per-year rate by tier. Monthly is just the yearly price
-// prorated over 12 months — there's no separate monthly-billing discount.
-function calculatePricing(employeeCount, tier) {
-  const rate = TIER_RATES[tier];
-  if (!rate) throw new Error(`Unknown tier: ${tier}`);
-
-  const yearlyPrice = employeeCount * rate;
+function calculatePricing(studentCount) {
+  const yearlyPrice = studentCount * RATE_PER_STUDENT;
   const monthlyPrice = Math.round(yearlyPrice / 12);
 
   return {
-    tier,
-    tierLabel: TIER_LABELS[tier],
-    ratePerEmployee: rate,
+    ratePerStudent: RATE_PER_STUDENT,
     monthlyPrice,
     yearlyPrice,
   };
 }
 
-module.exports = { TIER_RATES, TIER_LABELS, calculatePricing };
+module.exports = { RATE_PER_STUDENT, calculatePricing };

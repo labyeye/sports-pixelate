@@ -1,16 +1,22 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
+ * NestSports mobile app
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React from 'react';
+import { StatusBar, Text, TextInput, useColorScheme } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from './src/contexts/AuthContext';
+import RootNavigator from './src/navigation/RootNavigator';
+import { FONT } from './src/theme/colors';
+
+// Applies DM Sans as the default typeface everywhere without touching every
+// screen's local styles — individual styles still override fontFamily for
+// bold/medium weights (see components/ui.tsx), same look as NestHR.
+(Text as any).defaultProps = (Text as any).defaultProps || {};
+(Text as any).defaultProps.style = [{ fontFamily: FONT.regular }, (Text as any).defaultProps.style];
+(TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+(TextInput as any).defaultProps.style = [{ fontFamily: FONT.regular }, (TextInput as any).defaultProps.style];
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -18,28 +24,11 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;

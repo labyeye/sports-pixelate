@@ -8,22 +8,24 @@ const subscriptionSchema = new mongoose.Schema(
       required: true,
     },
     plan: { type: String, required: true },
+    // Kept for the superadmin tier-override endpoint and historical records —
+    // no longer drives pricing or feature access (see utils/planFeatures.js).
     tier: {
       type: String,
       enum: ["web", "web_mobile", "web_mobile_whatsapp"],
       default: "web_mobile_whatsapp",
     },
-    employeeCount: { type: Number },
-    ratePerEmployee: { type: Number },
+    studentCount: { type: Number },
+    ratePerStudent: { type: Number },
     monthlyPrice: { type: Number, required: true },
     yearlyPrice: { type: Number, required: true },
-    maxEmployees: { type: Number, required: true },
+    maxStudents: { type: Number, required: true },
     billingCycle: {
       type: String,
       enum: ["monthly", "yearly"],
       default: "monthly",
     },
-    currentEmployeeCount: { type: Number, default: 0 },
+    currentStudentCount: { type: Number, default: 0 },
     startDate: { type: Date, required: true },
     renewalDate: { type: Date, required: true },
     status: {

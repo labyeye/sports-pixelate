@@ -50,7 +50,7 @@ const registerCompany = asyncHandler(async (req, res) => {
     plan: "starter",
     monthlyPrice: starterPlan.monthlyPrice,
     yearlyPrice: starterPlan.yearlyPrice,
-    maxEmployees: starterPlan.maxEmployees,
+    maxStudents: starterPlan.maxEmployees,
     billingCycle: "monthly",
     startDate: new Date(),
     renewalDate: trialEndDate,

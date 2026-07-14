@@ -1,5 +1,7 @@
+const crypto = require("crypto");
 const asyncHandler = require("express-async-handler");
 const Student = require("../models/Student");
+const User = require("../models/User");
 const {
   escapeRegex,
   safePagination,
@@ -47,6 +49,41 @@ function sanitizeGuardians(input) {
       photo: typeof photo === "string" ? photo : undefined,
     };
   });
+}
+
+function normalizePhone(phone) {
+  return String(phone).replace(/\s/g, "").replace(/^\+91/, "").slice(-10);
+}
+
+// A guardian's phone number is their login: find (scoped to this academy) or
+// create the matching parent User so they can reach the parent dashboard via
+// phone-OTP login, same as the flow in authController.sendOtp/verifyOtp.
+async function ensureParentAccounts(guardians, companyId) {
+  if (!Array.isArray(guardians)) return [];
+  const parentIds = [];
+  for (const g of guardians) {
+    if (!g.phone) continue;
+    const normalized = normalizePhone(g.phone);
+    if (normalized.length !== 10) continue;
+    const phoneVariants = [normalized, `+91${normalized}`, `91${normalized}`];
+
+    let user = await User.findOne({
+      phone: { $in: phoneVariants },
+      company: companyId,
+    });
+    if (!user) {
+      user = await User.create({
+        name: g.name,
+        email: `parent.${normalized}.${companyId}@parents.nestsports.local`,
+        password: crypto.randomBytes(8).toString("hex") + "A1",
+        role: "parent",
+        phone: normalized,
+        company: companyId,
+      });
+    }
+    parentIds.push(user._id);
+  }
+  return parentIds;
 }
 
 // Owner/staff: full roster for the academy. Parent: only their linked children.
@@ -123,6 +160,19 @@ const createStudent = [
     const count = await Student.countDocuments({ company: req.user.company });
     const studentId = `STU${String(count + 1).padStart(4, "0")}`;
 
+    const autoParentIds = await ensureParentAccounts(
+      sanitizedGuardians,
+      req.user.company,
+    );
+    const parentIds = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(parents) ? parents : []),
+          ...autoParentIds,
+        ].map(String),
+      ),
+    );
+
     const student = await Student.create({
       company: req.user.company,
       studentId,
@@ -133,12 +183,19 @@ const createStudent = [
       sport,
       batch,
       coach: coach || undefined,
-      parents: Array.isArray(parents) ? parents : [],
+      parents: parentIds,
       guardians: sanitizedGuardians || [],
       emergencyContact,
       medicalNotes,
       enrollmentDate: enrollmentDate || Date.now(),
     });
+
+    if (autoParentIds.length) {
+      await User.updateMany(
+        { _id: { $in: autoParentIds } },
+        { $addToSet: { children: student._id } },
+      );
+    }
 
     res.status(201).json({ success: true, data: student });
   }),
@@ -148,6 +205,7 @@ const updateStudent = [
   validateBody(updateSchema),
   asyncHandler(async (req, res) => {
     const update = { ...req.body };
+    let autoParentIds = [];
     if (Object.prototype.hasOwnProperty.call(update, "guardians")) {
       try {
         update.guardians = sanitizeGuardians(update.guardians);
@@ -155,6 +213,10 @@ const updateStudent = [
         res.status(400);
         throw err;
       }
+      autoParentIds = await ensureParentAccounts(
+        update.guardians,
+        req.user.company,
+      );
     }
 
     const student = await Student.findOneAndUpdate(
@@ -166,6 +228,23 @@ const updateStudent = [
       res.status(404);
       throw new Error("Student not found");
     }
+
+    if (autoParentIds.length) {
+      await Student.updateOne(
+        { _id: student._id },
+        { $addToSet: { parents: { $each: autoParentIds } } },
+      );
+      await User.updateMany(
+        { _id: { $in: autoParentIds } },
+        { $addToSet: { children: student._id } },
+      );
+      student.parents = Array.from(
+        new Set(
+          [...(student.parents || []), ...autoParentIds].map(String),
+        ),
+      );
+    }
+
     res.json({ success: true, data: student });
   }),
 ];

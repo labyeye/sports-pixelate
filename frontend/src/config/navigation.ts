@@ -25,6 +25,7 @@ import {
   CalendarClock,
   MapPin,
   Receipt,
+  Trophy,
 } from "lucide-react";
 
 export interface NavItem {
@@ -43,6 +44,7 @@ export interface NavGroup {
 // = "Owner", employee = "Staff/Coach", parent = "Parent" — see types/hrms.ts).
 const OWNER: UserRole[] = ["super_admin", "hr_manager"];
 const OWNER_STAFF: UserRole[] = ["super_admin", "hr_manager", "employee"];
+const ALL: UserRole[] = ["super_admin", "hr_manager", "employee", "parent"];
 
 const allGroups: NavGroup[] = [
   {
@@ -61,6 +63,7 @@ const allGroups: NavGroup[] = [
       { title: "Departments", href: "/departments", icon: Building2, roles: OWNER },
       { title: "Credentials", href: "/employee-credentials", icon: Lock, roles: OWNER },
       { title: "Documents", href: "/documents", icon: FolderOpen, roles: ["super_admin", "hr_manager", "employee"] },
+      { title: "Tournaments", href: "/tournaments", icon: Trophy, roles: ALL },
     ],
   },
   {

@@ -123,6 +123,7 @@ app.use("/api/expenses", require("./routes/expenseRoutes"));
 app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/facilities", require("./routes/facilityRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
+app.use("/api/tournaments", require("./routes/tournamentRoutes"));
 
 app.get("/api/health", (req, res) =>
   res.json({ status: "ok", service: "NestSports API" }),
@@ -130,5 +131,5 @@ app.get("/api/health", (req, res) =>
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`NestSports server running on port ${PORT}`));

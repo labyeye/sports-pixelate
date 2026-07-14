@@ -72,7 +72,7 @@ const login = [
       populate: {
         path: "subscription",
         select:
-          "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxEmployees currentEmployeeCount renewalDate isTrial trialEndDate",
+          "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
       },
     });
 
@@ -157,7 +157,7 @@ const getMe = asyncHandler(async (req, res) => {
       populate: {
         path: "subscription",
         select:
-          "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxEmployees currentEmployeeCount renewalDate isTrial trialEndDate",
+          "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
       },
     });
   res.json({ success: true, data: user });
@@ -391,7 +391,7 @@ const verify2FA = asyncHandler(async (req, res) => {
     populate: {
       path: "subscription",
       select:
-        "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxEmployees currentEmployeeCount renewalDate isTrial trialEndDate",
+        "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
     },
   });
   if (!user || !user.twoFactorEnabled) {
@@ -518,7 +518,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
     populate: {
       path: "subscription",
       select:
-        "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxEmployees currentEmployeeCount renewalDate isTrial trialEndDate",
+        "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
     },
   });
 

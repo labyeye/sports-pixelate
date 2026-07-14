@@ -22,6 +22,9 @@ import {
   departmentAPI,
   leaveAPI,
   settingsAPI,
+  studentAttendanceAPI,
+  subscriptionAPI,
+  tournamentAPI,
 } from "@/services/api";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import {
@@ -65,7 +68,7 @@ const YEARS = Array.from(
   (_, i) => new Date().getFullYear() - 2 + i,
 );
 
-type Category = "payroll" | "attendance" | "employee";
+type Category = "payroll" | "attendance" | "employee" | "student";
 
 interface ReportDef {
   id: string;
@@ -335,6 +338,31 @@ const REPORTS: ReportDef[] = [
     icon: FileText,
     available: true,
   },
+
+  {
+    id: "student-attendance-report",
+    name: "Student Attendance Report",
+    desc: "Datewise present, absent and excused status for students, filterable by month, batch and sport.",
+    category: "student",
+    icon: BarChart2,
+    available: true,
+  },
+  {
+    id: "student-subscription-report",
+    name: "Student Subscription Report",
+    desc: "Subscription plan, billing cycle, renewal date and payment status for every enrolled student.",
+    category: "student",
+    icon: CreditCard,
+    available: true,
+  },
+  {
+    id: "tournament-report",
+    name: "Tournament Results Report",
+    desc: "Fixtures, scores and winners for a tournament — round by round results by team.",
+    category: "student",
+    icon: TrendingUp,
+    available: true,
+  },
 ];
 
 function exportCSV(rows: string[][], filename: string) {
@@ -406,11 +434,13 @@ function CategoryTag({ cat }: { cat: Category }) {
     payroll: "bg-[#024BAB] text-white",
     attendance: "bg-[#00C48C] text-white",
     employee: "bg-[#FA731C] text-white",
+    student: "bg-[#A855F7] text-white",
   };
   const labels: Record<Category, string> = {
     payroll: "PayRoll",
     attendance: "Attendance",
     employee: "Employee",
+    student: "Student",
   };
   return (
     <span
@@ -531,7 +561,9 @@ function ReportTable({
   rows: string[][];
 }) {
   const nameColIdx = headers.findIndex((h) =>
-    ["employee", "name", "employee name"].includes(h.toLowerCase()),
+    ["employee", "name", "employee name", "student", "team a"].includes(
+      h.toLowerCase(),
+    ),
   );
   const statusColIdx = headers.findIndex((h) =>
     ["status", "payment status"].includes(h.toLowerCase()),
@@ -2926,6 +2958,312 @@ function EmployeeReportGen({
   );
 }
 
+function StudentAttendanceReportGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const now = new Date();
+  const [month, setMonth] = useState(String(now.getMonth() + 1));
+  const [year, setYear] = useState(String(now.getFullYear()));
+  const [status, setStatus] = useState("all");
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    load();
+  }, [month, year]);
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await studentAttendanceAPI.getAll({ month, year, limit: "500" });
+      if (r.success) setData(r.data);
+    } catch {}
+    setLoading(false);
+  }
+
+  const filtered =
+    status === "all" ? data : data.filter((rec) => rec.status === status);
+
+  const headers = ["Date", "Student", "Student ID", "Sport", "Batch", "Status"];
+  const rows = filtered.map((rec) => [
+    formatDate(rec.date),
+    rec.student ? `${rec.student.firstName} ${rec.student.lastName}` : "—",
+    rec.student?.studentId || "—",
+    rec.student?.sport || "—",
+    rec.batch || rec.student?.batch || "—",
+    rec.status?.toUpperCase() || "—",
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={month} onChange={setMonth} className="w-32">
+          {MONTHS.map((m, i) => (
+            <option key={m} value={String(i + 1)}>
+              {m}
+            </option>
+          ))}
+        </NbSelect>
+        <NbSelect value={year} onChange={setYear} className="w-28">
+          {YEARS.map((y) => (
+            <option key={y} value={String(y)}>
+              {y}
+            </option>
+          ))}
+        </NbSelect>
+        <NbSelect value={status} onChange={setStatus} className="w-40">
+          <option value="all">All Status</option>
+          <option value="present">Present</option>
+          <option value="absent">Absent</option>
+          <option value="excused">Excused</option>
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Student Attendance Report",
+                `${MONTHS[+month - 1]} ${year}`,
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV(
+                [headers, ...rows],
+                `student_attendance_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No student attendance records for this period" />
+      ) : (
+        <ReportTable id="student-att-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function StudentSubscriptionReportGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [data, setData] = useState<any[]>([]);
+  const [status, setStatus] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    subscriptionAPI
+      .getAll()
+      .then((r) => r.success && setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered =
+    status === "all" ? data : data.filter((sub) => sub.status === status);
+
+  const headers = [
+    "Student",
+    "Sport",
+    "Plan",
+    "Billing Cycle",
+    "Amount",
+    "Start Date",
+    "Renewal Date",
+    "Status",
+    "Payment Status",
+    "Amount Paid",
+  ];
+  const rows = filtered.map((sub) => [
+    sub.student ? `${sub.student.firstName} ${sub.student.lastName}` : "—",
+    sub.student?.sport || "—",
+    sub.planName || sub.plan?.name || "—",
+    sub.billingCycle?.toUpperCase() || "—",
+    formatCurrency(sub.amount || 0),
+    sub.startDate ? formatDate(sub.startDate) : "—",
+    sub.renewalDate ? formatDate(sub.renewalDate) : "—",
+    sub.status?.toUpperCase().replace("_", " ") || "—",
+    sub.paymentStatus?.toUpperCase() || "—",
+    formatCurrency(sub.amountPaid || 0),
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={status} onChange={setStatus} className="w-44">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="pending_renewal">Pending Renewal</option>
+          <option value="inactive">Inactive</option>
+          <option value="cancelled">Cancelled</option>
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Student Subscription Report",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV([headers, ...rows], `student_subscriptions.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No student subscriptions found" />
+      ) : (
+        <ReportTable id="student-sub-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function TournamentReportGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [tournamentId, setTournamentId] = useState("");
+  const [fixtures, setFixtures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    tournamentAPI.getAll().then((r) => {
+      if (r.success) {
+        setTournaments(r.data);
+        if (r.data.length > 0) setTournamentId(r.data[0]._id);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!tournamentId) return;
+    setLoading(true);
+    tournamentAPI
+      .getFixtures(tournamentId)
+      .then((r) => r.success && setFixtures(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [tournamentId]);
+
+  const tournament = tournaments.find((t) => t._id === tournamentId);
+
+  const headers = [
+    "Round",
+    "Team A",
+    "Team B",
+    "Score A",
+    "Score B",
+    "Winner",
+    "Status",
+    "Date",
+    "Venue",
+  ];
+  const rows = fixtures
+    .sort((a, b) => a.round - b.round || a.matchIndex - b.matchIndex)
+    .map((f) => [
+      f.roundLabel || `Round ${f.round}`,
+      f.teamA?.name || "TBD",
+      f.teamB?.name || "TBD",
+      f.scoreA ?? "—",
+      f.scoreB ?? "—",
+      f.winner === "A"
+        ? f.teamA?.name || "A"
+        : f.winner === "B"
+          ? f.teamB?.name || "B"
+          : "—",
+      f.status?.toUpperCase() || "—",
+      f.date ? formatDate(f.date) : "—",
+      f.venue || "—",
+    ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={tournamentId} onChange={setTournamentId} className="w-64">
+          {tournaments.map((t) => (
+            <option key={t._id} value={t._id}>
+              {t.name} ({t.sport})
+            </option>
+          ))}
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                `Tournament Results — ${tournament?.name || ""}`,
+                tournament
+                  ? `${tournament.sport} · ${tournament.format?.replace("_", " ")}`
+                  : "",
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV(
+                [headers, ...rows],
+                `tournament_${(tournament?.name || "results").replace(/\s+/g, "_")}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : !tournamentId ? (
+        <EmptyState msg="No tournaments found" />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No fixtures generated for this tournament yet" />
+      ) : (
+        <ReportTable id="tournament-rpt-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
 function ComingSoonGen() {
   return (
     <div className="border-2 bg-white p-12 flex flex-col items-center gap-4">
@@ -3102,6 +3440,9 @@ const REPORT_COMPONENT: Record<
   "miss-punch": MissPunchGen,
   "employee-directory": EmployeeDirectoryGen,
   "employee-report": EmployeeReportGen,
+  "student-attendance-report": StudentAttendanceReportGen,
+  "student-subscription-report": StudentSubscriptionReportGen,
+  "tournament-report": TournamentReportGen,
 };
 
 const CATEGORY_META: Record<
@@ -3111,6 +3452,7 @@ const CATEGORY_META: Record<
   payroll: { label: "PayRoll", color: "#024BAB", count: 0 },
   attendance: { label: "Attendance", color: "#00C48C", count: 0 },
   employee: { label: "Employee", color: "#FA731C", count: 0 },
+  student: { label: "Student", color: "#A855F7", count: 0 },
 };
 
 const CHART_COLORS = [
@@ -3703,6 +4045,7 @@ export default function ReportsPage() {
     payroll: [],
     attendance: [],
     employee: [],
+    student: [],
   };
   filtered.forEach((r) => grouped[r.category].push(r));
 
@@ -3715,6 +4058,7 @@ export default function ReportsPage() {
     payroll: 0,
     attendance: 0,
     employee: 0,
+    student: 0,
   };
   REPORTS.forEach((r) => catCounts[r.category]++);
 
@@ -3812,6 +4156,7 @@ export default function ReportsPage() {
                   ["payroll", "PayRoll"],
                   ["attendance", "Attendance"],
                   ["employee", "Employee"],
+                  ["student", "Student"],
                 ] as [Category | "all", string][]
               ).map(([id, label]) => (
                 <button
@@ -3854,7 +4199,7 @@ export default function ReportsPage() {
           </div>
 
           {}
-          {(["payroll", "attendance", "employee"] as Category[]).map((cat) => {
+          {(["payroll", "attendance", "employee", "student"] as Category[]).map((cat) => {
             const catReports = grouped[cat];
             if (catReports.length === 0) return null;
             return (

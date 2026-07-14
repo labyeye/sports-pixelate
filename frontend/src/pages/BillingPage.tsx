@@ -28,25 +28,18 @@ declare global {
   }
 }
 
-type Tier = "web" | "web_mobile" | "web_mobile_whatsapp";
-
-const PLANS: { tier: Tier; name: string; rate: number }[] = [
-  { tier: "web", name: "Web", rate: 500 },
-  { tier: "web_mobile", name: "Web + Mobile", rate: 700 },
-  { tier: "web_mobile_whatsapp", name: "Web + Mobile + WhatsApp", rate: 800 },
-];
+const RATE_PER_STUDENT = 150;
 
 export default function BillingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [selectedTier, setSelectedTier] = useState<Tier>("web_mobile");
   const [subscription, setSubscription] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [newEmployeeCount, setNewEmployeeCount] = useState<number | "">("");
+  const [newStudentCount, setNewStudentCount] = useState<number | "">("");
   const [gatewayModal, setGatewayModal] = useState(false);
 
   useEffect(() => {
@@ -56,8 +49,7 @@ export default function BillingPage() {
         .then((r) => {
           if (r.success) {
             setSubscription(r.data);
-            setNewEmployeeCount(r.data.maxEmployees || "");
-            if (r.data.tier) setSelectedTier(r.data.tier);
+            setNewStudentCount(r.data.maxStudents || "");
           }
         })
         .catch(() => {}),
@@ -71,19 +63,21 @@ export default function BillingPage() {
   }, []);
 
   const sub = subscription || user?.company?.subscription;
-  const currentPlanId = sub?.plan || "1-10 employees";
+  const currentPlanId = sub?.plan || "NestSports Standard";
 
   const currentPlan = {
     name: currentPlanId,
     monthlyPrice: sub?.monthlyPrice || 0,
     yearlyPrice: sub?.yearlyPrice || 0,
-    maxEmployees: sub?.maxEmployees || 0,
+    maxStudents: sub?.maxStudents || 0,
   };
 
-  const empUsed = sub?.currentEmployeeCount ?? 0;
-  const empMax = sub?.maxEmployees ?? currentPlan.maxEmployees ?? 0;
-  const empPct =
-    empMax > 0 ? Math.min(Math.round((empUsed / empMax) * 100), 100) : 0;
+  const studentsUsed = sub?.currentStudentCount ?? 0;
+  const studentsMax = sub?.maxStudents ?? currentPlan.maxStudents ?? 0;
+  const studentsPct =
+    studentsMax > 0
+      ? Math.min(Math.round((studentsUsed / studentsMax) * 100), 100)
+      : 0;
 
   const isTrial = sub?.isTrial ?? false;
   const trialEndDate = sub?.trialEndDate ? new Date(sub.trialEndDate) : null;
@@ -129,12 +123,12 @@ export default function BillingPage() {
     }
   };
 
-  const handleUpdateTeamSize = () => {
-    const count = Number(newEmployeeCount);
+  const handleUpdateStudentCount = () => {
+    const count = Number(newStudentCount);
     if (!count || count < 1) {
       toast({
-        title: "Enter employee count",
-        description: "How many employees should this plan cover?",
+        title: "Enter student count",
+        description: "How many students should this plan cover?",
         variant: "destructive",
       });
       return;
@@ -143,17 +137,12 @@ export default function BillingPage() {
   };
 
   const handleGatewaySelect = async (gateway: "razorpay" | "hdfc") => {
-    const count = Number(newEmployeeCount);
+    const count = Number(newStudentCount);
     if (!count) return;
     setGatewayModal(false);
     setUpgrading(true);
     try {
-      const res = await billingAPI.createOrder(
-        count,
-        selectedTier,
-        "yearly",
-        gateway,
-      );
+      const res = await billingAPI.createOrder(count, "yearly", gateway);
       if (!res.success) throw new Error("Failed to create order");
       const order = res.data;
 
@@ -171,7 +160,7 @@ export default function BillingPage() {
             amount: order.amount * 100,
             currency: order.currency || "INR",
             name: "NestSports",
-            description: `NestSports — ${count} employees — ${order.plan}`,
+            description: `NestSports — ${count} students — ${order.plan}`,
             prefill: {
               name: order.userName,
               email: order.userEmail,
@@ -316,10 +305,10 @@ export default function BillingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
-              label: "Employees",
-              value: empUsed,
-              max: empMax === 999 ? "∞" : empMax,
-              pct: empMax === 999 ? 10 : empPct,
+              label: "Students",
+              value: studentsUsed,
+              max: studentsMax,
+              pct: studentsPct,
               icon: Users,
             },
             {
@@ -331,7 +320,7 @@ export default function BillingPage() {
             },
             {
               label: "Plan Limit",
-              value: empMax === 999 ? "Unlimited" : `${empMax} emp`,
+              value: `${studentsMax} students`,
               max: "",
               pct: 100,
               icon: Building2,
@@ -368,42 +357,22 @@ export default function BillingPage() {
         {}
         <div>
           <h2 className="font-display font-bold text-2xl text-black mb-6">
-            Change Plan
+            Update Student Count
           </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 max-w-2xl">
-            {PLANS.map((p) => {
-              const isSelected = selectedTier === p.tier;
-              return (
-                <button
-                  key={p.tier}
-                  onClick={() => setSelectedTier(p.tier)}
-                  className={cn(
-                    "text-left border-2 bg-white p-4 transition-all",
-                    isSelected
-                      ? "border-[#024BAB] ring-2 ring-[#024BAB]"
-                      : "border-black hover:border-[#024BAB]",
-                  )}
-                >
-                  <p className="font-bold text-sm text-black">{p.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ₹{p.rate}/employee/year
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+          <p className="text-sm text-muted-foreground -mt-4 mb-6">
+            One flat plan, full features — ₹{RATE_PER_STUDENT}/student/year
+          </p>
 
           <div className="border-2 p-5 bg-white max-w-sm">
             <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
-              Number of employees
+              Number of students
             </label>
             <input
               type="number"
               min={1}
-              value={newEmployeeCount}
+              value={newStudentCount}
               onChange={(e) =>
-                setNewEmployeeCount(
+                setNewStudentCount(
                   e.target.value === ""
                     ? ""
                     : Math.max(1, parseInt(e.target.value) || 1),
@@ -412,12 +381,11 @@ export default function BillingPage() {
               className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
             />
 
-            {Number(newEmployeeCount) > 0 && (
+            {Number(newStudentCount) > 0 && (
               <div className="mb-4">
                 {(() => {
-                  const count = Number(newEmployeeCount);
-                  const plan = PLANS.find((p) => p.tier === selectedTier)!;
-                  const yearly = count * plan.rate;
+                  const count = Number(newStudentCount);
+                  const yearly = count * RATE_PER_STUDENT;
                   return (
                     <>
                       <span className="font-display font-bold text-3xl text-black">
@@ -427,7 +395,7 @@ export default function BillingPage() {
                         /yr
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
-                        ₹{plan.rate}/employee/year · {plan.name}
+                        ₹{RATE_PER_STUDENT}/student/year
                       </p>
                     </>
                   );
@@ -436,12 +404,8 @@ export default function BillingPage() {
             )}
 
             <button
-              onClick={handleUpdateTeamSize}
-              disabled={
-                upgrading ||
-                (Number(newEmployeeCount) === empMax &&
-                  selectedTier === sub?.tier)
-              }
+              onClick={handleUpdateStudentCount}
+              disabled={upgrading || Number(newStudentCount) === studentsMax}
               className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
             >
               {upgrading ? (

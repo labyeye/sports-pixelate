@@ -34,27 +34,21 @@ const FEATURES_BY_TIER = {
   },
 };
 
-const TIER_RATES = {
-  web: 500,
-  web_mobile: 700,
-  web_mobile_whatsapp: 800,
-};
-
+// Billing is now a single flat plan (₹150/student/year) — every company with
+// a real subscription gets the full feature set. `FEATURES_BY_TIER` and the
+// `tier` field on Subscription are kept only for the superadmin override
+// endpoint (adminController.updateCompanyTier) and historical records; they
+// no longer gate what a tenant can access.
 // Fail-closed: no company doc or no subscription at all → most restrictive
-// feature set ("web"). But a subscription that predates the `tier` field
-// (every tenant created before this field existed) should NOT be silently
-// downgraded — those default to full access, matching the schema's own
-// `default: "web_mobile_whatsapp"` for new documents.
+// feature set ("web").
 async function getCompanyFeatures(companyId) {
   const company = companyId
     ? await Company.findById(companyId).select("subscription")
     : null;
   const sub = company?.subscription
-    ? await Subscription.findById(company.subscription).select("tier")
+    ? await Subscription.findById(company.subscription).select("_id")
     : null;
-  if (!sub) return FEATURES_BY_TIER.web;
-  const tier = sub.tier || "web_mobile_whatsapp";
-  return FEATURES_BY_TIER[tier] || FEATURES_BY_TIER.web;
+  return sub ? FEATURES_BY_TIER.web_mobile_whatsapp : FEATURES_BY_TIER.web;
 }
 
-module.exports = { FEATURES_BY_TIER, TIER_RATES, getCompanyFeatures };
+module.exports = { FEATURES_BY_TIER, getCompanyFeatures };

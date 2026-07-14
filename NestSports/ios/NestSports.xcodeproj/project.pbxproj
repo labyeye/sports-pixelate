@@ -8,22 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		0C80B921A6F3F58F76C31292 /* libPods-NestSports.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-NestSports.a */; };
+		0F9A15124C0748A4AF6064BE /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D66FF141321A45D9AFCEFCA6 /* DMSans-Medium.ttf */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		2518A9D1866F4C6B9BB32EAF /* DMSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 50BC0C400DDE42EEB6BE1261 /* DMSans-SemiBold.ttf */; };
+		6094A90BA133440F8F095E0A /* DMSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 680ABE3F15224DC297A35A1E /* DMSans-Bold.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		978FF257251B4AE398A1BF2F /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 111217323F3E4EBAA3FD43C3 /* DMSans-Regular.ttf */; };
 		F94DEBB4610C9A3EB64D98AA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		111217323F3E4EBAA3FD43C3 /* DMSans-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "DMSans-Regular.ttf"; path = "../src/assets/fonts/DMSans-Regular.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* NestSports.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NestSports.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = NestSports/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = NestSports/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = NestSports/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-NestSports.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NestSports.debug.xcconfig"; path = "Target Support Files/Pods-NestSports/Pods-NestSports.debug.xcconfig"; sourceTree = "<group>"; };
+		50BC0C400DDE42EEB6BE1261 /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "DMSans-SemiBold.ttf"; path = "../src/assets/fonts/DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-NestSports.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NestSports.release.xcconfig"; path = "Target Support Files/Pods-NestSports/Pods-NestSports.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-NestSports.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-NestSports.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		680ABE3F15224DC297A35A1E /* DMSans-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "DMSans-Bold.ttf"; path = "../src/assets/fonts/DMSans-Bold.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = NestSports/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = NestSports/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D66FF141321A45D9AFCEFCA6 /* DMSans-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "DMSans-Medium.ttf"; path = "../src/assets/fonts/DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -60,6 +68,18 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		7A0407A07E4544AEA909F565 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				111217323F3E4EBAA3FD43C3 /* DMSans-Regular.ttf */,
+				D66FF141321A45D9AFCEFCA6 /* DMSans-Medium.ttf */,
+				680ABE3F15224DC297A35A1E /* DMSans-Bold.ttf */,
+				50BC0C400DDE42EEB6BE1261 /* DMSans-SemiBold.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -75,6 +95,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				7A0407A07E4544AEA909F565 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -161,6 +182,10 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				F94DEBB4610C9A3EB64D98AA /* PrivacyInfo.xcprivacy in Resources */,
+				978FF257251B4AE398A1BF2F /* DMSans-Regular.ttf in Resources */,
+				0F9A15124C0748A4AF6064BE /* DMSans-Medium.ttf in Resources */,
+				6094A90BA133440F8F095E0A /* DMSans-Bold.ttf in Resources */,
+				2518A9D1866F4C6B9BB32EAF /* DMSans-SemiBold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

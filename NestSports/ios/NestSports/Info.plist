@@ -34,7 +34,11 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string/>
+	<key>NSCameraUsageDescription</key>
+	<string>NestSports needs camera access to update student and guardian photos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>NestSports needs photo library access to update student and guardian photos</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -56,5 +60,12 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>DMSans-Regular.ttf</string>
+		<string>DMSans-Medium.ttf</string>
+		<string>DMSans-Bold.ttf</string>
+		<string>DMSans-SemiBold.ttf</string>
+	</array>
 </dict>
 </plist>

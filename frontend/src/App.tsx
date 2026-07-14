@@ -22,6 +22,8 @@ import PayrollSettingsPage from "./pages/PayrollSettingsPage";
 import StudentsPage from "./pages/StudentsPage";
 import StudentAttendancePage from "./pages/StudentAttendancePage";
 import PlansPage from "./pages/PlansPage";
+import TournamentsPage from "./pages/TournamentsPage";
+import TournamentDetailPage from "./pages/TournamentDetailPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import InventoryPage from "./pages/InventoryPage";
@@ -344,6 +346,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PlansPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tournaments"
+          element={
+            <ProtectedRoute>
+              <TournamentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tournaments/:id"
+          element={
+            <ProtectedRoute>
+              <TournamentDetailPage />
             </ProtectedRoute>
           }
         />

@@ -16,15 +16,9 @@ const pendingOrderSchema = new mongoose.Schema(
     gstNumber: { type: String },
     panNumber: { type: String },
 
-    employeeCount: { type: Number, required: true },
+    studentCount: { type: Number, required: true },
     billingCycle: { type: String, enum: ["monthly", "yearly"], required: true },
-    tier: {
-      type: String,
-      enum: ["web", "web_mobile", "web_mobile_whatsapp"],
-      required: true,
-    },
-    ratePerEmployee: { type: Number, required: true },
-    tierLabel: { type: String, required: true },
+    ratePerStudent: { type: Number, required: true },
     monthlyPrice: { type: Number, required: true },
     yearlyPrice: { type: Number, required: true },
 

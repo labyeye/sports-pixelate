@@ -25,7 +25,7 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
     <>
       <aside
         className={cn(
-          "min-h-screen bg-white border-r-2 border-black flex flex-col transition-all duration-300 ease-out z-50 shrink-0",
+          "h-screen bg-white border-r-2 border-black flex flex-col transition-all duration-300 ease-out z-50 shrink-0",
           "fixed inset-y-0 left-0 lg:sticky lg:top-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           collapsed ? "lg:w-16" : "w-62",

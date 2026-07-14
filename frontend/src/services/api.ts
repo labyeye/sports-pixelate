@@ -278,8 +278,7 @@ export const billingAPI = {
   getInvoices: () =>
     request<{ success: boolean; data: any }>("/billing/invoices"),
   createOrder: (
-    employeeCount: number,
-    tier: "web" | "web_mobile" | "web_mobile_whatsapp",
+    studentCount: number,
     billingCycle: "monthly" | "yearly",
     gateway: "razorpay" | "hdfc" = "razorpay",
     company?: {
@@ -295,8 +294,7 @@ export const billingAPI = {
     request<{ success: boolean; data: any }>("/billing/create-order", {
       method: "POST",
       body: JSON.stringify({
-        employeeCount,
-        tier,
+        studentCount,
         billingCycle,
         gateway,
         company,
@@ -785,6 +783,31 @@ export const sportsPlanAPI = {
   update: (id: string, body: object) =>
     request(`/plans/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/plans/${id}`, { method: "DELETE" }),
+};
+
+export const tournamentAPI = {
+  getAll: () => request("/tournaments"),
+  getOne: (id: string) => request(`/tournaments/${id}`),
+  create: (body: object) =>
+    request("/tournaments", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/tournaments/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  delete: (id: string) => request(`/tournaments/${id}`, { method: "DELETE" }),
+  addTeam: (id: string, name: string) =>
+    request(`/tournaments/${id}/teams`, { method: "POST", body: JSON.stringify({ name }) }),
+  removeTeam: (id: string, teamId: string) =>
+    request(`/tournaments/${id}/teams/${teamId}`, { method: "DELETE" }),
+  generateFixtures: (id: string, opts?: { regenerate?: boolean; shuffle?: boolean }) =>
+    request(`/tournaments/${id}/fixtures/generate`, {
+      method: "POST",
+      body: JSON.stringify(opts || {}),
+    }),
+  getFixtures: (id: string) => request(`/tournaments/${id}/fixtures`),
+  recordResult: (fixtureId: string, body: { scoreA?: number; scoreB?: number; winner?: "A" | "B" }) =>
+    request(`/tournaments/fixtures/${fixtureId}/result`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 };
 
 export const subscriptionAPI = {

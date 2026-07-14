@@ -233,15 +233,14 @@ export const billingAPI = {
   getSubscription: () => request("/billing/subscription"),
   getInvoices: () => request("/billing/invoices"),
   createOrder: (
-    employeeCount: number,
-    tier: "web" | "web_mobile" | "web_mobile_whatsapp",
+    studentCount: number,
     billingCycle: "monthly" | "yearly",
     gateway: "razorpay" | "hdfc" = "razorpay",
     company?: object,
   ) =>
     request("/billing/create-order", {
       method: "POST",
-      body: JSON.stringify({ employeeCount, tier, billingCycle, gateway, company }),
+      body: JSON.stringify({ studentCount, billingCycle, gateway, company }),
     }),
   verifyPayment: (payload: object) =>
     request("/billing/verify-payment", { method: "POST", body: JSON.stringify(payload) }),
@@ -382,6 +381,8 @@ export const studentAPI = {
   delete: (id: string) => request(`/students/${id}`, { method: "DELETE" }),
   uploadAvatar: (id: string, avatar: RNFile) =>
     upload(`/students/${id}/avatar`, toFormData({ avatar })),
+  uploadGuardianPhoto: (id: string, guardianId: string, photo: RNFile) =>
+    upload(`/students/${id}/guardians/${guardianId}/photo`, toFormData({ photo })),
 };
 
 export const studentAttendanceAPI = {
@@ -402,6 +403,31 @@ export const sportsPlanAPI = {
   update: (id: string, body: object) =>
     request(`/plans/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/plans/${id}`, { method: "DELETE" }),
+};
+
+export const tournamentAPI = {
+  getAll: () => request("/tournaments"),
+  getOne: (id: string) => request(`/tournaments/${id}`),
+  create: (body: object) =>
+    request("/tournaments", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/tournaments/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  delete: (id: string) => request(`/tournaments/${id}`, { method: "DELETE" }),
+  addTeam: (id: string, name: string) =>
+    request(`/tournaments/${id}/teams`, { method: "POST", body: JSON.stringify({ name }) }),
+  removeTeam: (id: string, teamId: string) =>
+    request(`/tournaments/${id}/teams/${teamId}`, { method: "DELETE" }),
+  generateFixtures: (id: string, opts?: { regenerate?: boolean; shuffle?: boolean }) =>
+    request(`/tournaments/${id}/fixtures/generate`, {
+      method: "POST",
+      body: JSON.stringify(opts || {}),
+    }),
+  getFixtures: (id: string) => request(`/tournaments/${id}/fixtures`),
+  recordResult: (fixtureId: string, body: { scoreA?: number; scoreB?: number; winner?: "A" | "B" }) =>
+    request(`/tournaments/fixtures/${fixtureId}/result`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 };
 
 export const subscriptionAPI = {

@@ -9,15 +9,15 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { TIER_RATES, TIER_LABELS, calculatePricing } = require("../utils/pricing");
+const { RATE_PER_STUDENT, calculatePricing } = require("../utils/pricing");
+
+const PLAN_NAME = "NestSports Standard";
 
 const getPlans = asyncHandler(async (req, res) => {
-  const plans = Object.keys(TIER_RATES).map((tier) => ({
-    tier,
-    label: TIER_LABELS[tier],
-    ratePerEmployee: TIER_RATES[tier],
-  }));
-  res.json({ success: true, data: plans });
+  res.json({
+    success: true,
+    data: [{ name: PLAN_NAME, ratePerStudent: RATE_PER_STUDENT }],
+  });
 });
 
 const getSubscription = asyncHandler(async (req, res) => {
@@ -91,24 +91,17 @@ const validateOfferCode = asyncHandler(async (req, res) => {
 
 const createOrder = asyncHandler(async (req, res) => {
   const {
-    employeeCount,
-    tier,
+    studentCount,
     billingCycle = "monthly",
     gateway = "razorpay",
     offerCode,
     company: companyDetails,
   } = req.body;
 
-  const empCount = Number(employeeCount);
-  if (!empCount || empCount < 1 || !Number.isInteger(empCount)) {
+  const count = Number(studentCount);
+  if (!count || count < 1 || !Number.isInteger(count)) {
     res.status(400);
-    throw new Error("Please provide a valid number of employees");
-  }
-  if (!Object.keys(TIER_RATES).includes(tier)) {
-    res.status(400);
-    throw new Error(
-      `Invalid plan. Choose one of: ${Object.keys(TIER_RATES).join(", ")}`,
-    );
+    throw new Error("Please provide a valid number of students");
   }
   if (!["monthly", "yearly"].includes(billingCycle)) {
     res.status(400);
@@ -119,7 +112,7 @@ const createOrder = asyncHandler(async (req, res) => {
     throw new Error("Invalid gateway. Use razorpay or hdfc");
   }
 
-  const pricing = calculatePricing(empCount, tier);
+  const pricing = calculatePricing(count);
 
   const existingCompany = await Company.findOne({ createdBy: req.user._id });
 
@@ -180,7 +173,7 @@ const createOrder = asyncHandler(async (req, res) => {
       amount: amountRupees,
       receipt: `rcpt_${Date.now()}`,
       notes: {
-        employeeCount: empCount,
+        studentCount: count,
         billingCycle,
         userId: req.user._id.toString(),
         companyId: existingCompany ? existingCompany._id.toString() : "",
@@ -192,13 +185,12 @@ const createOrder = asyncHandler(async (req, res) => {
         { company: existingCompany._id },
         {
           company: existingCompany._id,
-          plan: pricing.tierLabel,
-          tier: pricing.tier,
-          employeeCount: empCount,
-          ratePerEmployee: pricing.ratePerEmployee,
+          plan: PLAN_NAME,
+          studentCount: count,
+          ratePerStudent: pricing.ratePerStudent,
           monthlyPrice: pricing.monthlyPrice,
           yearlyPrice: pricing.yearlyPrice,
-          maxEmployees: empCount,
+          maxStudents: count,
           billingCycle,
           startDate: new Date(),
           renewalDate: new Date(),
@@ -224,11 +216,9 @@ const createOrder = asyncHandler(async (req, res) => {
         website: newCompanyDetails.website,
         gstNumber: newCompanyDetails.gstNumber,
         panNumber: newCompanyDetails.panNumber,
-        employeeCount: empCount,
+        studentCount: count,
         billingCycle,
-        tier: pricing.tier,
-        ratePerEmployee: pricing.ratePerEmployee,
-        tierLabel: pricing.tierLabel,
+        ratePerStudent: pricing.ratePerStudent,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
         offerCode: validatedOffer ? validatedOffer.code : null,
@@ -242,9 +232,9 @@ const createOrder = asyncHandler(async (req, res) => {
       keyId: result.keyId,
       amount: amountRupees,
       currency: "INR",
-      employeeCount: empCount,
-      ratePerEmployee: pricing.ratePerEmployee,
-      plan: pricing.tierLabel,
+      studentCount: count,
+      ratePerStudent: pricing.ratePerStudent,
+      plan: PLAN_NAME,
       billingCycle,
       companyName: existingCompany ? existingCompany.name : newCompanyDetails.name,
       userName: req.user.name,
@@ -277,13 +267,12 @@ const createOrder = asyncHandler(async (req, res) => {
         { company: existingCompany._id },
         {
           company: existingCompany._id,
-          plan: pricing.tierLabel,
-          tier: pricing.tier,
-          employeeCount: empCount,
-          ratePerEmployee: pricing.ratePerEmployee,
+          plan: PLAN_NAME,
+          studentCount: count,
+          ratePerStudent: pricing.ratePerStudent,
           monthlyPrice: pricing.monthlyPrice,
           yearlyPrice: pricing.yearlyPrice,
-          maxEmployees: empCount,
+          maxStudents: count,
           billingCycle,
           startDate: new Date(),
           renewalDate: new Date(),
@@ -309,11 +298,9 @@ const createOrder = asyncHandler(async (req, res) => {
         website: newCompanyDetails.website,
         gstNumber: newCompanyDetails.gstNumber,
         panNumber: newCompanyDetails.panNumber,
-        employeeCount: empCount,
+        studentCount: count,
         billingCycle,
-        tier: pricing.tier,
-        ratePerEmployee: pricing.ratePerEmployee,
-        tierLabel: pricing.tierLabel,
+        ratePerStudent: pricing.ratePerStudent,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
         offerCode: validatedOffer ? validatedOffer.code : null,
@@ -327,9 +314,9 @@ const createOrder = asyncHandler(async (req, res) => {
       paymentUrl: result.paymentUrl,
       amount: amountRupees,
       currency: "INR",
-      employeeCount: empCount,
-      ratePerEmployee: pricing.ratePerEmployee,
-      plan: pricing.tierLabel,
+      studentCount: count,
+      ratePerStudent: pricing.ratePerStudent,
+      plan: PLAN_NAME,
       billingCycle,
       offerApplied: !!validatedOffer,
       bonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
@@ -488,13 +475,12 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
 
   const subscription = await Subscription.create({
     company: company._id,
-    plan: pendingOrder.tierLabel,
-    tier: pendingOrder.tier,
-    employeeCount: pendingOrder.employeeCount,
-    ratePerEmployee: pendingOrder.ratePerEmployee,
+    plan: PLAN_NAME,
+    studentCount: pendingOrder.studentCount,
+    ratePerStudent: pendingOrder.ratePerStudent,
     monthlyPrice: pendingOrder.monthlyPrice,
     yearlyPrice: pendingOrder.yearlyPrice,
-    maxEmployees: pendingOrder.employeeCount,
+    maxStudents: pendingOrder.studentCount,
     billingCycle: pendingOrder.billingCycle,
     startDate,
     renewalDate,
@@ -526,7 +512,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
     company: company._id,
     subscription: subscription._id,
     invoiceNumber,
-    plan: pendingOrder.tierLabel,
+    plan: PLAN_NAME,
     billingCycle: pendingOrder.billingCycle,
     amount: amountPaid,
     status: "paid",
@@ -559,7 +545,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
     toName: req.user.name || company.name,
     toPhone: req.user.phone || company.phone || "",
     companyName: company.name,
-    planName: pendingOrder.tierLabel,
+    planName: PLAN_NAME,
     amount: amountPaid,
     billingCycle: pendingOrder.billingCycle,
     renewalDate,
@@ -577,7 +563,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
         email: company.email,
         status: company.status,
       },
-      plan: pendingOrder.tierLabel,
+      plan: PLAN_NAME,
       billingCycle: pendingOrder.billingCycle,
       amount: amountPaid,
       renewalDate,
