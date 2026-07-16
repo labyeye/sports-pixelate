@@ -26,7 +26,10 @@ const inventoryItemSchema = new mongoose.Schema(
     reorderThreshold: { type: Number, default: 0 },
     assignments: [
       {
-        assignedTo: { type: mongoose.Schema.Types.ObjectId, refPath: "assignments.assignedToModel" },
+        assignedTo: {
+          type: mongoose.Schema.Types.ObjectId,
+          refPath: "assignments.assignedToModel",
+        },
         assignedToModel: { type: String, enum: ["Student", "Employee"] },
         quantity: { type: Number, default: 1 },
         assignedAt: { type: Date, default: Date.now },

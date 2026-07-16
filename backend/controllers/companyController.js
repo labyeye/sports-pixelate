@@ -22,7 +22,7 @@ const registerCompany = asyncHandler(async (req, res) => {
 
   if (await Company.findOne({ email })) {
     res.status(400);
-    throw new Error("Company already registered with this email");
+    throw new Error("SportsClub already registered with this email");
   }
 
   const company = await Company.create({
@@ -118,7 +118,7 @@ const getCompanyDetails = asyncHandler(async (req, res) => {
 
   if (!company) {
     res.status(404);
-    throw new Error("Company not found");
+    throw new Error("SportsClub not found");
   }
 
   res.json({ success: true, data: company });
@@ -132,7 +132,7 @@ const updateCompanyProfile = asyncHandler(async (req, res) => {
 
   if (!company) {
     res.status(404);
-    throw new Error("Company not found");
+    throw new Error("SportsClub not found");
   }
 
   if (name) company.name = name;
@@ -155,7 +155,7 @@ const upgradeSubscription = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.company._id);
   if (!company) {
     res.status(404);
-    throw new Error("Company not found");
+    throw new Error("SportsClub not found");
   }
 
   const plan = await Plan.findOne({ planType });
@@ -215,7 +215,7 @@ const getSubscriptionDetails = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.company._id);
   if (!company) {
     res.status(404);
-    throw new Error("Company not found");
+    throw new Error("SportsClub not found");
   }
 
   const subscription = await Subscription.findById(company.subscription);
@@ -239,7 +239,7 @@ const getMyCompany = asyncHandler(async (req, res) => {
   if (!company) {
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   }
 
   res.json({

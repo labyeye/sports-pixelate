@@ -8,12 +8,14 @@ const subscriptionSchema = new mongoose.Schema(
       required: true,
     },
     plan: { type: String, required: true },
-    // Kept for the superadmin tier-override endpoint and historical records —
-    // no longer drives pricing or feature access (see utils/planFeatures.js).
+    // Drives per-student pricing (see utils/pricing.js) and feature access
+    // (see utils/planFeatures.js) — "whatsapp" unlocks WhatsApp notifications,
+    // "standard" doesn't. Defaults to "whatsapp" so pre-existing subscriptions
+    // (created before the two-tier split) keep the access they already had.
     tier: {
       type: String,
-      enum: ["web", "web_mobile", "web_mobile_whatsapp"],
-      default: "web_mobile_whatsapp",
+      enum: ["standard", "whatsapp"],
+      default: "whatsapp",
     },
     studentCount: { type: Number },
     ratePerStudent: { type: Number },

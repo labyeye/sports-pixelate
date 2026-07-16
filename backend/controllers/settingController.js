@@ -42,4 +42,27 @@ const uploadCompanyLogo = (req, res) => {
     });
 };
 
-module.exports = { getSettings, updateSettings, uploadCompanyLogo };
+const uploadPaymentQr = (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error("No file uploaded");
+  }
+  const paymentQrUrl = `/uploads/payment-qr/${req.file.filename}`;
+  Setting.findOneAndUpdate(
+    { company: req.user.company },
+    { $set: { paymentQrUrl, company: req.user.company } },
+    { new: true, upsert: true },
+  )
+    .then((setting) => res.json({ success: true, paymentQrUrl, data: setting }))
+    .catch((err) => {
+      res.status(500);
+      throw err;
+    });
+};
+
+module.exports = {
+  getSettings,
+  updateSettings,
+  uploadCompanyLogo,
+  uploadPaymentQr,
+};

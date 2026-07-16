@@ -1,12 +1,18 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { expenseAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { expenseAPI } from '../api/client';
+import { Card, EmptyState, LoadingView, Badge } from '../components/ui';
+import { colors } from '../theme/colors';
 
 function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 }
 
 export default function ExpensesScreen() {
@@ -40,28 +46,41 @@ export default function ExpensesScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>Expenses</Text>
-        <Text style={styles.subtitle}>Spent this month: {formatCurrency(totalAmount)}</Text>
+        <Text style={styles.subtitle}>
+          Spent this month: {formatCurrency(totalAmount)}
+        </Text>
 
         {expenses.length === 0 ? (
           <Card>
             <EmptyState title="No expenses found" />
           </Card>
         ) : (
-          expenses.map((e) => (
+          expenses.map(e => (
             <Card key={e._id}>
               <View style={styles.headerRow}>
                 <Text style={styles.name}>{e.title}</Text>
-                <Badge label={e.category?.replace("_", " ")} color={colors.orange} />
+                <Badge
+                  label={e.category?.replace('_', ' ')}
+                  color={colors.orange}
+                />
               </View>
               <Text style={styles.sub}>
-                {e.date ? new Date(e.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                {e.date
+                  ? new Date(e.date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '—'}
               </Text>
               <Text style={styles.amount}>{formatCurrency(e.amount)}</Text>
             </Card>
@@ -74,10 +93,19 @@ export default function ExpensesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  amount: { fontWeight: "800", color: colors.black, fontSize: 16, marginTop: 8 },
+  amount: {
+    fontWeight: '800',
+    color: colors.black,
+    fontSize: 16,
+    marginTop: 8,
+  },
 });

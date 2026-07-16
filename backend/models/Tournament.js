@@ -9,6 +9,21 @@ const teamSchema = new mongoose.Schema(
   { _id: true },
 );
 
+// A student (via their parent, in the app) signing up to take part in the
+// tournament. Independent of `teams` — this is who's playing, not bracket
+// seeding, which staff still assemble manually.
+const registrationSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
+    registeredAt: { type: Date, default: Date.now },
+  },
+  { _id: true },
+);
+
 const tournamentSchema = new mongoose.Schema(
   {
     company: {
@@ -27,6 +42,10 @@ const tournamentSchema = new mongoose.Schema(
     endDate: { type: Date },
     venue: { type: String, trim: true },
     teams: [teamSchema],
+    registrations: [registrationSchema],
+    // Staff can close this once the roster is final; also auto-implied closed
+    // once fixtures are generated.
+    registrationOpen: { type: Boolean, default: true },
     status: {
       type: String,
       enum: ["draft", "upcoming", "ongoing", "completed"],

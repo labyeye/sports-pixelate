@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { loanAPI } from "../api/client";
-import { Card, Row, Badge, EmptyState, LoadingView } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { loanAPI } from '../api/client';
+import { Card, Row, Badge, EmptyState, LoadingView } from '../components/ui';
+import { colors } from '../theme/colors';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: colors.yellow,
@@ -14,7 +14,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 }
 
 export default function MyLoansScreen() {
@@ -23,7 +23,10 @@ export default function MyLoansScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(
-    () => loanAPI.getAll().then((res: any) => res.success && setLoans(res.data || [])),
+    () =>
+      loanAPI
+        .getAll()
+        .then((res: any) => res.success && setLoans(res.data || [])),
     [],
   );
 
@@ -42,11 +45,13 @@ export default function MyLoansScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Card>
           {loans.length === 0 ? (
@@ -55,13 +60,20 @@ export default function MyLoansScreen() {
             loans.map((l: any) => (
               <Row
                 key={l._id}
-                title={`${(l.type || "loan") === "advance" ? "Advance" : "Loan"} · ${formatCurrency(l.amount)}`}
+                title={`${
+                  (l.type || 'loan') === 'advance' ? 'Advance' : 'Loan'
+                } · ${formatCurrency(l.amount)}`}
                 subtitle={
                   l.remainingBalance != null
                     ? `Remaining: ${formatCurrency(l.remainingBalance)}`
-                    : l.reason || ""
+                    : l.reason || ''
                 }
-                right={<Badge label={l.status} color={STATUS_COLORS[l.status] || colors.blue} />}
+                right={
+                  <Badge
+                    label={l.status}
+                    color={STATUS_COLORS[l.status] || colors.blue}
+                  />
+                }
               />
             ))
           )}

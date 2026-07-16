@@ -40,8 +40,20 @@ const studentSubscriptionSchema = new mongoose.Schema(
     razorpayOrderId: { type: String, index: true },
     razorpayPaymentId: { type: String },
     amountPaid: { type: Number, default: 0 },
+    paymentMethod: {
+      type: String,
+      enum: ["razorpay", "qr"],
+      default: "razorpay",
+    },
+    qrReferenceNumber: { type: String }, // UTR/UPI ref the parent submits after paying the owner's QR
+    paymentScreenshot: { type: String }, // proof-of-payment screenshot the parent uploads alongside the reference number
+    qrSubmittedAt: { type: Date },
+    confirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // owner/staff who confirmed a QR payment
   },
   { timestamps: true },
 );
 
-module.exports = mongoose.model("StudentSubscription", studentSubscriptionSchema);
+module.exports = mongoose.model(
+  "StudentSubscription",
+  studentSubscriptionSchema,
+);

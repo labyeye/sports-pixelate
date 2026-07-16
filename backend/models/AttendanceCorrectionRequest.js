@@ -33,10 +33,10 @@ const attendanceCorrectionRequestSchema = new mongoose.Schema(
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     rejectionReason: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model(
   "AttendanceCorrectionRequest",
-  attendanceCorrectionRequestSchema
+  attendanceCorrectionRequestSchema,
 );

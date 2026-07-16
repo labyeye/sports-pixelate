@@ -272,11 +272,13 @@ const getEmployeeStats = asyncHandler(async (req, res) => {
   }
 
   // 1. Birthday wishes & Work anniversaries
-  const isTodayUserBirthday = emp.dateOfBirth && 
+  const isTodayUserBirthday =
+    emp.dateOfBirth &&
     new Date(emp.dateOfBirth).getMonth() === now.getMonth() &&
     new Date(emp.dateOfBirth).getDate() === now.getDate();
 
-  const isTodayUserAnniversary = emp.joinDate &&
+  const isTodayUserAnniversary =
+    emp.joinDate &&
     new Date(emp.joinDate).getMonth() === now.getMonth() &&
     new Date(emp.joinDate).getDate() === now.getDate();
 
@@ -287,14 +289,18 @@ const getEmployeeStats = asyncHandler(async (req, res) => {
     status: "active",
   }).select("firstName lastName dateOfBirth joinDate designation avatar");
 
-  const todayBirthdays = allEmps.filter((e) => e.dateOfBirth &&
-    new Date(e.dateOfBirth).getMonth() === now.getMonth() &&
-    new Date(e.dateOfBirth).getDate() === now.getDate()
+  const todayBirthdays = allEmps.filter(
+    (e) =>
+      e.dateOfBirth &&
+      new Date(e.dateOfBirth).getMonth() === now.getMonth() &&
+      new Date(e.dateOfBirth).getDate() === now.getDate(),
   );
 
-  const todayAnniversaries = allEmps.filter((e) => e.joinDate &&
-    new Date(e.joinDate).getMonth() === now.getMonth() &&
-    new Date(e.joinDate).getDate() === now.getDate()
+  const todayAnniversaries = allEmps.filter(
+    (e) =>
+      e.joinDate &&
+      new Date(e.joinDate).getMonth() === now.getMonth() &&
+      new Date(e.joinDate).getDate() === now.getDate(),
   );
 
   // 2. Upcoming Holidays (next 30 days)
@@ -322,18 +328,26 @@ const getEmployeeStats = asyncHandler(async (req, res) => {
 
   // 5. Pending Approvals Count (if manager/admin)
   let pendingApprovalsCount = 0;
-  const isManager = ["super_admin", "hr_manager", "hr_executive"].includes(req.user.role) ||
-    await Employee.exists({ company: req.user.company, reportingTo: emp._id });
+  const isManager =
+    ["super_admin", "hr_manager", "hr_executive"].includes(req.user.role) ||
+    (await Employee.exists({
+      company: req.user.company,
+      reportingTo: emp._id,
+    }));
 
   if (isManager) {
     const Leave = require("../models/Leave");
     const AttendanceCorrectionRequest = require("../models/AttendanceCorrectionRequest");
 
-    const isAdmin = ["super_admin", "hr_manager", "hr_executive"].includes(req.user.role);
+    const isAdmin = ["super_admin", "hr_manager", "hr_executive"].includes(
+      req.user.role,
+    );
     let managerFilter = { company: req.user.company, status: "pending" };
 
     if (!isAdmin) {
-      const reports = await Employee.find({ reportingTo: emp._id }).select("_id");
+      const reports = await Employee.find({ reportingTo: emp._id }).select(
+        "_id",
+      );
       const reportIds = reports.map((r) => r._id);
       managerFilter.employee = { $in: reportIds };
     }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,23 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { authAPI } from "../../api/client";
-import { Button } from "../../components/ui";
-import { colors } from "../../theme/colors";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { authAPI } from '../../api/client';
+import { Button } from '../../components/ui';
+import { colors } from '../../theme/colors';
 
 export default function ResetPasswordScreen({ navigation }: any) {
-  const [token, setToken] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [token, setToken] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    setError("");
+    setError('');
     if (!token.trim() || !password) {
-      setError("Please fill in all fields");
+      setError('Please fill in all fields');
       return;
     }
     setLoading(true);
@@ -31,17 +31,20 @@ export default function ResetPasswordScreen({ navigation }: any) {
       await authAPI.resetPassword(token.trim(), password);
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || "Failed to reset password");
+      setError(err.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      edges={['top']}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.container}>
           <Text style={styles.logo}>
@@ -54,7 +57,10 @@ export default function ResetPasswordScreen({ navigation }: any) {
               <Text style={styles.success}>
                 Your password has been reset. You can now sign in.
               </Text>
-              <Button title="Back to Login" onPress={() => navigation.navigate("Login")} />
+              <Button
+                title="Back to Login"
+                onPress={() => navigation.navigate('Login')}
+              />
             </>
           ) : (
             <>
@@ -81,9 +87,16 @@ export default function ResetPasswordScreen({ navigation }: any) {
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
-              <Button title="Reset Password" onPress={onSubmit} loading={loading} />
+              <Button
+                title="Reset Password"
+                onPress={onSubmit}
+                loading={loading}
+              />
 
-              <Text style={styles.link} onPress={() => navigation.navigate("Login")}>
+              <Text
+                style={styles.link}
+                onPress={() => navigation.navigate('Login')}
+              >
                 Back to sign in
               </Text>
             </>
@@ -97,24 +110,24 @@ export default function ResetPasswordScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     padding: 24,
     backgroundColor: colors.background,
   },
   logo: {
     fontSize: 32,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.blue,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
-    textAlign: "center",
+    textAlign: 'center',
     color: colors.muted,
     marginBottom: 24,
   },
   field: { marginBottom: 14 },
-  label: { fontWeight: "700", marginBottom: 6, color: colors.black },
+  label: { fontWeight: '700', marginBottom: 6, color: colors.black },
   input: {
     borderWidth: 2,
     borderColor: colors.black,
@@ -123,12 +136,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
-  error: { color: colors.red, marginBottom: 12, fontWeight: "600" },
-  success: { color: colors.green, marginBottom: 16, fontWeight: "600", textAlign: "center" },
+  error: { color: colors.red, marginBottom: 12, fontWeight: '600' },
+  success: {
+    color: colors.green,
+    marginBottom: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   link: {
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 16,
     color: colors.blue,
-    fontWeight: "700",
+    fontWeight: '700',
   },
 });

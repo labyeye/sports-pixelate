@@ -27,12 +27,14 @@ function employmentBoundsError(emp, date) {
   if (emp.joinDate) {
     const jd = new Date(emp.joinDate);
     jd.setHours(0, 0, 0, 0);
-    if (date < jd) return "Cannot mark attendance before the employee's join date";
+    if (date < jd)
+      return "Cannot mark attendance before the employee's join date";
   }
   if (emp.exitDate) {
     const ed = new Date(emp.exitDate);
     ed.setHours(0, 0, 0, 0);
-    if (date > ed) return "Cannot mark attendance after the employee's exit date";
+    if (date > ed)
+      return "Cannot mark attendance after the employee's exit date";
   }
   return null;
 }
@@ -385,7 +387,9 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
   if (!Array.isArray(emp.faceDescriptor) || emp.faceDescriptor.length !== 128) {
     cleanup();
     res.status(400);
-    throw new Error("Face not enrolled for you. Contact HR to enable mobile attendance.");
+    throw new Error(
+      "Face not enrolled for you. Contact HR to enable mobile attendance.",
+    );
   }
 
   const { match, distance } = await verifyFace(

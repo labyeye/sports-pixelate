@@ -1,12 +1,18 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { sportsPlanAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { sportsPlanAPI } from '../api/client';
+import { Card, EmptyState, LoadingView, Badge } from '../components/ui';
+import { colors } from '../theme/colors';
 
 function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 }
 
 export default function PlansScreen() {
@@ -34,11 +40,13 @@ export default function PlansScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>Coaching Plans</Text>
         <Text style={styles.subtitle}>Available sports coaching plans</Text>
@@ -48,7 +56,7 @@ export default function PlansScreen() {
             <EmptyState title="No coaching plans found" />
           </Card>
         ) : (
-          plans.map((p) => (
+          plans.map(p => (
             <Card key={p._id}>
               <View style={styles.headerRow}>
                 <Text style={styles.name}>{p.name}</Text>
@@ -58,11 +66,15 @@ export default function PlansScreen() {
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>MONTHLY</Text>
-                  <Text style={styles.statValue}>{formatCurrency(p.monthlyPrice)}</Text>
+                  <Text style={styles.statValue}>
+                    {formatCurrency(p.monthlyPrice)}
+                  </Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>YEARLY</Text>
-                  <Text style={styles.statValue}>{formatCurrency(p.yearlyPrice)}</Text>
+                  <Text style={styles.statValue}>
+                    {formatCurrency(p.yearlyPrice)}
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -75,12 +87,16 @@ export default function PlansScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 2, marginBottom: 10 },
-  statsRow: { flexDirection: "row", gap: 10 },
+  statsRow: { flexDirection: 'row', gap: 10 },
   statBox: {
     flex: 1,
     borderWidth: 2,
@@ -88,6 +104,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 10,
   },
-  statLabel: { fontSize: 10, fontWeight: "700", color: colors.muted, marginBottom: 4 },
-  statValue: { fontSize: 15, fontWeight: "800", color: colors.black },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.muted,
+    marginBottom: 4,
+  },
+  statValue: { fontSize: 15, fontWeight: '800', color: colors.black },
 });

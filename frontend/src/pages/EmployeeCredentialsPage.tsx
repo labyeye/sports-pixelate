@@ -265,7 +265,7 @@ export default function EmployeeCredentialsPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage employee credentials for{" "}
-            {user?.company?.name || "your company"}
+            {user?.company?.name || "your SportsClub"}
           </p>
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function EmployeeCredentialsPage() {
           </div>
           <div>
             <p className="text-xs font-bold text-muted-foreground uppercase">
-              Company
+              SportsClub
             </p>
             <p className="text-sm font-bold text-black">
               {user?.company?.name || "Not assigned"}

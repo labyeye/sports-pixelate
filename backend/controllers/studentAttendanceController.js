@@ -23,7 +23,8 @@ const getStudentAttendance = asyncHandler(async (req, res) => {
   }
   if (batch) filter.batch = batch;
   if (month && year) {
-    const m = parseInt(month), y = parseInt(year);
+    const m = parseInt(month),
+      y = parseInt(year);
     if (!isNaN(m) && !isNaN(y)) {
       filter.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0) };
     }
@@ -36,14 +37,23 @@ const getStudentAttendance = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  res.json({ success: true, data: records, total, page, pages: Math.ceil(total / limit) });
+  res.json({
+    success: true,
+    data: records,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 // Coach/owner marks one student present/absent/excused for a session date.
 const markStudentAttendance = asyncHandler(async (req, res) => {
   const { student, date, status, batch, notes } = req.body;
 
-  const studentDoc = await Student.findOne({ _id: student, company: req.user.company });
+  const studentDoc = await Student.findOne({
+    _id: student,
+    company: req.user.company,
+  });
   if (!studentDoc) {
     res.status(404);
     throw new Error("Student not found");
@@ -106,7 +116,10 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
     }));
 
   if (ops.length > 0) await StudentAttendance.bulkWrite(ops);
-  res.json({ success: true, message: `Marked attendance for ${ops.length} student(s)` });
+  res.json({
+    success: true,
+    message: `Marked attendance for ${ops.length} student(s)`,
+  });
 });
 
 module.exports = {

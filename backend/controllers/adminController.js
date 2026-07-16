@@ -144,11 +144,11 @@ const updateCompanyTier = asyncHandler(async (req, res) => {
   const company = await Company.findById(companyId).select("subscription");
   if (!company) {
     res.status(404);
-    throw new Error("Company not found");
+    throw new Error("SportsClub not found");
   }
   if (!company.subscription) {
     res.status(404);
-    throw new Error("Company has no subscription to update");
+    throw new Error("SportsClub has no subscription to update");
   }
 
   const subscription = await Subscription.findByIdAndUpdate(

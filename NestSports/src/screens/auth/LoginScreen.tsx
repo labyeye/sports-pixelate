@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,36 +8,39 @@ import {
   Platform,
   ScrollView,
   Image,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "../../contexts/AuthContext";
-import { Button } from "../../components/ui";
-import { colors } from "../../theme/colors";
-import NestSportsLogo from "../../assets/logo.png";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/ui';
+import { colors } from '../../theme/colors';
+import NestSportsLogo from '../../assets/logo.png';
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    setError("");
+    setError('');
     setLoading(true);
     const res = await login(email.trim(), password);
     setLoading(false);
     if (!res.success && !res.requires2FA) {
-      setError(res.error || "Login failed");
+      setError(res.error || 'Login failed');
     }
     // On success, AuthContext flips isAuthenticated and RootNavigator swaps
     // to the main app automatically.
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      edges={['top']}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.container}>
           <Image source={NestSportsLogo} style={styles.logo} />
@@ -69,10 +72,22 @@ export default function LoginScreen({ navigation }: any) {
 
           <Button title="Sign In" onPress={onSubmit} loading={loading} />
 
-          <Text style={styles.link} onPress={() => navigation.navigate("ForgotPassword")}>
+          <Text
+            style={styles.link}
+            onPress={() => navigation.navigate('PhoneOtpLogin')}
+          >
+            Sign in with WhatsApp OTP
+          </Text>
+          <Text
+            style={styles.link}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
             Forgot password?
           </Text>
-          <Text style={styles.link} onPress={() => navigation.navigate("Register")}>
+          <Text
+            style={styles.link}
+            onPress={() => navigation.navigate('Register')}
+          >
             New academy? Create an account
           </Text>
         </ScrollView>
@@ -84,23 +99,23 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     padding: 24,
     backgroundColor: colors.background,
   },
   logo: {
-    width: "100%",
+    width: '100%',
     height: 120,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 24,
   },
   subtitle: {
-    textAlign: "center",
+    textAlign: 'center',
     color: colors.muted,
     marginBottom: 24,
   },
   field: { marginBottom: 14 },
-  label: { fontWeight: "700", marginBottom: 6, color: colors.black },
+  label: { fontWeight: '700', marginBottom: 6, color: colors.black },
   input: {
     borderWidth: 2,
     borderColor: colors.black,
@@ -109,11 +124,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
-  error: { color: colors.red, marginBottom: 12, fontWeight: "600" },
+  error: { color: colors.red, marginBottom: 12, fontWeight: '600' },
   link: {
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 16,
     color: colors.blue,
-    fontWeight: "700",
+    fontWeight: '700',
   },
 });

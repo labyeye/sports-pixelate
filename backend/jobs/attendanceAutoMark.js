@@ -43,10 +43,7 @@ async function processDate(targetDate, istMinutesNow) {
   const isToday = targetDate.getTime() === todayMidnight.getTime();
 
   const employees = await Employee.find({
-    $or: [
-      { shift: { $exists: true, $ne: null } },
-      { isCustomShift: true },
-    ],
+    $or: [{ shift: { $exists: true, $ne: null } }, { isCustomShift: true }],
     $and: [
       {
         $or: [
@@ -98,7 +95,9 @@ async function processDate(targetDate, istMinutesNow) {
       }
 
       const shift =
-        emp.isCustomShift && emp.customShift?.startTime && emp.customShift?.endTime
+        emp.isCustomShift &&
+        emp.customShift?.startTime &&
+        emp.customShift?.endTime
           ? emp.customShift
           : shiftMap[emp.shift?.toString()];
       if (!shift) continue;

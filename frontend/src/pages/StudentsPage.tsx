@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { SportPicker } from "@/components/SportPicker";
 import { studentAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -121,7 +122,10 @@ export default function StudentsPage() {
 
   useEffect(() => {
     if (canManage) {
-      employeeAPI.getAll().then((r) => setCoaches(r.data)).catch(() => {});
+      employeeAPI
+        .getAll({ role: "coach" })
+        .then((r) => setCoaches(r.data))
+        .catch(() => {});
     }
   }, [canManage]);
 
@@ -146,7 +150,9 @@ export default function StudentsPage() {
   const removeGuardian = (i: number) =>
     setGuardians((p) => p.filter((_, idx) => idx !== i));
   const updateGuardian = (i: number, patch: Partial<GuardianForm>) =>
-    setGuardians((p) => p.map((g, idx) => (idx === i ? { ...g, ...patch } : g)));
+    setGuardians((p) =>
+      p.map((g, idx) => (idx === i ? { ...g, ...patch } : g)),
+    );
 
   const handleSave = async () => {
     if (saving) return;
@@ -201,8 +207,15 @@ export default function StudentsPage() {
         const file = guardians[i].photoFile;
         const guardianId = guardiansWithPhotos[i]?._id;
         if (file && guardianId) {
-          const r = await studentAPI.uploadGuardianPhoto(saved._id, guardianId, file);
-          guardiansWithPhotos[i] = { ...guardiansWithPhotos[i], photo: r.photo };
+          const r = await studentAPI.uploadGuardianPhoto(
+            saved._id,
+            guardianId,
+            file,
+          );
+          guardiansWithPhotos[i] = {
+            ...guardiansWithPhotos[i],
+            photo: r.photo,
+          };
         }
       }
       saved = { ...saved, guardians: guardiansWithPhotos };
@@ -224,7 +237,9 @@ export default function StudentsPage() {
     if (!confirm("Deactivate this student?")) return;
     try {
       await studentAPI.delete(id);
-      setStudents((p) => p.map((s) => (s._id === id ? { ...s, status: "inactive" } : s)));
+      setStudents((p) =>
+        p.map((s) => (s._id === id ? { ...s, status: "inactive" } : s)),
+      );
       toast({ title: "Student deactivated" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -252,7 +267,8 @@ export default function StudentsPage() {
   };
 
   const sportOptions = useMemo(
-    () => Array.from(new Set(students.map((s) => s.sport).filter(Boolean))).sort(),
+    () =>
+      Array.from(new Set(students.map((s) => s.sport).filter(Boolean))).sort(),
     [students],
   );
 
@@ -270,7 +286,10 @@ export default function StudentsPage() {
       let cmp = 0;
       if (sortKey === "name") cmp = a.firstName.localeCompare(b.firstName);
       else if (sortKey === "sport") cmp = a.sport.localeCompare(b.sport);
-      else if (sortKey === "enrollmentDate") cmp = new Date(a.enrollmentDate).getTime() - new Date(b.enrollmentDate).getTime();
+      else if (sortKey === "enrollmentDate")
+        cmp =
+          new Date(a.enrollmentDate).getTime() -
+          new Date(b.enrollmentDate).getTime();
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -282,7 +301,9 @@ export default function StudentsPage() {
   return (
     <AppLayout title="Students">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="font-display font-bold text-2xl text-black">Student Roster</h1>
+        <h1 className="font-display font-bold text-2xl text-black">
+          Student Roster
+        </h1>
         {canManage && (
           <button
             onClick={() => {
@@ -303,7 +324,9 @@ export default function StudentsPage() {
             <Users className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Students</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Students
+            </p>
             <p className="text-2xl font-bold text-black">{students.length}</p>
           </div>
         </div>
@@ -312,7 +335,9 @@ export default function StudentsPage() {
             <GraduationCap className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Active</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Active
+            </p>
             <p className="text-2xl font-bold text-black">{activeCount}</p>
           </div>
         </div>
@@ -321,7 +346,9 @@ export default function StudentsPage() {
             <PauseCircle className="w-5 h-5 text-amber-600" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">On Hold</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              On Hold
+            </p>
             <p className="text-2xl font-bold text-black">{onHoldCount}</p>
           </div>
         </div>
@@ -345,7 +372,9 @@ export default function StudentsPage() {
         >
           <option value="">All Sports</option>
           {sportOptions.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
         <select
@@ -383,7 +412,11 @@ export default function StudentsPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
       </div>
@@ -396,13 +429,19 @@ export default function StudentsPage() {
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 border-2 border-black bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Student" className="w-full h-full object-cover" />
+                <img
+                  src={avatarPreview}
+                  alt="Student"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <User className="w-7 h-7 text-gray-300" />
               )}
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Student Photo</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Student Photo
+              </label>
               <label className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase cursor-pointer w-fit">
                 <Camera className="w-3.5 h-3.5" /> Upload
                 <input
@@ -420,44 +459,61 @@ export default function StudentsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">First Name *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                First Name *
+              </label>
               <input
                 value={form.firstName}
-                onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, firstName: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Last Name *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Last Name *
+              </label>
               <input
                 value={form.lastName}
-                onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, lastName: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Sport *</label>
-              <input
+              <label className="block text-xs font-bold uppercase mb-1">
+                Sport *
+              </label>
+              <SportPicker
                 value={form.sport}
-                onChange={(e) => setForm((p) => ({ ...p, sport: e.target.value }))}
-                placeholder="e.g. Tennis"
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                onChange={(sport) => setForm((p) => ({ ...p, sport }))}
+                required
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Batch</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Batch
+              </label>
               <input
                 value={form.batch}
-                onChange={(e) => setForm((p) => ({ ...p, batch: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, batch: e.target.value }))
+                }
                 placeholder="e.g. Morning U-12"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Coach</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Coach
+              </label>
               <select
                 value={form.coach}
-                onChange={(e) => setForm((p) => ({ ...p, coach: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, coach: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               >
                 <option value="">Unassigned</option>
@@ -469,19 +525,27 @@ export default function StudentsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Date of Birth</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Date of Birth
+              </label>
               <input
                 type="date"
                 value={form.dateOfBirth}
-                onChange={(e) => setForm((p) => ({ ...p, dateOfBirth: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, dateOfBirth: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">Emergency Contact</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Emergency Contact
+              </label>
               <input
                 value={form.emergencyContact}
-                onChange={(e) => setForm((p) => ({ ...p, emergencyContact: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, emergencyContact: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
@@ -489,7 +553,9 @@ export default function StudentsPage() {
 
           <div className="mt-6 pt-4 border-t-2 border-black/10">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-bold text-sm uppercase">Parents / Guardians</h4>
+              <h4 className="font-bold text-sm uppercase">
+                Parents / Guardians
+              </h4>
               <button
                 onClick={addGuardian}
                 className="flex items-center gap-1 text-xs font-bold uppercase border-2 border-black px-3 py-1.5"
@@ -499,7 +565,9 @@ export default function StudentsPage() {
             </div>
 
             {guardians.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No guardians added</p>
+              <p className="text-sm text-muted-foreground">
+                No guardians added
+              </p>
             ) : (
               <div className="space-y-4">
                 {guardians.map((g, i) => (
@@ -513,45 +581,72 @@ export default function StudentsPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : g.photo ? (
-                          <img src={g.photo} alt={g.name} className="w-full h-full object-cover" />
+                          <img
+                            src={g.photo}
+                            alt={g.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <User className="w-5 h-5 text-gray-300" />
                         )}
                       </div>
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">Relation *</label>
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Relation *
+                          </label>
                           <select
                             value={g.relation}
-                            onChange={(e) => updateGuardian(i, { relation: e.target.value as Guardian["relation"] })}
+                            onChange={(e) =>
+                              updateGuardian(i, {
+                                relation: e.target
+                                  .value as Guardian["relation"],
+                              })
+                            }
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
                           >
-                            {Object.entries(RELATION_LABEL).map(([v, label]) => (
-                              <option key={v} value={v}>{label}</option>
-                            ))}
+                            {Object.entries(RELATION_LABEL).map(
+                              ([v, label]) => (
+                                <option key={v} value={v}>
+                                  {label}
+                                </option>
+                              ),
+                            )}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">Name *</label>
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Name *
+                          </label>
                           <input
                             value={g.name}
-                            onChange={(e) => updateGuardian(i, { name: e.target.value })}
+                            onChange={(e) =>
+                              updateGuardian(i, { name: e.target.value })
+                            }
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">Phone</label>
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Phone
+                          </label>
                           <input
                             value={g.phone || ""}
-                            onChange={(e) => updateGuardian(i, { phone: e.target.value })}
+                            onChange={(e) =>
+                              updateGuardian(i, { phone: e.target.value })
+                            }
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">Email</label>
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Email
+                          </label>
                           <input
                             value={g.email || ""}
-                            onChange={(e) => updateGuardian(i, { email: e.target.value })}
+                            onChange={(e) =>
+                              updateGuardian(i, { email: e.target.value })
+                            }
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
                           />
                         </div>
@@ -562,7 +657,11 @@ export default function StudentsPage() {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => updateGuardian(i, { photoFile: e.target.files?.[0] || null })}
+                              onChange={(e) =>
+                                updateGuardian(i, {
+                                  photoFile: e.target.files?.[0] || null,
+                                })
+                              }
                             />
                           </label>
                         </div>
@@ -586,7 +685,11 @@ export default function StudentsPage() {
               disabled={saving}
               className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               {saving ? "Saving..." : "Save"}
             </button>
             <button
@@ -607,7 +710,9 @@ export default function StudentsPage() {
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <GraduationCap className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No students found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your filters
+          </p>
         </div>
       ) : (
         <>
@@ -620,16 +725,30 @@ export default function StudentsPage() {
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-11 h-11 border-2 border-black shrink-0 overflow-hidden bg-[#024BAB] flex items-center justify-center text-sm font-bold text-white rounded-full">
                       {s.avatar ? (
-                        <img src={s.avatar} alt={s.firstName} className="w-full h-full object-cover" />
+                        <img
+                          src={s.avatar}
+                          alt={s.firstName}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         s.firstName?.[0]?.toUpperCase()
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-black truncate">{s.firstName} {s.lastName}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{s.studentId}</p>
+                      <p className="font-bold text-black truncate">
+                        {s.firstName} {s.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {s.studentId}
+                      </p>
                     </div>
-                    <span className={cn("border-2 border-black/10 text-[10px] font-bold uppercase px-1.5 py-0.5 shrink-0", m.bg, m.text)}>
+                    <span
+                      className={cn(
+                        "border-2 border-black/10 text-[10px] font-bold uppercase px-1.5 py-0.5 shrink-0",
+                        m.bg,
+                        m.text,
+                      )}
+                    >
                       {s.status.replace("_", " ")}
                     </span>
                   </div>
@@ -640,12 +759,16 @@ export default function StudentsPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Batch: </span>
-                      <span className="font-bold text-black">{s.batch || "—"}</span>
+                      <span className="font-bold text-black">
+                        {s.batch || "—"}
+                      </span>
                     </div>
                     <div className="col-span-2">
                       <span className="text-muted-foreground">Coach: </span>
                       <span className="font-bold text-black">
-                        {s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "—"}
+                        {s.coach
+                          ? `${s.coach.firstName} ${s.coach.lastName}`
+                          : "—"}
                       </span>
                     </div>
                     <div className="col-span-2 truncate">
@@ -683,26 +806,48 @@ export default function StudentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {["ID", "Name", "Sport", "Batch", "Coach", "Guardians", "Status", ...(canManage ? ["Actions"] : [])].map(
-                    (h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap">
-                        {h}
-                      </th>
-                    ),
-                  )}
+                  {[
+                    "ID",
+                    "Name",
+                    "Sport",
+                    "Batch",
+                    "Coach",
+                    "Guardians",
+                    "Status",
+                    ...(canManage ? ["Actions"] : []),
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {displayed.map((s, idx) => {
                   const m = STATUS_META[s.status];
                   return (
-                    <tr key={s._id} className={cn("border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors", idx % 2 === 0 ? "" : "bg-[#F8FAFF]")}>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{s.studentId}</td>
+                    <tr
+                      key={s._id}
+                      className={cn(
+                        "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                        idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                      )}
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {s.studentId}
+                      </td>
                       <td className="px-4 py-3 font-bold text-black">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 border-[1px] border-black shrink-0 overflow-hidden bg-[#024BAB] flex items-center justify-center text-xs font-bold text-white rounded-full">
                             {s.avatar ? (
-                              <img src={s.avatar} alt={s.firstName} className="w-full h-full object-cover" />
+                              <img
+                                src={s.avatar}
+                                alt={s.firstName}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               s.firstName?.[0]?.toUpperCase()
                             )}
@@ -713,17 +858,28 @@ export default function StudentsPage() {
                       <td className="px-4 py-3 text-black">{s.sport}</td>
                       <td className="px-4 py-3 text-black">{s.batch || "—"}</td>
                       <td className="px-4 py-3 text-black">
-                        {s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "—"}
+                        {s.coach
+                          ? `${s.coach.firstName} ${s.coach.lastName}`
+                          : "—"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">
                         {s.guardians && s.guardians.length > 0
                           ? s.guardians
-                              .map((g) => `${g.name} (${RELATION_LABEL[g.relation]})`)
+                              .map(
+                                (g) =>
+                                  `${g.name} (${RELATION_LABEL[g.relation]})`,
+                              )
                               .join(", ")
                           : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={cn("text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10", m.bg, m.text)}>
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
+                            m.bg,
+                            m.text,
+                          )}
+                        >
                           {s.status.replace("_", " ")}
                         </span>
                       </td>

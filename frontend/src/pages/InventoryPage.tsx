@@ -77,7 +77,14 @@ export default function InventoryPage() {
   }, [load]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "equipment", sport: "", totalQuantity: "0", unitCost: "", reorderThreshold: "0" });
+    setForm({
+      name: "",
+      category: "equipment",
+      sport: "",
+      totalQuantity: "0",
+      unitCost: "",
+      reorderThreshold: "0",
+    });
     setShowForm(false);
   };
 
@@ -105,7 +112,9 @@ export default function InventoryPage() {
     }
   };
 
-  const handleTxn = async (type: "purchase" | "consume" | "damage" | "return") => {
+  const handleTxn = async (
+    type: "purchase" | "consume" | "damage" | "return",
+  ) => {
     if (!txnFor) return;
     const qty = Number(txnQty);
     if (!qty || qty <= 0) {
@@ -113,7 +122,10 @@ export default function InventoryPage() {
       return;
     }
     try {
-      const r = await inventoryAPI.recordTransaction(txnFor._id, { type, quantity: qty });
+      const r = await inventoryAPI.recordTransaction(txnFor._id, {
+        type,
+        quantity: qty,
+      });
       setItems((p) => p.map((i) => (i._id === txnFor._id ? r.data.item : i)));
       toast({ title: `Recorded ${type}` });
       setTxnFor(null);
@@ -130,10 +142,12 @@ export default function InventoryPage() {
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
-      if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !i.name.toLowerCase().includes(search.toLowerCase()))
+        return false;
       if (filterCategory && i.category !== filterCategory) return false;
       if (filterSport && i.sport !== filterSport) return false;
-      if (lowStockOnly && i.availableQuantity > i.reorderThreshold) return false;
+      if (lowStockOnly && i.availableQuantity > i.reorderThreshold)
+        return false;
       return true;
     });
   }, [items, search, filterCategory, filterSport, lowStockOnly]);
@@ -143,21 +157,30 @@ export default function InventoryPage() {
     arr.sort((a, b) => {
       let cmp = 0;
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortKey === "category") cmp = a.category.localeCompare(b.category);
-      else if (sortKey === "available") cmp = a.availableQuantity - b.availableQuantity;
+      else if (sortKey === "category")
+        cmp = a.category.localeCompare(b.category);
+      else if (sortKey === "available")
+        cmp = a.availableQuantity - b.availableQuantity;
       else if (sortKey === "total") cmp = a.totalQuantity - b.totalQuantity;
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  const lowStockCount = items.filter((i) => i.availableQuantity <= i.reorderThreshold).length;
-  const totalAvailable = items.reduce((s, i) => s + (i.availableQuantity || 0), 0);
+  const lowStockCount = items.filter(
+    (i) => i.availableQuantity <= i.reorderThreshold,
+  ).length;
+  const totalAvailable = items.reduce(
+    (s, i) => s + (i.availableQuantity || 0),
+    0,
+  );
 
   return (
     <AppLayout title="Inventory">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="font-display font-bold text-2xl text-black">Inventory</h1>
+        <h1 className="font-display font-bold text-2xl text-black">
+          Inventory
+        </h1>
         {canManage && (
           <button
             onClick={() => {
@@ -178,7 +201,9 @@ export default function InventoryPage() {
             <Package className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Items</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Items
+            </p>
             <p className="text-2xl font-bold text-black">{items.length}</p>
           </div>
         </div>
@@ -187,7 +212,9 @@ export default function InventoryPage() {
             <Boxes className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Units Available</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Units Available
+            </p>
             <p className="text-2xl font-bold text-black">{totalAvailable}</p>
           </div>
         </div>
@@ -196,7 +223,9 @@ export default function InventoryPage() {
             <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Low Stock Items</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Low Stock Items
+            </p>
             <p className="text-2xl font-bold text-[#EF4444]">{lowStockCount}</p>
           </div>
         </div>
@@ -221,7 +250,9 @@ export default function InventoryPage() {
         >
           <option value="">All Categories</option>
           {["equipment", "apparel", "consumable", "other"].map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
         <select
@@ -231,14 +262,18 @@ export default function InventoryPage() {
         >
           <option value="">All Sports</option>
           {sportOptions.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
         <button
           onClick={() => setLowStockOnly((v) => !v)}
           className={cn(
             "border-2 border-black px-3 py-2 text-sm font-bold transition-colors",
-            lowStockOnly ? "bg-[#EF4444] text-white" : "bg-white text-black hover:bg-red-50",
+            lowStockOnly
+              ? "bg-[#EF4444] text-white"
+              : "bg-white text-black hover:bg-red-50",
           )}
         >
           Low Stock Only
@@ -270,7 +305,11 @@ export default function InventoryPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
       </div>
@@ -280,58 +319,84 @@ export default function InventoryPage() {
           <h3 className="font-bold text-base mb-4">Add Inventory Item</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Name *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Name *
+              </label>
               <input
                 value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, name: e.target.value }))
+                }
                 placeholder="e.g. Tennis Racket"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Category</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Category
+              </label>
               <select
                 value={form.category}
-                onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, category: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               >
                 {["equipment", "apparel", "consumable", "other"].map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Sport</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Sport
+              </label>
               <input
                 value={form.sport}
-                onChange={(e) => setForm((p) => ({ ...p, sport: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sport: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Initial Quantity</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Initial Quantity
+              </label>
               <input
                 type="number"
                 value={form.totalQuantity}
-                onChange={(e) => setForm((p) => ({ ...p, totalQuantity: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, totalQuantity: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Unit Cost (₹)</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Unit Cost (₹)
+              </label>
               <input
                 type="number"
                 value={form.unitCost}
-                onChange={(e) => setForm((p) => ({ ...p, unitCost: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, unitCost: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Reorder Threshold</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Reorder Threshold
+              </label>
               <input
                 type="number"
                 value={form.reorderThreshold}
-                onChange={(e) => setForm((p) => ({ ...p, reorderThreshold: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, reorderThreshold: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
@@ -342,10 +407,17 @@ export default function InventoryPage() {
               disabled={saving}
               className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               Save
             </button>
-            <button onClick={resetForm} className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase">
+            <button
+              onClick={resetForm}
+              className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+            >
               <X className="w-4 h-4" /> Cancel
             </button>
           </div>
@@ -354,7 +426,9 @@ export default function InventoryPage() {
 
       {txnFor && (
         <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">Stock Movement — {txnFor.name}</h3>
+          <h3 className="font-bold text-base mb-4">
+            Stock Movement — {txnFor.name}
+          </h3>
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="number"
@@ -362,19 +436,34 @@ export default function InventoryPage() {
               onChange={(e) => setTxnQty(e.target.value)}
               className="w-28 border-2 border-black px-3 py-2 text-sm font-medium outline-none"
             />
-            <button onClick={() => handleTxn("purchase")} className="flex items-center gap-1 bg-green-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase">
+            <button
+              onClick={() => handleTxn("purchase")}
+              className="flex items-center gap-1 bg-green-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
+            >
               <ArrowDownCircle className="w-3.5 h-3.5" /> Purchase
             </button>
-            <button onClick={() => handleTxn("return")} className="flex items-center gap-1 bg-blue-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase">
+            <button
+              onClick={() => handleTxn("return")}
+              className="flex items-center gap-1 bg-blue-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
+            >
               <ArrowDownCircle className="w-3.5 h-3.5" /> Return
             </button>
-            <button onClick={() => handleTxn("consume")} className="flex items-center gap-1 bg-orange-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase">
+            <button
+              onClick={() => handleTxn("consume")}
+              className="flex items-center gap-1 bg-orange-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
+            >
               <ArrowUpCircle className="w-3.5 h-3.5" /> Consume
             </button>
-            <button onClick={() => handleTxn("damage")} className="flex items-center gap-1 bg-red-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase">
+            <button
+              onClick={() => handleTxn("damage")}
+              className="flex items-center gap-1 bg-red-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
+            >
               <ArrowUpCircle className="w-3.5 h-3.5" /> Damage
             </button>
-            <button onClick={() => setTxnFor(null)} className="ml-auto p-2 border-2 border-black">
+            <button
+              onClick={() => setTxnFor(null)}
+              className="ml-auto p-2 border-2 border-black"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -389,7 +478,9 @@ export default function InventoryPage() {
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <Package className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No inventory items found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your filters
+          </p>
         </div>
       ) : (
         <>
@@ -398,7 +489,13 @@ export default function InventoryPage() {
             {displayed.map((i) => {
               const low = i.availableQuantity <= i.reorderThreshold;
               return (
-                <div key={i._id} className={cn("border-2 border-black bg-white p-4", low && "border-[#EF4444]")}>
+                <div
+                  key={i._id}
+                  className={cn(
+                    "border-2 border-black bg-white p-4",
+                    low && "border-[#EF4444]",
+                  )}
+                >
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="font-bold text-black">{i.name}</p>
@@ -414,7 +511,9 @@ export default function InventoryPage() {
                   </div>
                   <p className="text-2xl font-bold text-[#024BAB]">
                     {i.availableQuantity}
-                    <span className="text-xs text-muted-foreground font-medium">/{i.totalQuantity} available</span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      /{i.totalQuantity} available
+                    </span>
                   </p>
                   {canManage && (
                     <button
@@ -434,8 +533,19 @@ export default function InventoryPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {["Item", "Category", "Sport", "Available / Total", "Reorder Threshold", "Status", ...(canManage ? ["Actions"] : [])].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                  {[
+                    "Item",
+                    "Category",
+                    "Sport",
+                    "Available / Total",
+                    "Reorder Threshold",
+                    "Status",
+                    ...(canManage ? ["Actions"] : []),
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
+                    >
                       {h}
                     </th>
                   ))}
@@ -447,16 +557,27 @@ export default function InventoryPage() {
                   return (
                     <tr
                       key={i._id}
-                      className={cn("border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors", idx % 2 === 0 ? "" : "bg-[#F8FAFF]")}
+                      className={cn(
+                        "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                        idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                      )}
                     >
-                      <td className="px-4 py-3 font-bold text-black">{i.name}</td>
-                      <td className="px-4 py-3 text-black capitalize">{i.category}</td>
+                      <td className="px-4 py-3 font-bold text-black">
+                        {i.name}
+                      </td>
+                      <td className="px-4 py-3 text-black capitalize">
+                        {i.category}
+                      </td>
                       <td className="px-4 py-3 text-black">{i.sport || "—"}</td>
                       <td className="px-4 py-3 font-bold text-black">
                         {i.availableQuantity}
-                        <span className="text-muted-foreground font-medium">/{i.totalQuantity}</span>
+                        <span className="text-muted-foreground font-medium">
+                          /{i.totalQuantity}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-black">{i.reorderThreshold}</td>
+                      <td className="px-4 py-3 text-black">
+                        {i.reorderThreshold}
+                      </td>
                       <td className="px-4 py-3">
                         {low ? (
                           <span className="border-2 border-[#EF4444] text-[#EF4444] text-[10px] font-bold px-1.5 py-0.5">

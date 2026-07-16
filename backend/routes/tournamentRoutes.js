@@ -7,6 +7,8 @@ const {
   deleteTournament,
   addTeam,
   removeTeam,
+  registerStudent,
+  unregisterStudent,
   generateFixtures,
   getFixtures,
   recordResult,
@@ -25,8 +27,18 @@ router
 router
   .route("/:id")
   .get(protect, validateMongoId("id"), getTournament)
-  .put(protect, authorize("super_admin", "hr_manager"), validateMongoId("id"), updateTournament)
-  .delete(protect, authorize("super_admin", "hr_manager"), validateMongoId("id"), deleteTournament);
+  .put(
+    protect,
+    authorize("super_admin", "hr_manager"),
+    validateMongoId("id"),
+    updateTournament,
+  )
+  .delete(
+    protect,
+    authorize("super_admin", "hr_manager"),
+    validateMongoId("id"),
+    deleteTournament,
+  );
 
 router.post(
   "/:id/teams",
@@ -41,6 +53,21 @@ router.delete(
   authorize("super_admin", "hr_manager"),
   validateMongoId("id", "teamId"),
   removeTeam,
+);
+
+// Any authenticated user can register/unregister a student — the controller
+// restricts a parent to their own children.
+router.post(
+  "/:id/registrations",
+  protect,
+  validateMongoId("id"),
+  registerStudent,
+);
+router.delete(
+  "/:id/registrations/:studentId",
+  protect,
+  validateMongoId("id", "studentId"),
+  unregisterStudent,
 );
 
 router.post(

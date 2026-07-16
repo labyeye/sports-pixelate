@@ -699,6 +699,8 @@ export default function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [qrUploading, setQrUploading] = useState(false);
+  const qrInputRef = useRef<HTMLInputElement>(null);
   const [chequeTemplatePreview, setChequeTemplatePreview] = useState<
     string | null
   >(null);
@@ -951,7 +953,7 @@ export default function SettingsPage() {
       setSettings((prev: any) => ({ ...prev, logoUrl: res.logoUrl }));
       toast({
         title: "Logo uploaded",
-        description: "Company logo saved to server.",
+        description: "SportsClub logo saved to server.",
       });
     } catch (err: any) {
       toast({
@@ -964,6 +966,47 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePaymentQrUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (qrInputRef.current) qrInputRef.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "Please upload a valid image file",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    setQrUploading(true);
+    try {
+      const res = await settingsAPI.uploadPaymentQr(file);
+      setSettings((prev: any) => ({ ...prev, paymentQrUrl: res.paymentQrUrl }));
+      toast({
+        title: "Payment QR uploaded",
+        description: "Parents will see this QR to pay coaching-fee renewals.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setQrUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (activeTab === "general") {
       if (!settings?.companyName?.trim()) {
@@ -971,7 +1014,7 @@ export default function SettingsPage() {
           show: true,
           type: "error",
           title: "Required Field Missing",
-          message: "Please fill in: Company Name",
+          message: "Please fill in: SportsClub Name",
         });
         return;
       }
@@ -980,7 +1023,7 @@ export default function SettingsPage() {
           show: true,
           type: "error",
           title: "Required Field Missing",
-          message: "Please fill in: Company Address",
+          message: "Please fill in: SportsClub Address",
         });
         return;
       }
@@ -1056,7 +1099,7 @@ export default function SettingsPage() {
 
   const SETTING_TABS = [
     {
-      group: "Company",
+      group: "SportsClub",
       items: [
         { id: "general", label: "General Info", icon: Building2 },
         { id: "bank", label: "Bank Details", icon: Landmark },
@@ -1100,7 +1143,7 @@ export default function SettingsPage() {
             Settings
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage company, HR and system configuration
+            Manage SportsClub, HR and system configuration
           </p>
         </div>
 
@@ -1147,21 +1190,21 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
-                      label="Company Name"
+                      label="SportsClub Name"
                       name="companyName"
                       value={settings?.companyName || ""}
                       required
                       onChange={handleChange}
                     />
                     <InputField
-                      label="Company Email"
+                      label="SportsClub Email"
                       name="companyEmail"
                       value={settings?.companyEmail || ""}
                       type="email"
                       onChange={handleChange}
                     />
                     <InputField
-                      label="Company Phone"
+                      label="SportsClub Phone"
                       name="companyPhone"
                       value={settings?.companyPhone || ""}
                       maxLength={10}
@@ -1212,7 +1255,7 @@ export default function SettingsPage() {
                   {}
                   <div className="border-t-2 border-black pt-4 mt-4">
                     <label className="block text-xs font-bold text-black uppercase tracking-wider mb-3">
-                      Company Logo
+                      SportsClub Logo
                     </label>
                     <div className="flex gap-4 items-start">
                       <div className="flex-1">
@@ -1243,7 +1286,7 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-2">
                           <img
                             src={`${import.meta.env.VITE_API_URL?.replace(/\/api$/, "")}${settings.logoUrl}`}
-                            alt="Company logo"
+                            alt="SportsClub logo"
                             className="w-24 h-24 object-contain border-2 border-black bg-white p-2"
                           />
                           <button
@@ -1273,6 +1316,54 @@ export default function SettingsPage() {
                       onCancel={() => setCropFile(null)}
                     />
                   )}
+
+                  {/* Payment QR code — shown to parents for coaching-fee renewals */}
+                  <div className="border-t-2 border-black pt-4 mt-4">
+                    <label className="block text-xs font-bold text-black uppercase tracking-wider mb-3">
+                      Payment QR Code
+                    </label>
+                    <div className="flex gap-4 items-start">
+                      <div className="flex-1">
+                        <input
+                          ref={qrInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePaymentQrUpload}
+                          className="hidden"
+                          id="payment-qr-upload"
+                          disabled={qrUploading}
+                        />
+                        <label
+                          htmlFor="payment-qr-upload"
+                          className={`block w-full px-4 py-3 border-2 border-dashed border-black hover:bg-[#024BAB]/5 transition-colors cursor-pointer text-center ${qrUploading ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <div className="text-xs font-bold text-black">
+                            {qrUploading
+                              ? "Uploading…"
+                              : "Click to upload your UPI QR code"}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            PNG, JPG up to 5MB
+                          </div>
+                        </label>
+                      </div>
+                      {settings?.paymentQrUrl && (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={`${import.meta.env.VITE_API_URL?.replace(/\/api$/, "")}${settings.paymentQrUrl}`}
+                            alt="Payment QR code"
+                            className="w-24 h-24 object-contain border-2 border-black bg-white p-2"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Parents will see this QR in the app when a coaching plan
+                      is due for renewal. Payments happen outside the app (any
+                      UPI app); you confirm them from the Subscriptions page
+                      once you see the money land.
+                    </p>
+                  </div>
 
                   {/* Payroll Cheque Template */}
                   <div className="border-t-2 border-black pt-4 mt-4">
@@ -1334,10 +1425,10 @@ export default function SettingsPage() {
                   </div>
 
                   <TextAreaField
-                    label="Company Address"
+                    label="SportsClub Address"
                     name="companyAddress"
                     value={settings?.companyAddress || ""}
-                    placeholder="Enter full company address"
+                    placeholder="Enter full SportsClub address"
                     rows={3}
                     required
                     onChange={handleChange}
@@ -1426,7 +1517,8 @@ export default function SettingsPage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         Send automated WhatsApp messages to employees for
-                        attendance, leave, and salary events — powered by NestSports
+                        attendance, leave, and salary events — powered by
+                        NestSports
                       </p>
                     </div>
                     <button
@@ -1457,9 +1549,9 @@ export default function SettingsPage() {
                       Powered by NestSports WhatsApp Service
                     </p>
                     <p>
-                      Messages are sent via NestSports's verified WhatsApp Business
-                      number — no setup required on your end. Just enable the
-                      notifications you need below.
+                      Messages are sent via NestSports's verified WhatsApp
+                      Business number — no setup required on your end. Just
+                      enable the notifications you need below.
                     </p>
                     <p className="text-gray-500">
                       Employee phone numbers must include country code without +

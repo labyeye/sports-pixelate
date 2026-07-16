@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const asyncHandler = require("express-async-handler");
 const Student = require("../models/Student");
 const User = require("../models/User");
+const Employee = require("../models/Employee");
 const {
   escapeRegex,
   safePagination,
@@ -86,17 +87,31 @@ async function ensureParentAccounts(guardians, companyId) {
   return parentIds;
 }
 
-// Owner/staff: full roster for the academy. Parent: only their linked children.
+// A coach only sees students assigned to them; other logged-in employees
+// (role !== "coach") keep seeing the full roster.
+async function coachStudentFilter(user) {
+  if (user.role !== "employee") return null;
+  const employee = await Employee.findOne({ user: user._id }).select(
+    "_id role",
+  );
+  if (!employee || employee.role !== "coach") return null;
+  return employee._id;
+}
+
+// Owner/staff: full roster for the academy. Coach: only their assigned
+// students. Parent: only their linked children.
 const getStudents = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
   const { search, sport, batch, status, coach } = req.query;
 
   const filter = { company: req.user.company };
   if (req.user.role === "parent") filter._id = { $in: req.user.children || [] };
+  const coachId = await coachStudentFilter(req.user);
+  if (coachId) filter.coach = coachId;
   if (status) filter.status = status;
   if (sport) filter.sport = sport;
   if (batch) filter.batch = batch;
-  if (coach) filter.coach = coach;
+  if (coach && !coachId) filter.coach = coach;
   if (search) {
     const s = escapeRegex(search.slice(0, 100));
     filter.$or = [
@@ -114,12 +129,20 @@ const getStudents = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  res.json({ success: true, data: students, total, page, pages: Math.ceil(total / limit) });
+  res.json({
+    success: true,
+    data: students,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 const getStudent = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id, company: req.user.company };
   if (req.user.role === "parent") filter._id = { $in: req.user.children || [] };
+  const coachId = await coachStudentFilter(req.user);
+  if (coachId) filter.coach = coachId;
 
   const student = await Student.findOne(filter)
     .populate("coach", "firstName lastName")
@@ -166,10 +189,9 @@ const createStudent = [
     );
     const parentIds = Array.from(
       new Set(
-        [
-          ...(Array.isArray(parents) ? parents : []),
-          ...autoParentIds,
-        ].map(String),
+        [...(Array.isArray(parents) ? parents : []), ...autoParentIds].map(
+          String,
+        ),
       ),
     );
 
@@ -239,9 +261,7 @@ const updateStudent = [
         { $addToSet: { children: student._id } },
       );
       student.parents = Array.from(
-        new Set(
-          [...(student.parents || []), ...autoParentIds].map(String),
-        ),
+        new Set([...(student.parents || []), ...autoParentIds].map(String)),
       );
     }
 

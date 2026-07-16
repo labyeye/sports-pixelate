@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Tournament = require("../models/Tournament");
 const Fixture = require("../models/Fixture");
+const Student = require("../models/Student");
 const { validateBody } = require("../middleware/validate");
 const {
   roundRobinRounds,
@@ -39,23 +40,42 @@ function shuffle(arr) {
   return a;
 }
 
+// Trims a tournament's registrations down to the caller's own children when
+// they're a parent, so one family never sees another's roster entries.
+function scopeRegistrations(tournamentObj, user) {
+  tournamentObj.registrationCount = tournamentObj.registrations.length;
+  if (user.role === "parent") {
+    const childIds = (user.children || []).map((c) => c.toString());
+    tournamentObj.registrations = tournamentObj.registrations.filter((r) =>
+      childIds.includes((r.student?._id || r.student)?.toString()),
+    );
+  }
+  return tournamentObj;
+}
+
 const getTournaments = asyncHandler(async (req, res) => {
-  const tournaments = await Tournament.find({ company: req.user.company }).sort({
-    createdAt: -1,
-  });
-  res.json({ success: true, data: tournaments });
+  const tournaments = await Tournament.find({ company: req.user.company })
+    .populate("registrations.student", "firstName lastName sport avatar")
+    .sort({ createdAt: -1 });
+  const data = tournaments.map((t) =>
+    scopeRegistrations(t.toObject(), req.user),
+  );
+  res.json({ success: true, data });
 });
 
 const getTournament = asyncHandler(async (req, res) => {
   const tournament = await Tournament.findOne({
     _id: req.params.id,
     company: req.user.company,
-  });
+  }).populate("registrations.student", "firstName lastName sport avatar");
   if (!tournament) {
     res.status(404);
     throw new Error("Tournament not found");
   }
-  res.json({ success: true, data: tournament });
+  res.json({
+    success: true,
+    data: scopeRegistrations(tournament.toObject(), req.user),
+  });
 });
 
 const createTournament = [
@@ -86,6 +106,7 @@ const createTournament = [
 const updateTournament = asyncHandler(async (req, res) => {
   const update = { ...req.body };
   delete update.teams; // teams are managed via the dedicated team endpoints
+  delete update.registrations; // registrations are managed via the dedicated registration endpoints
   delete update.fixturesGenerated;
   delete update.company; // tenant is fixed at creation, not client-editable
   delete update._id;
@@ -161,6 +182,104 @@ const removeTeam = asyncHandler(async (req, res) => {
   res.json({ success: true, data: tournament });
 });
 
+// Parent (or owner/staff enrolling a walk-in) signs a student up to play in
+// the tournament — same ownership rule as subscriptionController.createOrder.
+const registerStudent = asyncHandler(async (req, res) => {
+  const tournament = await Tournament.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!tournament) {
+    res.status(404);
+    throw new Error("Tournament not found");
+  }
+
+  const { studentId } = req.body;
+  if (!studentId) {
+    res.status(400);
+    throw new Error("studentId is required");
+  }
+  if (
+    req.user.role === "parent" &&
+    !(req.user.children || []).some((c) => c.toString() === studentId)
+  ) {
+    res.status(403);
+    throw new Error("You can only register your own child");
+  }
+
+  const student = await Student.findOne({
+    _id: studentId,
+    company: req.user.company,
+  });
+  if (!student) {
+    res.status(404);
+    throw new Error("Student not found");
+  }
+  if (student.sport !== tournament.sport) {
+    res.status(400);
+    throw new Error(
+      `This is a ${tournament.sport} tournament — ${student.firstName} is enrolled in ${student.sport}`,
+    );
+  }
+  if (!tournament.registrationOpen || tournament.fixturesGenerated) {
+    res.status(400);
+    throw new Error("Registration is closed for this tournament");
+  }
+  if (
+    tournament.registrations.some((r) => r.student.toString() === studentId)
+  ) {
+    res.status(400);
+    throw new Error(`${student.firstName} is already registered`);
+  }
+
+  tournament.registrations.push({ student: student._id });
+  await tournament.save();
+
+  const populated = await Tournament.findById(tournament._id).populate(
+    "registrations.student",
+    "firstName lastName sport avatar",
+  );
+  res
+    .status(201)
+    .json({
+      success: true,
+      data: scopeRegistrations(populated.toObject(), req.user),
+    });
+});
+
+const unregisterStudent = asyncHandler(async (req, res) => {
+  const tournament = await Tournament.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!tournament) {
+    res.status(404);
+    throw new Error("Tournament not found");
+  }
+  const { studentId } = req.params;
+  if (
+    req.user.role === "parent" &&
+    !(req.user.children || []).some((c) => c.toString() === studentId)
+  ) {
+    res.status(403);
+    throw new Error("You can only unregister your own child");
+  }
+
+  tournament.registrations = tournament.registrations.filter(
+    (r) => r.student.toString() !== studentId,
+  );
+  await tournament.save();
+
+  const populated = await Tournament.findById(tournament._id).populate(
+    "registrations.student",
+    "firstName lastName sport avatar",
+  );
+  res.json({
+    success: true,
+    data: scopeRegistrations(populated.toObject(), req.user),
+  });
+});
+
 // Builds and persists the full fixture list for a tournament from its
 // current team list. Knockout brackets are wired round-by-round so each
 // fixture's `nextFixture` points at where its winner advances to; round-1
@@ -189,9 +308,9 @@ const generateFixtures = asyncHandler(async (req, res) => {
   await Fixture.deleteMany({ tournament: tournament._id });
 
   const shouldShuffle = req.body?.shuffle !== false;
-  const teamSlots = (shouldShuffle ? shuffle(tournament.teams) : tournament.teams).map(
-    (t) => ({ team: t._id, name: t.name }),
-  );
+  const teamSlots = (
+    shouldShuffle ? shuffle(tournament.teams) : tournament.teams
+  ).map((t) => ({ team: t._id, name: t.name }));
 
   if (tournament.format === "round_robin") {
     const rounds = roundRobinRounds(teamSlots);
@@ -342,6 +461,8 @@ module.exports = {
   deleteTournament,
   addTeam,
   removeTeam,
+  registerStudent,
+  unregisterStudent,
   generateFixtures,
   getFixtures,
   recordResult,

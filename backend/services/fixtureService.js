@@ -74,7 +74,14 @@ function knockoutRoundLabel(roundIndex, totalRounds) {
 }
 
 function toSlot(team) {
-  return team ? { team: team.team, name: team.name } : { team: null, name: null };
+  return team
+    ? { team: team.team, name: team.name }
+    : { team: null, name: null };
 }
 
-module.exports = { roundRobinRounds, knockoutRounds, knockoutRoundLabel, toSlot };
+module.exports = {
+  roundRobinRounds,
+  knockoutRounds,
+  knockoutRoundLabel,
+  toSlot,
+};

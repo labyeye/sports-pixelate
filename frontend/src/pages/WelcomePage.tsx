@@ -78,7 +78,7 @@ export default function WelcomePage() {
     return () => clearTimeout(t);
   }, [countdown, navigate]);
 
-  const companyName = user?.company?.name || "your company";
+  const companyName = user?.company?.name || "your SportsClub";
   const userName = user?.name?.split(" ")[0] || "there";
 
   return (

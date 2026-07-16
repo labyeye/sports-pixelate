@@ -33,10 +33,15 @@ interface CompanyFormData {
   panNumber: string;
 }
 
-const RATE_PER_STUDENT = 150;
+type Tier = "standard" | "whatsapp";
+
+const RATE_PER_STUDENT: Record<Tier, number> = {
+  standard: 150,
+  whatsapp: 300,
+};
 
 const STEPS: { id: Step; label: string }[] = [
-  { id: "company", label: "Company" },
+  { id: "company", label: "SportsClub" },
   { id: "students", label: "Students" },
   { id: "payment", label: "Payment" },
 ];
@@ -98,6 +103,7 @@ export default function OnboardingPage() {
     user?.company ? "students" : "company",
   );
   const [studentCount, setStudentCount] = useState<number | "">("");
+  const [tier, setTier] = useState<Tier>("standard");
   const [paying, setPaying] = useState(false);
   const [companyError, setCompanyError] = useState("");
   const [companyForm, setCompanyForm] = useState<CompanyFormData | null>(null);
@@ -109,7 +115,8 @@ export default function OnboardingPage() {
   }, [user?.company, user?.subscription?.status, navigate]);
 
   const count = Number(studentCount) || 0;
-  const yearlyPrice = count * RATE_PER_STUDENT;
+  const rate = RATE_PER_STUDENT[tier];
+  const yearlyPrice = count * rate;
   const monthlyEquiv = Math.round(yearlyPrice / 12);
 
   const handleCreateCompany = async (formData: CompanyFormData) => {
@@ -146,8 +153,8 @@ export default function OnboardingPage() {
   const handlePay = async () => {
     if (!user?.company && !companyForm) {
       toast({
-        title: "Company details missing",
-        description: "Please go back and fill in your company details.",
+        title: "SportsClub details missing",
+        description: "Please go back and fill in your SportsClub details.",
         variant: "destructive",
       });
       return;
@@ -159,6 +166,7 @@ export default function OnboardingPage() {
         "yearly",
         "razorpay",
         user?.company ? undefined : companyForm!,
+        tier,
       );
       if (!res.success) throw new Error("Failed to create order");
       const order = res.data;
@@ -216,9 +224,9 @@ export default function OnboardingPage() {
       });
     } catch (err: any) {
       const msg = err.message || "Please try again.";
-      if (msg.includes("User already has a company")) {
+      if (msg.includes("User already has a SportsClub")) {
         toast({
-          title: "Company already exists",
+          title: "SportsClub already exists",
           description: "Redirecting...",
           variant: "destructive",
         });
@@ -264,7 +272,7 @@ export default function OnboardingPage() {
           <div>
             <div className="text-center mb-8">
               <h1 className="font-display font-bold text-3xl text-black mb-2">
-                Set up your company
+                Set up your SportsClub
               </h1>
               <p className="text-gray-500 font-medium text-sm">
                 Your legal and contact details
@@ -289,11 +297,48 @@ export default function OnboardingPage() {
                 How many students?
               </h1>
               <p className="text-gray-500 font-medium text-sm">
-                NestSports is ₹{RATE_PER_STUDENT} per student, per year — one flat plan, full features
+                Priced per student, per year — pick the plan that fits your
+                club
               </p>
             </div>
 
             <div className="bg-white border-2 border-black p-8 max-w-sm mx-auto">
+              <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
+                Plan
+              </label>
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setTier("standard")}
+                  className={cn(
+                    "text-left p-3 border-2 transition-all",
+                    tier === "standard"
+                      ? "bg-[#024BAB] text-white border-black"
+                      : "bg-white text-black border-black hover:bg-gray-50",
+                  )}
+                >
+                  <p className="font-bold text-sm">₹{RATE_PER_STUDENT.standard}/student/yr</p>
+                  <p className={cn("text-[11px] font-medium mt-0.5", tier === "standard" ? "text-white/80" : "text-gray-500")}>
+                    No WhatsApp
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTier("whatsapp")}
+                  className={cn(
+                    "text-left p-3 border-2 transition-all",
+                    tier === "whatsapp"
+                      ? "bg-[#024BAB] text-white border-black"
+                      : "bg-white text-black border-black hover:bg-gray-50",
+                  )}
+                >
+                  <p className="font-bold text-sm">₹{RATE_PER_STUDENT.whatsapp}/student/yr</p>
+                  <p className={cn("text-[11px] font-medium mt-0.5", tier === "whatsapp" ? "text-white/80" : "text-gray-500")}>
+                    + WhatsApp notifications
+                  </p>
+                </button>
+              </div>
+
               <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
                 Number of students
               </label>
@@ -317,7 +362,8 @@ export default function OnboardingPage() {
               </p>
               {count > 0 && (
                 <p className="text-sm font-bold text-[#024BAB] text-center mb-6">
-                  ₹{yearlyPrice.toLocaleString("en-IN")}/year (₹{monthlyEquiv.toLocaleString("en-IN")}/mo equiv.)
+                  ₹{yearlyPrice.toLocaleString("en-IN")}/year (₹
+                  {monthlyEquiv.toLocaleString("en-IN")}/mo equiv.)
                 </p>
               )}
 
@@ -372,16 +418,14 @@ export default function OnboardingPage() {
                 </div>
                 <div className="p-5 space-y-3">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-gray-600">Rate</span>
+                    <span className="font-bold text-gray-600">Plan</span>
                     <span className="font-bold text-black">
-                      ₹{RATE_PER_STUDENT}/student/year
+                      ₹{rate}/student/year {tier === "whatsapp" ? "(+ WhatsApp)" : ""}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Students</span>
-                    <span className="font-bold text-black">
-                      {studentCount}
-                    </span>
+                    <span className="font-bold text-black">{studentCount}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">

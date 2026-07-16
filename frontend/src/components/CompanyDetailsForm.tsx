@@ -38,7 +38,7 @@ export default function CompanyDetailsForm({
 
     const nameValidation = validators.name(form.name);
     if (!nameValidation.valid) {
-      onError(nameValidation.error || "Invalid company name");
+      onError(nameValidation.error || "Invalid SportsClub name");
       return;
     }
 
@@ -74,7 +74,7 @@ export default function CompanyDetailsForm({
     try {
       await onSubmit(form);
     } catch (err) {
-      onError((err as Error).message || "Failed to create company");
+      onError((err as Error).message || "Failed to create SportsClub");
     }
   };
 
@@ -90,7 +90,7 @@ export default function CompanyDetailsForm({
       {}
       <div className="space-y-2">
         <label className="block text-xs font-bold uppercase tracking-wider text-black">
-          Company Name *
+          SportsClub Name *
         </label>
         <input
           type="text"
@@ -106,13 +106,13 @@ export default function CompanyDetailsForm({
       {}
       <div className="space-y-2">
         <label className="block text-xs font-bold uppercase tracking-wider text-black">
-          Company Email
+          SportsClub Email
         </label>
         <input
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="company@example.com"
+          placeholder="sportsclub@example.com"
           className="w-full px-3 py-2.5 text-sm font-medium bg-white border-2 border-black focus:outline-none focus:ring-2 focus:ring-[#024BAB] focus:ring-offset-2"
         />
       </div>
@@ -203,7 +203,7 @@ export default function CompanyDetailsForm({
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Creating company...
+            Creating SportsClub...
           </span>
         ) : (
           <span className="flex items-center justify-center gap-2">

@@ -18,6 +18,7 @@ const pendingOrderSchema = new mongoose.Schema(
 
     studentCount: { type: Number, required: true },
     billingCycle: { type: String, enum: ["monthly", "yearly"], required: true },
+    tier: { type: String, enum: ["standard", "whatsapp"], default: "standard" },
     ratePerStudent: { type: Number, required: true },
     monthlyPrice: { type: Number, required: true },
     yearlyPrice: { type: Number, required: true },
@@ -29,6 +30,9 @@ const pendingOrderSchema = new mongoose.Schema(
 );
 
 // Abandoned/unpaid pending orders auto-expire after 24h.
-pendingOrderSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 });
+pendingOrderSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 },
+);
 
 module.exports = mongoose.model("PendingOrder", pendingOrderSchema);

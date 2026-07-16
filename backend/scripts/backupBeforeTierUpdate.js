@@ -28,7 +28,9 @@ async function run() {
     JSON.stringify({ companies, subscriptions, pendingOrders }, null, 2),
   );
 
-  console.log(`Backed up ${companies.length} companies, ${subscriptions.length} subscriptions, ${pendingOrders.length} pending orders`);
+  console.log(
+    `Backed up ${companies.length} companies, ${subscriptions.length} subscriptions, ${pendingOrders.length} pending orders`,
+  );
   console.log(`-> ${outFile}`);
 
   await mongoose.disconnect();

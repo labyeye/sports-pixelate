@@ -4,9 +4,9 @@ import React, {
   useState,
   useEffect,
   useCallback,
-} from "react";
-import { User } from "../types";
-import { authAPI, setToken, removeToken, getToken } from "../api/client";
+} from 'react';
+import { User } from '../types';
+import { authAPI, setToken, removeToken, getToken } from '../api/client';
 
 interface AuthContextType {
   user: User | null;
@@ -52,7 +52,7 @@ function mapUser(data: any): User {
           id: data.company._id || data.company.id,
           name: data.company.name,
           email: data.company.email,
-          status: data.company.status || "trial",
+          status: data.company.status || 'trial',
           subscription: data.company.subscription
             ? {
                 status: data.company.subscription.status,
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(mapUser(userData));
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || "Login failed" };
+      return { success: false, error: err.message || 'Login failed' };
     }
   }, []);
 
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(mapUser(userData));
         return { success: true };
       } catch (err: any) {
-        return { success: false, error: err.message || "Registration failed" };
+        return { success: false, error: err.message || 'Registration failed' };
       }
     },
     [],
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateUser = useCallback((data: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...data } : null));
+    setUser(prev => (prev ? { ...prev, ...data } : null));
   }, []);
 
   return (
@@ -167,6 +167,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be within AuthProvider");
+  if (!ctx) throw new Error('useAuth must be within AuthProvider');
   return ctx;
 }

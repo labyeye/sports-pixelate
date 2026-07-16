@@ -20,22 +20,25 @@ const createSchema = {
   email: { required: true, email: true },
   designation: { required: true, type: "string", minLength: 1, maxLength: 100 },
   joinDate: { required: true, type: "string" },
+  role: { enum: ["coach", "staff"] },
 };
 
 const updateSchema = {
   firstName: { type: "string", minLength: 1, maxLength: 80 },
   lastName: { type: "string", minLength: 1, maxLength: 80 },
   designation: { type: "string", minLength: 1, maxLength: 100 },
+  role: { enum: ["coach", "staff"] },
 };
 
 const getEmployees = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
-  const { search, department, status, type } = req.query;
+  const { search, department, status, type, role } = req.query;
 
   const filter = { company: req.user.company };
   if (status) filter.status = status;
   if (department) filter.department = department;
   if (type) filter.employmentType = type;
+  if (role) filter.role = role;
   if (search) {
     const s = escapeRegex(search.slice(0, 100));
     filter.$or = [
@@ -123,6 +126,8 @@ const createEmployee = [
       joinDate,
       phone,
       department,
+      role,
+      sport,
       employmentType,
       salary,
       bankAccount,
@@ -207,6 +212,8 @@ const createEmployee = [
       joinDate,
       phone: phone || undefined,
       department: department || undefined,
+      role: role || "staff",
+      sport: role === "coach" ? sport || "" : "",
       employmentType: employmentType || "full_time",
       salary: salary !== undefined ? Number(salary) : 0,
       bankAccount: bankAccount || undefined,
@@ -271,6 +278,8 @@ const updateEmployee = [
       "designation",
       "phone",
       "department",
+      "role",
+      "sport",
       "employmentType",
       "salary",
       "bankAccount",
@@ -330,6 +339,7 @@ const updateEmployee = [
     // Fields with a Mongoose enum — "" isn't a valid enum value, so it must
     // become undefined instead of being cast as-is (e.g. cleared bloodGroup).
     const enumFields = new Set([
+      "role",
       "employmentType",
       "status",
       "maritalStatus",
@@ -504,6 +514,7 @@ const bulkImportEmployees = asyncHandler(async (req, res) => {
         joinDate,
         phone: row.phone || undefined,
         department: deptMatch?._id || undefined,
+        role: row.role === "coach" ? "coach" : "staff",
         employmentType: row.employmentType || "full_time",
         salary: Number(row.salary) || 0,
         gender: row.gender || undefined,

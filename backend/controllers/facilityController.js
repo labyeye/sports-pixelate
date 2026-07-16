@@ -7,7 +7,10 @@ const createSchema = {
 };
 
 const getFacilities = asyncHandler(async (req, res) => {
-  const facilities = await Facility.find({ company: req.user.company, active: true }).sort({
+  const facilities = await Facility.find({
+    company: req.user.company,
+    active: true,
+  }).sort({
     name: 1,
   });
   res.json({ success: true, data: facilities });
@@ -55,4 +58,9 @@ const deleteFacility = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Facility deactivated" });
 });
 
-module.exports = { getFacilities, createFacility, updateFacility, deleteFacility };
+module.exports = {
+  getFacilities,
+  createFacility,
+  updateFacility,
+  deleteFacility,
+};

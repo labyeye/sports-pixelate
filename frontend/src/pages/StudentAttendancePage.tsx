@@ -93,7 +93,10 @@ export default function StudentAttendancePage() {
         .filter((s) => marks[s._id])
         .map((s) => ({ student: s._id, status: marks[s._id], batch: s.batch }));
       if (records.length === 0) {
-        toast({ title: "Nothing to save", description: "Mark at least one student first" });
+        toast({
+          title: "Nothing to save",
+          description: "Mark at least one student first",
+        });
         return;
       }
       await studentAttendanceAPI.bulkMark({ date, records });
@@ -230,7 +233,9 @@ export default function StudentAttendancePage() {
                 <p
                   className={cn(
                     "text-[11px] font-bold mt-1 uppercase tracking-wider",
-                    isActive ? "text-white opacity-80" : "text-muted-foreground",
+                    isActive
+                      ? "text-white opacity-80"
+                      : "text-muted-foreground",
                   )}
                 >
                   {label}

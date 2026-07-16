@@ -3,6 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { SportPicker } from "@/components/SportPicker";
 import {
   employeeAPI,
   departmentAPI,
@@ -78,6 +79,8 @@ interface EmployeeFormData {
   phone: string;
   designation: string;
   department: string;
+  role: string;
+  sport: string;
   employmentType: string;
   joinDate: string;
   salary: string;
@@ -144,6 +147,8 @@ const EMPTY_FORM: EmployeeFormData = {
   phone: "",
   designation: "",
   department: "",
+  role: "staff",
+  sport: "",
   employmentType: "full_time",
   joinDate: "",
   salary: "",
@@ -327,6 +332,8 @@ export default function EmployeesPage() {
       phone: emp.phone || "",
       designation: emp.designation,
       department: (emp.department as any)?._id || "",
+      role: (emp as any).role || "staff",
+      sport: (emp as any).sport || "",
       employmentType: emp.employmentType,
       joinDate: emp.joinDate?.split("T")[0] || "",
       salary: String(emp.salary || ""),
@@ -517,7 +524,7 @@ export default function EmployeesPage() {
       key: "email",
       label: "Email",
       required: true,
-      example: "rahul@company.com",
+      example: "rahul@sportsclub.com",
     },
     {
       key: "designation",
@@ -1422,7 +1429,7 @@ export default function EmployeesPage() {
                             setForm({ ...form, email: e.target.value })
                           }
                           className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                          placeholder="employee@company.com"
+                          placeholder="employee@sportsclub.com"
                         />
                       </div>
                       <div>
@@ -1541,6 +1548,32 @@ export default function EmployeesPage() {
                           <option value="intern">Intern</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-xs font-bold text-black mb-1">
+                          Role
+                        </label>
+                        <select
+                          value={form.role}
+                          onChange={(e) =>
+                            setForm({ ...form, role: e.target.value })
+                          }
+                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30 bg-white"
+                        >
+                          <option value="staff">Staff</option>
+                          <option value="coach">Coach</option>
+                        </select>
+                      </div>
+                      {form.role === "coach" && (
+                        <div>
+                          <label className="block text-xs font-bold text-black mb-1">
+                            Sport
+                          </label>
+                          <SportPicker
+                            value={form.sport}
+                            onChange={(sport) => setForm({ ...form, sport })}
+                          />
+                        </div>
+                      )}
                       {editEmp && (
                         <div>
                           <label className="block text-xs font-bold text-black mb-1">
@@ -2586,7 +2619,7 @@ export default function EmployeesPage() {
                         </div>
                         <div className="col-span-2">
                           <label className="block text-xs font-bold text-black mb-1">
-                            Previous Company
+                            Previous SportsClub
                           </label>
                           <input
                             type="text"
@@ -3486,7 +3519,7 @@ export default function EmployeesPage() {
                     {[
                       ["Qualification", (viewEmp as any).qualification],
                       ["Experience", (viewEmp as any).totalExperience],
-                      ["Previous Company", (viewEmp as any).previousCompany],
+                      ["Previous SportsClub", (viewEmp as any).previousCompany],
                     ]
                       .filter(([, v]) => v)
                       .map(([label, value]) => (

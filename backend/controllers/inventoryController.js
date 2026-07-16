@@ -23,10 +23,18 @@ const getItems = asyncHandler(async (req, res) => {
     .limit(limit);
 
   if (lowStock === "true") {
-    items = items.filter((i) => i.trackQuantity && i.availableQuantity <= i.reorderThreshold);
+    items = items.filter(
+      (i) => i.trackQuantity && i.availableQuantity <= i.reorderThreshold,
+    );
   }
 
-  res.json({ success: true, data: items, total, page, pages: Math.ceil(total / limit) });
+  res.json({
+    success: true,
+    data: items,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 const createItem = [
@@ -98,12 +106,19 @@ const deleteItem = asyncHandler(async (req, res) => {
 const recordTransaction = asyncHandler(async (req, res) => {
   const { type, quantity, notes } = req.body;
   const qty = Number(quantity);
-  if (!["purchase", "consume", "damage", "return"].includes(type) || !qty || qty <= 0) {
+  if (
+    !["purchase", "consume", "damage", "return"].includes(type) ||
+    !qty ||
+    qty <= 0
+  ) {
     res.status(400);
     throw new Error("Valid type and positive quantity are required");
   }
 
-  const item = await InventoryItem.findOne({ _id: req.params.id, company: req.user.company });
+  const item = await InventoryItem.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!item) {
     res.status(404);
     throw new Error("Item not found");
@@ -142,7 +157,10 @@ const assignItem = asyncHandler(async (req, res) => {
     throw new Error("assignedToModel must be Student or Employee");
   }
 
-  const item = await InventoryItem.findOne({ _id: req.params.id, company: req.user.company });
+  const item = await InventoryItem.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!item) {
     res.status(404);
     throw new Error("Item not found");
@@ -161,7 +179,10 @@ const assignItem = asyncHandler(async (req, res) => {
 
 // Marks an assignment as returned, restoring availability.
 const returnAssignment = asyncHandler(async (req, res) => {
-  const item = await InventoryItem.findOne({ _id: req.params.id, company: req.user.company });
+  const item = await InventoryItem.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!item) {
     res.status(404);
     throw new Error("Item not found");

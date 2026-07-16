@@ -15,7 +15,8 @@ const getExpenses = asyncHandler(async (req, res) => {
   const filter = { company: req.user.company };
   if (category) filter.category = category;
   if (month && year) {
-    const m = parseInt(month), y = parseInt(year);
+    const m = parseInt(month),
+      y = parseInt(year);
     if (!isNaN(m) && !isNaN(y)) {
       filter.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0) };
     }

@@ -1,9 +1,15 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { facilityAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { facilityAPI } from '../api/client';
+import { Card, EmptyState, LoadingView, Badge } from '../components/ui';
+import { colors } from '../theme/colors';
 
 export default function FacilitiesScreen() {
   const [facilities, setFacilities] = useState<any[]>([]);
@@ -30,11 +36,13 @@ export default function FacilitiesScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>Facilities</Text>
         <Text style={styles.subtitle}>Sports facilities and hourly rates</Text>
@@ -44,14 +52,18 @@ export default function FacilitiesScreen() {
             <EmptyState title="No facilities found" />
           </Card>
         ) : (
-          facilities.map((f) => (
+          facilities.map(f => (
             <Card key={f._id}>
               <View style={styles.headerRow}>
                 <Text style={styles.name}>{f.name}</Text>
                 <Badge label={f.type} color={colors.purple} />
               </View>
               {f.sport ? <Text style={styles.sub}>{f.sport}</Text> : null}
-              <Text style={styles.fee}>{f.hourlyFee > 0 ? `₹${f.hourlyFee.toLocaleString("en-IN")}/hr` : "Free"}</Text>
+              <Text style={styles.fee}>
+                {f.hourlyFee > 0
+                  ? `₹${f.hourlyFee.toLocaleString('en-IN')}/hr`
+                  : 'Free'}
+              </Text>
             </Card>
           ))
         )}
@@ -62,10 +74,14 @@ export default function FacilitiesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  fee: { fontWeight: "800", color: colors.blue, fontSize: 15, marginTop: 8 },
+  fee: { fontWeight: '800', color: colors.blue, fontSize: 15, marginTop: 8 },
 });

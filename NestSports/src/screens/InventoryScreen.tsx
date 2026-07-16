@@ -1,9 +1,15 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { inventoryAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { inventoryAPI } from '../api/client';
+import { Card, EmptyState, LoadingView, Badge } from '../components/ui';
+import { colors } from '../theme/colors';
 
 const CATEGORY_COLORS: Record<string, string> = {
   equipment: colors.blue,
@@ -36,11 +42,13 @@ export default function InventoryScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>Inventory</Text>
         <Text style={styles.subtitle}>Sports equipment and stock levels</Text>
@@ -50,13 +58,16 @@ export default function InventoryScreen() {
             <EmptyState title="No inventory items found" />
           </Card>
         ) : (
-          items.map((i) => {
+          items.map(i => {
             const low = i.availableQuantity <= (i.reorderThreshold ?? 0);
             return (
               <Card key={i._id}>
                 <View style={styles.headerRow}>
                   <Text style={styles.name}>{i.name}</Text>
-                  <Badge label={i.category} color={CATEGORY_COLORS[i.category] || colors.blue} />
+                  <Badge
+                    label={i.category}
+                    color={CATEGORY_COLORS[i.category] || colors.blue}
+                  />
                 </View>
                 {i.sport ? <Text style={styles.sub}>{i.sport}</Text> : null}
                 <Text style={[styles.qty, low && { color: colors.red }]}>
@@ -73,10 +84,14 @@ export default function InventoryScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  qty: { fontWeight: "800", color: colors.black, fontSize: 15, marginTop: 8 },
+  qty: { fontWeight: '800', color: colors.black, fontSize: 15, marginTop: 8 },
 });

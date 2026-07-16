@@ -24,6 +24,11 @@ const loginSchema = {
 
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
+// Owner roles (super_admin/hr_manager) may sign in with either email/password
+// or phone OTP. Everyone else (coaches, staff, parents, etc.) is OTP-only —
+// enforced here so it can't be bypassed by calling this endpoint directly.
+const OWNER_ROLES = ["super_admin", "hr_manager"];
+
 const register = [
   validateBody(registerSchema),
   asyncHandler(async (req, res) => {
@@ -84,6 +89,13 @@ const login = [
     if (user.status === "inactive") {
       res.status(403);
       throw new Error("Your account has been deactivated. Please contact HR.");
+    }
+
+    if (!OWNER_ROLES.includes(user.role)) {
+      res.status(403);
+      throw new Error(
+        "This account signs in with Phone OTP (WhatsApp). Please use the Phone OTP login option.",
+      );
     }
 
     if (user.company && user.role !== "super_admin") {
@@ -474,7 +486,9 @@ const sendOtp = asyncHandler(async (req, res) => {
   console.log(`[WA-OTP] lookup phone=${normalised} found=${!!user}`);
   if (!user) {
     // Return generic success to avoid user enumeration
-    console.warn(`[WA-OTP] ABORT: no user matched phone=${normalised} (raw=${phone})`);
+    console.warn(
+      `[WA-OTP] ABORT: no user matched phone=${normalised} (raw=${phone})`,
+    );
     return res.json({
       success: true,
       message: "If that phone number is registered, an OTP has been sent.",

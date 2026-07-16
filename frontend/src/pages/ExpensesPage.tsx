@@ -69,7 +69,10 @@ export default function ExpensesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await expenseAPI.getAll({ month: String(month), year: String(year) });
+      const r = await expenseAPI.getAll({
+        month: String(month),
+        year: String(year),
+      });
       setExpenses(r.data);
       setTotalAmount(r.totalAmount || 0);
     } catch (e: any) {
@@ -84,19 +87,32 @@ export default function ExpensesPage() {
   }, [load]);
 
   const resetForm = () => {
-    setForm({ category: "equipment", title: "", amount: "", date: toDateStr(now), description: "" });
+    setForm({
+      category: "equipment",
+      title: "",
+      amount: "",
+      date: toDateStr(now),
+      description: "",
+    });
     setShowForm(false);
   };
 
   const handleSave = async () => {
     if (saving) return;
     if (!form.title.trim() || !form.amount) {
-      toast({ title: "Missing fields", description: "Title and amount are required", variant: "destructive" });
+      toast({
+        title: "Missing fields",
+        description: "Title and amount are required",
+        variant: "destructive",
+      });
       return;
     }
     setSaving(true);
     try {
-      const r = await expenseAPI.create({ ...form, amount: Number(form.amount) });
+      const r = await expenseAPI.create({
+        ...form,
+        amount: Number(form.amount),
+      });
       setExpenses((p) => [r.data, ...p]);
       setTotalAmount((t) => t + Number(form.amount));
       toast({ title: "Expense recorded" });
@@ -122,7 +138,8 @@ export default function ExpensesPage() {
 
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
-      if (search && !e.title.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !e.title.toLowerCase().includes(search.toLowerCase()))
+        return false;
       if (filterCategory && e.category !== filterCategory) return false;
       return true;
     });
@@ -132,9 +149,11 @@ export default function ExpensesPage() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "date") cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (sortKey === "date")
+        cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
       else if (sortKey === "title") cmp = a.title.localeCompare(b.title);
-      else if (sortKey === "category") cmp = a.category.localeCompare(b.category);
+      else if (sortKey === "category")
+        cmp = a.category.localeCompare(b.category);
       else if (sortKey === "amount") cmp = a.amount - b.amount;
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -163,8 +182,12 @@ export default function ExpensesPage() {
             <IndianRupee className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Spent This Month</p>
-            <p className="text-2xl font-bold text-black">₹{totalAmount.toLocaleString("en-IN")}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Spent This Month
+            </p>
+            <p className="text-2xl font-bold text-black">
+              ₹{totalAmount.toLocaleString("en-IN")}
+            </p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -172,7 +195,9 @@ export default function ExpensesPage() {
             <ListOrdered className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Entries</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Entries
+            </p>
             <p className="text-2xl font-bold text-black">{expenses.length}</p>
           </div>
         </div>
@@ -181,9 +206,16 @@ export default function ExpensesPage() {
             <Receipt className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Avg. Expense</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Avg. Expense
+            </p>
             <p className="text-2xl font-bold text-black">
-              ₹{expenses.length ? Math.round(totalAmount / expenses.length).toLocaleString("en-IN") : 0}
+              ₹
+              {expenses.length
+                ? Math.round(totalAmount / expenses.length).toLocaleString(
+                    "en-IN",
+                  )
+                : 0}
             </p>
           </div>
         </div>
@@ -208,7 +240,9 @@ export default function ExpensesPage() {
         >
           <option value="">All Categories</option>
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c.replace("_", " ")}</option>
+            <option key={c} value={c}>
+              {c.replace("_", " ")}
+            </option>
           ))}
         </select>
         {(search || filterCategory) && (
@@ -236,7 +270,11 @@ export default function ExpensesPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
       </div>
@@ -246,48 +284,70 @@ export default function ExpensesPage() {
           <h3 className="font-bold text-base mb-4">Add Expense</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Title *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Title *
+              </label>
               <input
                 value={form.title}
-                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, title: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Category</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Category
+              </label>
               <select
                 value={form.category}
-                onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, category: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c.replace("_", " ")}</option>
+                  <option key={c} value={c}>
+                    {c.replace("_", " ")}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Amount (₹) *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Amount (₹) *
+              </label>
               <input
                 type="number"
                 value={form.amount}
-                onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, amount: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Date</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Date
+              </label>
               <input
                 type="date"
                 value={form.date}
-                onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, date: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">Description</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Description
+              </label>
               <input
                 value={form.description}
-                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, description: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
@@ -298,10 +358,17 @@ export default function ExpensesPage() {
               disabled={saving}
               className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               Save
             </button>
-            <button onClick={resetForm} className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase">
+            <button
+              onClick={resetForm}
+              className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+            >
               <X className="w-4 h-4" /> Cancel
             </button>
           </div>
@@ -316,7 +383,9 @@ export default function ExpensesPage() {
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <Receipt className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No expenses found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your filters
+          </p>
         </div>
       ) : (
         <>
@@ -327,7 +396,9 @@ export default function ExpensesPage() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-bold text-black">{e.title}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{e.category.replace("_", " ")}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {e.category.replace("_", " ")}
+                    </p>
                   </div>
                   <button
                     onClick={() => handleDelete(e._id, e.amount)}
@@ -339,11 +410,15 @@ export default function ExpensesPage() {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                   <div>
                     <span className="text-muted-foreground">Date: </span>
-                    <span className="font-bold text-black">{new Date(e.date).toLocaleDateString("en-IN")}</span>
+                    <span className="font-bold text-black">
+                      {new Date(e.date).toLocaleDateString("en-IN")}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Amount: </span>
-                    <span className="font-bold text-black">₹{e.amount.toLocaleString("en-IN")}</span>
+                    <span className="font-bold text-black">
+                      ₹{e.amount.toLocaleString("en-IN")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -355,18 +430,39 @@ export default function ExpensesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {["Date", "Title", "Category", "Amount", "Actions"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap">{h}</th>
-                  ))}
+                  {["Date", "Title", "Category", "Amount", "Actions"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {displayed.map((e, idx) => (
-                  <tr key={e._id} className={cn("border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors", idx % 2 === 0 ? "" : "bg-[#F8FAFF]")}>
-                    <td className="px-4 py-3 text-black">{new Date(e.date).toLocaleDateString("en-IN")}</td>
-                    <td className="px-4 py-3 font-bold text-black">{e.title}</td>
-                    <td className="px-4 py-3 text-black capitalize">{e.category.replace("_", " ")}</td>
-                    <td className="px-4 py-3 font-bold text-black">₹{e.amount.toLocaleString("en-IN")}</td>
+                  <tr
+                    key={e._id}
+                    className={cn(
+                      "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                      idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                    )}
+                  >
+                    <td className="px-4 py-3 text-black">
+                      {new Date(e.date).toLocaleDateString("en-IN")}
+                    </td>
+                    <td className="px-4 py-3 font-bold text-black">
+                      {e.title}
+                    </td>
+                    <td className="px-4 py-3 text-black capitalize">
+                      {e.category.replace("_", " ")}
+                    </td>
+                    <td className="px-4 py-3 font-bold text-black">
+                      ₹{e.amount.toLocaleString("en-IN")}
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleDelete(e._id, e.amount)}

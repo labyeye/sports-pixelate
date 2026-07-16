@@ -1,6 +1,10 @@
 const express = require("express");
 const { getLogs } = require("../controllers/auditController");
-const { protect, authorize, requirePlanFeature } = require("../middleware/auth");
+const {
+  protect,
+  authorize,
+  requirePlanFeature,
+} = require("../middleware/auth");
 const router = express.Router();
 
 router.get(

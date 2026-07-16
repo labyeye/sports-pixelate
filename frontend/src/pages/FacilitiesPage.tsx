@@ -35,7 +35,13 @@ export default function FacilitiesPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", type: "court", sport: "", capacity: "1", hourlyFee: "0" });
+  const [form, setForm] = useState({
+    name: "",
+    type: "court",
+    sport: "",
+    capacity: "1",
+    hourlyFee: "0",
+  });
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -60,7 +66,13 @@ export default function FacilitiesPage() {
   }, [load]);
 
   const resetForm = () => {
-    setForm({ name: "", type: "court", sport: "", capacity: "1", hourlyFee: "0" });
+    setForm({
+      name: "",
+      type: "court",
+      sport: "",
+      capacity: "1",
+      hourlyFee: "0",
+    });
     setShowForm(false);
   };
 
@@ -99,13 +111,17 @@ export default function FacilitiesPage() {
   };
 
   const sportOptions = useMemo(
-    () => Array.from(new Set(facilities.map((f) => f.sport).filter(Boolean))).sort(),
+    () =>
+      Array.from(
+        new Set(facilities.map((f) => f.sport).filter(Boolean)),
+      ).sort(),
     [facilities],
   );
 
   const filtered = useMemo(() => {
     return facilities.filter((f) => {
-      if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !f.name.toLowerCase().includes(search.toLowerCase()))
+        return false;
       if (filterType && f.type !== filterType) return false;
       if (filterSport && f.sport !== filterSport) return false;
       return true;
@@ -131,7 +147,9 @@ export default function FacilitiesPage() {
   return (
     <AppLayout title="Facilities">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="font-display font-bold text-2xl text-black">Facilities</h1>
+        <h1 className="font-display font-bold text-2xl text-black">
+          Facilities
+        </h1>
         <button
           onClick={() => {
             resetForm();
@@ -150,7 +168,9 @@ export default function FacilitiesPage() {
             <Building2 className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Facilities</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Facilities
+            </p>
             <p className="text-2xl font-bold text-black">{facilities.length}</p>
           </div>
         </div>
@@ -159,7 +179,9 @@ export default function FacilitiesPage() {
             <Users2 className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Capacity</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Capacity
+            </p>
             <p className="text-2xl font-bold text-black">{totalCapacity}</p>
           </div>
         </div>
@@ -168,7 +190,9 @@ export default function FacilitiesPage() {
             <MapPin className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Free to Book</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Free to Book
+            </p>
             <p className="text-2xl font-bold text-black">{freeCount}</p>
           </div>
         </div>
@@ -193,7 +217,9 @@ export default function FacilitiesPage() {
         >
           <option value="">All Types</option>
           {["court", "pool", "turf", "gym", "equipment", "other"].map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
         <select
@@ -203,7 +229,9 @@ export default function FacilitiesPage() {
         >
           <option value="">All Sports</option>
           {sportOptions.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
         {(search || filterType || filterSport) && (
@@ -232,7 +260,11 @@ export default function FacilitiesPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
       </div>
@@ -242,49 +274,73 @@ export default function FacilitiesPage() {
           <h3 className="font-bold text-base mb-4">Add Facility</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Name *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Name *
+              </label>
               <input
                 value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, name: e.target.value }))
+                }
                 placeholder="e.g. Court 1"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Type</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Type
+              </label>
               <select
                 value={form.type}
-                onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, type: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               >
-                {["court", "pool", "turf", "gym", "equipment", "other"].map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                {["court", "pool", "turf", "gym", "equipment", "other"].map(
+                  (t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Sport</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Sport
+              </label>
               <input
                 value={form.sport}
-                onChange={(e) => setForm((p) => ({ ...p, sport: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sport: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Capacity</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Capacity
+              </label>
               <input
                 type="number"
                 value={form.capacity}
-                onChange={(e) => setForm((p) => ({ ...p, capacity: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, capacity: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Hourly Fee (₹, 0 = free)</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Hourly Fee (₹, 0 = free)
+              </label>
               <input
                 type="number"
                 value={form.hourlyFee}
-                onChange={(e) => setForm((p) => ({ ...p, hourlyFee: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, hourlyFee: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
@@ -295,10 +351,17 @@ export default function FacilitiesPage() {
               disabled={saving}
               className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               Save
             </button>
-            <button onClick={resetForm} className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase">
+            <button
+              onClick={resetForm}
+              className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+            >
               <X className="w-4 h-4" /> Cancel
             </button>
           </div>
@@ -313,7 +376,9 @@ export default function FacilitiesPage() {
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <MapPin className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No facilities found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your filters
+          </p>
         </div>
       ) : (
         <>
@@ -323,7 +388,10 @@ export default function FacilitiesPage() {
               <div key={f._id} className="border-2 border-black bg-white p-4">
                 <div className="flex items-start justify-between mb-1">
                   <p className="font-bold text-black">{f.name}</p>
-                  <button onClick={() => handleDelete(f._id)} className="p-1 border border-black/10 hover:border-red-500 hover:text-red-500">
+                  <button
+                    onClick={() => handleDelete(f._id)}
+                    className="p-1 border border-black/10 hover:border-red-500 hover:text-red-500"
+                  >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -337,7 +405,9 @@ export default function FacilitiesPage() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Fee: </span>
-                    <span className="font-bold text-[#024BAB]">{f.hourlyFee > 0 ? `₹${f.hourlyFee}/hr` : "Free"}</span>
+                    <span className="font-bold text-[#024BAB]">
+                      {f.hourlyFee > 0 ? `₹${f.hourlyFee}/hr` : "Free"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -349,8 +419,18 @@ export default function FacilitiesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {["Name", "Type", "Sport", "Capacity", "Hourly Fee", "Actions"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider">
+                  {[
+                    "Name",
+                    "Type",
+                    "Sport",
+                    "Capacity",
+                    "Hourly Fee",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
+                    >
                       {h}
                     </th>
                   ))}
@@ -358,9 +438,17 @@ export default function FacilitiesPage() {
               </thead>
               <tbody>
                 {displayed.map((f, idx) => (
-                  <tr key={f._id} className={cn("border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors", idx % 2 === 0 ? "" : "bg-[#F8FAFF]")}>
+                  <tr
+                    key={f._id}
+                    className={cn(
+                      "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                      idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                    )}
+                  >
                     <td className="px-4 py-3 font-bold text-black">{f.name}</td>
-                    <td className="px-4 py-3 text-black capitalize">{f.type}</td>
+                    <td className="px-4 py-3 text-black capitalize">
+                      {f.type}
+                    </td>
                     <td className="px-4 py-3 text-black">{f.sport || "—"}</td>
                     <td className="px-4 py-3 text-black">{f.capacity}</td>
                     <td className="px-4 py-3 font-bold text-[#024BAB]">

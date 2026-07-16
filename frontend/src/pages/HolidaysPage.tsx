@@ -230,7 +230,7 @@ export default function HolidaysPage() {
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="font-display font-bold text-3xl text-black">
-              Company Holidays
+              SportsClub Holidays
             </h1>
             <p className="text-gray-600 font-medium mt-1">
               Declare holidays — attendance is automatically blocked on these
@@ -407,7 +407,7 @@ export default function HolidaysPage() {
             </p>
             {canManage && (
               <p className="text-sm text-gray-400 mt-1">
-                Click "Add Holiday" to declare company holidays.
+                Click "Add Holiday" to declare SportsClub holidays.
               </p>
             )}
           </div>

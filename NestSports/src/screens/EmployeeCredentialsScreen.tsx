@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { employeeAPI } from "../api/client";
-import { Card, Row, EmptyState, LoadingView } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { employeeAPI } from '../api/client';
+import { Card, Row, EmptyState, LoadingView } from '../components/ui';
+import { colors } from '../theme/colors';
 
 export default function EmployeeCredentialsScreen() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -13,7 +13,7 @@ export default function EmployeeCredentialsScreen() {
   const load = useCallback(
     () =>
       employeeAPI
-        .getAll({ status: "active" })
+        .getAll({ status: 'active' })
         .then((res: any) => res.success && setEmployees(res.data || [])),
     [],
   );
@@ -33,11 +33,13 @@ export default function EmployeeCredentialsScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Card>
           {employees.length === 0 ? (
@@ -47,7 +49,7 @@ export default function EmployeeCredentialsScreen() {
               <Row
                 key={e._id}
                 title={`${e.firstName} ${e.lastName}`}
-                subtitle={`${e.employeeId || "-"} · ${e.email || "-"}`}
+                subtitle={`${e.employeeId || '-'} · ${e.email || '-'}`}
               />
             ))
           )}

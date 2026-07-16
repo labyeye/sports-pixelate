@@ -12,7 +12,10 @@ const createSchema = {
 // Everyone in the academy (owner/staff/parent) can browse the plan catalog —
 // parents need this to choose a plan when subscribing their child.
 const getPlans = asyncHandler(async (req, res) => {
-  const plans = await SportsPlan.find({ company: req.user.company, active: true }).sort({
+  const plans = await SportsPlan.find({
+    company: req.user.company,
+    active: true,
+  }).sort({
     monthlyPrice: 1,
   });
   res.json({ success: true, data: plans });
@@ -21,7 +24,14 @@ const getPlans = asyncHandler(async (req, res) => {
 const createPlan = [
   validateBody(createSchema),
   asyncHandler(async (req, res) => {
-    const { name, sport, sessionsPerWeek, monthlyPrice, yearlyPrice, description } = req.body;
+    const {
+      name,
+      sport,
+      sessionsPerWeek,
+      monthlyPrice,
+      yearlyPrice,
+      description,
+    } = req.body;
     const plan = await SportsPlan.create({
       company: req.user.company,
       name,

@@ -25,6 +25,11 @@ router
 
 router.post("/:id/transactions", protect, ownerOrStaff, recordTransaction);
 router.post("/:id/assign", protect, ownerOrStaff, assignItem);
-router.post("/:id/assignments/:assignmentId/return", protect, ownerOrStaff, returnAssignment);
+router.post(
+  "/:id/assignments/:assignmentId/return",
+  protect,
+  ownerOrStaff,
+  returnAssignment,
+);
 
 module.exports = router;

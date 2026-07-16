@@ -4,8 +4,7 @@ const router = express.Router();
 const Employee = require("../models/Employee");
 const Payroll = require("../models/Payroll");
 
-const VERIFY_TOKEN =
-  process.env.META_WA_VERIFY_TOKEN || "nesthr_verify_token";
+const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN || "nesthr_verify_token";
 
 //
 // ─────────────────────────────────────────────────────────────
@@ -38,8 +37,8 @@ router.get("/", (req, res) => {
 // Incoming Webhook
 // ─────────────────────────────────────────────────────────────
 //
-router.post("/",  async (req, res) => {
-   console.log("\n🔥🔥🔥 WHATSAPP WEBHOOK HIT 🔥🔥🔥");
+router.post("/", async (req, res) => {
+  console.log("\n🔥🔥🔥 WHATSAPP WEBHOOK HIT 🔥🔥🔥");
   console.log("Time:", new Date().toISOString());
   console.log("Headers:", JSON.stringify(req.headers, null, 2));
   console.log("Body:", JSON.stringify(req.body, null, 2));
@@ -115,7 +114,7 @@ router.post("/",  async (req, res) => {
       }
 
       console.log(
-        `[WA] Button Clicked -> Phone=${fromPhone} Payload=${payload}`
+        `[WA] Button Clicked -> Phone=${fromPhone} Payload=${payload}`,
       );
 
       if (
@@ -127,9 +126,7 @@ router.post("/",  async (req, res) => {
       }
 
       const slipStatus =
-        payload === "PAYSLIP_RECEIVED"
-          ? "received"
-          : "not_received";
+        payload === "PAYSLIP_RECEIVED" ? "received" : "not_received";
 
       const phone10 = fromPhone.replace(/^91/, "").slice(-10);
 
@@ -146,15 +143,11 @@ router.post("/",  async (req, res) => {
       }).select("_id company phone");
 
       if (!employee) {
-        console.log(
-          `[WA] Employee not found for ${fromPhone}`
-        );
+        console.log(`[WA] Employee not found for ${fromPhone}`);
         continue;
       }
 
-      console.log(
-        `[WA] Employee Found ${employee._id}`
-      );
+      console.log(`[WA] Employee Found ${employee._id}`);
 
       // Allow updating from "not_received" → "received" (employee clicked wrong button).
       // Only block if already confirmed as "received".
@@ -169,7 +162,9 @@ router.post("/",  async (req, res) => {
       });
 
       if (!payroll) {
-        console.log("[WA] No updatable payroll found (already confirmed received)");
+        console.log(
+          "[WA] No updatable payroll found (already confirmed received)",
+        );
         continue;
       }
 
@@ -178,9 +173,7 @@ router.post("/",  async (req, res) => {
 
       await payroll.save();
 
-      console.log(
-        `✅ Payroll Updated (${payroll._id}) -> ${slipStatus}`
-      );
+      console.log(`✅ Payroll Updated (${payroll._id}) -> ${slipStatus}`);
     }
   } catch (err) {
     console.error("[WA-Webhook ERROR]");

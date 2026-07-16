@@ -85,7 +85,10 @@ const authRateLimit = rateLimit({
 const apiRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 5000 });
 
 app.use("/api/whatsapp-webhook", require("./routes/whatsappWebhookRoutes"));
-app.use("/api/hrms/whatsapp-webhook", require("./routes/whatsappWebhookRoutes"));
+app.use(
+  "/api/hrms/whatsapp-webhook",
+  require("./routes/whatsappWebhookRoutes"),
+);
 app.use("/api/company", require("./routes/companyRoutes"));
 
 app.use("/api/auth", authRateLimit, require("./routes/authRoutes"));
@@ -112,10 +115,14 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/support", require("./routes/supportRoutes"));
 app.use("/api/documents", require("./routes/documentRoutes"));
 app.use("/api/announcements", require("./routes/announcementRoutes"));
-app.use("/api/attendance-corrections", require("./routes/attendanceCorrectionRoutes"));
+app.use(
+  "/api/attendance-corrections",
+  require("./routes/attendanceCorrectionRoutes"),
+);
 
 // NestSports domain routes
 app.use("/api/students", require("./routes/studentRoutes"));
+app.use("/api/sports", require("./routes/sportRoutes"));
 app.use("/api/student-attendance", require("./routes/studentAttendanceRoutes"));
 app.use("/api/plans", require("./routes/sportsPlanRoutes"));
 app.use("/api/subscriptions", require("./routes/subscriptionRoutes"));
@@ -132,4 +139,6 @@ app.get("/api/health", (req, res) =>
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => console.log(`NestSports server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`NestSports server running on port ${PORT}`),
+);

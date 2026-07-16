@@ -269,6 +269,20 @@ export const settingsAPI = {
       return data as { success: boolean; logoUrl: string; data: any };
     });
   },
+  uploadPaymentQr: (file: File) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append("qrCode", file);
+    return fetch(`${BASE_URL}/settings/payment-qr`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      return data as { success: boolean; paymentQrUrl: string; data: any };
+    });
+  },
 };
 
 export const billingAPI = {
@@ -290,6 +304,7 @@ export const billingAPI = {
       gstNumber: string;
       panNumber: string;
     },
+    tier: "standard" | "whatsapp" = "standard",
   ) =>
     request<{ success: boolean; data: any }>("/billing/create-order", {
       method: "POST",
@@ -298,6 +313,7 @@ export const billingAPI = {
         billingCycle,
         gateway,
         company,
+        tier,
       }),
     }),
   verifyRazorpay: (payload: {
@@ -771,9 +787,24 @@ export const studentAttendanceAPI = {
     return request(`/student-attendance${q}`);
   },
   mark: (body: object) =>
-    request("/student-attendance", { method: "POST", body: JSON.stringify(body) }),
+    request("/student-attendance", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   bulkMark: (body: object) =>
-    request("/student-attendance/bulk", { method: "POST", body: JSON.stringify(body) }),
+    request("/student-attendance/bulk", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+export const sportAPI = {
+  getAll: () => request("/sports"),
+  create: (body: object) =>
+    request("/sports", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/sports/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  delete: (id: string) => request(`/sports/${id}`, { method: "DELETE" }),
 };
 
 export const sportsPlanAPI = {
@@ -791,32 +822,88 @@ export const tournamentAPI = {
   create: (body: object) =>
     request("/tournaments", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: object) =>
-    request(`/tournaments/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    request(`/tournaments/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
   delete: (id: string) => request(`/tournaments/${id}`, { method: "DELETE" }),
   addTeam: (id: string, name: string) =>
-    request(`/tournaments/${id}/teams`, { method: "POST", body: JSON.stringify({ name }) }),
+    request(`/tournaments/${id}/teams`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
   removeTeam: (id: string, teamId: string) =>
     request(`/tournaments/${id}/teams/${teamId}`, { method: "DELETE" }),
-  generateFixtures: (id: string, opts?: { regenerate?: boolean; shuffle?: boolean }) =>
+  generateFixtures: (
+    id: string,
+    opts?: { regenerate?: boolean; shuffle?: boolean },
+  ) =>
     request(`/tournaments/${id}/fixtures/generate`, {
       method: "POST",
       body: JSON.stringify(opts || {}),
     }),
   getFixtures: (id: string) => request(`/tournaments/${id}/fixtures`),
-  recordResult: (fixtureId: string, body: { scoreA?: number; scoreB?: number; winner?: "A" | "B" }) =>
+  recordResult: (
+    fixtureId: string,
+    body: { scoreA?: number; scoreB?: number; winner?: "A" | "B" },
+  ) =>
     request(`/tournaments/fixtures/${fixtureId}/result`, {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+  register: (id: string, studentId: string) =>
+    request(`/tournaments/${id}/registrations`, {
+      method: "POST",
+      body: JSON.stringify({ studentId }),
+    }),
+  unregister: (id: string, studentId: string) =>
+    request(`/tournaments/${id}/registrations/${studentId}`, { method: "DELETE" }),
 };
 
 export const subscriptionAPI = {
   getAll: () => request("/subscriptions"),
-  createOrder: (body: { studentId: string; planId: string; billingCycle?: string }) =>
-    request("/subscriptions/create-order", { method: "POST", body: JSON.stringify(body) }),
+  createOrder: (body: {
+    studentId: string;
+    planId: string;
+    billingCycle?: string;
+  }) =>
+    request("/subscriptions/create-order", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   verifyPayment: (body: object) =>
-    request("/subscriptions/verify-payment", { method: "POST", body: JSON.stringify(body) }),
-  cancel: (id: string) => request(`/subscriptions/${id}/cancel`, { method: "POST" }),
+    request("/subscriptions/verify-payment", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  confirmQrPayment: (id: string) =>
+    request(`/subscriptions/${id}/confirm-qr-payment`, { method: "POST" }),
+  cancel: (id: string) =>
+    request(`/subscriptions/${id}/cancel`, { method: "POST" }),
+  qrRenewal: (body: {
+    studentId: string;
+    planId: string;
+    billingCycle?: string;
+    referenceNumber: string;
+    screenshot: File;
+  }) => {
+    const form = new FormData();
+    form.append("studentId", body.studentId);
+    form.append("planId", body.planId);
+    form.append("billingCycle", body.billingCycle || "monthly");
+    form.append("referenceNumber", body.referenceNumber);
+    form.append("screenshot", body.screenshot);
+    const token = getToken();
+    return fetch(`${BASE_URL}/subscriptions/qr-renewal`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || "Submission failed");
+      return data;
+    });
+  },
 };
 
 export const expenseAPI = {
@@ -842,11 +929,19 @@ export const inventoryAPI = {
     request(`/inventory/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/inventory/${id}`, { method: "DELETE" }),
   recordTransaction: (id: string, body: object) =>
-    request(`/inventory/${id}/transactions`, { method: "POST", body: JSON.stringify(body) }),
+    request(`/inventory/${id}/transactions`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   assign: (id: string, body: object) =>
-    request(`/inventory/${id}/assign`, { method: "POST", body: JSON.stringify(body) }),
+    request(`/inventory/${id}/assign`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   returnAssignment: (id: string, assignmentId: string) =>
-    request(`/inventory/${id}/assignments/${assignmentId}/return`, { method: "POST" }),
+    request(`/inventory/${id}/assignments/${assignmentId}/return`, {
+      method: "POST",
+    }),
 };
 
 export const facilityAPI = {
@@ -866,6 +961,9 @@ export const bookingAPI = {
   create: (body: object) =>
     request("/bookings", { method: "POST", body: JSON.stringify(body) }),
   verifyPayment: (body: object) =>
-    request("/bookings/verify-payment", { method: "POST", body: JSON.stringify(body) }),
+    request("/bookings/verify-payment", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   cancel: (id: string) => request(`/bookings/${id}/cancel`, { method: "POST" }),
 };

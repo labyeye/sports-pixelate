@@ -33,6 +33,8 @@ const UPLOAD_BASE = path.join(__dirname, "../uploads");
   "employee-resume",
   "company-logos",
   "employee-docs",
+  "payment-qr",
+  "payment-screenshots",
 ].forEach((dir) => {
   const p = path.join(UPLOAD_BASE, dir);
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
@@ -99,6 +101,44 @@ const uploadCompanyLogo = multer({
   },
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("logo");
+
+const paymentQrStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    cb(null, path.join(UPLOAD_BASE, "payment-qr"));
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || ".png";
+    const safe = `qr_${req.user.company}${ext}`;
+    cb(null, safe);
+  },
+});
+
+const uploadPaymentQr = multer({
+  storage: paymentQrStorage,
+  fileFilter(req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("qrCode");
+
+// Parent-submitted proof-of-payment screenshot for QR renewals
+const paymentScreenshotStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    cb(null, path.join(UPLOAD_BASE, "payment-screenshots"));
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const safe = `${req.user.company}_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
+    cb(null, safe);
+  },
+});
+
+const uploadPaymentScreenshot = multer({
+  storage: paymentScreenshotStorage,
+  fileFilter,
+  limits: { fileSize: MAX_SIZE },
+}).single("screenshot");
 
 // Employee avatar upload
 const avatarStorage = multer.diskStorage({
@@ -199,6 +239,8 @@ const uploadFaceEnrollPhoto = multer({
 module.exports = {
   uploadEmployeeDocs,
   uploadCompanyLogo,
+  uploadPaymentQr,
+  uploadPaymentScreenshot,
   uploadDocumentVault,
   uploadAvatar,
   uploadGuardianPhoto,

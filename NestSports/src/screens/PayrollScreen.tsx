@@ -1,15 +1,35 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { payrollAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge, Button } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { payrollAPI } from '../api/client';
+import { Card, EmptyState, LoadingView, Badge, Button } from '../components/ui';
+import { colors } from '../theme/colors';
 
 function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 export default function PayrollScreen() {
   const [payrolls, setPayrolls] = useState<any[]>([]);
@@ -35,17 +55,17 @@ export default function PayrollScreen() {
   };
 
   const handleMarkPaid = (id: string) => {
-    Alert.alert("Mark as Paid", "Confirm this payroll has been paid?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert('Mark as Paid', 'Confirm this payroll has been paid?', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: "Confirm",
+        text: 'Confirm',
         onPress: async () => {
           setMarkingId(id);
           try {
             await payrollAPI.markPaid(id);
             await load();
           } catch (e: any) {
-            Alert.alert("Error", e.message || "Failed to mark as paid");
+            Alert.alert('Error', e.message || 'Failed to mark as paid');
           } finally {
             setMarkingId(null);
           }
@@ -57,11 +77,13 @@ export default function PayrollScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>Payroll</Text>
         <Text style={styles.subtitle}>Employee salary records</Text>
@@ -71,19 +93,24 @@ export default function PayrollScreen() {
             <EmptyState title="No payroll records found" />
           </Card>
         ) : (
-          payrolls.map((p) => (
+          payrolls.map(p => (
             <Card key={p._id}>
               <View style={styles.headerRow}>
                 <Text style={styles.name}>
-                  {p.employee ? `${p.employee.firstName} ${p.employee.lastName}` : "—"}
+                  {p.employee
+                    ? `${p.employee.firstName} ${p.employee.lastName}`
+                    : '—'}
                 </Text>
-                <Badge label={p.status} color={p.status === "paid" ? colors.green : colors.orange} />
+                <Badge
+                  label={p.status}
+                  color={p.status === 'paid' ? colors.green : colors.orange}
+                />
               </View>
               <Text style={styles.sub}>
-                {p.month ? `${MONTHS[p.month - 1]} ${p.year}` : "—"}
+                {p.month ? `${MONTHS[p.month - 1]} ${p.year}` : '—'}
               </Text>
               <Text style={styles.amount}>{formatCurrency(p.netSalary)}</Text>
-              {p.status !== "paid" && (
+              {p.status !== 'paid' && (
                 <Button
                   title="Mark Paid"
                   onPress={() => handleMarkPaid(p._id)}
@@ -101,10 +128,20 @@ export default function PayrollScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  amount: { fontWeight: "800", color: colors.black, fontSize: 16, marginTop: 8, marginBottom: 12 },
+  amount: {
+    fontWeight: '800',
+    color: colors.black,
+    fontSize: 16,
+    marginTop: 8,
+    marginBottom: 12,
+  },
 });

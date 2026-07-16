@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { subscriptionAPI, sportsPlanAPI, studentAPI } from "@/services/api";
+import {
+  subscriptionAPI,
+  sportsPlanAPI,
+  studentAPI,
+  settingsAPI,
+} from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -16,6 +21,8 @@ import {
   X,
   Users,
   IndianRupee,
+  QrCode,
+  Upload,
 } from "lucide-react";
 
 declare global {
@@ -34,6 +41,9 @@ interface Subscription {
   renewalDate: string;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string;
+  qrReferenceNumber?: string;
+  paymentScreenshot?: string;
 }
 
 const STATUS_META: Record<string, { bg: string; text: string }> = {
@@ -69,7 +79,15 @@ export default function SubscriptionsPage() {
 
   const [selectedChild, setSelectedChild] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("");
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
+    "monthly",
+  );
+
+  const [paymentQrUrl, setPaymentQrUrl] = useState("");
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrReferenceNumber, setQrReferenceNumber] = useState("");
+  const [qrScreenshot, setQrScreenshot] = useState<File | null>(null);
+  const [submittingQr, setSubmittingQr] = useState(false);
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -90,6 +108,13 @@ export default function SubscriptionsPage() {
         const studRes = await studentAPI.getAll();
         setChildren(studRes.data);
         if (studRes.data[0]) setSelectedChild(studRes.data[0]._id);
+        const settingsRes = await settingsAPI.get();
+        const qrPath = settingsRes.data?.paymentQrUrl;
+        setPaymentQrUrl(
+          qrPath
+            ? `${import.meta.env.VITE_API_URL?.replace(/\/api$/, "")}${qrPath}`
+            : "",
+        );
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -117,7 +142,10 @@ export default function SubscriptionsPage() {
       const order = res.data;
 
       const loaded = await loadRazorpayScript();
-      if (!loaded) throw new Error("Failed to load Razorpay checkout. Check your connection.");
+      if (!loaded)
+        throw new Error(
+          "Failed to load Razorpay checkout. Check your connection.",
+        );
 
       await new Promise<void>((resolve, reject) => {
         const rzp = new window.Razorpay({
@@ -135,7 +163,10 @@ export default function SubscriptionsPage() {
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
               });
-              toast({ title: "Subscribed!", description: "Payment successful." });
+              toast({
+                title: "Subscribed!",
+                description: "Payment successful.",
+              });
               resolve();
             } catch (err: any) {
               reject(err);
@@ -148,10 +179,69 @@ export default function SubscriptionsPage() {
       load();
     } catch (e: any) {
       if (e.message !== "Payment cancelled") {
-        toast({ title: "Payment failed", description: e.message, variant: "destructive" });
+        toast({
+          title: "Payment failed",
+          description: e.message,
+          variant: "destructive",
+        });
       }
     } finally {
       setSubscribing(null);
+    }
+  };
+
+  const handleSubmitQrPayment = async () => {
+    if (!selectedChild || !selectedPlan) {
+      toast({ title: "Select a child and a plan", variant: "destructive" });
+      return;
+    }
+    if (!qrReferenceNumber.trim()) {
+      toast({
+        title: "Enter the UPI reference number",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!qrScreenshot) {
+      toast({
+        title: "Upload a screenshot of the payment",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSubmittingQr(true);
+    try {
+      await subscriptionAPI.qrRenewal({
+        studentId: selectedChild,
+        planId: selectedPlan,
+        billingCycle,
+        referenceNumber: qrReferenceNumber.trim(),
+        screenshot: qrScreenshot,
+      });
+      toast({
+        title: "Submitted",
+        description: "Waiting for the club to confirm your payment.",
+      });
+      setShowQrModal(false);
+      setQrReferenceNumber("");
+      setQrScreenshot(null);
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSubmittingQr(false);
+    }
+  };
+
+  const handleConfirmQrPayment = async (id: string) => {
+    if (!confirm("Confirm you've received this payment in your UPI app?"))
+      return;
+    try {
+      await subscriptionAPI.confirmQrPayment(id);
+      toast({ title: "Renewal confirmed" });
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
@@ -169,7 +259,8 @@ export default function SubscriptionsPage() {
   const filtered = useMemo(() => {
     return subscriptions.filter((s) => {
       if (search) {
-        const hay = `${s.student?.firstName || ""} ${s.student?.lastName || ""} ${s.planName || ""}`.toLowerCase();
+        const hay =
+          `${s.student?.firstName || ""} ${s.student?.lastName || ""} ${s.planName || ""}`.toLowerCase();
         if (!hay.includes(search.toLowerCase())) return false;
       }
       if (filterStatus && s.status !== filterStatus) return false;
@@ -182,10 +273,16 @@ export default function SubscriptionsPage() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "student") cmp = (a.student?.firstName || "").localeCompare(b.student?.firstName || "");
-      else if (sortKey === "plan") cmp = (a.planName || "").localeCompare(b.planName || "");
+      if (sortKey === "student")
+        cmp = (a.student?.firstName || "").localeCompare(
+          b.student?.firstName || "",
+        );
+      else if (sortKey === "plan")
+        cmp = (a.planName || "").localeCompare(b.planName || "");
       else if (sortKey === "amount") cmp = a.amount - b.amount;
-      else if (sortKey === "renewalDate") cmp = new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
+      else if (sortKey === "renewalDate")
+        cmp =
+          new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -200,9 +297,13 @@ export default function SubscriptionsPage() {
     <AppLayout title="Subscriptions">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h1 className="font-display font-bold text-2xl text-black">Subscriptions</h1>
+          <h1 className="font-display font-bold text-2xl text-black">
+            Subscriptions
+          </h1>
           <p className="text-sm text-muted-foreground font-medium mt-0.5">
-            {isParent ? "Subscribe your child to a coaching plan" : "All active student subscriptions"}
+            {isParent
+              ? "Subscribe your child to a coaching plan"
+              : "All active student subscriptions"}
           </p>
         </div>
       </div>
@@ -214,8 +315,12 @@ export default function SubscriptionsPage() {
             <Wallet className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Subscriptions</p>
-            <p className="text-2xl font-bold text-black">{subscriptions.length}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Subscriptions
+            </p>
+            <p className="text-2xl font-bold text-black">
+              {subscriptions.length}
+            </p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -223,7 +328,9 @@ export default function SubscriptionsPage() {
             <Users className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Active</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Active
+            </p>
             <p className="text-2xl font-bold text-black">{activeCount}</p>
           </div>
         </div>
@@ -232,8 +339,12 @@ export default function SubscriptionsPage() {
             <IndianRupee className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Monthly Revenue</p>
-            <p className="text-2xl font-bold text-black">₹{monthlyRevenue.toLocaleString("en-IN")}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Monthly Revenue
+            </p>
+            <p className="text-2xl font-bold text-black">
+              ₹{monthlyRevenue.toLocaleString("en-IN")}
+            </p>
           </div>
         </div>
       </div>
@@ -243,19 +354,25 @@ export default function SubscriptionsPage() {
           <h3 className="font-bold text-base mb-4">Subscribe a Child</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Child</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Child
+              </label>
               <select
                 value={selectedChild}
                 onChange={(e) => setSelectedChild(e.target.value)}
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               >
                 {children.map((c) => (
-                  <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>
+                  <option key={c._id} value={c._id}>
+                    {c.firstName} {c.lastName}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Plan</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Plan
+              </label>
               <select
                 value={selectedPlan}
                 onChange={(e) => setSelectedPlan(e.target.value)}
@@ -263,12 +380,16 @@ export default function SubscriptionsPage() {
               >
                 <option value="">Choose a plan</option>
                 {plans.map((p) => (
-                  <option key={p._id} value={p._id}>{p.name} — ₹{p.monthlyPrice}/mo</option>
+                  <option key={p._id} value={p._id}>
+                    {p.name} — ₹{p.monthlyPrice}/mo
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Billing Cycle</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Billing Cycle
+              </label>
               <select
                 value={billingCycle}
                 onChange={(e) => setBillingCycle(e.target.value as any)}
@@ -279,14 +400,86 @@ export default function SubscriptionsPage() {
               </select>
             </div>
           </div>
-          <button
-            onClick={handleSubscribe}
-            disabled={!!subscribing}
-            className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
-          >
-            {subscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
-            Pay & Subscribe
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleSubscribe}
+              disabled={!!subscribing}
+              className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
+            >
+              {subscribing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Wallet className="w-4 h-4" />
+              )}
+              Pay & Subscribe
+            </button>
+            {paymentQrUrl && (
+              <button
+                onClick={() => setShowQrModal(true)}
+                className="flex items-center gap-2 bg-white text-black border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+              >
+                <QrCode className="w-4 h-4" />
+                Pay via QR
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showQrModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-2 border-black w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-base">Pay via QR</h3>
+              <button onClick={() => setShowQrModal(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Scan the QR code below, complete the payment, then submit the UPI
+              reference number along with a screenshot of the payment.
+            </p>
+            <img
+              src={paymentQrUrl}
+              alt="Payment QR"
+              className="w-48 h-48 object-contain border-2 border-black mx-auto mb-4"
+            />
+            <div className="mb-3">
+              <label className="block text-xs font-bold uppercase mb-1">
+                UPI Reference Number
+              </label>
+              <input
+                type="text"
+                value={qrReferenceNumber}
+                onChange={(e) => setQrReferenceNumber(e.target.value)}
+                placeholder="e.g. 123456789012"
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-bold uppercase mb-1">
+                Payment Screenshot
+              </label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setQrScreenshot(e.target.files?.[0] || null)}
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              />
+            </div>
+            <button
+              onClick={handleSubmitQrPayment}
+              disabled={submittingQr}
+              className="w-full flex items-center justify-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
+            >
+              {submittingQr ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              Submit Payment
+            </button>
+          </div>
         </div>
       )}
 
@@ -348,7 +541,11 @@ export default function SubscriptionsPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
       </div>
@@ -361,7 +558,9 @@ export default function SubscriptionsPage() {
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <Wallet className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No subscriptions found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your filters
+          </p>
         </div>
       ) : (
         <>
@@ -370,8 +569,22 @@ export default function SubscriptionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {["Student", "Plan", "Cycle", "Amount", "Renewal", "Status", "Payment", "Actions"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  {[
+                    "Student",
+                    "Plan",
+                    "Cycle",
+                    "Amount",
+                    "Renewal",
+                    "Status",
+                    "Payment",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -379,14 +592,36 @@ export default function SubscriptionsPage() {
                 {displayed.map((s, idx) => {
                   const m = STATUS_META[s.status] || STATUS_META.inactive;
                   return (
-                    <tr key={s._id} className={cn("border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors", idx % 2 === 0 ? "" : "bg-[#F8FAFF]")}>
-                      <td className="px-4 py-3 font-bold text-black">{s.student?.firstName} {s.student?.lastName}</td>
+                    <tr
+                      key={s._id}
+                      className={cn(
+                        "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                        idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                      )}
+                    >
+                      <td className="px-4 py-3 font-bold text-black">
+                        {s.student?.firstName} {s.student?.lastName}
+                      </td>
                       <td className="px-4 py-3 text-black">{s.planName}</td>
-                      <td className="px-4 py-3 text-black capitalize">{s.billingCycle}</td>
-                      <td className="px-4 py-3 text-black font-medium">₹{s.amount}</td>
-                      <td className="px-4 py-3 text-black">{new Date(s.renewalDate).toLocaleDateString("en-IN")}</td>
+                      <td className="px-4 py-3 text-black capitalize">
+                        {s.billingCycle}
+                      </td>
+                      <td className="px-4 py-3 text-black font-medium">
+                        ₹{s.amount}
+                      </td>
+                      <td className="px-4 py-3 text-black">
+                        {new Date(s.renewalDate).toLocaleDateString("en-IN")}
+                      </td>
                       <td className="px-4 py-3">
-                        <span className={cn("text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10", m.bg, m.text)}>{s.status.replace("_", " ")}</span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
+                            m.bg,
+                            m.text,
+                          )}
+                        >
+                          {s.status.replace("_", " ")}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         {s.paymentStatus === "completed" ? (
@@ -396,14 +631,42 @@ export default function SubscriptionsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {s.status === "active" && (
-                          <button
-                            onClick={() => handleCancel(s._id)}
-                            className="text-xs font-bold text-red-500 hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        )}
+                        <div className="flex flex-col gap-1 items-start">
+                          {s.paymentMethod === "qr" &&
+                            s.paymentStatus === "pending" && (
+                              <>
+                                {s.qrReferenceNumber && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Ref: {s.qrReferenceNumber}
+                                  </span>
+                                )}
+                                {s.paymentScreenshot && (
+                                  <a
+                                    href={s.paymentScreenshot}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] font-bold text-[#024BAB] hover:underline"
+                                  >
+                                    View screenshot
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => handleConfirmQrPayment(s._id)}
+                                  className="text-xs font-bold text-green-600 hover:underline"
+                                >
+                                  Confirm Payment
+                                </button>
+                              </>
+                            )}
+                          {s.status === "active" && (
+                            <button
+                              onClick={() => handleCancel(s._id)}
+                              className="text-xs font-bold text-red-500 hover:underline"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

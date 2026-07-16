@@ -1,9 +1,16 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { bookingAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge, Button } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { bookingAPI } from '../api/client';
+import { Card, EmptyState, LoadingView, Badge, Button } from '../components/ui';
+import { colors } from '../theme/colors';
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: colors.green,
@@ -35,34 +42,40 @@ export default function BookingsScreen() {
   };
 
   const handleCancel = (id: string) => {
-    Alert.alert("Cancel Booking", "Are you sure you want to cancel this booking?", [
-      { text: "No", style: "cancel" },
-      {
-        text: "Yes, Cancel",
-        style: "destructive",
-        onPress: async () => {
-          setCancellingId(id);
-          try {
-            await bookingAPI.cancel(id);
-            await load();
-          } catch (e: any) {
-            Alert.alert("Error", e.message || "Failed to cancel booking");
-          } finally {
-            setCancellingId(null);
-          }
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            setCancellingId(id);
+            try {
+              await bookingAPI.cancel(id);
+              await load();
+            } catch (e: any) {
+              Alert.alert('Error', e.message || 'Failed to cancel booking');
+            } finally {
+              setCancellingId(null);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>Bookings</Text>
         <Text style={styles.subtitle}>Facility bookings and schedules</Text>
@@ -72,17 +85,31 @@ export default function BookingsScreen() {
             <EmptyState title="No bookings found" />
           </Card>
         ) : (
-          bookings.map((b) => (
+          bookings.map(b => (
             <Card key={b._id}>
               <View style={styles.headerRow}>
-                <Text style={styles.name}>{b.facility?.name || "Facility"}</Text>
-                <Badge label={b.status} color={STATUS_COLORS[b.status] || colors.muted} />
+                <Text style={styles.name}>
+                  {b.facility?.name || 'Facility'}
+                </Text>
+                <Badge
+                  label={b.status}
+                  color={STATUS_COLORS[b.status] || colors.muted}
+                />
               </View>
               <Text style={styles.dateText}>
-                {b.date ? new Date(b.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"} · {b.startTime}–{b.endTime}
+                {b.date
+                  ? new Date(b.date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '—'}{' '}
+                · {b.startTime}–{b.endTime}
               </Text>
-              <Text style={styles.feeText}>{b.fee > 0 ? `₹${b.fee.toLocaleString("en-IN")}` : "Free"}</Text>
-              {b.status === "confirmed" && (
+              <Text style={styles.feeText}>
+                {b.fee > 0 ? `₹${b.fee.toLocaleString('en-IN')}` : 'Free'}
+              </Text>
+              {b.status === 'confirmed' && (
                 <Button
                   title="Cancel Booking"
                   onPress={() => handleCancel(b._id)}
@@ -101,10 +128,20 @@ export default function BookingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black },
   dateText: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  feeText: { fontWeight: "800", color: colors.black, fontSize: 15, marginTop: 8, marginBottom: 12 },
+  feeText: {
+    fontWeight: '800',
+    color: colors.black,
+    fontSize: 15,
+    marginTop: 8,
+    marginBottom: 12,
+  },
 });

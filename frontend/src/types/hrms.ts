@@ -52,6 +52,14 @@ export interface Department {
   status: "active" | "inactive";
 }
 
+export interface Sport {
+  _id: string;
+  name: string;
+  active: boolean;
+  studentCount: number;
+  coachCount: number;
+}
+
 export interface Employee {
   _id: string;
   employeeId: string;
@@ -61,6 +69,8 @@ export interface Employee {
   phone?: string;
   department?: Department;
   designation: string;
+  role?: "coach" | "staff";
+  sport?: string; // which sport they coach, when role === "coach"
   employmentType: "full_time" | "part_time" | "contract" | "intern";
   joinDate: string;
   exitDate?: string;

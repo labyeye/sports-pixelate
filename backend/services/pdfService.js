@@ -96,12 +96,14 @@ function toIndianWords(n) {
 function fetchBuffer(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https") ? https : http;
-    client.get(url, (res) => {
-      const chunks = [];
-      res.on("data", (c) => chunks.push(c));
-      res.on("end", () => resolve(Buffer.concat(chunks)));
-      res.on("error", reject);
-    }).on("error", reject);
+    client
+      .get(url, (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
+        res.on("error", reject);
+      })
+      .on("error", reject);
   });
 }
 
@@ -154,7 +156,9 @@ async function generatePayslipPdf(payroll, employee, company) {
 
   // Word-wrap matching frontend wrapText(pos, value, maxWidth=300, lineHeight=14)
   const dtWrap = (text, x, cssY, size, maxWidth, lineHeight) => {
-    const words = String(text).replace(/[\r\n]+/g, " ").split(" ");
+    const words = String(text)
+      .replace(/[\r\n]+/g, " ")
+      .split(" ");
     let line = "";
     let y = cssY;
     for (const word of words) {
@@ -191,7 +195,10 @@ async function generatePayslipPdf(payroll, employee, company) {
   if (company.logo) {
     try {
       let logoBytes;
-      if (company.logo.startsWith("http://") || company.logo.startsWith("https://")) {
+      if (
+        company.logo.startsWith("http://") ||
+        company.logo.startsWith("https://")
+      ) {
         logoBytes = await fetchBuffer(company.logo);
       } else if (company.logo.startsWith("/uploads/")) {
         // Logo stored as /uploads/... → served from backend/uploads/

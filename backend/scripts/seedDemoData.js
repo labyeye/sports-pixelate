@@ -39,7 +39,10 @@ async function run() {
   if (!company) throw new Error("Company not found: " + COMPANY_ID);
   console.log("Using company:", company.name);
 
-  const superAdmin = await User.findOne({ company: COMPANY_ID, role: "super_admin" });
+  const superAdmin = await User.findOne({
+    company: COMPANY_ID,
+    role: "super_admin",
+  });
 
   // ── Departments ────────────────────────────────────────────────────────
   const deptDefs = [
@@ -51,7 +54,11 @@ async function run() {
   for (const d of deptDefs) {
     let dept = await Department.findOne({ company: COMPANY_ID, code: d.code });
     if (!dept) {
-      dept = await Department.create({ company: COMPANY_ID, name: d.name, code: d.code });
+      dept = await Department.create({
+        company: COMPANY_ID,
+        name: d.name,
+        code: d.code,
+      });
       console.log("Created department:", dept.name);
     }
     departments[d.code] = dept;
@@ -59,12 +66,54 @@ async function run() {
 
   // ── Employees (+ linked Users) ────────────────────────────────────────
   const employeeDefs = [
-    { first: "Rohan", last: "Mehta", designation: "Head Coach", dept: "COACH", sport: "Football", salary: 45000 },
-    { first: "Ananya", last: "Kapoor", designation: "Swim Coach", dept: "COACH", sport: "Swimming", salary: 38000 },
-    { first: "Vikram", last: "Singh", designation: "Tennis Coach", dept: "COACH", sport: "Tennis", salary: 40000 },
-    { first: "Priya", last: "Nair", designation: "Front Desk Executive", dept: "ADMIN", sport: "", salary: 22000 },
-    { first: "Karan", last: "Malhotra", designation: "Accountant", dept: "ADMIN", sport: "", salary: 30000 },
-    { first: "Sanya", last: "Verma", designation: "Facility Manager", dept: "FAC", sport: "", salary: 28000 },
+    {
+      first: "Rohan",
+      last: "Mehta",
+      designation: "Head Coach",
+      dept: "COACH",
+      sport: "Football",
+      salary: 45000,
+    },
+    {
+      first: "Ananya",
+      last: "Kapoor",
+      designation: "Swim Coach",
+      dept: "COACH",
+      sport: "Swimming",
+      salary: 38000,
+    },
+    {
+      first: "Vikram",
+      last: "Singh",
+      designation: "Tennis Coach",
+      dept: "COACH",
+      sport: "Tennis",
+      salary: 40000,
+    },
+    {
+      first: "Priya",
+      last: "Nair",
+      designation: "Front Desk Executive",
+      dept: "ADMIN",
+      sport: "",
+      salary: 22000,
+    },
+    {
+      first: "Karan",
+      last: "Malhotra",
+      designation: "Accountant",
+      dept: "ADMIN",
+      sport: "",
+      salary: 30000,
+    },
+    {
+      first: "Sanya",
+      last: "Verma",
+      designation: "Facility Manager",
+      dept: "FAC",
+      sport: "",
+      salary: 28000,
+    },
   ];
 
   const employees = [];
@@ -114,20 +163,81 @@ async function run() {
       state: "Maharashtra",
       shiftName: "General",
     });
-    console.log("Created employee:", employee.employeeId, employee.firstName, employee.lastName);
+    console.log(
+      "Created employee:",
+      employee.employeeId,
+      employee.firstName,
+      employee.lastName,
+    );
     employees.push(employee);
   }
 
   // ── Students ───────────────────────────────────────────────────────────
   const studentDefs = [
-    { first: "Aarav", last: "Shah", sport: "Football", batch: "Evening U-14", gender: "male", coachIdx: 0 },
-    { first: "Diya", last: "Iyer", sport: "Swimming", batch: "Morning U-10", gender: "female", coachIdx: 1 },
-    { first: "Ishaan", last: "Rao", sport: "Tennis", batch: "Morning U-12", gender: "male", coachIdx: 2 },
-    { first: "Myra", last: "Joshi", sport: "Football", batch: "Evening U-14", gender: "female", coachIdx: 0 },
-    { first: "Kabir", last: "Chopra", sport: "Swimming", batch: "Evening U-16", gender: "male", coachIdx: 1 },
-    { first: "Aisha", last: "Khan", sport: "Tennis", batch: "Morning U-12", gender: "female", coachIdx: 2 },
-    { first: "Reyansh", last: "Gupta", sport: "Football", batch: "Morning U-10", gender: "male", coachIdx: 0 },
-    { first: "Saanvi", last: "Bhatt", sport: "Swimming", batch: "Morning U-10", gender: "female", coachIdx: 1 },
+    {
+      first: "Aarav",
+      last: "Shah",
+      sport: "Football",
+      batch: "Evening U-14",
+      gender: "male",
+      coachIdx: 0,
+    },
+    {
+      first: "Diya",
+      last: "Iyer",
+      sport: "Swimming",
+      batch: "Morning U-10",
+      gender: "female",
+      coachIdx: 1,
+    },
+    {
+      first: "Ishaan",
+      last: "Rao",
+      sport: "Tennis",
+      batch: "Morning U-12",
+      gender: "male",
+      coachIdx: 2,
+    },
+    {
+      first: "Myra",
+      last: "Joshi",
+      sport: "Football",
+      batch: "Evening U-14",
+      gender: "female",
+      coachIdx: 0,
+    },
+    {
+      first: "Kabir",
+      last: "Chopra",
+      sport: "Swimming",
+      batch: "Evening U-16",
+      gender: "male",
+      coachIdx: 1,
+    },
+    {
+      first: "Aisha",
+      last: "Khan",
+      sport: "Tennis",
+      batch: "Morning U-12",
+      gender: "female",
+      coachIdx: 2,
+    },
+    {
+      first: "Reyansh",
+      last: "Gupta",
+      sport: "Football",
+      batch: "Morning U-10",
+      gender: "male",
+      coachIdx: 0,
+    },
+    {
+      first: "Saanvi",
+      last: "Bhatt",
+      sport: "Swimming",
+      batch: "Morning U-10",
+      gender: "female",
+      coachIdx: 1,
+    },
   ];
 
   const students = [];
@@ -145,7 +255,7 @@ async function run() {
       studentId,
       firstName: s.first,
       lastName: s.last,
-      dateOfBirth: new Date(2013 - (i % 5), i % 12, (i * 3) % 28 + 1),
+      dateOfBirth: new Date(2013 - (i % 5), i % 12, ((i * 3) % 28) + 1),
       gender: s.gender,
       sport: s.sport,
       batch: s.batch,
@@ -161,25 +271,89 @@ async function run() {
       enrollmentDate: daysAgo(180 - i * 10),
       status: "active",
     });
-    console.log("Created student:", student.studentId, student.firstName, student.lastName);
+    console.log(
+      "Created student:",
+      student.studentId,
+      student.firstName,
+      student.lastName,
+    );
     students.push(student);
   }
 
   // ── Inventory ─────────────────────────────────────────────────────────
   const inventoryDefs = [
-    { name: "Football", category: "equipment", sport: "Football", qty: 25, cost: 800, reorder: 5 },
-    { name: "Tennis Racket", category: "equipment", sport: "Tennis", qty: 15, cost: 2500, reorder: 3 },
-    { name: "Swim Goggles", category: "equipment", sport: "Swimming", qty: 30, cost: 350, reorder: 8 },
-    { name: "Training Cones (Set of 10)", category: "equipment", sport: "Football", qty: 12, cost: 600, reorder: 2 },
-    { name: "Team Jersey (Home)", category: "apparel", sport: "Football", qty: 40, cost: 550, reorder: 10 },
-    { name: "Swim Cap", category: "apparel", sport: "Swimming", qty: 50, cost: 120, reorder: 10 },
-    { name: "First Aid Kit", category: "consumable", sport: "", qty: 8, cost: 900, reorder: 2 },
-    { name: "Tennis Balls (Can of 3)", category: "consumable", sport: "Tennis", qty: 20, cost: 250, reorder: 5 },
+    {
+      name: "Football",
+      category: "equipment",
+      sport: "Football",
+      qty: 25,
+      cost: 800,
+      reorder: 5,
+    },
+    {
+      name: "Tennis Racket",
+      category: "equipment",
+      sport: "Tennis",
+      qty: 15,
+      cost: 2500,
+      reorder: 3,
+    },
+    {
+      name: "Swim Goggles",
+      category: "equipment",
+      sport: "Swimming",
+      qty: 30,
+      cost: 350,
+      reorder: 8,
+    },
+    {
+      name: "Training Cones (Set of 10)",
+      category: "equipment",
+      sport: "Football",
+      qty: 12,
+      cost: 600,
+      reorder: 2,
+    },
+    {
+      name: "Team Jersey (Home)",
+      category: "apparel",
+      sport: "Football",
+      qty: 40,
+      cost: 550,
+      reorder: 10,
+    },
+    {
+      name: "Swim Cap",
+      category: "apparel",
+      sport: "Swimming",
+      qty: 50,
+      cost: 120,
+      reorder: 10,
+    },
+    {
+      name: "First Aid Kit",
+      category: "consumable",
+      sport: "",
+      qty: 8,
+      cost: 900,
+      reorder: 2,
+    },
+    {
+      name: "Tennis Balls (Can of 3)",
+      category: "consumable",
+      sport: "Tennis",
+      qty: 20,
+      cost: 250,
+      reorder: 5,
+    },
   ];
 
   const inventoryItems = [];
   for (const d of inventoryDefs) {
-    let item = await InventoryItem.findOne({ company: COMPANY_ID, name: d.name });
+    let item = await InventoryItem.findOne({
+      company: COMPANY_ID,
+      name: d.name,
+    });
     if (!item) {
       item = await InventoryItem.create({
         company: COMPANY_ID,
@@ -228,9 +402,14 @@ async function run() {
     console.log("Assigned racket to student");
   }
 
-  const balls = inventoryItems.find((i) => i.name === "Tennis Balls (Can of 3)");
+  const balls = inventoryItems.find(
+    (i) => i.name === "Tennis Balls (Can of 3)",
+  );
   if (balls) {
-    const already = await InventoryTransaction.findOne({ item: balls._id, type: "consume" });
+    const already = await InventoryTransaction.findOne({
+      item: balls._id,
+      type: "consume",
+    });
     if (!already) {
       balls.availableQuantity = Math.max(0, balls.availableQuantity - 3);
       await balls.save();
@@ -269,8 +448,12 @@ async function run() {
       await Attendance.create({
         employee: emp._id,
         date,
-        checkIn: ["present", "late", "half_day"].includes(status) ? checkIn : undefined,
-        checkOut: ["present", "late", "half_day"].includes(status) ? checkOut : undefined,
+        checkIn: ["present", "late", "half_day"].includes(status)
+          ? checkIn
+          : undefined,
+        checkOut: ["present", "late", "half_day"].includes(status)
+          ? checkOut
+          : undefined,
         status,
         workHours: ["present", "late"].includes(status) ? 8.5 : 0,
         verifyMode: "manual",
@@ -284,7 +467,10 @@ async function run() {
   for (const stu of students) {
     for (let d = 9; d >= 0; d--) {
       const date = daysAgo(d);
-      const exists = await StudentAttendance.findOne({ student: stu._id, date });
+      const exists = await StudentAttendance.findOne({
+        student: stu._id,
+        date,
+      });
       if (exists) continue;
 
       let status = "present";
@@ -305,13 +491,34 @@ async function run() {
 
   // ── Facilities ───────────────────────────────────────────────────────────
   const facilityDefs = [
-    { name: "Court 1", type: "court", sport: "Tennis", capacity: 4, hourlyFee: 500 },
-    { name: "Turf A", type: "turf", sport: "Football", capacity: 22, hourlyFee: 1200 },
-    { name: "Pool Lane 1", type: "pool", sport: "Swimming", capacity: 6, hourlyFee: 300 },
+    {
+      name: "Court 1",
+      type: "court",
+      sport: "Tennis",
+      capacity: 4,
+      hourlyFee: 500,
+    },
+    {
+      name: "Turf A",
+      type: "turf",
+      sport: "Football",
+      capacity: 22,
+      hourlyFee: 1200,
+    },
+    {
+      name: "Pool Lane 1",
+      type: "pool",
+      sport: "Swimming",
+      capacity: 6,
+      hourlyFee: 300,
+    },
   ];
   const facilities = [];
   for (const f of facilityDefs) {
-    let facility = await Facility.findOne({ company: COMPANY_ID, name: f.name });
+    let facility = await Facility.findOne({
+      company: COMPANY_ID,
+      name: f.name,
+    });
     if (!facility) {
       facility = await Facility.create({ company: COMPANY_ID, ...f });
       console.log("Created facility:", facility.name);
@@ -359,9 +566,27 @@ async function run() {
 
   // ── Sports Plans ─────────────────────────────────────────────────────────
   const planDefs = [
-    { name: "Football - 3x/week", sport: "Football", sessionsPerWeek: 3, monthlyPrice: 2500, yearlyPrice: 25000 },
-    { name: "Swimming - Unlimited", sport: "Swimming", sessionsPerWeek: 0, monthlyPrice: 3000, yearlyPrice: 30000 },
-    { name: "Tennis - 2x/week", sport: "Tennis", sessionsPerWeek: 2, monthlyPrice: 2800, yearlyPrice: 28000 },
+    {
+      name: "Football - 3x/week",
+      sport: "Football",
+      sessionsPerWeek: 3,
+      monthlyPrice: 2500,
+      yearlyPrice: 25000,
+    },
+    {
+      name: "Swimming - Unlimited",
+      sport: "Swimming",
+      sessionsPerWeek: 0,
+      monthlyPrice: 3000,
+      yearlyPrice: 30000,
+    },
+    {
+      name: "Tennis - 2x/week",
+      sport: "Tennis",
+      sessionsPerWeek: 2,
+      monthlyPrice: 2800,
+      yearlyPrice: 28000,
+    },
   ];
   const plans = {};
   for (const p of planDefs) {
@@ -383,7 +608,10 @@ async function run() {
     const plan = plans[stu.sport];
     if (!plan) continue;
 
-    const exists = await StudentSubscription.findOne({ student: stu._id, plan: plan._id });
+    const exists = await StudentSubscription.findOne({
+      student: stu._id,
+      plan: plan._id,
+    });
     if (exists) continue;
 
     const renewalDate = daysFromNow(renewalOffsets[i % renewalOffsets.length]);
@@ -410,7 +638,9 @@ async function run() {
   console.log(`Seeded ${subsCreated} student subscriptions`);
 
   console.log("\nDemo data seed complete.");
-  console.log(`Employees: ${employees.length}, Students: ${students.length}, Inventory items: ${inventoryItems.length}`);
+  console.log(
+    `Employees: ${employees.length}, Students: ${students.length}, Inventory items: ${inventoryItems.length}`,
+  );
   process.exit(0);
 }
 

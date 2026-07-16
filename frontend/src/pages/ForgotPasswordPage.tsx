@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
                         setEmail(e.target.value);
                         setError("");
                       }}
-                      placeholder="you@company.com"
+                      placeholder="you@sportsclub.com"
                       className="flex-1 px-4 py-3 bg-white text-sm font-medium outline-none"
                       required
                       autoFocus

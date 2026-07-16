@@ -16,7 +16,8 @@ async function resolveStatus(employeeId, checkIn, requestedStatus) {
   const [shiftH, shiftM] = shift.startTime.split(":").map(Number);
   const shiftStartMinutes = shiftH * 60 + shiftM;
   const checkInIST = new Date(new Date(checkIn).getTime() + IST_OFFSET_MS);
-  const checkInMinutes = checkInIST.getUTCHours() * 60 + checkInIST.getUTCMinutes();
+  const checkInMinutes =
+    checkInIST.getUTCHours() * 60 + checkInIST.getUTCMinutes();
 
   return checkInMinutes > shiftStartMinutes + 15 ? "late" : requestedStatus;
 }
@@ -45,10 +46,15 @@ exports.createRequest = asyncHandler(async (req, res) => {
   });
   if (existing) {
     res.status(400);
-    throw new Error("You already have a pending correction request for this date");
+    throw new Error(
+      "You already have a pending correction request for this date",
+    );
   }
 
-  const attendance = await Attendance.findOne({ employee: emp._id, date: reqDate });
+  const attendance = await Attendance.findOne({
+    employee: emp._id,
+    date: reqDate,
+  });
 
   const correction = await AttendanceCorrectionRequest.create({
     company: req.user.company,
@@ -123,10 +129,15 @@ exports.approveRejectRequest = asyncHandler(async (req, res) => {
 
     let workHours = 0;
     if (request.checkIn && request.checkOut) {
-      workHours = (new Date(request.checkOut) - new Date(request.checkIn)) / 3600000;
+      workHours =
+        (new Date(request.checkOut) - new Date(request.checkIn)) / 3600000;
     }
 
-    const computedStatus = await resolveStatus(request.employee, request.checkIn, "present");
+    const computedStatus = await resolveStatus(
+      request.employee,
+      request.checkIn,
+      "present",
+    );
 
     await Attendance.findOneAndUpdate(
       { employee: request.employee, date: d },
@@ -141,7 +152,7 @@ exports.approveRejectRequest = asyncHandler(async (req, res) => {
         markedBy: req.user._id,
         verifyMode: "manual",
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
   }
 

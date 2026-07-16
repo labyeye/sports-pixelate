@@ -1,9 +1,22 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, RefreshControl, StyleSheet, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { leaveAPI } from "../api/client";
-import { Card, Row, Badge, Button, EmptyState, LoadingView } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  RefreshControl,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { leaveAPI } from '../api/client';
+import {
+  Card,
+  Row,
+  Badge,
+  Button,
+  EmptyState,
+  LoadingView,
+} from '../components/ui';
+import { colors } from '../theme/colors';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: colors.yellow,
@@ -19,7 +32,10 @@ export default function LeaveScreen() {
   const [actingId, setActingId] = useState<string | null>(null);
 
   const load = useCallback(
-    () => leaveAPI.getAll().then((res: any) => res.success && setLeaves(res.data || [])),
+    () =>
+      leaveAPI
+        .getAll()
+        .then((res: any) => res.success && setLeaves(res.data || [])),
     [],
   );
 
@@ -35,13 +51,13 @@ export default function LeaveScreen() {
     setRefreshing(false);
   };
 
-  const act = async (id: string, status: "approved" | "rejected") => {
+  const act = async (id: string, status: 'approved' | 'rejected') => {
     setActingId(id);
     try {
       await leaveAPI.updateStatus(id, { status });
       await load();
     } catch (e: any) {
-      Alert.alert("Error", e?.message || "Failed to update leave");
+      Alert.alert('Error', e?.message || 'Failed to update leave');
     } finally {
       setActingId(null);
     }
@@ -50,11 +66,13 @@ export default function LeaveScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Card>
           {leaves.length === 0 ? (
@@ -64,19 +82,30 @@ export default function LeaveScreen() {
               <View key={l._id} style={styles.item}>
                 <Row
                   title={
-                    l.employee ? `${l.employee.firstName || ""} ${l.employee.lastName || ""}`.trim() : "-"
+                    l.employee
+                      ? `${l.employee.firstName || ''} ${
+                          l.employee.lastName || ''
+                        }`.trim()
+                      : '-'
                   }
-                  subtitle={`${(l.leaveType || "-").replace(/_/g, " ")} · ${l.days ?? "-"} day(s)`}
-                  right={<Badge label={l.status} color={STATUS_COLORS[l.status] || colors.blue} />}
+                  subtitle={`${(l.leaveType || '-').replace(/_/g, ' ')} · ${
+                    l.days ?? '-'
+                  } day(s)`}
+                  right={
+                    <Badge
+                      label={l.status}
+                      color={STATUS_COLORS[l.status] || colors.blue}
+                    />
+                  }
                 />
-                {l.status === "pending" && (
+                {l.status === 'pending' && (
                   <View style={styles.actions}>
                     <View style={{ flex: 1 }}>
                       <Button
                         title="Approve"
                         color={colors.green}
                         loading={actingId === l._id}
-                        onPress={() => act(l._id, "approved")}
+                        onPress={() => act(l._id, 'approved')}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -84,7 +113,7 @@ export default function LeaveScreen() {
                         title="Reject"
                         color={colors.red}
                         loading={actingId === l._id}
-                        onPress={() => act(l._id, "rejected")}
+                        onPress={() => act(l._id, 'rejected')}
                       />
                     </View>
                   </View>
@@ -101,5 +130,5 @@ export default function LeaveScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   item: { marginBottom: 4 },
-  actions: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  actions: { flexDirection: 'row', gap: 8, marginBottom: 10 },
 });

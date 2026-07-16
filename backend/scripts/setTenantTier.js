@@ -6,14 +6,13 @@ const connectDB = require("../config/db");
 const Subscription = require("../models/Subscription");
 
 const SUBSCRIPTION_ID = "6a2d15b297508e20189ae029";
-const TIER = "web_mobile_whatsapp";
+const TIER = "whatsapp";
 
 async function run() {
   await connectDB();
 
-  const before = await Subscription.findById(SUBSCRIPTION_ID).select(
-    "company plan tier",
-  );
+  const before =
+    await Subscription.findById(SUBSCRIPTION_ID).select("company plan tier");
   if (!before) {
     console.error(`Subscription ${SUBSCRIPTION_ID} not found`);
     process.exit(1);

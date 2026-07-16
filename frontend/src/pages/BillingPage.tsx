@@ -28,7 +28,12 @@ declare global {
   }
 }
 
-const RATE_PER_STUDENT = 150;
+type Tier = "standard" | "whatsapp";
+
+const RATE_PER_STUDENT: Record<Tier, number> = {
+  standard: 150,
+  whatsapp: 300,
+};
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -40,6 +45,7 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [newStudentCount, setNewStudentCount] = useState<number | "">("");
+  const [tier, setTier] = useState<Tier>("standard");
   const [gatewayModal, setGatewayModal] = useState(false);
 
   useEffect(() => {
@@ -50,6 +56,9 @@ export default function BillingPage() {
           if (r.success) {
             setSubscription(r.data);
             setNewStudentCount(r.data.maxStudents || "");
+            if (r.data.tier === "standard" || r.data.tier === "whatsapp") {
+              setTier(r.data.tier);
+            }
           }
         })
         .catch(() => {}),
@@ -142,7 +151,13 @@ export default function BillingPage() {
     setGatewayModal(false);
     setUpgrading(true);
     try {
-      const res = await billingAPI.createOrder(count, "yearly", gateway);
+      const res = await billingAPI.createOrder(
+        count,
+        "yearly",
+        gateway,
+        undefined,
+        tier,
+      );
       if (!res.success) throw new Error("Failed to create order");
       const order = res.data;
 
@@ -357,13 +372,49 @@ export default function BillingPage() {
         {}
         <div>
           <h2 className="font-display font-bold text-2xl text-black mb-6">
-            Update Student Count
+            Update Plan & Student Count
           </h2>
           <p className="text-sm text-muted-foreground -mt-4 mb-6">
-            One flat plan, full features — ₹{RATE_PER_STUDENT}/student/year
+            Priced per student, per year — switch plans anytime
           </p>
 
           <div className="border-2 p-5 bg-white max-w-sm">
+            <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
+              Plan
+            </label>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setTier("standard")}
+                className={cn(
+                  "text-left p-3 border-2 transition-all",
+                  tier === "standard"
+                    ? "bg-[#024BAB] text-white border-black"
+                    : "bg-white text-black border-black hover:bg-gray-50",
+                )}
+              >
+                <p className="font-bold text-sm">₹{RATE_PER_STUDENT.standard}/student/yr</p>
+                <p className={cn("text-[11px] font-medium mt-0.5", tier === "standard" ? "text-white/80" : "text-gray-500")}>
+                  No WhatsApp
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTier("whatsapp")}
+                className={cn(
+                  "text-left p-3 border-2 transition-all",
+                  tier === "whatsapp"
+                    ? "bg-[#024BAB] text-white border-black"
+                    : "bg-white text-black border-black hover:bg-gray-50",
+                )}
+              >
+                <p className="font-bold text-sm">₹{RATE_PER_STUDENT.whatsapp}/student/yr</p>
+                <p className={cn("text-[11px] font-medium mt-0.5", tier === "whatsapp" ? "text-white/80" : "text-gray-500")}>
+                  + WhatsApp notifications
+                </p>
+              </button>
+            </div>
+
             <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
               Number of students
             </label>
@@ -385,7 +436,7 @@ export default function BillingPage() {
               <div className="mb-4">
                 {(() => {
                   const count = Number(newStudentCount);
-                  const yearly = count * RATE_PER_STUDENT;
+                  const yearly = count * RATE_PER_STUDENT[tier];
                   return (
                     <>
                       <span className="font-display font-bold text-3xl text-black">
@@ -395,7 +446,7 @@ export default function BillingPage() {
                         /yr
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
-                        ₹{RATE_PER_STUDENT}/student/year
+                        ₹{RATE_PER_STUDENT[tier]}/student/year
                       </p>
                     </>
                   );
@@ -405,7 +456,11 @@ export default function BillingPage() {
 
             <button
               onClick={handleUpdateStudentCount}
-              disabled={upgrading || Number(newStudentCount) === studentsMax}
+              disabled={
+                upgrading ||
+                (Number(newStudentCount) === studentsMax &&
+                  tier === (sub?.tier || "standard"))
+              }
               className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
             >
               {upgrading ? (

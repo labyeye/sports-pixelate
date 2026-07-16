@@ -77,7 +77,7 @@ export function AssetsTabPane({ toast }: Props) {
     <div className="space-y-6">
       <div className="border-2 border-black bg-white p-5">
         <h3 className="text-sm font-bold uppercase mb-1">
-          Company Assigned Assets
+          SportsClub Assigned Assets
         </h3>
         <p className="text-xs text-muted-foreground">
           View your assigned laptops, mobile phones, SIMs, accessories, or
@@ -87,7 +87,7 @@ export function AssetsTabPane({ toast }: Props) {
 
       {assets.length === 0 ? (
         <div className="border-2 border-black bg-white p-8 text-center text-xs text-muted-foreground">
-          No company assets are currently assigned to your record.
+          No SportsClub assets are currently assigned to your record.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

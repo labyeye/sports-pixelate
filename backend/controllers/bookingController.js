@@ -50,7 +50,11 @@ const createBooking = asyncHandler(async (req, res) => {
     throw new Error("startTime must be before endTime");
   }
 
-  const facility = await Facility.findOne({ _id: facilityId, company: req.user.company, active: true });
+  const facility = await Facility.findOne({
+    _id: facilityId,
+    company: req.user.company,
+    active: true,
+  });
   if (!facility) {
     res.status(404);
     throw new Error("Facility not found");
@@ -62,7 +66,9 @@ const createBooking = asyncHandler(async (req, res) => {
     date: d,
     status: "confirmed",
   });
-  const clash = sameDayBookings.some((b) => timesOverlap(startTime, endTime, b.startTime, b.endTime));
+  const clash = sameDayBookings.some((b) =>
+    timesOverlap(startTime, endTime, b.startTime, b.endTime),
+  );
   if (clash) {
     res.status(409);
     throw new Error("This time slot is already booked");
@@ -101,15 +107,23 @@ const createBooking = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     data: booking,
-    payment: { orderId: order.orderId, keyId: order.keyId, amount: fee, currency: "INR" },
+    payment: {
+      orderId: order.orderId,
+      keyId: order.keyId,
+      amount: fee,
+      currency: "INR",
+    },
   });
 });
 
 const verifyBookingPayment = asyncHandler(async (req, res) => {
-  const { bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+  const { bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature } =
+    req.body;
   if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
     res.status(400);
-    throw new Error("razorpayOrderId, razorpayPaymentId and razorpaySignature are required");
+    throw new Error(
+      "razorpayOrderId, razorpayPaymentId and razorpaySignature are required",
+    );
   }
   const isValid = razorpayService.verifySignature({
     razorpayOrderId,
@@ -136,9 +150,16 @@ const verifyBookingPayment = asyncHandler(async (req, res) => {
 const cancelBooking = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id, company: req.user.company };
   if (req.user.role === "parent") {
-    filter.$or = [{ student: { $in: req.user.children || [] } }, { bookedBy: req.user._id }];
+    filter.$or = [
+      { student: { $in: req.user.children || [] } },
+      { bookedBy: req.user._id },
+    ];
   }
-  const booking = await Booking.findOneAndUpdate(filter, { status: "cancelled" }, { new: true });
+  const booking = await Booking.findOneAndUpdate(
+    filter,
+    { status: "cancelled" },
+    { new: true },
+  );
   if (!booking) {
     res.status(404);
     throw new Error("Booking not found");
@@ -146,4 +167,9 @@ const cancelBooking = asyncHandler(async (req, res) => {
   res.json({ success: true, data: booking });
 });
 
-module.exports = { getBookings, createBooking, verifyBookingPayment, cancelBooking };
+module.exports = {
+  getBookings,
+  createBooking,
+  verifyBookingPayment,
+  cancelBooking,
+};

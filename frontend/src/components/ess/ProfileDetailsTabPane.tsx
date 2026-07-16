@@ -559,7 +559,7 @@ export function ProfileDetailsTabPane({ employee, toast, onRefresh }: Props) {
               >
                 <div>
                   <label className="block text-[10px] font-bold uppercase mb-1">
-                    Company
+                    SportsClub
                   </label>
                   <input
                     value={e.company}
@@ -569,7 +569,7 @@ export function ProfileDetailsTabPane({ employee, toast, onRefresh }: Props) {
                       setExperience(updated);
                     }}
                     className="w-full border border-black px-2 py-1.5 text-xs font-medium focus:outline-none"
-                    placeholder="Company Name"
+                    placeholder="SportsClub Name"
                   />
                 </div>
                 <div>

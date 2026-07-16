@@ -2977,7 +2977,11 @@ function StudentAttendanceReportGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await studentAttendanceAPI.getAll({ month, year, limit: "500" });
+      const r = await studentAttendanceAPI.getAll({
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -3214,7 +3218,11 @@ function TournamentReportGen({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
-        <NbSelect value={tournamentId} onChange={setTournamentId} className="w-64">
+        <NbSelect
+          value={tournamentId}
+          onChange={setTournamentId}
+          className="w-64"
+        >
           {tournaments.map((t) => (
             <option key={t._id} value={t._id}>
               {t.name} ({t.sport})
@@ -4199,92 +4207,96 @@ export default function ReportsPage() {
           </div>
 
           {}
-          {(["payroll", "attendance", "employee", "student"] as Category[]).map((cat) => {
-            const catReports = grouped[cat];
-            if (catReports.length === 0) return null;
-            return (
-              <div key={cat} className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="h-5 w-1 border border-black"
-                    style={{ backgroundColor: CATEGORY_META[cat].color }}
-                  />
-                  <h2 className="text-base font-bold text-black uppercase tracking-wider">
-                    {CATEGORY_META[cat].label} ({catReports.length})
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {catReports.map((report) => {
-                    const Icon = report.icon;
-                    const isActive = activeId === report.id;
-                    return (
-                      <div
-                        key={report.id}
-                        className={cn(
-                          "border-2 bg-white p-4 flex flex-col gap-3 transition-all",
-                          isActive && "border-[#024BAB] bg-[#F0F6FF]",
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={cn(
-                              "w-10 h-10 border-2 border-black flex items-center justify-center flex-shrink-0",
-                              report.available ? "bg-[#024BAB]" : "bg-gray-200",
-                            )}
-                          >
-                            <Icon
-                              className={cn(
-                                "w-5 h-5",
-                                report.available
-                                  ? "text-white"
-                                  : "text-gray-400",
-                              )}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <CategoryTag cat={report.category} />
-                              {!report.available && (
-                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-black bg-gray-100 text-gray-500">
-                                  Coming Soon
-                                </span>
-                              )}
-                            </div>
-                            <p className="font-bold text-black text-sm leading-tight">
-                              {report.name}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed flex-1">
-                          {report.desc}
-                        </p>
-                        <button
-                          onClick={() =>
-                            setActiveId(isActive ? null : report.id)
-                          }
-                          disabled={!report.available}
+          {(["payroll", "attendance", "employee", "student"] as Category[]).map(
+            (cat) => {
+              const catReports = grouped[cat];
+              if (catReports.length === 0) return null;
+              return (
+                <div key={cat} className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="h-5 w-1 border border-black"
+                      style={{ backgroundColor: CATEGORY_META[cat].color }}
+                    />
+                    <h2 className="text-base font-bold text-black uppercase tracking-wider">
+                      {CATEGORY_META[cat].label} ({catReports.length})
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {catReports.map((report) => {
+                      const Icon = report.icon;
+                      const isActive = activeId === report.id;
+                      return (
+                        <div
+                          key={report.id}
                           className={cn(
-                            "w-full py-2 text-sm font-bold border-2 border-black transition-all",
-                            isActive
-                              ? "bg-black text-white"
-                              : report.available
-                                ? "bg-white text-black hover:bg-[#024BAB] hover:text-white border-2"
-                                : "bg-gray-100 text-gray-400 cursor-not-allowed",
+                            "border-2 bg-white p-4 flex flex-col gap-3 transition-all",
+                            isActive && "border-[#024BAB] bg-[#F0F6FF]",
                           )}
                         >
-                          {isActive
-                            ? "Close Report"
-                            : report.available
-                              ? "Generate"
-                              : "Unavailable"}
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={cn(
+                                "w-10 h-10 border-2 border-black flex items-center justify-center flex-shrink-0",
+                                report.available
+                                  ? "bg-[#024BAB]"
+                                  : "bg-gray-200",
+                              )}
+                            >
+                              <Icon
+                                className={cn(
+                                  "w-5 h-5",
+                                  report.available
+                                    ? "text-white"
+                                    : "text-gray-400",
+                                )}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <CategoryTag cat={report.category} />
+                                {!report.available && (
+                                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-black bg-gray-100 text-gray-500">
+                                    Coming Soon
+                                  </span>
+                                )}
+                              </div>
+                              <p className="font-bold text-black text-sm leading-tight">
+                                {report.name}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+                            {report.desc}
+                          </p>
+                          <button
+                            onClick={() =>
+                              setActiveId(isActive ? null : report.id)
+                            }
+                            disabled={!report.available}
+                            className={cn(
+                              "w-full py-2 text-sm font-bold border-2 border-black transition-all",
+                              isActive
+                                ? "bg-black text-white"
+                                : report.available
+                                  ? "bg-white text-black hover:bg-[#024BAB] hover:text-white border-2"
+                                  : "bg-gray-100 text-gray-400 cursor-not-allowed",
+                            )}
+                          >
+                            {isActive
+                              ? "Close Report"
+                              : report.available
+                                ? "Generate"
+                                : "Unavailable"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            },
+          )}
 
           {filtered.length === 0 && (
             <EmptyState msg={`No reports found matching "${search}"`} />

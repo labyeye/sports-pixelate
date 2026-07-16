@@ -9,14 +9,22 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { RATE_PER_STUDENT, calculatePricing } = require("../utils/pricing");
+const { RATE_PER_STUDENT, TIERS, calculatePricing } = require("../utils/pricing");
 
-const PLAN_NAME = "NestSports Standard";
+const PLAN_NAMES = {
+  standard: "NestSports Standard",
+  whatsapp: "NestSports + WhatsApp",
+};
 
 const getPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
-    data: [{ name: PLAN_NAME, ratePerStudent: RATE_PER_STUDENT }],
+    data: TIERS.map((tier) => ({
+      tier,
+      name: PLAN_NAMES[tier],
+      ratePerStudent: RATE_PER_STUDENT[tier],
+      whatsapp: tier === "whatsapp",
+    })),
   });
 });
 
@@ -25,7 +33,7 @@ const getSubscription = asyncHandler(async (req, res) => {
   if (!company)
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   const subscription = await Subscription.findOne({
     company: company._id,
   }).populate("company", "name email");
@@ -41,7 +49,7 @@ const getInvoices = asyncHandler(async (req, res) => {
   if (!company)
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   const invoices = await Invoice.find({ company: company._id })
     .populate(
       "company",
@@ -94,6 +102,7 @@ const createOrder = asyncHandler(async (req, res) => {
     studentCount,
     billingCycle = "monthly",
     gateway = "razorpay",
+    tier = "standard",
     offerCode,
     company: companyDetails,
   } = req.body;
@@ -111,8 +120,13 @@ const createOrder = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid gateway. Use razorpay or hdfc");
   }
+  if (!TIERS.includes(tier)) {
+    res.status(400);
+    throw new Error(`Invalid tier. Must be one of: ${TIERS.join(", ")}`);
+  }
 
-  const pricing = calculatePricing(count);
+  const pricing = calculatePricing(count, tier);
+  const planName = PLAN_NAMES[tier];
 
   const existingCompany = await Company.findOne({ createdBy: req.user._id });
 
@@ -148,12 +162,12 @@ const createOrder = asyncHandler(async (req, res) => {
       companyDetails || {};
     if (!name || !phone) {
       res.status(400);
-      throw new Error("Company name and phone are required");
+      throw new Error("SportsClub name and phone are required");
     }
     const emailToUse = email || req.user.email;
     if (await Company.findOne({ email: emailToUse })) {
       res.status(400);
-      throw new Error("Company email already exists");
+      throw new Error("SportsClub email already exists");
     }
     newCompanyDetails = {
       name,
@@ -185,7 +199,8 @@ const createOrder = asyncHandler(async (req, res) => {
         { company: existingCompany._id },
         {
           company: existingCompany._id,
-          plan: PLAN_NAME,
+          plan: planName,
+          tier,
           studentCount: count,
           ratePerStudent: pricing.ratePerStudent,
           monthlyPrice: pricing.monthlyPrice,
@@ -218,6 +233,7 @@ const createOrder = asyncHandler(async (req, res) => {
         panNumber: newCompanyDetails.panNumber,
         studentCount: count,
         billingCycle,
+        tier,
         ratePerStudent: pricing.ratePerStudent,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
@@ -234,12 +250,18 @@ const createOrder = asyncHandler(async (req, res) => {
       currency: "INR",
       studentCount: count,
       ratePerStudent: pricing.ratePerStudent,
-      plan: PLAN_NAME,
+      tier,
+      plan: planName,
       billingCycle,
-      companyName: existingCompany ? existingCompany.name : newCompanyDetails.name,
+      companyName: existingCompany
+        ? existingCompany.name
+        : newCompanyDetails.name,
       userName: req.user.name,
       userEmail: req.user.email,
-      userPhone: req.user.phone || (existingCompany ? existingCompany.phone : newCompanyDetails.phone) || "",
+      userPhone:
+        req.user.phone ||
+        (existingCompany ? existingCompany.phone : newCompanyDetails.phone) ||
+        "",
       offerApplied: !!validatedOffer,
       bonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
     };
@@ -252,7 +274,10 @@ const createOrder = asyncHandler(async (req, res) => {
       customer: {
         name: req.user.name,
         email: req.user.email,
-        phone: req.user.phone || (existingCompany ? existingCompany.phone : newCompanyDetails.phone) || "",
+        phone:
+          req.user.phone ||
+          (existingCompany ? existingCompany.phone : newCompanyDetails.phone) ||
+          "",
         address: existingCompany?.address || "India",
         city: existingCompany?.city || "",
         state: existingCompany?.state || "",
@@ -267,7 +292,8 @@ const createOrder = asyncHandler(async (req, res) => {
         { company: existingCompany._id },
         {
           company: existingCompany._id,
-          plan: PLAN_NAME,
+          plan: planName,
+          tier,
           studentCount: count,
           ratePerStudent: pricing.ratePerStudent,
           monthlyPrice: pricing.monthlyPrice,
@@ -300,6 +326,7 @@ const createOrder = asyncHandler(async (req, res) => {
         panNumber: newCompanyDetails.panNumber,
         studentCount: count,
         billingCycle,
+        tier,
         ratePerStudent: pricing.ratePerStudent,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
@@ -316,7 +343,8 @@ const createOrder = asyncHandler(async (req, res) => {
       currency: "INR",
       studentCount: count,
       ratePerStudent: pricing.ratePerStudent,
-      plan: PLAN_NAME,
+      tier,
+      plan: planName,
       billingCycle,
       offerApplied: !!validatedOffer,
       bonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
@@ -425,7 +453,13 @@ const verifyHdfcPayment = asyncHandler(async (req, res) => {
   });
 });
 
-async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExtra, res }) {
+async function _createCompanyAndActivate({
+  pendingOrder,
+  req,
+  update,
+  invoiceExtra,
+  res,
+}) {
   if (pendingOrder.user.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("This order does not belong to the current user.");
@@ -435,12 +469,12 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
   if (existingCompany) {
     await PendingOrder.deleteOne({ _id: pendingOrder._id });
     res.status(400);
-    throw new Error("User already has a company");
+    throw new Error("User already has a SportsClub");
   }
   if (await Company.findOne({ email: pendingOrder.companyEmail })) {
     await PendingOrder.deleteOne({ _id: pendingOrder._id });
     res.status(400);
-    throw new Error("Company email already exists");
+    throw new Error("SportsClub email already exists");
   }
 
   const company = await Company.create({
@@ -473,9 +507,12 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
     renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
   }
 
+  const planName = PLAN_NAMES[pendingOrder.tier] || PLAN_NAMES.standard;
+
   const subscription = await Subscription.create({
     company: company._id,
-    plan: PLAN_NAME,
+    plan: planName,
+    tier: pendingOrder.tier || "standard",
     studentCount: pendingOrder.studentCount,
     ratePerStudent: pendingOrder.ratePerStudent,
     monthlyPrice: pendingOrder.monthlyPrice,
@@ -512,7 +549,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
     company: company._id,
     subscription: subscription._id,
     invoiceNumber,
-    plan: PLAN_NAME,
+    plan: planName,
     billingCycle: pendingOrder.billingCycle,
     amount: amountPaid,
     status: "paid",
@@ -545,7 +582,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
     toName: req.user.name || company.name,
     toPhone: req.user.phone || company.phone || "",
     companyName: company.name,
-    planName: PLAN_NAME,
+    planName: planName,
     amount: amountPaid,
     billingCycle: pendingOrder.billingCycle,
     renewalDate,
@@ -555,7 +592,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
 
   res.status(201).json({
     success: true,
-    message: "Company created and subscription activated successfully",
+    message: "SportsClub created and subscription activated successfully",
     data: {
       company: {
         _id: company._id,
@@ -563,7 +600,7 @@ async function _createCompanyAndActivate({ pendingOrder, req, update, invoiceExt
         email: company.email,
         status: company.status,
       },
-      plan: PLAN_NAME,
+      plan: planName,
       billingCycle: pendingOrder.billingCycle,
       amount: amountPaid,
       renewalDate,

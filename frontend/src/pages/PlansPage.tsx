@@ -69,15 +69,31 @@ export default function PlansPage() {
   }, [load]);
 
   const resetForm = () => {
-    setForm({ name: "", sport: "", sessionsPerWeek: "0", monthlyPrice: "", yearlyPrice: "", description: "" });
+    setForm({
+      name: "",
+      sport: "",
+      sessionsPerWeek: "0",
+      monthlyPrice: "",
+      yearlyPrice: "",
+      description: "",
+    });
     setEditingId(null);
     setShowForm(false);
   };
 
   const handleSave = async () => {
     if (saving) return;
-    if (!form.name.trim() || !form.sport.trim() || !form.monthlyPrice || !form.yearlyPrice) {
-      toast({ title: "Missing fields", description: "Name, sport and both prices are required", variant: "destructive" });
+    if (
+      !form.name.trim() ||
+      !form.sport.trim() ||
+      !form.monthlyPrice ||
+      !form.yearlyPrice
+    ) {
+      toast({
+        title: "Missing fields",
+        description: "Name, sport and both prices are required",
+        variant: "destructive",
+      });
       return;
     }
     setSaving(true);
@@ -138,7 +154,12 @@ export default function PlansPage() {
 
   const filtered = useMemo(() => {
     return plans.filter((p) => {
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.sport.toLowerCase().includes(search.toLowerCase())) return false;
+      if (
+        search &&
+        !p.name.toLowerCase().includes(search.toLowerCase()) &&
+        !p.sport.toLowerCase().includes(search.toLowerCase())
+      )
+        return false;
       if (filterSport && p.sport !== filterSport) return false;
       return true;
     });
@@ -150,19 +171,25 @@ export default function PlansPage() {
       let cmp = 0;
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
       else if (sortKey === "sport") cmp = a.sport.localeCompare(b.sport);
-      else if (sortKey === "monthlyPrice") cmp = a.monthlyPrice - b.monthlyPrice;
-      else if (sortKey === "sessionsPerWeek") cmp = a.sessionsPerWeek - b.sessionsPerWeek;
+      else if (sortKey === "monthlyPrice")
+        cmp = a.monthlyPrice - b.monthlyPrice;
+      else if (sortKey === "sessionsPerWeek")
+        cmp = a.sessionsPerWeek - b.sessionsPerWeek;
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  const avgMonthly = plans.length ? Math.round(plans.reduce((s, p) => s + p.monthlyPrice, 0) / plans.length) : 0;
+  const avgMonthly = plans.length
+    ? Math.round(plans.reduce((s, p) => s + p.monthlyPrice, 0) / plans.length)
+    : 0;
 
   return (
     <AppLayout title="Coaching Plans">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="font-display font-bold text-2xl text-black">Coaching Plans</h1>
+        <h1 className="font-display font-bold text-2xl text-black">
+          Coaching Plans
+        </h1>
         <button
           onClick={() => {
             resetForm();
@@ -181,7 +208,9 @@ export default function PlansPage() {
             <Gift className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Plans</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Plans
+            </p>
             <p className="text-2xl font-bold text-black">{plans.length}</p>
           </div>
         </div>
@@ -190,8 +219,12 @@ export default function PlansPage() {
             <Layers className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sports Covered</p>
-            <p className="text-2xl font-bold text-black">{sportOptions.length}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Sports Covered
+            </p>
+            <p className="text-2xl font-bold text-black">
+              {sportOptions.length}
+            </p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -199,8 +232,12 @@ export default function PlansPage() {
             <IndianRupee className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Avg. Monthly Price</p>
-            <p className="text-2xl font-bold text-black">₹{avgMonthly.toLocaleString("en-IN")}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Avg. Monthly Price
+            </p>
+            <p className="text-2xl font-bold text-black">
+              ₹{avgMonthly.toLocaleString("en-IN")}
+            </p>
           </div>
         </div>
       </div>
@@ -224,7 +261,9 @@ export default function PlansPage() {
         >
           <option value="">All Sports</option>
           {sportOptions.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
         {(search || filterSport) && (
@@ -252,65 +291,95 @@ export default function PlansPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
       </div>
 
       {showForm && (
         <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">{editingId ? "Edit Plan" : "Add Plan"}</h3>
+          <h3 className="font-bold text-base mb-4">
+            {editingId ? "Edit Plan" : "Add Plan"}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Plan Name *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Plan Name *
+              </label>
               <input
                 value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, name: e.target.value }))
+                }
                 placeholder="e.g. Tennis - 3x/week"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Sport *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Sport *
+              </label>
               <input
                 value={form.sport}
-                onChange={(e) => setForm((p) => ({ ...p, sport: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sport: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Sessions / Week (0 = unlimited)</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Sessions / Week (0 = unlimited)
+              </label>
               <input
                 type="number"
                 value={form.sessionsPerWeek}
-                onChange={(e) => setForm((p) => ({ ...p, sessionsPerWeek: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sessionsPerWeek: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div />
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Monthly Price (₹) *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Monthly Price (₹) *
+              </label>
               <input
                 type="number"
                 value={form.monthlyPrice}
-                onChange={(e) => setForm((p) => ({ ...p, monthlyPrice: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, monthlyPrice: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Yearly Price (₹) *</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Yearly Price (₹) *
+              </label>
               <input
                 type="number"
                 value={form.yearlyPrice}
-                onChange={(e) => setForm((p) => ({ ...p, yearlyPrice: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, yearlyPrice: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">Description</label>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Description
+              </label>
               <input
                 value={form.description}
-                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, description: e.target.value }))
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
@@ -321,10 +390,17 @@ export default function PlansPage() {
               disabled={saving}
               className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               Save
             </button>
-            <button onClick={resetForm} className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase">
+            <button
+              onClick={resetForm}
+              className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+            >
               <X className="w-4 h-4" /> Cancel
             </button>
           </div>
@@ -339,7 +415,9 @@ export default function PlansPage() {
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <Gift className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No plans found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your filters
+          </p>
         </div>
       ) : (
         <>
@@ -353,17 +431,38 @@ export default function PlansPage() {
                     <p className="text-xs text-muted-foreground">{p.sport}</p>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => startEdit(p)} className="p-1.5 border border-black/10 hover:border-black">
+                    <button
+                      onClick={() => startEdit(p)}
+                      className="p-1.5 border border-black/10 hover:border-black"
+                    >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => handleDelete(p._id)} className="p-1.5 border border-black/10 hover:border-red-500 hover:text-red-500">
+                    <button
+                      onClick={() => handleDelete(p._id)}
+                      className="p-1.5 border border-black/10 hover:border-red-500 hover:text-red-500"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-[#024BAB]">₹{p.monthlyPrice}<span className="text-xs text-muted-foreground font-medium">/mo</span></p>
-                <p className="text-xs text-muted-foreground">₹{p.yearlyPrice}/year · {p.sessionsPerWeek === 0 ? "Unlimited" : `${p.sessionsPerWeek}x`}/week</p>
-                {p.description && <p className="text-xs text-muted-foreground mt-1">{p.description}</p>}
+                <p className="text-2xl font-bold text-[#024BAB]">
+                  ₹{p.monthlyPrice}
+                  <span className="text-xs text-muted-foreground font-medium">
+                    /mo
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ₹{p.yearlyPrice}/year ·{" "}
+                  {p.sessionsPerWeek === 0
+                    ? "Unlimited"
+                    : `${p.sessionsPerWeek}x`}
+                  /week
+                </p>
+                {p.description && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {p.description}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -373,8 +472,19 @@ export default function PlansPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {["Name", "Sport", "Sessions/Week", "Monthly", "Yearly", "Description", "Actions"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap">
+                  {[
+                    "Name",
+                    "Sport",
+                    "Sessions/Week",
+                    "Monthly",
+                    "Yearly",
+                    "Description",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -382,13 +492,27 @@ export default function PlansPage() {
               </thead>
               <tbody>
                 {displayed.map((p, idx) => (
-                  <tr key={p._id} className={cn("border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors", idx % 2 === 0 ? "" : "bg-[#F8FAFF]")}>
+                  <tr
+                    key={p._id}
+                    className={cn(
+                      "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                      idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                    )}
+                  >
                     <td className="px-4 py-3 font-bold text-black">{p.name}</td>
                     <td className="px-4 py-3 text-black">{p.sport}</td>
-                    <td className="px-4 py-3 text-black">{p.sessionsPerWeek === 0 ? "Unlimited" : `${p.sessionsPerWeek}x`}</td>
-                    <td className="px-4 py-3 font-bold text-[#024BAB]">₹{p.monthlyPrice}</td>
+                    <td className="px-4 py-3 text-black">
+                      {p.sessionsPerWeek === 0
+                        ? "Unlimited"
+                        : `${p.sessionsPerWeek}x`}
+                    </td>
+                    <td className="px-4 py-3 font-bold text-[#024BAB]">
+                      ₹{p.monthlyPrice}
+                    </td>
                     <td className="px-4 py-3 text-black">₹{p.yearlyPrice}</td>
-                    <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{p.description || "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
+                      {p.description || "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button

@@ -752,8 +752,8 @@ export default function EmployeeDashboard() {
                             Happy Birthday to You! 🎂
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            The NestSports family wishes you a fantastic day ahead
-                            filled with joy and success!
+                            The NestSports family wishes you a fantastic day
+                            ahead filled with joy and success!
                           </p>
                         </div>
                       </div>
@@ -779,7 +779,7 @@ export default function EmployeeDashboard() {
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Thank you for your dedication and contribution to
-                            the company!
+                            the SportsClub!
                           </p>
                         </div>
                       </div>
@@ -866,7 +866,7 @@ export default function EmployeeDashboard() {
                     <div className="px-4 py-3 bg-[#024BAB] flex items-center gap-2">
                       <Megaphone className="w-4 h-4 text-white" />
                       <p className="text-xs font-bold uppercase tracking-wider text-white">
-                        Company Announcements
+                        SportsClub Announcements
                       </p>
                     </div>
                     <div className="p-4 space-y-3">

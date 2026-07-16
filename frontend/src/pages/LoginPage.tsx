@@ -48,6 +48,11 @@ export default function LoginPage() {
     } else if (result.requires2FA) {
       setNeeds2FA(true);
       setPending2FAUserId(result.userId || "");
+    } else if (result.error?.includes("Phone OTP")) {
+      // Coaches, staff and parents don't have password login — bounce them
+      // straight to the OTP flow instead of just showing an error.
+      setLoginMode("phone");
+      setError(result.error);
     } else {
       setError(result.error || "Login failed. Please check your credentials.");
     }
@@ -390,7 +395,7 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       setError("");
                     }}
-                    placeholder="you@company.com"
+                    placeholder="you@sportsclub.com"
                     className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
                     required
                     autoComplete="email"

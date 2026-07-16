@@ -10,7 +10,11 @@ const Employee = require("../models/Employee");
  */
 function getEffectiveShift(emp) {
   if (!emp) return null;
-  if (emp.isCustomShift && emp.customShift?.startTime && emp.customShift?.endTime) {
+  if (
+    emp.isCustomShift &&
+    emp.customShift?.startTime &&
+    emp.customShift?.endTime
+  ) {
     return emp.customShift;
   }
   return emp.shift || null;

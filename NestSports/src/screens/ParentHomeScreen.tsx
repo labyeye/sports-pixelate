@@ -1,9 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, View, Text, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { studentAPI, studentAttendanceAPI, subscriptionAPI } from "../api/client";
-import { Card, EmptyState, LoadingView, Badge } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  studentAPI,
+  studentAttendanceAPI,
+  subscriptionAPI,
+} from '../api/client';
+import { Card, EmptyState, LoadingView, Badge } from '../components/ui';
+import { colors } from '../theme/colors';
 
 export default function ParentHomeScreen() {
   const [children, setChildren] = useState<any[]>([]);
@@ -42,14 +52,18 @@ export default function ParentHomeScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Text style={styles.title}>My Children</Text>
-        <Text style={styles.subtitle}>Attendance and subscription overview</Text>
+        <Text style={styles.subtitle}>
+          Attendance and subscription overview
+        </Text>
 
         {children.length === 0 ? (
           <Card>
@@ -59,13 +73,15 @@ export default function ParentHomeScreen() {
             />
           </Card>
         ) : (
-          children.map((child) => {
-            const records = attendance.filter((a) => a.student?._id === child._id);
-            const present = records.filter((a) => a.status === "present").length;
+          children.map(child => {
+            const records = attendance.filter(
+              a => a.student?._id === child._id,
+            );
+            const present = records.filter(a => a.status === 'present').length;
             const total = records.length;
             const rate = total > 0 ? Math.round((present / total) * 100) : 0;
             const sub = subscriptions.find(
-              (s) => s.student?._id === child._id && s.status === "active",
+              s => s.student?._id === child._id && s.status === 'active',
             );
 
             return (
@@ -76,7 +92,9 @@ export default function ParentHomeScreen() {
                   </Text>
                   <Badge label={child.sport} color={colors.blue} />
                 </View>
-                {child.batch ? <Text style={styles.batch}>{child.batch}</Text> : null}
+                {child.batch ? (
+                  <Text style={styles.batch}>{child.batch}</Text>
+                ) : null}
 
                 <View style={styles.statsRow}>
                   <View style={styles.statBox}>
@@ -90,15 +108,29 @@ export default function ParentHomeScreen() {
                     <Text style={styles.statLabel}>SUBSCRIPTION</Text>
                     {sub ? (
                       <>
-                        <Text style={[styles.statValue, { fontSize: 14, color: colors.green }]}>
+                        <Text
+                          style={[
+                            styles.statValue,
+                            { fontSize: 14, color: colors.green },
+                          ]}
+                        >
                           {sub.planName}
                         </Text>
                         <Text style={styles.statSub}>
-                          Renews {new Date(sub.renewalDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                          Renews{' '}
+                          {new Date(sub.renewalDate).toLocaleDateString(
+                            'en-IN',
+                            { day: '2-digit', month: 'short' },
+                          )}
                         </Text>
                       </>
                     ) : (
-                      <Text style={[styles.statValue, { fontSize: 14, color: colors.red }]}>
+                      <Text
+                        style={[
+                          styles.statValue,
+                          { fontSize: 14, color: colors.red },
+                        ]}
+                      >
                         No active plan
                       </Text>
                     )}
@@ -115,12 +147,16 @@ export default function ParentHomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.black },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  childName: { fontSize: 17, fontWeight: "800", color: colors.black },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  childName: { fontSize: 17, fontWeight: '800', color: colors.black },
   batch: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  statsRow: { flexDirection: "row", gap: 10, marginTop: 12 },
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   statBox: {
     flex: 1,
     borderWidth: 2,
@@ -128,7 +164,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 10,
   },
-  statLabel: { fontSize: 10, fontWeight: "700", color: colors.muted, marginBottom: 4 },
-  statValue: { fontSize: 22, fontWeight: "800", color: colors.black },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.muted,
+    marginBottom: 4,
+  },
+  statValue: { fontSize: 22, fontWeight: '800', color: colors.black },
   statSub: { fontSize: 11, color: colors.muted, marginTop: 2 },
 });

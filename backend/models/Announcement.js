@@ -12,7 +12,7 @@ const announcementSchema = new mongoose.Schema(
     date: { type: Date, default: Date.now },
     active: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Announcement", announcementSchema);

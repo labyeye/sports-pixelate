@@ -36,6 +36,10 @@ const settingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    paymentQrUrl: {
+      type: String,
+      default: "",
+    },
     chequeLogoX: { type: Number, default: 10 },
     chequeLogoY: { type: Number, default: 20 },
     chequeLogoW: { type: Number, default: 60 },

@@ -681,7 +681,14 @@ async function sendLoanAppliedHR(
     await sendTemplate(
       phone,
       "neshr_loan_request_hr",
-      [label, empName, empId, String(amount), String(tenureMonths || 0), reason || "-"],
+      [
+        label,
+        empName,
+        empId,
+        String(amount),
+        String(tenureMonths || 0),
+        reason || "-",
+      ],
       s.whatsappLang || "en",
     );
   } catch (err) {
@@ -698,7 +705,9 @@ async function sendLoanAppliedHR(
 async function sendPhoneOtp(phone, { otp }) {
   const accessToken = process.env.META_WA_TOKEN;
   const phoneNumberId = process.env.META_WA_PHONE_ID;
-  console.log(`[WA-OTP] token=${accessToken ? accessToken.slice(0,8)+'...' : 'MISSING'} phoneId=${phoneNumberId || 'MISSING'} to=${phone}`);
+  console.log(
+    `[WA-OTP] token=${accessToken ? accessToken.slice(0, 8) + "..." : "MISSING"} phoneId=${phoneNumberId || "MISSING"} to=${phone}`,
+  );
   if (!accessToken || !phoneNumberId) {
     console.warn("[WA-DEBUG] ABORT: META_WA_TOKEN or META_WA_PHONE_ID not set");
     return;
@@ -747,7 +756,9 @@ async function sendPhoneOtp(phone, { otp }) {
           let data = "";
           res.on("data", (chunk) => (data += chunk));
           res.on("end", () => {
-            console.log(`[WA-OTP] Meta API status=${res.statusCode} body=${data}`);
+            console.log(
+              `[WA-OTP] Meta API status=${res.statusCode} body=${data}`,
+            );
             if (res.statusCode >= 200 && res.statusCode < 300)
               resolve(JSON.parse(data));
             else reject(new Error(`Meta API ${res.statusCode}: ${data}`));

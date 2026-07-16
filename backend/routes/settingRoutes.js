@@ -4,9 +4,13 @@ const {
   getSettings,
   updateSettings,
   uploadCompanyLogo,
+  uploadPaymentQr,
 } = require("../controllers/settingController");
 const { protect, authorize } = require("../middleware/auth");
-const { uploadCompanyLogo: logoMulter } = require("../middleware/upload");
+const {
+  uploadCompanyLogo: logoMulter,
+  uploadPaymentQr: paymentQrMulter,
+} = require("../middleware/upload");
 
 router.use(protect);
 
@@ -28,6 +32,21 @@ router.post(
     });
   },
   uploadCompanyLogo,
+);
+
+router.post(
+  "/payment-qr",
+  authorize("super_admin", "admin", "hr_manager"),
+  (req, res, next) => {
+    paymentQrMulter(req, res, (err) => {
+      if (err) {
+        res.status(400);
+        return next(err);
+      }
+      next();
+    });
+  },
+  uploadPaymentQr,
 );
 
 module.exports = router;

@@ -15,6 +15,12 @@ const employeeSchema = new mongoose.Schema(
     phone: { type: String },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     designation: { type: String, required: true },
+    role: {
+      type: String,
+      enum: ["coach", "staff"],
+      default: "staff",
+    },
+    sport: { type: String, default: "" }, // which sport they coach, when role === "coach"
     employmentType: {
       type: String,
       enum: ["full_time", "part_time", "contract", "intern"],

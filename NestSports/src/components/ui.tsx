@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,10 @@ import {
   TextStyle,
   Image,
   KeyboardTypeOptions,
-} from "react-native";
-import { LucideIcon, Camera } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, FONT } from "../theme/colors";
+} from 'react-native';
+import { LucideIcon, Camera } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, FONT } from '../theme/colors';
 
 export function ScreenContainer({ children }: { children: React.ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
@@ -34,7 +34,9 @@ export function Card({
     <View
       style={[
         styles.card,
-        accentColor ? { borderLeftWidth: 4, borderLeftColor: accentColor } : null,
+        accentColor
+          ? { borderLeftWidth: 4, borderLeftColor: accentColor }
+          : null,
         style,
       ]}
     >
@@ -43,13 +45,7 @@ export function Card({
   );
 }
 
-export function SectionTitle({
-  title,
-  sub,
-}: {
-  title: string;
-  sub?: string;
-}) {
+export function SectionTitle({ title, sub }: { title: string; sub?: string }) {
   return (
     <View style={{ marginBottom: 10 }}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -64,16 +60,16 @@ export function Button({
   color = colors.blue,
   loading,
   disabled,
-  variant = "solid",
+  variant = 'solid',
 }: {
   title: string;
   onPress: () => void;
   color?: string;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "solid" | "outline";
+  variant?: 'solid' | 'outline';
 }) {
-  const isOutline = variant === "outline";
+  const isOutline = variant === 'outline';
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -127,7 +123,14 @@ export function EmptyState({
 }) {
   return (
     <View style={styles.empty}>
-      {Icon ? <Icon size={40} color="#D1D5DB" strokeWidth={1.5} style={{ marginBottom: 10 }} /> : null}
+      {Icon ? (
+        <Icon
+          size={40}
+          color="#D1D5DB"
+          strokeWidth={1.5}
+          style={{ marginBottom: 10 }}
+        />
+      ) : null}
       <Text style={styles.emptyTitle}>{title}</Text>
       {sub ? <Text style={styles.emptySub}>{sub}</Text> : null}
     </View>
@@ -136,7 +139,7 @@ export function EmptyState({
 
 export function LoadingView() {
   return (
-    <SafeAreaView edges={["top"]} style={styles.loading}>
+    <SafeAreaView edges={['top']} style={styles.loading}>
       <ActivityIndicator size="large" color={colors.blue} />
     </SafeAreaView>
   );
@@ -190,7 +193,10 @@ export function Row({
 }) {
   const Wrapper = onPress ? TouchableOpacity : View;
   return (
-    <Wrapper onPress={onPress} style={[styles.row, noBorder && { borderBottomWidth: 0 }]}>
+    <Wrapper
+      onPress={onPress}
+      style={[styles.row, noBorder && { borderBottomWidth: 0 }]}
+    >
       {left}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>
@@ -229,7 +235,7 @@ export function Avatar({
         <Image source={{ uri }} style={dim} />
       ) : (
         <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>
-          {(name?.[0] || "?").toUpperCase()}
+          {(name?.[0] || '?').toUpperCase()}
         </Text>
       )}
       {onPress ? (
@@ -264,10 +270,13 @@ export function TextField({
     <View style={{ marginBottom: 14 }}>
       <Text style={styles.fieldLabel}>
         {label}
-        {required ? " *" : ""}
+        {required ? ' *' : ''}
       </Text>
       <TextInput
-        style={[styles.fieldInput, multiline && { height: 80, textAlignVertical: "top" }]}
+        style={[
+          styles.fieldInput,
+          multiline && { height: 80, textAlignVertical: 'top' },
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -296,8 +305,8 @@ export function ChipSelect<T extends string>({
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {options.map((opt) => {
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map(opt => {
           const selected = value === opt;
           return (
             <TouchableOpacity
@@ -305,10 +314,14 @@ export function ChipSelect<T extends string>({
               onPress={() => onChange(opt)}
               style={[
                 styles.chip,
-                selected ? { backgroundColor: colors.blue, borderColor: colors.black } : null,
+                selected
+                  ? { backgroundColor: colors.blue, borderColor: colors.black }
+                  : null,
               ]}
             >
-              <Text style={[styles.chipText, selected && { color: colors.white }]}>
+              <Text
+                style={[styles.chipText, selected && { color: colors.white }]}
+              >
                 {labels?.[opt] || opt}
               </Text>
             </TouchableOpacity>
@@ -319,7 +332,11 @@ export function ChipSelect<T extends string>({
   );
 }
 
-const textStyle: TextStyle = { fontFamily: FONT.bold, fontWeight: "700", color: colors.black };
+const textStyle: TextStyle = {
+  fontFamily: FONT.bold,
+  fontWeight: '700',
+  color: colors.black,
+};
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
@@ -331,35 +348,45 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: { ...textStyle, fontSize: 16 },
-  sectionSub: { fontFamily: FONT.medium, color: colors.muted, fontSize: 12, marginTop: 2 },
+  sectionSub: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
   button: {
     borderWidth: 2,
     paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonText: { fontFamily: FONT.bold, fontWeight: "700", fontSize: 14 },
+  buttonText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14 },
   badge: {
     borderWidth: 2,
     borderColor: colors.black,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
   },
   badgeText: {
     fontFamily: FONT.bold,
     color: colors.white,
-    fontWeight: "700",
+    fontWeight: '700',
     fontSize: 10,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  empty: { padding: 24, alignItems: "center" },
+  empty: { padding: 24, alignItems: 'center' },
   emptyTitle: { ...textStyle, fontSize: 14 },
-  emptySub: { fontFamily: FONT.medium, color: colors.muted, fontSize: 12, marginTop: 4 },
-  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptySub: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   kpi: {
-    flexBasis: "48%",
+    flexBasis: '48%',
     backgroundColor: colors.white,
     borderWidth: 2,
     borderColor: colors.black,
@@ -372,8 +399,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderWidth: 2,
     borderColor: colors.black,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
   },
   kpiValue: { ...textStyle, fontSize: 24 },
@@ -381,34 +408,44 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: colors.muted,
     fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginTop: 2,
   },
-  kpiSub: { fontFamily: FONT.medium, color: colors.muted, fontSize: 11, marginTop: 2 },
+  kpiSub: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 11,
+    marginTop: 2,
+  },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#0000001A",
+    borderBottomColor: '#0000001A',
     gap: 8,
   },
   rowTitle: { ...textStyle, fontSize: 14 },
-  rowSubtitle: { fontFamily: FONT.medium, color: colors.muted, fontSize: 12, marginTop: 1 },
+  rowSubtitle: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 1,
+  },
   avatar: {
     borderWidth: 2,
     borderColor: colors.black,
     backgroundColor: colors.blue,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  avatarText: { color: colors.white, fontFamily: FONT.bold, fontWeight: "800" },
+  avatarText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '800' },
   avatarEditBadge: {
-    position: "absolute",
+    position: 'absolute',
     bottom: -2,
     right: -2,
     width: 18,
@@ -417,15 +454,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.white,
     backgroundColor: colors.blue,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.black,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 6,
   },
@@ -441,16 +478,16 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: '#D1D5DB',
     backgroundColor: colors.white,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
   chipText: {
     fontFamily: FONT.bold,
-    fontWeight: "700",
+    fontWeight: '700',
     fontSize: 12,
     color: colors.black,
-    textTransform: "capitalize",
+    textTransform: 'capitalize',
   },
 });

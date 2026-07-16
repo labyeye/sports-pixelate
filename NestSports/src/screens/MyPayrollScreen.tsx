@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { payrollAPI } from "../api/client";
-import { Card, Row, Badge, EmptyState, LoadingView } from "../components/ui";
-import { colors } from "../theme/colors";
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { payrollAPI } from '../api/client';
+import { Card, Row, Badge, EmptyState, LoadingView } from '../components/ui';
+import { colors } from '../theme/colors';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: colors.muted,
@@ -12,12 +12,22 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 }
 
 export default function MyPayrollScreen() {
@@ -26,7 +36,10 @@ export default function MyPayrollScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(
-    () => payrollAPI.getMy().then((res: any) => res.success && setPayslips(res.data || [])),
+    () =>
+      payrollAPI
+        .getMy()
+        .then((res: any) => res.success && setPayslips(res.data || [])),
     [],
   );
 
@@ -45,11 +58,13 @@ export default function MyPayrollScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <Card>
           {payslips.length === 0 ? (
@@ -60,7 +75,12 @@ export default function MyPayrollScreen() {
                 key={p._id}
                 title={`${MONTH_NAMES[(p.month || 1) - 1]} ${p.year}`}
                 subtitle={formatCurrency(p.netSalary)}
-                right={<Badge label={p.status} color={STATUS_COLORS[p.status] || colors.blue} />}
+                right={
+                  <Badge
+                    label={p.status}
+                    color={STATUS_COLORS[p.status] || colors.blue}
+                  />
+                }
               />
             ))
           )}

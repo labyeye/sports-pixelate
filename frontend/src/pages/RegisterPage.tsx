@@ -75,7 +75,7 @@ export default function RegisterPage() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="you@company.com"
+              placeholder="you@sportsclub.com"
               className="border-2 w-full px-3 py-2.5 text-sm"
               required
             />

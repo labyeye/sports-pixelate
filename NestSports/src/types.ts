@@ -1,15 +1,15 @@
 export type UserRole =
-  | "super_admin"
-  | "hr_manager"
-  | "hr_executive"
-  | "department_head"
-  | "employee"
-  | "parent";
+  | 'super_admin'
+  | 'hr_manager'
+  | 'hr_executive'
+  | 'department_head'
+  | 'employee'
+  | 'parent';
 
 export interface Subscription {
-  status: "active" | "inactive" | "pending_renewal" | "trial";
+  status: 'active' | 'inactive' | 'pending_renewal' | 'trial';
   plan?: string;
-  paymentStatus?: "completed" | "pending" | "failed";
+  paymentStatus?: 'completed' | 'pending' | 'failed';
   isTrial?: boolean;
   renewalDate?: string;
   trialEndDate?: string;
@@ -19,7 +19,7 @@ export interface Company {
   id: string;
   name: string;
   email: string;
-  status: "active" | "inactive" | "trial";
+  status: 'active' | 'inactive' | 'trial';
   subscription?: Subscription;
 }
 

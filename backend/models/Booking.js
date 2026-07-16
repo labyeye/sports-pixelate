@@ -13,7 +13,11 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
     student: { type: mongoose.Schema.Types.ObjectId, ref: "Student" }, // who it's for (optional — could be staff-only booking)
-    bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    bookedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     date: { type: Date, required: true }, // day of the booking (midnight)
     startTime: { type: String, required: true }, // "HH:MM"
     endTime: { type: String, required: true }, // "HH:MM"

@@ -7,7 +7,7 @@ const getPaymentMethods = asyncHandler(async (req, res) => {
   if (!company) {
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   }
 
   const paymentMethods = await PaymentMethod.find({
@@ -38,7 +38,7 @@ const addPaymentMethod = asyncHandler(async (req, res) => {
   if (!company) {
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   }
 
   if (
@@ -115,7 +115,7 @@ const updatePaymentMethod = asyncHandler(async (req, res) => {
   if (!company) {
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   }
 
   const paymentMethod = await PaymentMethod.findById(id);
@@ -156,7 +156,7 @@ const deletePaymentMethod = asyncHandler(async (req, res) => {
   if (!company) {
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   }
 
   const paymentMethod = await PaymentMethod.findById(id);
@@ -190,7 +190,7 @@ const getDefaultPaymentMethod = asyncHandler(async (req, res) => {
   if (!company) {
     return res
       .status(404)
-      .json({ success: false, message: "Company not found" });
+      .json({ success: false, message: "SportsClub not found" });
   }
 
   const defaultMethod = await PaymentMethod.findOne({
