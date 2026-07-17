@@ -114,6 +114,7 @@ export default function MainTabs() {
         name="Menu"
         component={MenuScreen}
         options={{
+          tabBarLabel: 'More',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
               <Menu color={color} size={20} strokeWidth={2} />

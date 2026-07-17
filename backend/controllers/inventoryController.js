@@ -1,24 +1,43 @@
 const asyncHandler = require("express-async-handler");
 const InventoryItem = require("../models/InventoryItem");
 const InventoryTransaction = require("../models/InventoryTransaction");
-const { safePagination, validateBody } = require("../middleware/validate");
+const {
+  escapeRegex,
+  safePagination,
+  safeSort,
+  validateBody,
+} = require("../middleware/validate");
 
 const createSchema = {
   name: { required: true, type: "string", minLength: 1, maxLength: 100 },
   category: { required: true, type: "string" },
 };
 
+const INVENTORY_SORT_FIELDS = [
+  "name",
+  "category",
+  "availableQuantity",
+  "totalQuantity",
+  "unitCost",
+  "createdAt",
+];
+
 const getItems = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
-  const { category, lowStock } = req.query;
+  const { category, sport, search, lowStock } = req.query;
 
   const filter = { company: req.user.company };
   if (category) filter.category = category;
+  if (sport) filter.sport = sport;
+  if (search) {
+    filter.name = { $regex: escapeRegex(search.slice(0, 100)), $options: "i" };
+  }
 
+  const sort = safeSort(req.query, INVENTORY_SORT_FIELDS, { name: 1 });
   const total = await InventoryItem.countDocuments(filter);
   let items = await InventoryItem.find(filter)
     .populate("assignments.assignedTo", "firstName lastName")
-    .sort({ name: 1 })
+    .sort(sort)
     .skip(skip)
     .limit(limit);
 
@@ -122,12 +141,13 @@ const uploadItemPhoto = asyncHandler(async (req, res) => {
   res.json({ success: true, photo: photoUrl, data: item });
 });
 
-// Records a stock movement (purchase adds, consume/damage subtracts, return adds back).
+// Records a stock movement (order placed with supplier, purchase received adds
+// stock and clears matching on-order qty, consume/damage subtracts, return adds back).
 const recordTransaction = asyncHandler(async (req, res) => {
   const { type, quantity, notes } = req.body;
   const qty = Number(quantity);
   if (
-    !["purchase", "consume", "damage", "return"].includes(type) ||
+    !["order", "purchase", "consume", "damage", "return"].includes(type) ||
     !qty ||
     qty <= 0
   ) {
@@ -144,9 +164,14 @@ const recordTransaction = asyncHandler(async (req, res) => {
     throw new Error("Item not found");
   }
 
-  if (type === "purchase" || type === "return") {
+  if (type === "order") {
+    item.onOrderQuantity = (item.onOrderQuantity || 0) + qty;
+  } else if (type === "purchase" || type === "return") {
     item.totalQuantity += type === "purchase" ? qty : 0;
     item.availableQuantity += qty;
+    if (type === "purchase") {
+      item.onOrderQuantity = Math.max(0, (item.onOrderQuantity || 0) - qty);
+    }
   } else {
     if (item.availableQuantity < qty) {
       res.status(400);

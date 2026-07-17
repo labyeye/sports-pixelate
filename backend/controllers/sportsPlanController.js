@@ -1,6 +1,11 @@
 const asyncHandler = require("express-async-handler");
 const SportsPlan = require("../models/SportsPlan");
-const { validateBody } = require("../middleware/validate");
+const {
+  escapeRegex,
+  safePagination,
+  safeSort,
+  validateBody,
+} = require("../middleware/validate");
 
 const createSchema = {
   name: { required: true, type: "string", minLength: 1, maxLength: 100 },
@@ -9,16 +14,30 @@ const createSchema = {
   yearlyPrice: { required: true, type: "number", min: 0 },
 };
 
+const PLAN_SORT_FIELDS = ["name", "sport", "monthlyPrice", "sessionsPerWeek"];
+
 // Everyone in the academy (owner/staff/parent) can browse the plan catalog —
 // parents need this to choose a plan when subscribing their child.
 const getPlans = asyncHandler(async (req, res) => {
-  const plans = await SportsPlan.find({
-    company: req.user.company,
-    active: true,
-  }).sort({
-    monthlyPrice: 1,
+  const { page, limit, skip } = safePagination(req.query, 100, 200);
+  const { sport, search } = req.query;
+
+  const filter = { company: req.user.company, active: true };
+  if (sport) filter.sport = sport;
+  if (search) {
+    filter.name = { $regex: escapeRegex(search.slice(0, 100)), $options: "i" };
+  }
+
+  const sort = safeSort(req.query, PLAN_SORT_FIELDS, { monthlyPrice: 1 });
+  const total = await SportsPlan.countDocuments(filter);
+  const plans = await SportsPlan.find(filter).sort(sort).skip(skip).limit(limit);
+  res.json({
+    success: true,
+    data: plans,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
   });
-  res.json({ success: true, data: plans });
 });
 
 const createPlan = [

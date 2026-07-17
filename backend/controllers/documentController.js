@@ -4,6 +4,13 @@ const asyncHandler = require("express-async-handler");
 const EmployeeDocument = require("../models/EmployeeDocument");
 const Employee = require("../models/Employee");
 const { validateMagicBytes } = require("../middleware/upload");
+const {
+  escapeRegex,
+  safePagination,
+  safeSort,
+} = require("../middleware/validate");
+
+const DOCUMENT_SORT_FIELDS = ["name", "createdAt"];
 
 const UPLOADS_ROOT = path.resolve(__dirname, "../uploads/employee-docs");
 
@@ -104,7 +111,8 @@ const uploadDocument = asyncHandler(async (req, res) => {
 });
 
 const getDocuments = asyncHandler(async (req, res) => {
-  const { employeeId } = req.query;
+  const { employeeId, docType, search } = req.query;
+  const { page, limit, skip } = safePagination(req.query);
   const filter = { company: req.user.company };
 
   if (req.user.role === "employee") {
@@ -112,19 +120,34 @@ const getDocuments = asyncHandler(async (req, res) => {
       user: req.user._id,
       company: req.user.company,
     });
-    if (!emp) return res.json({ success: true, data: [] });
+    if (!emp)
+      return res.json({ success: true, data: [], total: 0, page, pages: 1 });
     filter.employee = emp._id;
   } else if (employeeId) {
     filter.employee = employeeId;
   }
+  if (docType) filter.docType = docType;
+  if (search) {
+    filter.name = { $regex: escapeRegex(search.slice(0, 100)), $options: "i" };
+  }
 
+  const sort = safeSort(req.query, DOCUMENT_SORT_FIELDS, { createdAt: -1 });
+  const total = await EmployeeDocument.countDocuments(filter);
   const docs = await EmployeeDocument.find(filter)
     .select("-filePath")
     .populate("employee", "firstName lastName employeeId")
     .populate("uploadedBy", "name email")
-    .sort({ createdAt: -1 });
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
 
-  res.json({ success: true, data: docs });
+  res.json({
+    success: true,
+    data: docs,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 const downloadDocument = asyncHandler(async (req, res) => {

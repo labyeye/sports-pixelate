@@ -6,8 +6,18 @@ const Employee = require("../models/Employee");
 const {
   escapeRegex,
   safePagination,
+  safeSort,
   validateBody,
 } = require("../middleware/validate");
+
+const STUDENT_SORT_FIELDS = [
+  "firstName",
+  "lastName",
+  "sport",
+  "batch",
+  "enrollmentDate",
+  "createdAt",
+];
 const { enrollFace } = require("../services/faceService");
 
 const createSchema = {
@@ -109,7 +119,6 @@ const getStudents = asyncHandler(async (req, res) => {
   if (req.user.role === "parent") filter._id = { $in: req.user.children || [] };
   const coachId = await coachStudentFilter(req.user);
   if (coachId) filter.coach = coachId;
-  if (status) filter.status = status;
   if (sport) filter.sport = sport;
   if (batch) filter.batch = batch;
   if (coach && !coachId) filter.coach = coach;
@@ -122,11 +131,26 @@ const getStudents = asyncHandler(async (req, res) => {
     ];
   }
 
+  // Status counts computed over the filter WITHOUT status applied, so
+  // "All / Active (n) / Inactive (n) / On Hold (n)" pills stay meaningful
+  // regardless of which status is currently selected.
+  const countRows = await Student.aggregate([
+    { $match: filter },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+  const counts = countRows.reduce((acc, r) => {
+    acc[r._id] = r.count;
+    return acc;
+  }, {});
+
+  if (status) filter.status = status;
+
+  const sort = safeSort(req.query, STUDENT_SORT_FIELDS, { createdAt: -1 });
   const total = await Student.countDocuments(filter);
   const students = await Student.find(filter)
     .populate("coach", "firstName lastName")
     .populate("parents", "name email phone")
-    .sort({ createdAt: -1 })
+    .sort(sort)
     .skip(skip)
     .limit(limit);
 
@@ -136,6 +160,7 @@ const getStudents = asyncHandler(async (req, res) => {
     total,
     page,
     pages: Math.ceil(total / limit),
+    counts,
   });
 });
 

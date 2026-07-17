@@ -21,6 +21,7 @@ import PaymentFailedScreen from '../screens/PaymentFailedScreen';
 import StudentsScreen from '../screens/StudentsScreen';
 import AddStudentScreen from '../screens/AddStudentScreen';
 import EmployeesScreen from '../screens/EmployeesScreen';
+import AddEmployeeScreen from '../screens/AddEmployeeScreen';
 import DepartmentsScreen from '../screens/DepartmentsScreen';
 import EmployeeCredentialsScreen from '../screens/EmployeeCredentialsScreen';
 import DocumentsScreen from '../screens/DocumentsScreen';
@@ -44,6 +45,7 @@ import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 import QrRenewalScreen from '../screens/QrRenewalScreen';
 import BookingsScreen from '../screens/BookingsScreen';
 import PlansScreen from '../screens/PlansScreen';
+import AddPlanScreen from '../screens/AddPlanScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
 import PayrollScreen from '../screens/PayrollScreen';
 import PayrollSettingsScreen from '../screens/PayrollSettingsScreen';
@@ -172,6 +174,11 @@ export default function RootNavigator() {
               component={EmployeesScreen}
               options={{ title: 'Staff' }}
             />
+            <Stack.Screen
+              name="AddEmployee"
+              component={AddEmployeeScreen}
+              options={{ title: 'Add Staff' }}
+            />
             <Stack.Screen name="Departments" component={DepartmentsScreen} />
             <Stack.Screen
               name="EmployeeCredentials"
@@ -234,6 +241,11 @@ export default function RootNavigator() {
               name="Plans"
               component={PlansScreen}
               options={{ title: 'Coaching Plans' }}
+            />
+            <Stack.Screen
+              name="AddPlan"
+              component={AddPlanScreen}
+              options={{ title: 'Add Plan' }}
             />
             <Stack.Screen name="Expenses" component={ExpensesScreen} />
             <Stack.Screen name="Payroll" component={PayrollScreen} />

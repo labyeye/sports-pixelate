@@ -8,15 +8,6 @@ const subscriptionSchema = new mongoose.Schema(
       required: true,
     },
     plan: { type: String, required: true },
-    // Drives per-student pricing (see utils/pricing.js) and feature access
-    // (see utils/planFeatures.js) — "whatsapp" unlocks WhatsApp notifications,
-    // "standard" doesn't. Defaults to "whatsapp" so pre-existing subscriptions
-    // (created before the two-tier split) keep the access they already had.
-    tier: {
-      type: String,
-      enum: ["standard", "whatsapp"],
-      default: "whatsapp",
-    },
     studentCount: { type: Number },
     ratePerStudent: { type: Number },
     monthlyPrice: { type: Number, required: true },

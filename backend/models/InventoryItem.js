@@ -23,6 +23,8 @@ const inventoryItemSchema = new mongoose.Schema(
     trackQuantity: { type: Boolean, default: true }, // false = non-consumable, single checkout item
     totalQuantity: { type: Number, default: 0 },
     availableQuantity: { type: Number, default: 0 },
+    onOrderQuantity: { type: Number, default: 0 }, // ordered from supplier, not yet received
+
     unitCost: { type: Number, default: 0 },
     reorderThreshold: { type: Number, default: 0 },
     assignments: [

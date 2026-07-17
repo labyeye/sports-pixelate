@@ -223,7 +223,11 @@ export const recruitmentAPI = {
 };
 
 export const departmentAPI = {
-  getAll: () => request("/departments"),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/departments${q}`);
+  },
+  getOne: (id: string) => request(`/departments/${id}`),
   create: (body: object) =>
     request("/departments", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: object) =>
@@ -304,7 +308,6 @@ export const billingAPI = {
       gstNumber: string;
       panNumber: string;
     },
-    tier: "standard" | "whatsapp" = "standard",
     offerCode?: string,
   ) =>
     request<{ success: boolean; data: any }>("/billing/create-order", {
@@ -314,20 +317,15 @@ export const billingAPI = {
         billingCycle,
         gateway,
         company,
-        tier,
         offerCode: offerCode || undefined,
       }),
     }),
-  validateOfferCode: (
-    code: string,
-    studentCount?: number,
-    tier: "standard" | "whatsapp" = "standard",
-  ) =>
+  validateOfferCode: (code: string, studentCount?: number) =>
     request<{ success: boolean; message: string; data: any }>(
       "/billing/validate-offer",
       {
         method: "POST",
-        body: JSON.stringify({ code, studentCount, tier }),
+        body: JSON.stringify({ code, studentCount }),
       },
     ),
   verifyRazorpay: (payload: {
@@ -822,7 +820,10 @@ export const sportAPI = {
 };
 
 export const sportsPlanAPI = {
-  getAll: () => request("/plans"),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/plans${q}`);
+  },
   create: (body: object) =>
     request("/plans", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: object) =>
@@ -831,7 +832,10 @@ export const sportsPlanAPI = {
 };
 
 export const tournamentAPI = {
-  getAll: () => request("/tournaments"),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/tournaments${q}`);
+  },
   getOne: (id: string) => request(`/tournaments/${id}`),
   create: (body: object) =>
     request("/tournaments", { method: "POST", body: JSON.stringify(body) }),
@@ -875,7 +879,10 @@ export const tournamentAPI = {
 };
 
 export const subscriptionAPI = {
-  getAll: () => request("/subscriptions"),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/subscriptions${q}`);
+  },
   createOrder: (body: {
     studentId: string;
     planId: string;
@@ -959,7 +966,10 @@ export const inventoryAPI = {
 };
 
 export const facilityAPI = {
-  getAll: () => request("/facilities"),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/facilities${q}`);
+  },
   create: (body: object) =>
     request("/facilities", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: object) =>

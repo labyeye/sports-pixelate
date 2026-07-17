@@ -8,6 +8,7 @@ import {
   MapPin,
   Plus,
   Trash2,
+  Edit2,
   Check,
   X,
   Loader2,
@@ -35,6 +36,7 @@ export default function FacilitiesPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     type: "court",
@@ -48,18 +50,53 @@ export default function FacilitiesPage() {
   const [filterSport, setFilterSport] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const facilityParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      if (search) params.search = search;
+      if (filterType) params.type = filterType;
+      if (filterSport) params.sport = filterSport;
+      params.sortBy = sortKey;
+      params.sortDir = sortDir;
+      return params;
+    },
+    [search, filterType, filterSport, sortKey, sortDir],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await facilityAPI.getAll();
+      const r = await facilityAPI.getAll(facilityParams(1));
       setFacilities(r.data);
+      setPage(1);
+      setPages(r.pages || 1);
+      setTotal(r.total ?? r.data.length);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [facilityParams]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await facilityAPI.getAll(facilityParams(next));
+      setFacilities((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -73,7 +110,20 @@ export default function FacilitiesPage() {
       capacity: "1",
       hourlyFee: "0",
     });
+    setEditingId(null);
     setShowForm(false);
+  };
+
+  const startEdit = (f: Facility) => {
+    setEditingId(f._id);
+    setForm({
+      name: f.name,
+      type: f.type,
+      sport: f.sport || "",
+      capacity: String(f.capacity),
+      hourlyFee: String(f.hourlyFee),
+    });
+    setShowForm(true);
   };
 
   const handleSave = async () => {
@@ -84,13 +134,20 @@ export default function FacilitiesPage() {
     }
     setSaving(true);
     try {
-      const r = await facilityAPI.create({
+      const payload = {
         ...form,
         capacity: Number(form.capacity) || 1,
         hourlyFee: Number(form.hourlyFee) || 0,
-      });
-      setFacilities((p) => [...p, r.data]);
-      toast({ title: "Facility added" });
+      };
+      if (editingId) {
+        const r = await facilityAPI.update(editingId, payload);
+        setFacilities((p) => p.map((x) => (x._id === editingId ? r.data : x)));
+        toast({ title: "Facility updated" });
+      } else {
+        const r = await facilityAPI.create(payload);
+        setFacilities((p) => [...p, r.data]);
+        toast({ title: "Facility added" });
+      }
       resetForm();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -110,36 +167,21 @@ export default function FacilitiesPage() {
     }
   };
 
-  const sportOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(facilities.map((f) => f.sport).filter(Boolean)),
-      ).sort(),
-    [facilities],
-  );
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
+  useEffect(() => {
+    facilityAPI
+      .getAll({ limit: "200" })
+      .then((r) =>
+        setSportOptions(
+          Array.from(
+            new Set((r.data as Facility[]).map((f) => f.sport).filter(Boolean)),
+          ).sort(),
+        ),
+      )
+      .catch(() => {});
+  }, []);
 
-  const filtered = useMemo(() => {
-    return facilities.filter((f) => {
-      if (search && !f.name.toLowerCase().includes(search.toLowerCase()))
-        return false;
-      if (filterType && f.type !== filterType) return false;
-      if (filterSport && f.sport !== filterSport) return false;
-      return true;
-    });
-  }, [facilities, search, filterType, filterSport]);
-
-  const displayed = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortKey === "type") cmp = a.type.localeCompare(b.type);
-      else if (sortKey === "capacity") cmp = a.capacity - b.capacity;
-      else if (sortKey === "hourlyFee") cmp = a.hourlyFee - b.hourlyFee;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir]);
+  const displayed = facilities;
 
   const totalCapacity = facilities.reduce((s, f) => s + (f.capacity || 0), 0);
   const freeCount = facilities.filter((f) => !f.hourlyFee).length;
@@ -171,7 +213,7 @@ export default function FacilitiesPage() {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Total Facilities
             </p>
-            <p className="text-2xl font-bold text-black">{facilities.length}</p>
+            <p className="text-2xl font-bold text-black">{total}</p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -271,7 +313,9 @@ export default function FacilitiesPage() {
 
       {showForm && (
         <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">Add Facility</h3>
+          <h3 className="font-bold text-base mb-4">
+            {editingId ? "Edit Facility" : "Add Facility"}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase mb-1">
@@ -388,12 +432,20 @@ export default function FacilitiesPage() {
               <div key={f._id} className="border-2 border-black bg-white p-4">
                 <div className="flex items-start justify-between mb-1">
                   <p className="font-bold text-black">{f.name}</p>
-                  <button
-                    onClick={() => handleDelete(f._id)}
-                    className="p-1 border border-black/10 hover:border-red-500 hover:text-red-500"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => startEdit(f)}
+                      className="p-1 border border-black/10 hover:border-black"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(f._id)}
+                      className="p-1 border border-black/10 hover:border-red-500 hover:text-red-500"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground capitalize mb-2">
                   {f.type} {f.sport ? `· ${f.sport}` : ""}
@@ -455,19 +507,44 @@ export default function FacilitiesPage() {
                       {f.hourlyFee > 0 ? `₹${f.hourlyFee}/hr` : "Free"}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleDelete(f._id)}
-                        className="p-1.5 border-2 border-transparent hover:border-black hover:bg-red-50 transition-colors"
-                        title="Deactivate"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEdit(f)}
+                          className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(f._id)}
+                          className="p-1.5 border-2 border-transparent hover:border-black hover:bg-red-50 transition-colors"
+                          title="Deactivate"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {facilities.length} of {total}
+              </p>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppLayout>

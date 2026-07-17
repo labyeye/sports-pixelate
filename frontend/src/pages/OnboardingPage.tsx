@@ -33,12 +33,7 @@ interface CompanyFormData {
   panNumber: string;
 }
 
-type Tier = "standard" | "whatsapp";
-
-const RATE_PER_STUDENT: Record<Tier, number> = {
-  standard: 150,
-  whatsapp: 300,
-};
+const RATE_PER_STUDENT = 150;
 
 const STEPS: { id: Step; label: string }[] = [
   { id: "company", label: "SportsClub" },
@@ -103,7 +98,6 @@ export default function OnboardingPage() {
     user?.company ? "students" : "company",
   );
   const [studentCount, setStudentCount] = useState<number | "">("");
-  const [tier, setTier] = useState<Tier>("standard");
   const [paying, setPaying] = useState(false);
   const [companyError, setCompanyError] = useState("");
   const [companyForm, setCompanyForm] = useState<CompanyFormData | null>(null);
@@ -115,7 +109,7 @@ export default function OnboardingPage() {
   }, [user?.company, user?.subscription?.status, navigate]);
 
   const count = Number(studentCount) || 0;
-  const rate = RATE_PER_STUDENT[tier];
+  const rate = RATE_PER_STUDENT;
   const yearlyPrice = count * rate;
   const monthlyEquiv = Math.round(yearlyPrice / 12);
 
@@ -166,7 +160,6 @@ export default function OnboardingPage() {
         "yearly",
         "razorpay",
         user?.company ? undefined : companyForm!,
-        tier,
       );
       if (!res.success) throw new Error("Failed to create order");
       const order = res.data;
@@ -297,48 +290,11 @@ export default function OnboardingPage() {
                 How many students?
               </h1>
               <p className="text-gray-500 font-medium text-sm">
-                Priced per student, per year — pick the plan that fits your
-                club
+                ₹{RATE_PER_STUDENT}/student/year — every feature included
               </p>
             </div>
 
             <div className="bg-white border-2 border-black p-8 max-w-sm mx-auto">
-              <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
-                Plan
-              </label>
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <button
-                  type="button"
-                  onClick={() => setTier("standard")}
-                  className={cn(
-                    "text-left p-3 border-2 transition-all",
-                    tier === "standard"
-                      ? "bg-[#024BAB] text-white border-black"
-                      : "bg-white text-black border-black hover:bg-gray-50",
-                  )}
-                >
-                  <p className="font-bold text-sm">₹{RATE_PER_STUDENT.standard}/student/yr</p>
-                  <p className={cn("text-[11px] font-medium mt-0.5", tier === "standard" ? "text-white/80" : "text-gray-500")}>
-                    No WhatsApp
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTier("whatsapp")}
-                  className={cn(
-                    "text-left p-3 border-2 transition-all",
-                    tier === "whatsapp"
-                      ? "bg-[#024BAB] text-white border-black"
-                      : "bg-white text-black border-black hover:bg-gray-50",
-                  )}
-                >
-                  <p className="font-bold text-sm">₹{RATE_PER_STUDENT.whatsapp}/student/yr</p>
-                  <p className={cn("text-[11px] font-medium mt-0.5", tier === "whatsapp" ? "text-white/80" : "text-gray-500")}>
-                    + WhatsApp notifications
-                  </p>
-                </button>
-              </div>
-
               <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
                 Number of students
               </label>
@@ -420,7 +376,7 @@ export default function OnboardingPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Plan</span>
                     <span className="font-bold text-black">
-                      ₹{rate}/student/year {tier === "whatsapp" ? "(+ WhatsApp)" : ""}
+                      ₹{rate}/student/year
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">

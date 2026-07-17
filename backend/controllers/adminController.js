@@ -3,7 +3,6 @@ const Company = require("../models/Company");
 const Subscription = require("../models/Subscription");
 const Invoice = require("../models/Invoice");
 const OfferCode = require("../models/OfferCode");
-const { FEATURES_BY_TIER } = require("../utils/planFeatures");
 
 const getSaasStats = asyncHandler(async (req, res) => {
   const now = new Date();
@@ -131,36 +130,6 @@ const getSaasStats = asyncHandler(async (req, res) => {
   });
 });
 
-const updateCompanyTier = asyncHandler(async (req, res) => {
-  const { companyId } = req.params;
-  const { tier } = req.body;
-
-  if (!Object.keys(FEATURES_BY_TIER).includes(tier)) {
-    res.status(400);
-    throw new Error(
-      `Invalid tier. Must be one of: ${Object.keys(FEATURES_BY_TIER).join(", ")}`,
-    );
-  }
-
-  const company = await Company.findById(companyId).select("subscription");
-  if (!company) {
-    res.status(404);
-    throw new Error("SportsClub not found");
-  }
-  if (!company.subscription) {
-    res.status(404);
-    throw new Error("SportsClub has no subscription to update");
-  }
-
-  const subscription = await Subscription.findByIdAndUpdate(
-    company.subscription,
-    { tier },
-    { new: true },
-  );
-
-  res.json({ success: true, data: subscription });
-});
-
 // ---- Offer codes (called from the company CRM to generate/manage coupons) ----
 
 const DISCOUNT_TYPES = ["bonus_months", "flat_rate", "percent_off"];
@@ -178,7 +147,6 @@ const createOfferCode = asyncHandler(async (req, res) => {
     bonusMonths,
     flatRate,
     percentOff,
-    applicableTier,
     maxUses,
     expiresAt,
     createdByEmail,
@@ -207,10 +175,6 @@ const createOfferCode = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("percentOff must be between 1 and 100 for this discount type");
   }
-  if (applicableTier && !["standard", "whatsapp"].includes(applicableTier)) {
-    res.status(400);
-    throw new Error("applicableTier must be standard or whatsapp");
-  }
 
   const normalizedCode = code.toUpperCase().trim();
   if (await OfferCode.findOne({ code: normalizedCode })) {
@@ -225,7 +189,6 @@ const createOfferCode = asyncHandler(async (req, res) => {
     bonusMonths: discountType === "bonus_months" ? Number(bonusMonths) : 0,
     flatRate: discountType === "flat_rate" ? Number(flatRate) : null,
     percentOff: discountType === "percent_off" ? Number(percentOff) : null,
-    applicableTier: applicableTier || null,
     maxUses: maxUses ? Number(maxUses) : 200,
     expiresAt: expiresAt || null,
     createdByEmail: createdByEmail || "",
@@ -254,7 +217,6 @@ const updateOfferCode = asyncHandler(async (req, res) => {
 
 module.exports = {
   getSaasStats,
-  updateCompanyTier,
   listOfferCodes,
   createOfferCode,
   updateOfferCode,

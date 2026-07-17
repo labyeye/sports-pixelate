@@ -222,6 +222,10 @@ export default function EmployeesPage() {
     "firstName" | "department" | "joinDate"
   >("firstName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [formTab, setFormTab] = useState(0);
   const [editEmp, setEditEmp] = useState<Employee | null>(null);
@@ -275,16 +279,30 @@ export default function EmployeesPage() {
   } | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = {};
+  const empParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
       if (search) params.search = search;
       if (filterDept) params.department = filterDept;
       if (filterStatus) params.status = filterStatus;
+      // "department" sort isn't backend-sortable (it's a ref, not a scalar) —
+      // only firstName/joinDate get pushed to the server; department sort is
+      // applied client-side over whatever page is currently loaded.
+      if (sortKey !== "department") {
+        params.sortBy = sortKey;
+        params.sortDir = sortDir;
+      }
+      return params;
+    },
+    [search, filterDept, filterStatus, sortKey, sortDir],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
       const now = new Date();
       const [empRes, deptRes, shiftRes, payrollRes] = await Promise.all([
-        employeeAPI.getAll(params),
+        employeeAPI.getAll(empParams(1)),
         departmentAPI.getAll(),
         shiftAPI.getAll(),
         payrollAPI.getAll({
@@ -293,7 +311,12 @@ export default function EmployeesPage() {
           limit: "200",
         }),
       ]);
-      if (empRes.success) setEmployees(empRes.data);
+      if (empRes.success) {
+        setEmployees(empRes.data);
+        setPage(1);
+        setPages(empRes.pages || 1);
+        setTotal(empRes.total ?? empRes.data.length);
+      }
       if (deptRes.success) setDepartments(deptRes.data);
       if ((shiftRes as any).success) setShifts((shiftRes as any).data);
       if ((payrollRes as any).success) {
@@ -307,7 +330,24 @@ export default function EmployeesPage() {
       }
     } catch {}
     setLoading(false);
-  }, [search, filterDept, filterStatus]);
+  }, [empParams]);
+
+  const loadMoreEmployees = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await employeeAPI.getAll(empParams(next));
+      if (res.success) {
+        setEmployees((p) => [...p, ...res.data]);
+        setPage(next);
+        setPages(res.pages || 1);
+      }
+    } catch {
+      // ignore, user can retry by clicking Load More again
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -1237,6 +1277,22 @@ export default function EmployeesPage() {
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {employees.length} of {total}
+              </p>
+              <button
+                onClick={loadMoreEmployees}
+                disabled={loadingMore}
+                className="flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
 

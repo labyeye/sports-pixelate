@@ -56,21 +56,50 @@ export default function DocumentVaultPage() {
   });
   const [fileObj, setFileObj] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const docParams = (pageNum: number, empId?: string): Record<string, string> => {
+    const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+    const targetEmp = empId !== undefined ? empId : selectedEmployee;
+    if (targetEmp) params.employeeId = targetEmp;
+    if (filterType) params.docType = filterType;
+    if (search) params.search = search;
+    return params;
+  };
 
   const load = async (empId?: string) => {
     setLoading(true);
     try {
-      const params: Record<string, string> = {};
-      if (empId) params.employeeId = empId;
-      else if (selectedEmployee) params.employeeId = selectedEmployee;
-      const res = await documentAPI.getAll(params);
-      if (res.success) setDocs(res.data);
+      const res = await documentAPI.getAll(docParams(1, empId));
+      if (res.success) {
+        setDocs(res.data);
+        setPage(1);
+        setPages(res.pages || 1);
+        setTotal(res.total ?? res.data.length);
+      }
     } catch {}
     setLoading(false);
   };
 
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await documentAPI.getAll(docParams(next));
+      if (res.success) {
+        setDocs((p) => [...p, ...res.data]);
+        setPage(next);
+        setPages(res.pages || 1);
+      }
+    } catch {}
+    setLoadingMore(false);
+  };
+
   useEffect(() => {
-    load();
     if (!isEmployee) {
       employeeAPI
         .getAll({ status: "active" })
@@ -79,7 +108,13 @@ export default function DocumentVaultPage() {
         })
         .catch(() => {});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterType, search]);
 
   const handleEmployeeChange = (id: string) => {
     setSelectedEmployee(id);
@@ -153,12 +188,7 @@ export default function DocumentVaultPage() {
     }
   };
 
-  const displayed = docs.filter((d) => {
-    if (filterType && d.docType !== filterType) return false;
-    if (search && !d.name.toLowerCase().includes(search.toLowerCase()))
-      return false;
-    return true;
-  });
+  const displayed = docs;
 
   return (
     <AppLayout title="Document Vault">
@@ -319,6 +349,21 @@ export default function DocumentVaultPage() {
               })}
             </tbody>
           </table>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 py-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {docs.length} of {total}
+              </p>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

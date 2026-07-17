@@ -2,7 +2,12 @@ const asyncHandler = require("express-async-handler");
 const Tournament = require("../models/Tournament");
 const Fixture = require("../models/Fixture");
 const Student = require("../models/Student");
-const { validateBody } = require("../middleware/validate");
+const {
+  validateBody,
+  escapeRegex,
+  safePagination,
+  safeSort,
+} = require("../middleware/validate");
 const {
   roundRobinRounds,
   knockoutRounds,
@@ -11,6 +16,7 @@ const {
 } = require("../services/fixtureService");
 
 const MAX_TEAMS = 64;
+const TOURNAMENT_SORT_FIELDS = ["name", "startDate", "endDate", "createdAt"];
 
 const createSchema = {
   name: { required: true, type: "string", minLength: 1, maxLength: 120 },
@@ -54,13 +60,34 @@ function scopeRegistrations(tournamentObj, user) {
 }
 
 const getTournaments = asyncHandler(async (req, res) => {
-  const tournaments = await Tournament.find({ company: req.user.company })
+  const { page, limit, skip } = safePagination(req.query);
+  const { search, sport, format, status } = req.query;
+
+  const filter = { company: req.user.company };
+  if (sport) filter.sport = sport;
+  if (format) filter.format = format;
+  if (status) filter.status = status;
+  if (search) {
+    filter.name = { $regex: escapeRegex(search.slice(0, 100)), $options: "i" };
+  }
+
+  const sort = safeSort(req.query, TOURNAMENT_SORT_FIELDS, { createdAt: -1 });
+  const total = await Tournament.countDocuments(filter);
+  const tournaments = await Tournament.find(filter)
     .populate("registrations.student", "firstName lastName sport avatar")
-    .sort({ createdAt: -1 });
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
   const data = tournaments.map((t) =>
     scopeRegistrations(t.toObject(), req.user),
   );
-  res.json({ success: true, data });
+  res.json({
+    success: true,
+    data,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 const getTournament = asyncHandler(async (req, res) => {

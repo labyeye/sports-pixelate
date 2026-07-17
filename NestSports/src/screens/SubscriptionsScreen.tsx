@@ -1,16 +1,28 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ScrollView,
+  FlatList,
   View,
   Text,
   RefreshControl,
   StyleSheet,
+  TouchableOpacity,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowUpDown } from 'lucide-react-native';
 import { subscriptionAPI } from '../api/client';
-import { Card, EmptyState, LoadingView, Badge, Button } from '../components/ui';
-import { colors } from '../theme/colors';
+import {
+  Card,
+  EmptyState,
+  LoadingView,
+  Badge,
+  Button,
+  FilterPills,
+  SortSheet,
+  LoadMoreFooter,
+  SortOption,
+} from '../components/ui';
+import { colors, FONT } from '../theme/colors';
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
@@ -23,18 +35,56 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: colors.red,
 };
 
+const STATUS_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'pending_renewal', label: 'Pending Renewal' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const SORT_OPTIONS: SortOption[] = [
+  { key: 'renewalDate', label: 'Renewal Date' },
+  { key: 'amount', label: 'Amount' },
+  { key: 'createdAt', label: 'Date Added' },
+];
+
 export default function SubscriptionsScreen({ navigation }: any) {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const load = useCallback(async () => {
-    const res: any = await subscriptionAPI.getAll();
-    setSubscriptions(res.data || []);
-  }, []);
+  const [status, setStatus] = useState('');
+  const [sortBy, setSortBy] = useState('renewalDate');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortVisible, setSortVisible] = useState(false);
+
+  const fetchPage = useCallback(
+    (pageNum: number) =>
+      subscriptionAPI.getAll({
+        page: String(pageNum),
+        limit: '20',
+        ...(status ? { status } : {}),
+        sortBy,
+        sortDir,
+      }),
+    [status, sortBy, sortDir],
+  );
+
+  const load = useCallback(() => {
+    return fetchPage(1).then((res: any) => {
+      setSubscriptions(res.data || []);
+      setPage(1);
+      setHasMore((res.page || 1) < (res.pages || 1));
+    });
+  }, [fetchPage]);
 
   useEffect(() => {
+    setLoading(true);
     load()
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -44,6 +94,22 @@ export default function SubscriptionsScreen({ navigation }: any) {
     setRefreshing(true);
     await load().catch(() => {});
     setRefreshing(false);
+  };
+
+  const onLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res: any = await fetchPage(next);
+      setSubscriptions(prev => [...prev, ...(res.data || [])]);
+      setPage(next);
+      setHasMore(next < (res.pages || 1));
+    } catch {
+      // ignore, user can retry by scrolling again
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const handleCancel = (id: string) => {
@@ -78,26 +144,41 @@ export default function SubscriptionsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={{ padding: 16 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <Text style={styles.title}>Subscriptions</Text>
-        <Text style={styles.subtitle}>
-          Coaching plan subscriptions and renewals
-        </Text>
+      <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Subscriptions</Text>
+            <Text style={styles.subtitle}>
+              Coaching plan subscriptions and renewals
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setSortVisible(true)}
+            style={styles.sortBtn}
+            hitSlop={8}
+          >
+            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
 
-        {subscriptions.length === 0 ? (
-          <Card>
-            <EmptyState title="No subscriptions found" />
-          </Card>
-        ) : (
-          subscriptions.map(s => (
-            <Card key={s._id}>
-              <View style={styles.headerRow}>
+        <FilterPills options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+
+        <FlatList
+          data={subscriptions}
+          keyExtractor={s => s._id}
+          contentContainerStyle={{ paddingBottom: 24, gap: 12 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={onLoadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          }
+          ListEmptyComponent={<EmptyState title="No subscriptions found" />}
+          renderItem={({ item: s }) => (
+            <Card>
+              <View style={styles.cardHeaderRow}>
                 <Text style={styles.name}>
                   {s.student?.firstName} {s.student?.lastName}
                 </Text>
@@ -153,18 +234,47 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 />
               )}
             </Card>
-          ))
-        )}
-      </ScrollView>
+          )}
+        />
+      </View>
+
+      <SortSheet
+        visible={sortVisible}
+        onClose={() => setSortVisible(false)}
+        options={SORT_OPTIONS}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onApply={(key, dir) => {
+          setSortBy(key);
+          setSortDir(dir);
+          setSortVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
-  subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  subtitle: { color: colors.muted, marginTop: 2 },
   headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 10,
+  },
+  sortBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.black,
+  },
+  cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

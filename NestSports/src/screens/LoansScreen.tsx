@@ -6,11 +6,24 @@ import {
   RefreshControl,
   StyleSheet,
   Alert,
+  TouchableOpacity,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loanAPI } from '../api/client';
-import { Card, EmptyState, LoadingView, Badge, Button } from '../components/ui';
-import { colors } from '../theme/colors';
+import { Plus, Trash2, Edit2, X } from 'lucide-react-native';
+import { loanAPI, employeeAPI } from '../api/client';
+import {
+  Card,
+  EmptyState,
+  LoadingView,
+  Badge,
+  Button,
+  TextField,
+  ChipSelect,
+  SectionTitle,
+} from '../components/ui';
+import { colors, FONT } from '../theme/colors';
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
@@ -25,15 +38,37 @@ const STATUS_COLORS: Record<string, string> = {
   paused: colors.muted,
 };
 
+const TYPE_OPTIONS = ['loan', 'advance'] as const;
+
+const EMPTY_FORM = {
+  employee: '',
+  type: 'loan' as (typeof TYPE_OPTIONS)[number],
+  amount: '',
+  monthlyEmi: '',
+  reason: '',
+  disbursedOn: new Date().toISOString().slice(0, 10),
+  remarks: '',
+};
+
 export default function LoansScreen() {
   const [loans, setLoans] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingLoan, setEditingLoan] = useState<any>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
   const load = useCallback(async () => {
-    const res: any = await loanAPI.getAll();
-    setLoans(res.data || []);
+    const [loanRes, empRes] = await Promise.all([
+      loanAPI.getAll(),
+      employeeAPI.getAll({ status: 'active', limit: '300' }),
+    ]);
+    setLoans((loanRes as any).data || []);
+    setEmployees((empRes as any).data || []);
   }, []);
 
   useEffect(() => {
@@ -60,6 +95,78 @@ export default function LoansScreen() {
     }
   };
 
+  const openAdd = () => {
+    setEditingLoan(null);
+    setForm(EMPTY_FORM);
+    setFormVisible(true);
+  };
+
+  const openEdit = (l: any) => {
+    setEditingLoan(l);
+    setForm({
+      employee: l.employee?._id || '',
+      type: l.type || 'loan',
+      amount: l.amount ? String(l.amount) : '',
+      monthlyEmi: l.monthlyEmi ? String(l.monthlyEmi) : '',
+      reason: l.reason || '',
+      disbursedOn: l.disbursedOn ? String(l.disbursedOn).slice(0, 10) : '',
+      remarks: l.remarks || '',
+    });
+    setFormVisible(true);
+  };
+
+  const save = async () => {
+    if (!form.employee) {
+      Alert.alert('Missing field', 'Select an employee');
+      return;
+    }
+    if (!form.amount.trim()) {
+      Alert.alert('Missing field', 'Amount is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        employee: form.employee,
+        type: form.type,
+        amount: Number(form.amount),
+        monthlyEmi: form.monthlyEmi ? Number(form.monthlyEmi) : undefined,
+        reason: form.reason.trim() || undefined,
+        disbursedOn: form.disbursedOn.trim() || undefined,
+        remarks: form.remarks.trim() || undefined,
+      };
+      if (editingLoan) {
+        await loanAPI.update(editingLoan._id, payload);
+      } else {
+        await loanAPI.create(payload);
+      }
+      setFormVisible(false);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not save loan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onDelete = (l: any) => {
+    Alert.alert('Delete Loan', 'Remove this loan/advance record?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await loanAPI.delete(l._id);
+            await load();
+          } catch (e: any) {
+            Alert.alert('Error', e?.message || 'Could not delete loan');
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading) return <LoadingView />;
 
   return (
@@ -71,8 +178,16 @@ export default function LoansScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.title}>Loans & Advances</Text>
-        <Text style={styles.subtitle}>Employee loan and advance requests</Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Loans & Advances</Text>
+            <Text style={styles.subtitle}>Employee loan and advance requests</Text>
+          </View>
+          <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
+            <Plus size={14} color={colors.white} strokeWidth={2.5} />
+            <Text style={styles.addBtnText}>Add</Text>
+          </TouchableOpacity>
+        </View>
 
         {loans.length === 0 ? (
           <Card>
@@ -81,7 +196,7 @@ export default function LoansScreen() {
         ) : (
           loans.map(l => (
             <Card key={l._id}>
-              <View style={styles.headerRow}>
+              <View style={styles.headerRowInner}>
                 <Text style={styles.name}>
                   {l.employee
                     ? `${l.employee.firstName} ${l.employee.lastName}`
@@ -115,19 +230,144 @@ export default function LoansScreen() {
                   </View>
                 </View>
               )}
+              <View style={styles.iconActionsRow}>
+                <TouchableOpacity
+                  onPress={() => openEdit(l)}
+                  style={styles.actionBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                  <Text style={[styles.actionText, { color: colors.blue }]}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => onDelete(l)}
+                  style={styles.actionBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                  <Text style={[styles.actionText, { color: colors.red }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </Card>
           ))
         )}
       </ScrollView>
+
+      <Modal
+        visible={formVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setFormVisible(false)}
+      >
+        <SafeAreaView edges={['top']} style={styles.screen}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>
+              {editingLoan ? 'Edit Loan' : 'Add Loan / Advance'}
+            </Text>
+            <TouchableOpacity onPress={() => setFormVisible(false)} hitSlop={8}>
+              <X size={22} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            <SectionTitle title="Employee" />
+            <ScrollView style={styles.pickList} nestedScrollEnabled>
+              {employees.map((e: any) => {
+                const selected = form.employee === e._id;
+                return (
+                  <TouchableOpacity
+                    key={e._id}
+                    onPress={() => setForm(p => ({ ...p, employee: e._id }))}
+                    style={[styles.pickRow, selected && styles.pickRowSelected]}
+                  >
+                    <Text
+                      style={[styles.pickRowText, selected && { color: colors.white }]}
+                    >
+                      {e.firstName} {e.lastName}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <ChipSelect
+              label="Type"
+              options={TYPE_OPTIONS}
+              value={form.type}
+              onChange={v => setForm(p => ({ ...p, type: v }))}
+            />
+            <TextField
+              label="Amount (₹)"
+              value={form.amount}
+              onChangeText={v => setForm(p => ({ ...p, amount: v }))}
+              keyboardType="numeric"
+              required
+            />
+            <TextField
+              label="Monthly EMI (₹)"
+              value={form.monthlyEmi}
+              onChangeText={v => setForm(p => ({ ...p, monthlyEmi: v }))}
+              keyboardType="numeric"
+            />
+            <TextField
+              label="Reason"
+              value={form.reason}
+              onChangeText={v => setForm(p => ({ ...p, reason: v }))}
+              multiline
+            />
+            <TextField
+              label="Disbursed On"
+              value={form.disbursedOn}
+              onChangeText={v => setForm(p => ({ ...p, disbursedOn: v }))}
+              placeholder="YYYY-MM-DD"
+            />
+            <TextField
+              label="Remarks"
+              value={form.remarks}
+              onChangeText={v => setForm(p => ({ ...p, remarks: v }))}
+              multiline
+            />
+            <Button
+              title={saving ? 'Saving...' : editingLoan ? 'Update' : 'Save'}
+              onPress={save}
+              disabled={saving}
+            />
+            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
-  subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  subtitle: { color: colors.muted, marginTop: 2 },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.blue,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  addBtnText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: FONT.bold,
+    textTransform: 'uppercase',
+  },
+  headerRowInner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -141,4 +381,39 @@ const styles = StyleSheet.create({
   },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4, marginBottom: 8 },
   actionsRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  iconActionsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
+  formHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.black,
+    backgroundColor: colors.white,
+  },
+  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  pickList: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    marginBottom: 14,
+    maxHeight: 180,
+  },
+  pickRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  pickRowSelected: { backgroundColor: colors.blue },
+  pickRowText: { fontFamily: FONT.medium, fontSize: 14, color: colors.black },
 });

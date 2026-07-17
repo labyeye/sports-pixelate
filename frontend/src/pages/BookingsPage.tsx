@@ -84,14 +84,37 @@ export default function BookingsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // "facility" sort isn't backend-sortable (populated ref); date/fee are.
+  const bookingParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      if (filterFacility) params.facility = filterFacility;
+      if (filterStatus) params.status = filterStatus;
+      if (sortKey === "date" || sortKey === "fee") {
+        params.sortBy = sortKey;
+        params.sortDir = sortDir;
+      }
+      return params;
+    },
+    [filterFacility, filterStatus, sortKey, sortDir],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [bookingRes, facilityRes] = await Promise.all([
-        bookingAPI.getAll(),
+        bookingAPI.getAll(bookingParams(1)),
         facilityAPI.getAll(),
       ]);
       setBookings(bookingRes.data);
+      setPage(1);
+      setPages(bookingRes.pages || 1);
+      setTotal(bookingRes.total ?? bookingRes.data.length);
       setFacilities(facilityRes.data);
       if (isParent) {
         const studRes = await studentAPI.getAll();
@@ -102,7 +125,22 @@ export default function BookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isParent]);
+  }, [isParent, bookingParams]);
+
+  const loadMoreBookings = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await bookingAPI.getAll(bookingParams(next));
+      setBookings((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -185,30 +223,24 @@ export default function BookingsPage() {
     }
   };
 
+  // facility/status/date/fee are already applied server-side (bookingParams);
+  // search and "facility" sort stay client-side over the loaded page.
   const filtered = useMemo(() => {
+    if (!search) return bookings;
     return bookings.filter((b) => {
-      if (search) {
-        const name = b.student
-          ? `${b.student.firstName} ${b.student.lastName}`
-          : b.bookedBy?.name || "";
-        const hay = `${b.facility?.name || ""} ${name}`.toLowerCase();
-        if (!hay.includes(search.toLowerCase())) return false;
-      }
-      if (filterFacility && b.facility?._id !== filterFacility) return false;
-      if (filterStatus && b.status !== filterStatus) return false;
-      return true;
+      const name = b.student
+        ? `${b.student.firstName} ${b.student.lastName}`
+        : b.bookedBy?.name || "";
+      const hay = `${b.facility?.name || ""} ${name}`.toLowerCase();
+      return hay.includes(search.toLowerCase());
     });
-  }, [bookings, search, filterFacility, filterStatus]);
+  }, [bookings, search]);
 
   const displayed = useMemo(() => {
+    if (sortKey !== "facility") return filtered;
     const arr = [...filtered];
     arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "date")
-        cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
-      else if (sortKey === "facility")
-        cmp = (a.facility?.name || "").localeCompare(b.facility?.name || "");
-      else if (sortKey === "fee") cmp = a.fee - b.fee;
+      const cmp = (a.facility?.name || "").localeCompare(b.facility?.name || "");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -606,6 +638,21 @@ export default function BookingsPage() {
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {bookings.length} of {total}
+              </p>
+              <button
+                onClick={loadMoreBookings}
+                disabled={loadingMore}
+                className="border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppLayout>

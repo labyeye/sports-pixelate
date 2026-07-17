@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SportPicker } from "@/components/SportPicker";
@@ -80,14 +80,25 @@ export default function StudentsPage() {
   const canManage = user?.role === "super_admin" || user?.role === "hr_manager";
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [filterSport, setFilterSport] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const SORT_FIELD: Record<SortKey, string> = {
+    name: "firstName",
+    sport: "sport",
+    enrollmentDate: "enrollmentDate",
+  };
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,21 +115,68 @@ export default function StudentsPage() {
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [guardians, setGuardians] = useState<GuardianForm[]>([]);
 
+  const buildParams = useCallback(
+    (pageNum: number) => ({
+      page: String(pageNum),
+      limit: "20",
+      ...(search ? { search } : {}),
+      ...(filterSport ? { sport: filterSport } : {}),
+      ...(filterStatus ? { status: filterStatus } : {}),
+      sortBy: SORT_FIELD[sortKey],
+      sortDir,
+    }),
+    [search, filterSport, filterStatus, sortKey, sortDir],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await studentAPI.getAll(search ? { search } : undefined);
+      const r = await studentAPI.getAll(buildParams(1));
       setStudents(r.data);
+      setPage(1);
+      setPages(r.pages || 1);
+      setTotal(r.total ?? r.data.length);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [buildParams]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await studentAPI.getAll(buildParams(next));
+      setStudents((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // One-time wide fetch just to populate the sport filter dropdown, independent
+  // of the paginated `students` list so options don't shrink as pages load.
+  useEffect(() => {
+    studentAPI
+      .getAll({ limit: "200" })
+      .then((r) =>
+        setSportOptions(
+          Array.from(
+            new Set((r.data as Student[]).map((s) => s.sport).filter(Boolean)),
+          ).sort(),
+        ),
+      )
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (canManage) {
@@ -266,34 +324,7 @@ export default function StudentsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const sportOptions = useMemo(
-    () =>
-      Array.from(new Set(students.map((s) => s.sport).filter(Boolean))).sort(),
-    [students],
-  );
-
-  const filtered = useMemo(() => {
-    return students.filter((s) => {
-      if (filterSport && s.sport !== filterSport) return false;
-      if (filterStatus && s.status !== filterStatus) return false;
-      return true;
-    });
-  }, [students, filterSport, filterStatus]);
-
-  const displayed = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "name") cmp = a.firstName.localeCompare(b.firstName);
-      else if (sortKey === "sport") cmp = a.sport.localeCompare(b.sport);
-      else if (sortKey === "enrollmentDate")
-        cmp =
-          new Date(a.enrollmentDate).getTime() -
-          new Date(b.enrollmentDate).getTime();
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir]);
+  const displayed = students;
 
   const activeCount = students.filter((s) => s.status === "active").length;
   const onHoldCount = students.filter((s) => s.status === "on_hold").length;
@@ -327,7 +358,7 @@ export default function StudentsPage() {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Total Students
             </p>
-            <p className="text-2xl font-bold text-black">{students.length}</p>
+            <p className="text-2xl font-bold text-black">{total}</p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -907,6 +938,22 @@ export default function StudentsPage() {
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {students.length} of {total}
+              </p>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppLayout>

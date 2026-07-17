@@ -30,10 +30,12 @@ const GENDERS = ['male', 'female', 'other'] as const;
 const RELATIONS = ['father', 'mother', 'guardian', 'other'] as const;
 
 interface GuardianForm {
+  _id?: string;
   relation: (typeof RELATIONS)[number];
   name: string;
   phone: string;
   photo?: RNFile;
+  existingPhoto?: string;
 }
 
 function assetToRNFile(asset: Asset): RNFile | undefined {
@@ -76,18 +78,33 @@ function captureFacePhoto(onPicked: (file: RNFile) => void) {
   });
 }
 
-export default function AddStudentScreen({ navigation }: any) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [sport, setSport] = useState('');
-  const [batch, setBatch] = useState('');
-  const [gender, setGender] = useState<(typeof GENDERS)[number]>('male');
+export default function AddStudentScreen({ navigation, route }: any) {
+  const editingStudent = route?.params?.student;
+  const isEditing = !!editingStudent;
+
+  const [firstName, setFirstName] = useState(editingStudent?.firstName || '');
+  const [lastName, setLastName] = useState(editingStudent?.lastName || '');
+  const [sport, setSport] = useState(editingStudent?.sport || '');
+  const [batch, setBatch] = useState(editingStudent?.batch || '');
+  const [gender, setGender] = useState<(typeof GENDERS)[number]>(
+    editingStudent?.gender || 'male',
+  );
   const [avatarFile, setAvatarFile] = useState<RNFile | undefined>();
   const [faceFile, setFaceFile] = useState<RNFile | undefined>();
-  const [guardians, setGuardians] = useState<GuardianForm[]>([]);
+  const [guardians, setGuardians] = useState<GuardianForm[]>(
+    (editingStudent?.guardians || []).map((g: any) => ({
+      _id: g._id,
+      relation: g.relation,
+      name: g.name || '',
+      phone: g.phone || '',
+      existingPhoto: g.photo,
+    })),
+  );
   const [saving, setSaving] = useState(false);
   const [coaches, setCoaches] = useState<any[]>([]);
-  const [coachId, setCoachId] = useState('');
+  const [coachId, setCoachId] = useState<string>(
+    editingStudent?.coach?._id || '',
+  );
 
   useEffect(() => {
     employeeAPI
@@ -95,6 +112,10 @@ export default function AddStudentScreen({ navigation }: any) {
       .then((res: any) => setCoaches(res.data || []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    navigation.setOptions?.({ title: isEditing ? 'Edit Student' : 'Add Student' });
+  }, [navigation, isEditing]);
 
   const coachOptions = useMemo(
     () => (sport.trim() ? coaches.filter(c => c.sport === sport.trim()) : coaches),
@@ -128,7 +149,7 @@ export default function AddStudentScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      const res: any = await studentAPI.create({
+      const payload = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         sport: sport.trim(),
@@ -139,8 +160,13 @@ export default function AddStudentScreen({ navigation }: any) {
           relation: g.relation,
           name: g.name.trim(),
           phone: g.phone.trim() || undefined,
+          photo: g.existingPhoto,
         })),
-      });
+      };
+
+      const res: any = isEditing
+        ? await studentAPI.update(editingStudent._id, payload)
+        : await studentAPI.create(payload);
       const student = res.data;
 
       if (avatarFile) {
@@ -159,10 +185,10 @@ export default function AddStudentScreen({ navigation }: any) {
         }
       }
 
-      Alert.alert('Success', 'Student added successfully');
+      Alert.alert('Success', isEditing ? 'Student updated successfully' : 'Student added successfully');
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not add student');
+      Alert.alert('Error', e?.message || 'Could not save student');
     } finally {
       setSaving(false);
     }
@@ -176,7 +202,7 @@ export default function AddStudentScreen({ navigation }: any) {
       >
         <View style={styles.avatarRow}>
           <Avatar
-            uri={avatarFile?.uri}
+            uri={avatarFile?.uri || editingStudent?.avatar}
             name={firstName}
             size={84}
             onPress={() => pickPhoto(setAvatarFile)}
@@ -277,7 +303,7 @@ export default function AddStudentScreen({ navigation }: any) {
             <View key={i} style={styles.guardianBlock}>
               <View style={styles.guardianTop}>
                 <Avatar
-                  uri={g.photo?.uri}
+                  uri={g.photo?.uri || g.existingPhoto}
                   name={g.name}
                   size={56}
                   onPress={() =>
@@ -322,7 +348,7 @@ export default function AddStudentScreen({ navigation }: any) {
         </Card>
 
         <Button
-          title={saving ? 'Saving...' : 'Save Student'}
+          title={saving ? 'Saving...' : isEditing ? 'Update Student' : 'Save Student'}
           onPress={save}
           disabled={saving}
         />

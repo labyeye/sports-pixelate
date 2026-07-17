@@ -10,8 +10,10 @@ import {
   TextStyle,
   Image,
   KeyboardTypeOptions,
+  ScrollView,
+  Modal,
 } from 'react-native';
-import { LucideIcon, Camera } from 'lucide-react-native';
+import { LucideIcon, Camera, Search, X, ArrowUpDown, Check } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, FONT } from '../theme/colors';
 
@@ -332,6 +334,222 @@ export function ChipSelect<T extends string>({
   );
 }
 
+// Search input with a leading icon and a clear button, for list-screen
+// search bars (Students, Employees, Departments, etc.).
+export function SearchBar({
+  value,
+  onChangeText,
+  placeholder = 'Search',
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <View style={styles.searchBar}>
+      <Search size={16} color={colors.muted} strokeWidth={2} />
+      <TextInput
+        style={styles.searchInput}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.muted}
+      />
+      {value.length > 0 ? (
+        <TouchableOpacity onPress={() => onChangeText('')} hitSlop={8}>
+          <X size={16} color={colors.muted} strokeWidth={2} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
+// Horizontal scrollable pill bar for single-select filtering (status, sport,
+// department, ...), matching NestHR's status-chip filter bar.
+export function FilterPills<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string; count?: number }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, alignItems: 'center' }}
+      style={styles.pillScroll}
+    >
+      {options.map(opt => {
+        const selected = value === opt.value;
+        return (
+          <TouchableOpacity
+            key={opt.value}
+            onPress={() => onChange(opt.value)}
+            style={[styles.pill, selected && styles.pillActive]}
+          >
+            <Text style={[styles.pillText, selected && styles.pillTextActive]}>
+              {opt.label}
+              {opt.count !== undefined ? ` (${opt.count})` : ''}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+export interface StatPillOption<T extends string> {
+  value: T;
+  label: string;
+  count: number;
+  color?: string;
+}
+
+// Count + label pill bar that doubles as both the stats summary and the
+// status filter — matches NestHR's EmployeesScreen summary-pill bar, where
+// tapping a stat card filters the list by that status.
+export function StatPills<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: StatPillOption<T>[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.statPillScroll}
+      contentContainerStyle={styles.statPillContent}
+    >
+      {options.map(opt => {
+        const active = value === opt.value;
+        const color = opt.color || colors.blue;
+        return (
+          <TouchableOpacity
+            key={opt.value}
+            onPress={() => onChange(opt.value)}
+            activeOpacity={0.8}
+            style={[
+              styles.statPill,
+              { borderColor: color, backgroundColor: active ? color : colors.white },
+            ]}
+          >
+            <Text style={[styles.statPillCount, { color: active ? colors.white : color }]}>
+              {opt.count}
+            </Text>
+            <Text style={[styles.statPillLabel, { color: active ? colors.white : color }]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+export interface SortOption {
+  key: string;
+  label: string;
+}
+
+// Bottom-sheet for choosing a sort field + direction. Kept as a single
+// reusable sheet so every list screen sorts the same way.
+export function SortSheet({
+  visible,
+  onClose,
+  options,
+  sortBy,
+  sortDir,
+  onApply,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  options: SortOption[];
+  sortBy: string;
+  sortDir: 'asc' | 'desc';
+  onApply: (sortBy: string, sortDir: 'asc' | 'desc') => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity
+        style={styles.sheetBackdrop}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <ArrowUpDown size={16} color={colors.black} strokeWidth={2.5} />
+            <Text style={styles.sheetTitle}>Sort by</Text>
+          </View>
+          {options.map(opt => {
+            const selected = opt.key === sortBy;
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.sheetRow}
+                onPress={() => onApply(opt.key, sortDir)}
+              >
+                <Text
+                  style={[styles.sheetRowText, selected && { color: colors.blue }]}
+                >
+                  {opt.label}
+                </Text>
+                {selected ? (
+                  <Check size={16} color={colors.blue} strokeWidth={2.5} />
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+          <View style={styles.sheetDirRow}>
+            <TouchableOpacity
+              style={[styles.sheetDirBtn, sortDir === 'asc' && styles.pillActive]}
+              onPress={() => onApply(sortBy, 'asc')}
+            >
+              <Text
+                style={[styles.pillText, sortDir === 'asc' && styles.pillTextActive]}
+              >
+                Ascending
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sheetDirBtn, sortDir === 'desc' && styles.pillActive]}
+              onPress={() => onApply(sortBy, 'desc')}
+            >
+              <Text
+                style={[styles.pillText, sortDir === 'desc' && styles.pillTextActive]}
+              >
+                Descending
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// Footer for a FlatList doing page-based load-more.
+export function LoadMoreFooter({
+  loading,
+  hasMore,
+}: {
+  loading: boolean;
+  hasMore: boolean;
+}) {
+  if (!hasMore) return null;
+  return (
+    <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+      {loading ? <ActivityIndicator color={colors.blue} /> : null}
+    </View>
+  );
+}
+
 const textStyle: TextStyle = {
   fontFamily: FONT.bold,
   fontWeight: '700',
@@ -364,6 +582,7 @@ const styles = StyleSheet.create({
   badge: {
     borderWidth: 2,
     borderColor: colors.black,
+    borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 3,
     alignSelf: 'flex-start',
@@ -489,5 +708,96 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.black,
     textTransform: 'capitalize',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    color: colors.black,
+    padding: 0,
+  },
+  pillScroll: { flexGrow: 0, height: 40, marginBottom: 12 },
+  statPillScroll: { flexGrow: 0, marginBottom: 12 },
+  statPillContent: { gap: 8, paddingVertical: 2 },
+  statPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 72,
+  },
+  statPillCount: { fontFamily: FONT.bold, fontSize: 20, fontWeight: '800' },
+  statPillLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginTop: 2,
+  },
+  pill: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    alignSelf: 'center',
+  },
+  pillActive: { backgroundColor: colors.blue },
+  pillText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+  },
+  pillTextActive: { color: colors.white },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: '#00000066',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopWidth: 2,
+    borderColor: colors.black,
+    padding: 16,
+    paddingBottom: 30,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  sheetTitle: { ...textStyle, fontSize: 16 },
+  sheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#0000001A',
+  },
+  sheetRowText: { fontFamily: FONT.medium, fontSize: 14, color: colors.black },
+  sheetDirRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  sheetDirBtn: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
 });

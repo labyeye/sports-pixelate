@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  FlatList,
   ScrollView,
   View,
   Text,
@@ -17,8 +18,21 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
-import { Plus, Pencil, Trash2, Package, X, Camera } from 'lucide-react-native';
-import { inventoryAPI, RNFile } from '../api/client';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Package,
+  X,
+  Camera,
+  ArrowUpDown,
+  UserCheck,
+  Undo2,
+  Truck,
+  ArrowDownCircle,
+  ArrowUpCircle,
+} from 'lucide-react-native';
+import { inventoryAPI, studentAPI, employeeAPI, RNFile } from '../api/client';
 import {
   Card,
   EmptyState,
@@ -28,6 +42,11 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
+  SearchBar,
+  FilterPills,
+  SortSheet,
+  LoadMoreFooter,
+  SortOption,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -102,6 +121,15 @@ const EMPTY_FORM: FormState = {
   unitCost: '',
 };
 
+const SORT_OPTIONS: SortOption[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'category', label: 'Category' },
+  { key: 'availableQuantity', label: 'Available Qty' },
+  { key: 'totalQuantity', label: 'Total Qty' },
+];
+
+let searchDebounce: ReturnType<typeof setTimeout>;
+
 export default function InventoryScreen() {
   const { user } = useAuth();
   const isOwner = user?.role === 'super_admin' || user?.role === 'hr_manager';
@@ -109,6 +137,17 @@ export default function InventoryScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [category, setCategory] = useState('');
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortVisible, setSortVisible] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -117,21 +156,75 @@ export default function InventoryScreen() {
   const [existingPhoto, setExistingPhoto] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    const res: any = await inventoryAPI.getAll();
-    setItems(res.data || []);
-  }, []);
+  const [assignItem, setAssignItem] = useState<any>(null);
+  const [assignModel, setAssignModel] = useState<'Student' | 'Employee'>(
+    'Student',
+  );
+  const [assignPersonId, setAssignPersonId] = useState('');
+  const [assignQty, setAssignQty] = useState('1');
+  const [assignNotes, setAssignNotes] = useState('');
+  const [assignPeople, setAssignPeople] = useState<any[]>([]);
+  const [assignPeopleLoading, setAssignPeopleLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+
+  const [txnItem, setTxnItem] = useState<any>(null);
+  const [txnQty, setTxnQty] = useState('1');
+  const [txnSaving, setTxnSaving] = useState<string | null>(null);
+
+  const fetchPage = useCallback(
+    (pageNum: number) =>
+      inventoryAPI.getAll({
+        page: String(pageNum),
+        limit: '20',
+        ...(search ? { search } : {}),
+        ...(category ? { category } : {}),
+        sortBy,
+        sortDir,
+      }),
+    [search, category, sortBy, sortDir],
+  );
+
+  const load = useCallback(() => {
+    return fetchPage(1).then((res: any) => {
+      setItems(res.data || []);
+      setPage(1);
+      setHasMore((res.page || 1) < (res.pages || 1));
+    });
+  }, [fetchPage]);
 
   useEffect(() => {
+    setLoading(true);
     load()
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [load]);
 
+  useEffect(() => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(searchDebounce);
+  }, [searchInput]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await load().catch(() => {});
     setRefreshing(false);
+  };
+
+  const onLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res: any = await fetchPage(next);
+      setItems(prev => [...prev, ...(res.data || [])]);
+      setPage(next);
+      setHasMore(next < (res.pages || 1));
+    } catch {
+      // ignore, user can retry by scrolling again
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const openAdd = () => {
@@ -158,6 +251,101 @@ export default function InventoryScreen() {
   };
 
   const closeModal = () => setShowModal(false);
+
+  const openTxn = (item: any) => {
+    setTxnItem(item);
+    setTxnQty('1');
+  };
+
+  const handleTxn = async (
+    type: 'order' | 'purchase' | 'consume' | 'damage' | 'return',
+  ) => {
+    if (!txnItem) return;
+    const qty = Number(txnQty);
+    if (!qty || qty <= 0) {
+      Alert.alert('Missing field', 'Enter a valid quantity');
+      return;
+    }
+    setTxnSaving(type);
+    try {
+      await inventoryAPI.recordTransaction(txnItem._id, {
+        type,
+        quantity: qty,
+      });
+      setTxnItem(null);
+      setTxnQty('1');
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not record movement');
+    } finally {
+      setTxnSaving(null);
+    }
+  };
+
+  const openAssign = (item: any) => {
+    setAssignItem(item);
+    setAssignModel('Student');
+    setAssignPersonId('');
+    setAssignQty('1');
+    setAssignNotes('');
+  };
+
+  useEffect(() => {
+    if (!assignItem) return;
+    setAssignPeopleLoading(true);
+    setAssignPeople([]);
+    const api = assignModel === 'Student' ? studentAPI : employeeAPI;
+    api
+      .getAll({ limit: '500' })
+      .then((r: any) => setAssignPeople(r.data || []))
+      .catch(() => {})
+      .finally(() => setAssignPeopleLoading(false));
+  }, [assignItem, assignModel]);
+
+  const submitAssign = async () => {
+    if (!assignItem) return;
+    const qty = Number(assignQty);
+    if (!assignPersonId) {
+      Alert.alert('Missing field', 'Select who is taking the item');
+      return;
+    }
+    if (!qty || qty <= 0) {
+      Alert.alert('Missing field', 'Enter a valid quantity');
+      return;
+    }
+    setAssigning(true);
+    try {
+      const res: any = await inventoryAPI.assign(assignItem._id, {
+        assignedTo: assignPersonId,
+        assignedToModel: assignModel,
+        quantity: qty,
+        notes: assignNotes || undefined,
+      });
+      setAssignItem(res.data);
+      setAssignPersonId('');
+      setAssignQty('1');
+      setAssignNotes('');
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not record check-out');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const returnAssignment = async (assignmentId: string) => {
+    if (!assignItem) return;
+    try {
+      const res: any = await inventoryAPI.returnAssignment(
+        assignItem._id,
+        assignmentId,
+      );
+      setAssignItem(res.data);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not mark item returned');
+    }
+  };
 
   const confirmDelete = (item: any) => {
     Alert.alert('Delete Item', `Remove "${item.name}" from inventory?`, [
@@ -217,34 +405,81 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={{ padding: 16 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+      <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.title}>Inventory</Text>
             <Text style={styles.subtitle}>Sports equipment and stock levels</Text>
           </View>
-          {isOwner && (
-            <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
-              <Plus size={20} color={colors.blue} strokeWidth={2.5} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => setSortVisible(true)}
+              style={styles.addBtn}
+              hitSlop={8}
+            >
+              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
             </TouchableOpacity>
-          )}
+            {isOwner && (
+              <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
+                <Plus size={20} color={colors.blue} strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {items.length === 0 ? (
-          <Card>
-            <EmptyState title="No inventory items found" />
-          </Card>
-        ) : (
-          items.map(i => {
+        <SearchBar
+          value={searchInput}
+          onChangeText={setSearchInput}
+          placeholder="Search inventory..."
+        />
+        <FilterPills
+          options={[
+            { value: '', label: 'All' },
+            { value: 'equipment', label: 'Equipment' },
+            { value: 'apparel', label: 'Apparel' },
+            { value: 'consumable', label: 'Consumable' },
+            { value: 'other', label: 'Other' },
+          ]}
+          value={category}
+          onChange={setCategory}
+        />
+        <TouchableOpacity
+          onPress={() => setLowStockOnly(v => !v)}
+          style={[styles.lowStockToggle, lowStockOnly && styles.lowStockToggleActive]}
+        >
+          <Text
+            style={[
+              styles.lowStockToggleText,
+              lowStockOnly && { color: colors.white },
+            ]}
+          >
+            Low stock only
+          </Text>
+        </TouchableOpacity>
+
+        <FlatList
+          data={
+            lowStockOnly
+              ? items.filter(
+                  i => (i.availableQuantity ?? 0) <= (i.reorderThreshold ?? 0),
+                )
+              : items
+          }
+          keyExtractor={i => i._id}
+          contentContainerStyle={{ paddingBottom: 24, gap: 12 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={onLoadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          }
+          ListEmptyComponent={<EmptyState title="No inventory items found" />}
+          renderItem={({ item: i }) => {
             const low = i.availableQuantity <= (i.reorderThreshold ?? 0);
             return (
-              <Card key={i._id}>
+              <Card>
                 <View style={styles.itemRow}>
                   <ItemPhoto uri={i.photo} />
                   <View style={{ flex: 1, minWidth: 0 }}>
@@ -261,37 +496,82 @@ export default function InventoryScreen() {
                     <Text style={[styles.qty, low && { color: colors.red }]}>
                       {i.availableQuantity} / {i.totalQuantity} available
                     </Text>
+                    {!!i.onOrderQuantity && (
+                      <View style={styles.onOrderRow}>
+                        <Truck size={12} color={colors.purple} strokeWidth={2.5} />
+                        <Text style={styles.onOrderText}>
+                          {i.onOrderQuantity} on order
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
-                {isOwner && (
-                  <View style={styles.actionsRow}>
+                <View style={styles.actionsRow}>
+                  {isOwner && (
                     <TouchableOpacity
-                      onPress={() => openEdit(i)}
+                      onPress={() => openTxn(i)}
                       style={styles.actionBtn}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
-                      <Text style={[styles.actionText, { color: colors.blue }]}>
-                        Edit
+                      <Truck size={14} color={colors.purple} strokeWidth={2.5} />
+                      <Text style={[styles.actionText, { color: colors.purple }]}>
+                        Stock
                       </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => confirmDelete(i)}
-                      style={styles.actionBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                      <Text style={[styles.actionText, { color: colors.red }]}>
-                        Delete
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                  )}
+                  <TouchableOpacity
+                    onPress={() => openAssign(i)}
+                    style={styles.actionBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <UserCheck size={14} color={colors.blue} strokeWidth={2.5} />
+                    <Text style={[styles.actionText, { color: colors.blue }]}>
+                      Check Out
+                    </Text>
+                  </TouchableOpacity>
+                  {isOwner && (
+                    <>
+                      <TouchableOpacity
+                        onPress={() => openEdit(i)}
+                        style={styles.actionBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
+                        <Text style={[styles.actionText, { color: colors.blue }]}>
+                          Edit
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => confirmDelete(i)}
+                        style={styles.actionBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                        <Text style={[styles.actionText, { color: colors.red }]}>
+                          Delete
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
               </Card>
             );
-          })
-        )}
-      </ScrollView>
+          }}
+        />
+      </View>
+
+      <SortSheet
+        visible={sortVisible}
+        onClose={() => setSortVisible(false)}
+        options={SORT_OPTIONS}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onApply={(key, dir) => {
+          setSortBy(key);
+          setSortDir(dir);
+          setSortVisible(false);
+        }}
+      />
 
       <Modal
         visible={showModal}
@@ -381,6 +661,223 @@ export default function InventoryScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      <Modal
+        visible={!!assignItem}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setAssignItem(null)}
+      >
+        <SafeAreaView edges={['top']} style={styles.screen}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle} numberOfLines={1}>
+              Check Out — {assignItem?.name}
+            </Text>
+            <TouchableOpacity onPress={() => setAssignItem(null)}>
+              <X size={22} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            <Card>
+              <SectionTitle
+                title="Record who's taking this"
+                sub="Track where equipment goes and when it's due back"
+              />
+              <ChipSelect
+                label="Taken by"
+                options={['Student', 'Employee'] as const}
+                value={assignModel}
+                onChange={v => {
+                  setAssignModel(v);
+                  setAssignPersonId('');
+                }}
+                labels={{ Student: 'Student', Employee: 'Employee / Coach' }}
+              />
+              <Text style={styles.fieldLabelStandalone}>
+                {assignModel} {assignPeopleLoading ? '(loading…)' : ''}
+              </Text>
+              <ScrollView style={styles.personList} nestedScrollEnabled>
+                {assignPeople.length === 0 && !assignPeopleLoading ? (
+                  <Text style={styles.emptyPeopleText}>No {assignModel.toLowerCase()}s found</Text>
+                ) : (
+                  assignPeople.map(p => {
+                    const selected = assignPersonId === p._id;
+                    return (
+                      <TouchableOpacity
+                        key={p._id}
+                        onPress={() => setAssignPersonId(p._id)}
+                        style={[styles.personRow, selected && styles.personRowSelected]}
+                      >
+                        <Text
+                          style={[
+                            styles.personRowText,
+                            selected && { color: colors.white },
+                          ]}
+                        >
+                          {p.firstName} {p.lastName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+              <TextField
+                label="Quantity"
+                value={assignQty}
+                onChangeText={setAssignQty}
+                keyboardType="numeric"
+                placeholder="1"
+              />
+              <TextField
+                label="Notes (optional)"
+                value={assignNotes}
+                onChangeText={setAssignNotes}
+                placeholder="e.g. for weekend tournament"
+              />
+            </Card>
+
+            <Button
+              title={assigning ? 'Recording...' : 'Record Check-Out'}
+              onPress={submitAssign}
+              disabled={assigning}
+            />
+            {assigning && (
+              <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />
+            )}
+
+            {!!assignItem?.assignments?.filter((a: any) => !a.returnedAt)
+              .length && (
+              <Card>
+                <SectionTitle title="Currently taken out" />
+                {assignItem.assignments
+                  .filter((a: any) => !a.returnedAt)
+                  .map((a: any) => (
+                    <View key={a._id} style={styles.activeAssignmentRow}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.activeAssignmentName} numberOfLines={1}>
+                          {typeof a.assignedTo === 'object'
+                            ? `${a.assignedTo.firstName} ${a.assignedTo.lastName}`
+                            : 'Unknown'}
+                        </Text>
+                        <Text style={styles.sub}>
+                          {a.assignedToModel} · Qty {a.quantity}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => returnAssignment(a._id)}
+                        style={styles.returnBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Undo2 size={13} color={colors.blue} strokeWidth={2.5} />
+                        <Text style={styles.returnBtnText}>Returned</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+              </Card>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal
+        visible={!!txnItem}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setTxnItem(null)}
+      >
+        <SafeAreaView edges={['top']} style={styles.screen}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle} numberOfLines={1}>
+              Stock Movement — {txnItem?.name}
+            </Text>
+            <TouchableOpacity onPress={() => setTxnItem(null)}>
+              <X size={22} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            {!!txnItem?.onOrderQuantity && (
+              <Text style={[styles.onOrderText, { marginBottom: 8 }]}>
+                {txnItem.onOrderQuantity} unit
+                {txnItem.onOrderQuantity === 1 ? '' : 's'} on order, not yet
+                received
+              </Text>
+            )}
+            <Card>
+              <TextField
+                label="Quantity"
+                value={txnQty}
+                onChangeText={setTxnQty}
+                keyboardType="numeric"
+                placeholder="1"
+              />
+            </Card>
+
+            <TouchableOpacity
+              style={[styles.txnRow, { borderColor: colors.purple }]}
+              onPress={() => handleTxn('order')}
+              disabled={!!txnSaving}
+            >
+              <Truck size={16} color={colors.purple} strokeWidth={2.5} />
+              <Text style={[styles.txnRowText, { color: colors.purple }]}>
+                Order Placed (with supplier)
+              </Text>
+              {txnSaving === 'order' && <ActivityIndicator color={colors.purple} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.txnRow, { borderColor: colors.green }]}
+              onPress={() => handleTxn('purchase')}
+              disabled={!!txnSaving}
+            >
+              <ArrowDownCircle size={16} color={colors.green} strokeWidth={2.5} />
+              <Text style={[styles.txnRowText, { color: colors.green }]}>
+                Received
+              </Text>
+              {txnSaving === 'purchase' && (
+                <ActivityIndicator color={colors.green} />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.txnRow, { borderColor: colors.blue }]}
+              onPress={() => handleTxn('return')}
+              disabled={!!txnSaving}
+            >
+              <ArrowDownCircle size={16} color={colors.blue} strokeWidth={2.5} />
+              <Text style={[styles.txnRowText, { color: colors.blue }]}>
+                Return to Stock
+              </Text>
+              {txnSaving === 'return' && <ActivityIndicator color={colors.blue} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.txnRow, { borderColor: colors.orange }]}
+              onPress={() => handleTxn('consume')}
+              disabled={!!txnSaving}
+            >
+              <ArrowUpCircle size={16} color={colors.orange} strokeWidth={2.5} />
+              <Text style={[styles.txnRowText, { color: colors.orange }]}>
+                Consume
+              </Text>
+              {txnSaving === 'consume' && (
+                <ActivityIndicator color={colors.orange} />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.txnRow, { borderColor: colors.red }]}
+              onPress={() => handleTxn('damage')}
+              disabled={!!txnSaving}
+            >
+              <ArrowUpCircle size={16} color={colors.red} strokeWidth={2.5} />
+              <Text style={[styles.txnRowText, { color: colors.red }]}>
+                Damaged / Lost
+              </Text>
+              {txnSaving === 'damage' && <ActivityIndicator color={colors.red} />}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -403,6 +900,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 2,
     borderColor: colors.black,
+  },
+  lowStockToggle: {
+    alignSelf: 'flex-start',
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 12,
+  },
+  lowStockToggleActive: { backgroundColor: colors.red },
+  lowStockToggleText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
   },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerRowInner: {
@@ -477,5 +990,98 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     marginTop: 8,
+  },
+  fieldLabelStandalone: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  personList: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    marginBottom: 14,
+    maxHeight: 220,
+  },
+  emptyPeopleText: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 13,
+    padding: 12,
+  },
+  personRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  personRowSelected: {
+    backgroundColor: colors.blue,
+  },
+  personRowText: {
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    color: colors.black,
+  },
+  activeAssignmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  activeAssignmentName: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  returnBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 2,
+    borderColor: colors.blue,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  returnBtnText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 11,
+    color: colors.blue,
+  },
+  onOrderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  onOrderText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.purple,
+  },
+  txnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginTop: 10,
+  },
+  txnRowText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+    flex: 1,
   },
 });

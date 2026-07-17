@@ -9,22 +9,19 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { RATE_PER_STUDENT, TIERS, calculatePricing } = require("../utils/pricing");
+const { RATE_PER_STUDENT, calculatePricing } = require("../utils/pricing");
 
-const PLAN_NAMES = {
-  standard: "NestSports Standard",
-  whatsapp: "NestSports + WhatsApp",
-};
+const PLAN_NAME = "NestSports";
 
 const getPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
-    data: TIERS.map((tier) => ({
-      tier,
-      name: PLAN_NAMES[tier],
-      ratePerStudent: RATE_PER_STUDENT[tier],
-      whatsapp: tier === "whatsapp",
-    })),
+    data: [
+      {
+        name: PLAN_NAME,
+        ratePerStudent: RATE_PER_STUDENT,
+      },
+    ],
   });
 });
 
@@ -62,7 +59,7 @@ const getInvoices = asyncHandler(async (req, res) => {
 
 // Shared checks used by both the validate-only endpoint and createOrder.
 // Throws with res.status already set — call inside asyncHandler.
-async function _lookupAndCheckOffer(code, tier, res) {
+async function _lookupAndCheckOffer(code, res) {
   const offer = await OfferCode.findOne({ code: code.toUpperCase().trim() });
   if (!offer || !offer.isActive) {
     res.status(404);
@@ -75,12 +72,6 @@ async function _lookupAndCheckOffer(code, tier, res) {
   if (offer.usedCount >= offer.maxUses) {
     res.status(400);
     throw new Error("This offer code has reached its usage limit");
-  }
-  if (offer.applicableTier && tier && offer.applicableTier !== tier) {
-    res.status(400);
-    throw new Error(
-      `This offer code only applies to the ${PLAN_NAMES[offer.applicableTier]} plan`,
-    );
   }
   return offer;
 }
@@ -96,16 +87,16 @@ function _offerMessage(offer) {
 }
 
 const validateOfferCode = asyncHandler(async (req, res) => {
-  const { code, studentCount, tier = "standard" } = req.body;
+  const { code, studentCount } = req.body;
   if (!code) {
     res.status(400);
     throw new Error("Offer code is required");
   }
 
-  const offer = await _lookupAndCheckOffer(code, tier, res);
+  const offer = await _lookupAndCheckOffer(code, res);
 
   const count = Number(studentCount) || 0;
-  const preview = count > 0 ? calculatePricing(count, tier, offer) : null;
+  const preview = count > 0 ? calculatePricing(count, offer) : null;
 
   res.json({
     success: true,
@@ -128,7 +119,6 @@ const createOrder = asyncHandler(async (req, res) => {
     studentCount,
     billingCycle = "monthly",
     gateway = "razorpay",
-    tier = "standard",
     offerCode,
     company: companyDetails,
   } = req.body;
@@ -146,22 +136,18 @@ const createOrder = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid gateway. Use razorpay or hdfc");
   }
-  if (!TIERS.includes(tier)) {
-    res.status(400);
-    throw new Error(`Invalid tier. Must be one of: ${TIERS.join(", ")}`);
-  }
 
-  const planName = PLAN_NAMES[tier];
+  const planName = PLAN_NAME;
 
   const existingCompany = await Company.findOne({ createdBy: req.user._id });
 
   // Validate offer code if provided
   let validatedOffer = null;
   if (offerCode) {
-    validatedOffer = await _lookupAndCheckOffer(offerCode, tier, res);
+    validatedOffer = await _lookupAndCheckOffer(offerCode, res);
   }
 
-  const pricing = calculatePricing(count, tier, validatedOffer);
+  const pricing = calculatePricing(count, validatedOffer);
 
   const amountRupees =
     billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
@@ -212,7 +198,6 @@ const createOrder = asyncHandler(async (req, res) => {
         {
           company: existingCompany._id,
           plan: planName,
-          tier,
           studentCount: count,
           ratePerStudent: pricing.ratePerStudent,
           monthlyPrice: pricing.monthlyPrice,
@@ -245,7 +230,6 @@ const createOrder = asyncHandler(async (req, res) => {
         panNumber: newCompanyDetails.panNumber,
         studentCount: count,
         billingCycle,
-        tier,
         ratePerStudent: pricing.ratePerStudent,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
@@ -262,7 +246,6 @@ const createOrder = asyncHandler(async (req, res) => {
       currency: "INR",
       studentCount: count,
       ratePerStudent: pricing.ratePerStudent,
-      tier,
       plan: planName,
       billingCycle,
       companyName: existingCompany
@@ -305,7 +288,6 @@ const createOrder = asyncHandler(async (req, res) => {
         {
           company: existingCompany._id,
           plan: planName,
-          tier,
           studentCount: count,
           ratePerStudent: pricing.ratePerStudent,
           monthlyPrice: pricing.monthlyPrice,
@@ -338,7 +320,6 @@ const createOrder = asyncHandler(async (req, res) => {
         panNumber: newCompanyDetails.panNumber,
         studentCount: count,
         billingCycle,
-        tier,
         ratePerStudent: pricing.ratePerStudent,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
@@ -355,7 +336,6 @@ const createOrder = asyncHandler(async (req, res) => {
       currency: "INR",
       studentCount: count,
       ratePerStudent: pricing.ratePerStudent,
-      tier,
       plan: planName,
       billingCycle,
       offerApplied: !!validatedOffer,
@@ -519,12 +499,11 @@ async function _createCompanyAndActivate({
     renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
   }
 
-  const planName = PLAN_NAMES[pendingOrder.tier] || PLAN_NAMES.standard;
+  const planName = PLAN_NAME;
 
   const subscription = await Subscription.create({
     company: company._id,
     plan: planName,
-    tier: pendingOrder.tier || "standard",
     studentCount: pendingOrder.studentCount,
     ratePerStudent: pendingOrder.ratePerStudent,
     monthlyPrice: pendingOrder.monthlyPrice,

@@ -7,9 +7,18 @@ const User = require("../models/User");
 const {
   escapeRegex,
   safePagination,
+  safeSort,
   validateBody,
   validateMongoId,
 } = require("../middleware/validate");
+
+const EMPLOYEE_SORT_FIELDS = [
+  "firstName",
+  "lastName",
+  "designation",
+  "joinDate",
+  "createdAt",
+];
 const { logAudit } = require("../utils/auditLogger");
 const { validateMagicBytes } = require("../middleware/upload");
 const { enrollFace } = require("../services/faceService");
@@ -35,7 +44,6 @@ const getEmployees = asyncHandler(async (req, res) => {
   const { search, department, status, type, role } = req.query;
 
   const filter = { company: req.user.company };
-  if (status) filter.status = status;
   if (department) filter.department = department;
   if (type) filter.employmentType = type;
   if (role) filter.role = role;
@@ -49,12 +57,27 @@ const getEmployees = asyncHandler(async (req, res) => {
     ];
   }
 
+  // Status counts are computed over the filter WITHOUT status applied, so a
+  // client can render "All / Active (12) / On Leave (3) / ..." pills that
+  // stay meaningful (and clickable) no matter which status is selected.
+  const countRows = await Employee.aggregate([
+    { $match: filter },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+  const counts = countRows.reduce((acc, r) => {
+    acc[r._id] = r.count;
+    return acc;
+  }, {});
+
+  if (status) filter.status = status;
+
+  const sort = safeSort(req.query, EMPLOYEE_SORT_FIELDS, { createdAt: -1 });
   const total = await Employee.countDocuments(filter);
   const employees = await Employee.find(filter)
     .populate("department", "name code")
     .populate("reportingTo", "firstName lastName")
     .populate("shift", "name startTime endTime")
-    .sort({ createdAt: -1 })
+    .sort(sort)
     .skip(skip)
     .limit(limit);
 
@@ -71,6 +94,7 @@ const getEmployees = asyncHandler(async (req, res) => {
     total,
     page,
     pages: Math.ceil(total / limit),
+    counts,
   });
 });
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, RefreshControl, StyleSheet } from 'react-native';
+import { FlatList, View, Text, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auditAPI } from '../api/client';
 import {
@@ -8,6 +8,9 @@ import {
   Row,
   LoadingView,
   EmptyState,
+  SearchBar,
+  FilterPills,
+  LoadMoreFooter,
 } from '../components/ui';
 import { colors } from '../theme/colors';
 
@@ -25,21 +28,57 @@ function fmt(d: string) {
   });
 }
 
+const ENTITY_OPTIONS = [
+  { value: '', label: 'All entities' },
+  { value: 'Employee', label: 'Employee' },
+  { value: 'Leave', label: 'Leave' },
+  { value: 'ExitManagement', label: 'Exit Management' },
+];
+
+let searchDebounce: ReturnType<typeof setTimeout>;
+
 export default function AuditLogScreen() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const load = useCallback(
-    () => auditAPI.getLogs().then((res: any) => setLogs(res.data || [])),
-    [],
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [entity, setEntity] = useState('');
+
+  const fetchPage = useCallback(
+    (pageNum: number) => {
+      const params: Record<string, string> = { page: String(pageNum), limit: '20' };
+      if (search) params.action = search;
+      if (entity) params.entity = entity;
+      return auditAPI.getLogs(params);
+    },
+    [search, entity],
   );
 
+  const load = useCallback(() => {
+    return fetchPage(1).then((res: any) => {
+      setLogs(res.data || []);
+      setPage(1);
+      setHasMore((res.page || 1) < (res.pages || 1));
+    });
+  }, [fetchPage]);
+
   useEffect(() => {
+    setLoading(true);
     load()
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [load]);
+
+  useEffect(() => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(searchDebounce);
+  }, [searchInput]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -47,37 +86,73 @@ export default function AuditLogScreen() {
     setRefreshing(false);
   };
 
+  const onLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res: any = await fetchPage(next);
+      setLogs(prev => [...prev, ...(res.data || [])]);
+      setPage(next);
+      setHasMore(next < (res.pages || 1));
+    } catch {
+      // ignore, user can retry by scrolling again
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   if (loading) return <LoadingView />;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={{ padding: 16 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+      <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <Text style={styles.title}>Audit Log</Text>
         <Text style={styles.subtitle}>Track who changed what and when</Text>
 
-        <Card>
-          <SectionTitle title={`${logs.length} recent activities`} />
-          {logs.length > 0 ? (
-            logs.map(log => (
+        <SearchBar
+          value={searchInput}
+          onChangeText={setSearchInput}
+          placeholder="Search by action..."
+        />
+        <FilterPills options={ENTITY_OPTIONS} value={entity} onChange={setEntity} />
+
+        <FlatList
+          data={logs}
+          keyExtractor={(l, i) => l._id || String(i)}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={onLoadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          }
+          ListEmptyComponent={
+            <Card>
+              <EmptyState title="No audit logs found" />
+            </Card>
+          }
+          ListHeaderComponent={
+            logs.length > 0 ? (
+              <Card>
+                <SectionTitle title={`${logs.length} recent activities`} />
+              </Card>
+            ) : null
+          }
+          renderItem={({ item: log }) => (
+            <Card>
               <Row
-                key={log._id}
                 title={actionLabel(log.action)}
-                subtitle={`${
+                subtitle={`${log.entity || '—'} · ${
                   log.user?.name || log.userName || 'System'
                 } · ${fmt(log.createdAt)}`}
               />
-            ))
-          ) : (
-            <EmptyState title="No audit logs found" />
+            </Card>
           )}
-        </Card>
-      </ScrollView>
+        />
+      </View>
     </SafeAreaView>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { sportsPlanAPI } from "@/services/api";
@@ -51,18 +51,52 @@ export default function PlansPage() {
   const [filterSport, setFilterSport] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const planParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      if (search) params.search = search;
+      if (filterSport) params.sport = filterSport;
+      params.sortBy = sortKey;
+      params.sortDir = sortDir;
+      return params;
+    },
+    [search, filterSport, sortKey, sortDir],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await sportsPlanAPI.getAll();
+      const r = await sportsPlanAPI.getAll(planParams(1));
       setPlans(r.data);
+      setPage(1);
+      setPages(r.pages || 1);
+      setTotal(r.total ?? r.data.length);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [planParams]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await sportsPlanAPI.getAll(planParams(next));
+      setPlans((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -147,38 +181,19 @@ export default function PlansPage() {
     setShowForm(true);
   };
 
-  const sportOptions = useMemo(
-    () => Array.from(new Set(plans.map((p) => p.sport).filter(Boolean))).sort(),
-    [plans],
-  );
-
-  const filtered = useMemo(() => {
-    return plans.filter((p) => {
-      if (
-        search &&
-        !p.name.toLowerCase().includes(search.toLowerCase()) &&
-        !p.sport.toLowerCase().includes(search.toLowerCase())
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
+  useEffect(() => {
+    sportsPlanAPI
+      .getAll({ limit: "200" })
+      .then((r) =>
+        setSportOptions(
+          Array.from(new Set((r.data as Plan[]).map((p) => p.sport).filter(Boolean))).sort(),
+        ),
       )
-        return false;
-      if (filterSport && p.sport !== filterSport) return false;
-      return true;
-    });
-  }, [plans, search, filterSport]);
+      .catch(() => {});
+  }, []);
 
-  const displayed = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortKey === "sport") cmp = a.sport.localeCompare(b.sport);
-      else if (sortKey === "monthlyPrice")
-        cmp = a.monthlyPrice - b.monthlyPrice;
-      else if (sortKey === "sessionsPerWeek")
-        cmp = a.sessionsPerWeek - b.sessionsPerWeek;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir]);
+  const displayed = plans;
 
   const avgMonthly = plans.length
     ? Math.round(plans.reduce((s, p) => s + p.monthlyPrice, 0) / plans.length)
@@ -211,7 +226,7 @@ export default function PlansPage() {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Total Plans
             </p>
-            <p className="text-2xl font-bold text-black">{plans.length}</p>
+            <p className="text-2xl font-bold text-black">{total}</p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -536,6 +551,22 @@ export default function PlansPage() {
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {plans.length} of {total}
+              </p>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppLayout>

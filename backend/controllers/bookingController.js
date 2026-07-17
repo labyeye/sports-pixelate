@@ -2,6 +2,9 @@ const asyncHandler = require("express-async-handler");
 const Booking = require("../models/Booking");
 const Facility = require("../models/Facility");
 const razorpayService = require("../services/razorpayService");
+const { safePagination, safeSort } = require("../middleware/validate");
+
+const BOOKING_SORT_FIELDS = ["date", "fee", "createdAt"];
 
 function toDateOnly(d) {
   const date = new Date(d);
@@ -16,7 +19,8 @@ function timesOverlap(aStart, aEnd, bStart, bEnd) {
 
 // owner/staff: every booking. parent: only bookings for their children (or made by them).
 const getBookings = asyncHandler(async (req, res) => {
-  const { facility, date } = req.query;
+  const { facility, date, status } = req.query;
+  const { page, limit, skip } = safePagination(req.query);
   const filter = { company: req.user.company };
   if (req.user.role === "parent") {
     filter.$or = [
@@ -26,14 +30,28 @@ const getBookings = asyncHandler(async (req, res) => {
   }
   if (facility) filter.facility = facility;
   if (date) filter.date = toDateOnly(date);
+  if (status) filter.status = status;
 
+  const sort = safeSort(req.query, BOOKING_SORT_FIELDS, {
+    date: -1,
+    startTime: 1,
+  });
+  const total = await Booking.countDocuments(filter);
   const bookings = await Booking.find(filter)
     .populate("facility", "name type sport hourlyFee")
     .populate("student", "firstName lastName")
     .populate("bookedBy", "name")
-    .sort({ date: -1, startTime: 1 });
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
 
-  res.json({ success: true, data: bookings });
+  res.json({
+    success: true,
+    data: bookings,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 // Creates a booking. If the facility has an hourlyFee, this returns a Razorpay

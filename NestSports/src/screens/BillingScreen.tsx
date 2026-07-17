@@ -96,11 +96,7 @@ export default function BillingScreen() {
                   ? `Up to ${subscription.maxStudents} students`
                   : ''}
               </Text>
-              <Text style={styles.sub}>
-                {subscription.tier === 'whatsapp'
-                  ? 'Includes WhatsApp notifications'
-                  : 'WhatsApp notifications not included'}
-              </Text>
+              <Text style={styles.sub}>Includes WhatsApp notifications</Text>
               {subscription.renewalDate ? (
                 <Text style={styles.sub}>
                   Next billing:{' '}

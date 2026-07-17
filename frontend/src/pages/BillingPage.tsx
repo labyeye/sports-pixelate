@@ -28,12 +28,7 @@ declare global {
   }
 }
 
-type Tier = "standard" | "whatsapp";
-
-const RATE_PER_STUDENT: Record<Tier, number> = {
-  standard: 150,
-  whatsapp: 300,
-};
+const RATE_PER_STUDENT = 150;
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -45,7 +40,6 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [newStudentCount, setNewStudentCount] = useState<number | "">("");
-  const [tier, setTier] = useState<Tier>("standard");
   const [gatewayModal, setGatewayModal] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
@@ -60,9 +54,6 @@ export default function BillingPage() {
           if (r.success) {
             setSubscription(r.data);
             setNewStudentCount(r.data.maxStudents || "");
-            if (r.data.tier === "standard" || r.data.tier === "whatsapp") {
-              setTier(r.data.tier);
-            }
           }
         })
         .catch(() => {}),
@@ -76,7 +67,7 @@ export default function BillingPage() {
   }, []);
 
   const sub = subscription || user?.company?.subscription;
-  const currentPlanId = sub?.plan || "NestSports Standard";
+  const currentPlanId = sub?.plan || "NestSports";
 
   const currentPlan = {
     name: currentPlanId,
@@ -144,7 +135,6 @@ export default function BillingPage() {
       const res = await billingAPI.validateOfferCode(
         couponCode.trim(),
         Number(newStudentCount) || undefined,
-        tier,
       );
       setAppliedCoupon(res.data);
       toast({ title: "Coupon applied", description: res.message });
@@ -186,7 +176,6 @@ export default function BillingPage() {
         "yearly",
         gateway,
         undefined,
-        tier,
         appliedCoupon?.code,
       );
       if (!res.success) throw new Error("Failed to create order");
@@ -410,47 +399,9 @@ export default function BillingPage() {
           </p>
 
           <div className="border-2 p-5 bg-white max-w-sm">
-            <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
-              Plan
-            </label>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setTier("standard");
-                  handleRemoveCoupon();
-                }}
-                className={cn(
-                  "text-left p-3 border-2 transition-all",
-                  tier === "standard"
-                    ? "bg-[#024BAB] text-white border-black"
-                    : "bg-white text-black border-black hover:bg-gray-50",
-                )}
-              >
-                <p className="font-bold text-sm">₹{RATE_PER_STUDENT.standard}/student/yr</p>
-                <p className={cn("text-[11px] font-medium mt-0.5", tier === "standard" ? "text-white/80" : "text-gray-500")}>
-                  No WhatsApp
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTier("whatsapp");
-                  handleRemoveCoupon();
-                }}
-                className={cn(
-                  "text-left p-3 border-2 transition-all",
-                  tier === "whatsapp"
-                    ? "bg-[#024BAB] text-white border-black"
-                    : "bg-white text-black border-black hover:bg-gray-50",
-                )}
-              >
-                <p className="font-bold text-sm">₹{RATE_PER_STUDENT.whatsapp}/student/yr</p>
-                <p className={cn("text-[11px] font-medium mt-0.5", tier === "whatsapp" ? "text-white/80" : "text-gray-500")}>
-                  + WhatsApp notifications
-                </p>
-              </button>
-            </div>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+              ₹{RATE_PER_STUDENT}/student/year — every feature included
+            </p>
 
             <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
               Number of students
@@ -529,7 +480,7 @@ export default function BillingPage() {
               <div className="mb-4">
                 {(() => {
                   const count = Number(newStudentCount);
-                  const baseRate = RATE_PER_STUDENT[tier];
+                  const baseRate = RATE_PER_STUDENT;
                   let rate = baseRate;
                   if (appliedCoupon?.discountType === "flat_rate" && appliedCoupon.flatRate) {
                     rate = appliedCoupon.flatRate;
@@ -565,11 +516,7 @@ export default function BillingPage() {
 
             <button
               onClick={handleUpdateStudentCount}
-              disabled={
-                upgrading ||
-                (Number(newStudentCount) === studentsMax &&
-                  tier === (sub?.tier || "standard"))
-              }
+              disabled={upgrading || Number(newStudentCount) === studentsMax}
               className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
             >
               {upgrading ? (

@@ -1,19 +1,42 @@
 const asyncHandler = require("express-async-handler");
 const Facility = require("../models/Facility");
-const { validateBody } = require("../middleware/validate");
+const {
+  escapeRegex,
+  safePagination,
+  safeSort,
+  validateBody,
+} = require("../middleware/validate");
 
 const createSchema = {
   name: { required: true, type: "string", minLength: 1, maxLength: 100 },
 };
 
+const FACILITY_SORT_FIELDS = ["name", "type", "capacity", "hourlyFee", "createdAt"];
+
 const getFacilities = asyncHandler(async (req, res) => {
-  const facilities = await Facility.find({
-    company: req.user.company,
-    active: true,
-  }).sort({
-    name: 1,
+  const { page, limit, skip } = safePagination(req.query);
+  const { type, sport, search } = req.query;
+
+  const filter = { company: req.user.company, active: true };
+  if (type) filter.type = type;
+  if (sport) filter.sport = sport;
+  if (search) {
+    filter.name = { $regex: escapeRegex(search.slice(0, 100)), $options: "i" };
+  }
+
+  const sort = safeSort(req.query, FACILITY_SORT_FIELDS, { name: 1 });
+  const total = await Facility.countDocuments(filter);
+  const facilities = await Facility.find(filter)
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
+  res.json({
+    success: true,
+    data: facilities,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
   });
-  res.json({ success: true, data: facilities });
 });
 
 const createFacility = [

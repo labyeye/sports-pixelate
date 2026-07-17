@@ -14,6 +14,9 @@ import {
   Loader2,
   Users,
   ChevronRight,
+  Search,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 interface Tournament {
@@ -38,6 +41,8 @@ const STATUS_META: Record<Tournament["status"], { bg: string; text: string }> =
     completed: { bg: "bg-gray-100", text: "text-gray-600" },
   };
 
+type SortKey = "name" | "startDate" | "createdAt";
+
 export default function TournamentsPage() {
   const { user } = useAuth();
   const isParent = user?.role === "parent";
@@ -56,17 +61,56 @@ export default function TournamentsPage() {
     venue: "",
   });
 
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const tourneyParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "21" };
+      if (search) params.search = search;
+      if (filterStatus) params.status = filterStatus;
+      params.sortBy = sortKey;
+      params.sortDir = sortDir;
+      return params;
+    },
+    [search, filterStatus, sortKey, sortDir],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await tournamentAPI.getAll();
+      const r = await tournamentAPI.getAll(tourneyParams(1));
       setTournaments(r.data);
+      setPage(1);
+      setPages(r.pages || 1);
+      setTotal(r.total ?? r.data.length);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tourneyParams]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await tournamentAPI.getAll(tourneyParams(next));
+      setTournaments((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -125,6 +169,63 @@ export default function TournamentsPage() {
             <Plus className="w-4 h-4" /> New Tournament
           </button>
         )}
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 flex-1 min-w-48">
+          <Search className="w-4 h-4 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search by tournament name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent text-sm outline-none w-full font-medium"
+          />
+        </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold outline-none"
+        >
+          <option value="">All Status</option>
+          {["draft", "upcoming", "ongoing", "completed"].map((s) => (
+            <option key={s} value={s}>
+              {s.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+        {(search || filterStatus) && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setFilterStatus("");
+            }}
+            className="flex items-center gap-1 text-xs font-bold border-2 border-black px-2 py-2 hover:bg-red-50 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" /> Clear
+          </button>
+        )}
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as SortKey)}
+          className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold outline-none"
+        >
+          <option value="createdAt">Sort: Date Added</option>
+          <option value="name">Sort: Name</option>
+          <option value="startDate">Sort: Start Date</option>
+        </select>
+        <button
+          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
+        >
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
+          {sortDir === "asc" ? "Asc" : "Desc"}
+        </button>
       </div>
 
       {!isParent && showForm && (
@@ -295,6 +396,22 @@ export default function TournamentsPage() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {page < pages && (
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <p className="text-xs text-muted-foreground">
+            Showing {tournaments.length} of {total}
+          </p>
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+          >
+            {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
         </div>
       )}
     </AppLayout>

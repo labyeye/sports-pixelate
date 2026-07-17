@@ -95,14 +95,38 @@ export default function SubscriptionsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("renewalDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // "student"/"plan" sort keys aren't backend-sortable (populated refs, not
+  // scalar fields) — only renewalDate/amount get pushed server-side.
+  const subParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      if (filterStatus) params.status = filterStatus;
+      if (filterCycle) params.billingCycle = filterCycle;
+      if (sortKey === "amount" || sortKey === "renewalDate") {
+        params.sortBy = sortKey;
+        params.sortDir = sortDir;
+      }
+      return params;
+    },
+    [filterStatus, filterCycle, sortKey, sortDir],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [subRes, planRes] = await Promise.all([
-        subscriptionAPI.getAll(),
+        subscriptionAPI.getAll(subParams(1)),
         sportsPlanAPI.getAll(),
       ]);
       setSubscriptions(subRes.data);
+      setPage(1);
+      setPages(subRes.pages || 1);
+      setTotal(subRes.total ?? subRes.data.length);
       setPlans(planRes.data);
       if (isParent) {
         const studRes = await studentAPI.getAll();
@@ -121,7 +145,22 @@ export default function SubscriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isParent]);
+  }, [isParent, subParams]);
+
+  const loadMoreSubs = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await subscriptionAPI.getAll(subParams(next));
+      setSubscriptions((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -256,33 +295,26 @@ export default function SubscriptionsPage() {
     }
   };
 
+  // status/billingCycle/amount/renewalDate are already applied server-side
+  // (subParams); search and student/plan sort stay client-side since the
+  // backend can't filter/sort on populated ref fields.
   const filtered = useMemo(() => {
+    if (!search) return subscriptions;
     return subscriptions.filter((s) => {
-      if (search) {
-        const hay =
-          `${s.student?.firstName || ""} ${s.student?.lastName || ""} ${s.planName || ""}`.toLowerCase();
-        if (!hay.includes(search.toLowerCase())) return false;
-      }
-      if (filterStatus && s.status !== filterStatus) return false;
-      if (filterCycle && s.billingCycle !== filterCycle) return false;
-      return true;
+      const hay =
+        `${s.student?.firstName || ""} ${s.student?.lastName || ""} ${s.planName || ""}`.toLowerCase();
+      return hay.includes(search.toLowerCase());
     });
-  }, [subscriptions, search, filterStatus, filterCycle]);
+  }, [subscriptions, search]);
 
   const displayed = useMemo(() => {
+    if (sortKey !== "student" && sortKey !== "plan") return filtered;
     const arr = [...filtered];
     arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "student")
-        cmp = (a.student?.firstName || "").localeCompare(
-          b.student?.firstName || "",
-        );
-      else if (sortKey === "plan")
-        cmp = (a.planName || "").localeCompare(b.planName || "");
-      else if (sortKey === "amount") cmp = a.amount - b.amount;
-      else if (sortKey === "renewalDate")
-        cmp =
-          new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
+      const cmp =
+        sortKey === "student"
+          ? (a.student?.firstName || "").localeCompare(b.student?.firstName || "")
+          : (a.planName || "").localeCompare(b.planName || "");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -674,6 +706,21 @@ export default function SubscriptionsPage() {
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {subscriptions.length} of {total}
+              </p>
+              <button
+                onClick={loadMoreSubs}
+                disabled={loadingMore}
+                className="border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppLayout>

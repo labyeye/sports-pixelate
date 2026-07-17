@@ -15,6 +15,17 @@ function safePagination(query, defaultLimit = 20, maxLimit = 100) {
   return { page, limit, skip: (page - 1) * limit };
 }
 
+// Builds a Mongoose sort object from `sortBy`/`sortDir` query params, restricted
+// to a whitelist so callers can't sort on unindexed or sensitive fields.
+// `fallback` is used when sortBy is absent or not in the whitelist.
+function safeSort(query, allowedFields, fallback) {
+  const dir = query.sortDir === "asc" ? 1 : -1;
+  if (query.sortBy && allowedFields.includes(query.sortBy)) {
+    return { [query.sortBy]: dir };
+  }
+  return fallback;
+}
+
 function checkField(value, rule, fieldName, errors) {
   const isEmpty = value === undefined || value === null || value === "";
 
@@ -104,4 +115,5 @@ module.exports = {
   validateMongoId,
   escapeRegex,
   safePagination,
+  safeSort,
 };

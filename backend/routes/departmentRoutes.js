@@ -1,11 +1,13 @@
 const express = require("express");
 const {
   getDepartments,
+  getDepartment,
   createDepartment,
   updateDepartment,
   deleteDepartment,
 } = require("../controllers/departmentController");
 const { protect, authorize } = require("../middleware/auth");
+const { validateMongoId } = require("../middleware/validate");
 const router = express.Router();
 
 router
@@ -14,7 +16,18 @@ router
   .post(protect, authorize("super_admin", "hr_manager"), createDepartment);
 router
   .route("/:id")
-  .put(protect, authorize("super_admin", "hr_manager"), updateDepartment)
-  .delete(protect, authorize("super_admin", "hr_manager"), deleteDepartment);
+  .get(protect, validateMongoId("id"), getDepartment)
+  .put(
+    protect,
+    authorize("super_admin", "hr_manager"),
+    validateMongoId("id"),
+    updateDepartment,
+  )
+  .delete(
+    protect,
+    authorize("super_admin", "hr_manager"),
+    validateMongoId("id"),
+    deleteDepartment,
+  );
 
 module.exports = router;

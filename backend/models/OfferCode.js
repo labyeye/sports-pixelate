@@ -36,13 +36,6 @@ const offerCodeSchema = new mongoose.Schema(
     flatRate: { type: Number, default: null, min: 1 },
     percentOff: { type: Number, default: null, min: 1, max: 100 },
 
-    // Restrict to a single tier, or null to allow on any tier
-    applicableTier: {
-      type: String,
-      enum: ["standard", "whatsapp", null],
-      default: null,
-    },
-
     maxUses: { type: Number, required: true, default: 200 },
     usedCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },

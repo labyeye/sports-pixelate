@@ -216,6 +216,11 @@ export const payrollAPI = {
       method: 'PUT',
       body: JSON.stringify({ paymentMode }),
     }),
+  bulkMarkPaid: (month: number, year: number, paymentMode?: string) =>
+    request('/payroll/bulk-paid', {
+      method: 'POST',
+      body: JSON.stringify({ month, year, paymentMode }),
+    }),
   markSlipReceived: (id: string, status: 'received' | 'not_received') =>
     request(`/payroll/${id}/slip-received`, {
       method: 'PATCH',
@@ -224,7 +229,11 @@ export const payrollAPI = {
 };
 
 export const departmentAPI = {
-  getAll: () => request('/departments'),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/departments${q}`);
+  },
+  getOne: (id: string) => request(`/departments/${id}`),
   create: (body: object) =>
     request('/departments', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: object) =>
@@ -253,7 +262,6 @@ export const billingAPI = {
     billingCycle: 'monthly' | 'yearly',
     gateway: 'razorpay' | 'hdfc' = 'razorpay',
     company?: object,
-    tier: 'standard' | 'whatsapp' = 'standard',
   ) =>
     request('/billing/create-order', {
       method: 'POST',
@@ -262,7 +270,6 @@ export const billingAPI = {
         billingCycle,
         gateway,
         company,
-        tier,
       }),
     }),
   verifyPayment: (payload: object) =>
@@ -466,7 +473,10 @@ export const studentAttendanceAPI = {
 };
 
 export const sportsPlanAPI = {
-  getAll: () => request('/plans'),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/plans${q}`);
+  },
   create: (body: object) =>
     request('/plans', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: object) =>
@@ -475,7 +485,10 @@ export const sportsPlanAPI = {
 };
 
 export const tournamentAPI = {
-  getAll: () => request('/tournaments'),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/tournaments${q}`);
+  },
   getOne: (id: string) => request(`/tournaments/${id}`),
   create: (body: object) =>
     request('/tournaments', { method: 'POST', body: JSON.stringify(body) }),
@@ -521,7 +534,10 @@ export const tournamentAPI = {
 };
 
 export const subscriptionAPI = {
-  getAll: () => request('/subscriptions'),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/subscriptions${q}`);
+  },
   createOrder: (body: {
     studentId: string;
     planId: string;
@@ -591,7 +607,10 @@ export const inventoryAPI = {
 };
 
 export const facilityAPI = {
-  getAll: () => request('/facilities'),
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/facilities${q}`);
+  },
   create: (body: object) =>
     request('/facilities', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: object) =>

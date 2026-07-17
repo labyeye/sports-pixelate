@@ -62,15 +62,55 @@ export default function DepartmentsPage() {
     "name",
   );
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // "headcount" isn't a stored field (it's computed per-request from a
+  // separate Employee count), so it can't be pushed to the backend sort —
+  // it's sorted client-side over whatever page is currently loaded.
+  const deptParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      if (search) params.search = search;
+      if (sortKey !== "headcount") {
+        params.sortBy = sortKey;
+        params.sortDir = sortDir;
+      }
+      return params;
+    },
+    [search, sortKey, sortDir],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await departmentAPI.getAll();
-      if (res.success) setDepartments(res.data);
+      const res = await departmentAPI.getAll(deptParams(1));
+      if (res.success) {
+        setDepartments(res.data);
+        setPage(1);
+        setPages(res.pages || 1);
+        setTotal(res.total ?? res.data.length);
+      }
     } catch {}
     setLoading(false);
-  }, []);
+  }, [deptParams]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await departmentAPI.getAll(deptParams(next));
+      if (res.success) {
+        setDepartments((p) => [...p, ...res.data]);
+        setPage(next);
+        setPages(res.pages || 1);
+      }
+    } catch {}
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -137,29 +177,22 @@ export default function DepartmentsPage() {
     } catch {}
   };
 
-  const displayedDepts = [...departments]
-    .filter(
-      (d) =>
-        !search ||
-        d.name.toLowerCase().includes(search.toLowerCase()) ||
-        d.code.toLowerCase().includes(search.toLowerCase()),
-    )
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortKey === "headcount")
-        cmp = (a.headcount ?? 0) - (b.headcount ?? 0);
-      else if (sortKey === "budget") cmp = (a.budget ?? 0) - (b.budget ?? 0);
-      return sortDir === "asc" ? cmp : -cmp;
-    });
+  const displayedDepts = [...departments].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === "name") cmp = a.name.localeCompare(b.name);
+    else if (sortKey === "headcount")
+      cmp = (a.headcount ?? 0) - (b.headcount ?? 0);
+    else if (sortKey === "budget") cmp = (a.budget ?? 0) - (b.budget ?? 0);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
 
   return (
     <AppLayout title="Departments">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <p className="text-sm font-medium text-muted-foreground">
-          {departments.length} department{departments.length !== 1 ? "s" : ""} ·{" "}
-          {departments.reduce((s, d) => s + (d.headcount || 0), 0)} total
-          headcount
+          {total} department{total !== 1 ? "s" : ""} ·{" "}
+          {departments.reduce((s, d) => s + (d.headcount || 0), 0)} headcount
+          loaded
         </p>
         <button
           onClick={openAdd}
@@ -212,7 +245,7 @@ export default function DepartmentsPage() {
         <div className="flex items-center justify-center h-48">
           <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
         </div>
-      ) : departments.length === 0 ? (
+      ) : total === 0 && !search ? (
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
           <Building2 className="w-12 h-12 text-muted-foreground/30 mb-3" />
           <p className="font-bold text-black">No departments yet</p>
@@ -351,6 +384,21 @@ export default function DepartmentsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {page < pages && (
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <p className="text-xs text-muted-foreground">
+            Showing {departments.length} of {total}
+          </p>
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+          >
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
         </div>
       )}
 

@@ -5,18 +5,37 @@ const SportsPlan = require("../models/SportsPlan");
 const Student = require("../models/Student");
 const razorpayService = require("../services/razorpayService");
 const { validateMagicBytes } = require("../middleware/upload");
+const { safePagination, safeSort } = require("../middleware/validate");
+
+const SUBSCRIPTION_SORT_FIELDS = ["renewalDate", "startDate", "amount", "createdAt"];
 
 // owner/staff: every subscription in the academy. parent: only their children's.
 const getSubscriptions = asyncHandler(async (req, res) => {
+  const { page, limit, skip } = safePagination(req.query);
+  const { status, billingCycle } = req.query;
+
   const filter = { company: req.user.company };
   if (req.user.role === "parent") {
     filter.student = { $in: req.user.children || [] };
   }
+  if (status) filter.status = status;
+  if (billingCycle) filter.billingCycle = billingCycle;
+
+  const sort = safeSort(req.query, SUBSCRIPTION_SORT_FIELDS, { createdAt: -1 });
+  const total = await StudentSubscription.countDocuments(filter);
   const subscriptions = await StudentSubscription.find(filter)
     .populate("student", "firstName lastName studentId sport")
     .populate("plan", "name sport")
-    .sort({ createdAt: -1 });
-  res.json({ success: true, data: subscriptions });
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
+  res.json({
+    success: true,
+    data: subscriptions,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 // Parent (or owner, e.g. enrolling a walk-in) starts a Razorpay order to

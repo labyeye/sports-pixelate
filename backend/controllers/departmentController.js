@@ -1,14 +1,39 @@
 const asyncHandler = require("express-async-handler");
 const Department = require("../models/Department");
 const Employee = require("../models/Employee");
+const {
+  escapeRegex,
+  safePagination,
+  safeSort,
+} = require("../middleware/validate");
 
+const DEPARTMENT_SORT_FIELDS = ["name", "code", "budget", "createdAt"];
+
+// Default limit is high because several screens (Employees form, Manage page)
+// call getAll() with no params expecting the full department list, not just
+// a page — departments are naturally few per company. Only DepartmentsPage's
+// own list view passes an explicit lower `limit` for its load-more paging.
 const getDepartments = asyncHandler(async (req, res) => {
-  const departments = await Department.find({
-    company: req.user.company,
-    status: "active",
-  })
+  const { page, limit, skip } = safePagination(req.query, 100, 200);
+  const { search, status } = req.query;
+
+  const filter = { company: req.user.company };
+  filter.status = status || "active";
+  if (search) {
+    const s = escapeRegex(search.slice(0, 100));
+    filter.$or = [
+      { name: { $regex: s, $options: "i" } },
+      { code: { $regex: s, $options: "i" } },
+    ];
+  }
+
+  const sort = safeSort(req.query, DEPARTMENT_SORT_FIELDS, { name: 1 });
+  const total = await Department.countDocuments(filter);
+  const departments = await Department.find(filter)
     .populate("head", "name email")
-    .sort({ name: 1 });
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
 
   const withCounts = await Promise.all(
     departments.map(async (d) => {
@@ -21,7 +46,30 @@ const getDepartments = asyncHandler(async (req, res) => {
     }),
   );
 
-  res.json({ success: true, data: withCounts });
+  res.json({
+    success: true,
+    data: withCounts,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
+});
+
+const getDepartment = asyncHandler(async (req, res) => {
+  const dept = await Department.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  }).populate("head", "name email");
+  if (!dept) {
+    res.status(404);
+    throw new Error("Department not found");
+  }
+  const headcount = await Employee.countDocuments({
+    company: req.user.company,
+    department: dept._id,
+    status: "active",
+  });
+  res.json({ success: true, data: { ...dept.toObject(), headcount } });
 });
 
 const createDepartment = asyncHandler(async (req, res) => {
@@ -114,6 +162,7 @@ const deleteDepartment = asyncHandler(async (req, res) => {
 
 module.exports = {
   getDepartments,
+  getDepartment,
   createDepartment,
   updateDepartment,
   deleteDepartment,

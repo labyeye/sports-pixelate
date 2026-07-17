@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { inventoryAPI } from "@/services/api";
+import { inventoryAPI, studentAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,22 @@ import {
   ArrowDown,
   Boxes,
   AlertTriangle,
+  Edit2,
+  Trash2,
+  UserCheck,
+  Undo2,
+  Truck,
 } from "lucide-react";
+
+interface Assignment {
+  _id: string;
+  assignedTo: { _id: string; firstName: string; lastName: string } | string;
+  assignedToModel: "Student" | "Employee";
+  quantity: number;
+  assignedAt: string;
+  returnedAt?: string;
+  notes?: string;
+}
 
 interface Item {
   _id: string;
@@ -27,8 +42,16 @@ interface Item {
   sport: string;
   totalQuantity: number;
   availableQuantity: number;
+  onOrderQuantity?: number;
   unitCost?: number;
   reorderThreshold: number;
+  assignments?: Assignment[];
+}
+
+interface Person {
+  _id: string;
+  firstName: string;
+  lastName: string;
 }
 
 type SortKey = "name" | "category" | "available" | "total";
@@ -42,8 +65,19 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [txnFor, setTxnFor] = useState<Item | null>(null);
   const [txnQty, setTxnQty] = useState("1");
+  const [assignFor, setAssignFor] = useState<Item | null>(null);
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    assignedToModel: "Student" as "Student" | "Employee",
+    assignedTo: "",
+    quantity: "1",
+    notes: "",
+  });
+  const [assignPeople, setAssignPeople] = useState<Person[]>([]);
+  const [assignPeopleLoading, setAssignPeopleLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     category: "equipment",
@@ -59,18 +93,61 @@ export default function InventoryPage() {
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const SORT_FIELD: Record<SortKey, string> = {
+    name: "name",
+    category: "category",
+    available: "availableQuantity",
+    total: "totalQuantity",
+  };
+
+  const itemParams = useCallback(
+    (pageNum: number): Record<string, string> => {
+      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      if (search) params.search = search;
+      if (filterCategory) params.category = filterCategory;
+      if (filterSport) params.sport = filterSport;
+      if (lowStockOnly) params.lowStock = "true";
+      params.sortBy = SORT_FIELD[sortKey];
+      params.sortDir = sortDir;
+      return params;
+    },
+    [search, filterCategory, filterSport, lowStockOnly, sortKey, sortDir],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await inventoryAPI.getAll();
+      const r = await inventoryAPI.getAll(itemParams(1));
       setItems(r.data);
+      setPage(1);
+      setPages(r.pages || 1);
+      setTotal(r.total ?? r.data.length);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [itemParams]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pages) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await inventoryAPI.getAll(itemParams(next));
+      setItems((p) => [...p, ...r.data]);
+      setPage(next);
+      setPages(r.pages || 1);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     load();
@@ -85,7 +162,21 @@ export default function InventoryPage() {
       unitCost: "",
       reorderThreshold: "0",
     });
+    setEditingId(null);
     setShowForm(false);
+  };
+
+  const startEdit = (i: Item) => {
+    setEditingId(i._id);
+    setForm({
+      name: i.name,
+      category: i.category,
+      sport: i.sport || "",
+      totalQuantity: String(i.totalQuantity),
+      unitCost: String(i.unitCost || ""),
+      reorderThreshold: String(i.reorderThreshold),
+    });
+    setShowForm(true);
   };
 
   const handleSave = async () => {
@@ -96,14 +187,21 @@ export default function InventoryPage() {
     }
     setSaving(true);
     try {
-      const r = await inventoryAPI.create({
+      const payload = {
         ...form,
         totalQuantity: Number(form.totalQuantity) || 0,
         unitCost: Number(form.unitCost) || 0,
         reorderThreshold: Number(form.reorderThreshold) || 0,
-      });
-      setItems((p) => [...p, r.data]);
-      toast({ title: "Item added" });
+      };
+      if (editingId) {
+        const r = await inventoryAPI.update(editingId, payload);
+        setItems((p) => p.map((x) => (x._id === editingId ? r.data : x)));
+        toast({ title: "Item updated" });
+      } else {
+        const r = await inventoryAPI.create(payload);
+        setItems((p) => [...p, r.data]);
+        toast({ title: "Item added" });
+      }
       resetForm();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -112,8 +210,19 @@ export default function InventoryPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this inventory item? This cannot be undone.")) return;
+    try {
+      await inventoryAPI.delete(id);
+      setItems((p) => p.filter((x) => x._id !== id));
+      toast({ title: "Item deleted" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleTxn = async (
-    type: "purchase" | "consume" | "damage" | "return",
+    type: "order" | "purchase" | "consume" | "damage" | "return",
   ) => {
     if (!txnFor) return;
     const qty = Number(txnQty);
@@ -135,37 +244,83 @@ export default function InventoryPage() {
     }
   };
 
-  const sportOptions = useMemo(
-    () => Array.from(new Set(items.map((i) => i.sport).filter(Boolean))).sort(),
-    [items],
-  );
-
-  const filtered = useMemo(() => {
-    return items.filter((i) => {
-      if (search && !i.name.toLowerCase().includes(search.toLowerCase()))
-        return false;
-      if (filterCategory && i.category !== filterCategory) return false;
-      if (filterSport && i.sport !== filterSport) return false;
-      if (lowStockOnly && i.availableQuantity > i.reorderThreshold)
-        return false;
-      return true;
+  const openAssign = (item: Item) => {
+    setAssignFor(item);
+    setAssignForm({
+      assignedToModel: "Student",
+      assignedTo: "",
+      quantity: "1",
+      notes: "",
     });
-  }, [items, search, filterCategory, filterSport, lowStockOnly]);
+  };
 
-  const displayed = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortKey === "category")
-        cmp = a.category.localeCompare(b.category);
-      else if (sortKey === "available")
-        cmp = a.availableQuantity - b.availableQuantity;
-      else if (sortKey === "total") cmp = a.totalQuantity - b.totalQuantity;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir]);
+  useEffect(() => {
+    if (!assignFor) return;
+    setAssignPeopleLoading(true);
+    setAssignPeople([]);
+    const api = assignForm.assignedToModel === "Student" ? studentAPI : employeeAPI;
+    api
+      .getAll({ limit: "500" })
+      .then((r: any) => setAssignPeople(r.data || []))
+      .catch(() => {})
+      .finally(() => setAssignPeopleLoading(false));
+  }, [assignFor, assignForm.assignedToModel]);
+
+  const handleAssign = async () => {
+    if (!assignFor) return;
+    const qty = Number(assignForm.quantity);
+    if (!assignForm.assignedTo) {
+      toast({ title: "Select who is taking the item", variant: "destructive" });
+      return;
+    }
+    if (!qty || qty <= 0) {
+      toast({ title: "Enter a valid quantity", variant: "destructive" });
+      return;
+    }
+    setAssignSaving(true);
+    try {
+      const r = await inventoryAPI.assign(assignFor._id, {
+        assignedTo: assignForm.assignedTo,
+        assignedToModel: assignForm.assignedToModel,
+        quantity: qty,
+        notes: assignForm.notes || undefined,
+      });
+      setItems((p) => p.map((i) => (i._id === assignFor._id ? r.data : i)));
+      setAssignFor(r.data);
+      setAssignForm((f) => ({ ...f, assignedTo: "", quantity: "1", notes: "" }));
+      toast({ title: "Item checked out" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
+  const handleReturnAssignment = async (assignmentId: string) => {
+    if (!assignFor) return;
+    try {
+      const r = await inventoryAPI.returnAssignment(assignFor._id, assignmentId);
+      setItems((p) => p.map((i) => (i._id === assignFor._id ? r.data : i)));
+      setAssignFor(r.data);
+      toast({ title: "Item returned" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
+  useEffect(() => {
+    inventoryAPI
+      .getAll({ limit: "200" })
+      .then((r) =>
+        setSportOptions(
+          Array.from(new Set((r.data as Item[]).map((i) => i.sport).filter(Boolean))).sort(),
+        ),
+      )
+      .catch(() => {});
+  }, []);
+
+  const displayed = items;
 
   const lowStockCount = items.filter(
     (i) => i.availableQuantity <= i.reorderThreshold,
@@ -204,7 +359,7 @@ export default function InventoryPage() {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Total Items
             </p>
-            <p className="text-2xl font-bold text-black">{items.length}</p>
+            <p className="text-2xl font-bold text-black">{total}</p>
           </div>
         </div>
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -316,7 +471,9 @@ export default function InventoryPage() {
 
       {showForm && canManage && (
         <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">Add Inventory Item</h3>
+          <h3 className="font-bold text-base mb-4">
+            {editingId ? "Edit Inventory Item" : "Add Inventory Item"}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase mb-1">
@@ -426,9 +583,14 @@ export default function InventoryPage() {
 
       {txnFor && (
         <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">
+          <h3 className="font-bold text-base mb-1">
             Stock Movement — {txnFor.name}
           </h3>
+          {!!txnFor.onOrderQuantity && (
+            <p className="text-xs font-bold text-purple-600 mb-3">
+              {txnFor.onOrderQuantity} unit{txnFor.onOrderQuantity === 1 ? "" : "s"} on order, not yet received
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="number"
@@ -437,10 +599,16 @@ export default function InventoryPage() {
               className="w-28 border-2 border-black px-3 py-2 text-sm font-medium outline-none"
             />
             <button
+              onClick={() => handleTxn("order")}
+              className="flex items-center gap-1 bg-purple-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
+            >
+              <Truck className="w-3.5 h-3.5" /> Order Placed
+            </button>
+            <button
               onClick={() => handleTxn("purchase")}
               className="flex items-center gap-1 bg-green-500 text-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
             >
-              <ArrowDownCircle className="w-3.5 h-3.5" /> Purchase
+              <ArrowDownCircle className="w-3.5 h-3.5" /> Received
             </button>
             <button
               onClick={() => handleTxn("return")}
@@ -467,6 +635,129 @@ export default function InventoryPage() {
               <X className="w-4 h-4" />
             </button>
           </div>
+        </div>
+      )}
+
+      {assignFor && (
+        <div className="bg-white border-2 border-black p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-base">
+              Check Out — {assignFor.name}
+            </h3>
+            <button onClick={() => setAssignFor(null)} className="p-2 border-2 border-black">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Record who is taking this item so you know where it is and when it's due back.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Taken by</label>
+              <select
+                value={assignForm.assignedToModel}
+                onChange={(e) =>
+                  setAssignForm((f) => ({
+                    ...f,
+                    assignedToModel: e.target.value as "Student" | "Employee",
+                    assignedTo: "",
+                  }))
+                }
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              >
+                <option value="Student">Student</option>
+                <option value="Employee">Employee / Coach</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase mb-1">
+                {assignForm.assignedToModel}
+              </label>
+              <select
+                value={assignForm.assignedTo}
+                onChange={(e) =>
+                  setAssignForm((f) => ({ ...f, assignedTo: e.target.value }))
+                }
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                disabled={assignPeopleLoading}
+              >
+                <option value="">
+                  {assignPeopleLoading ? "Loading..." : "Select person"}
+                </option>
+                {assignPeople.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.firstName} {p.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Quantity</label>
+              <input
+                type="number"
+                min={1}
+                value={assignForm.quantity}
+                onChange={(e) =>
+                  setAssignForm((f) => ({ ...f, quantity: e.target.value }))
+                }
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+              />
+            </div>
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold uppercase mb-1">Notes (optional)</label>
+              <input
+                value={assignForm.notes}
+                onChange={(e) =>
+                  setAssignForm((f) => ({ ...f, notes: e.target.value }))
+                }
+                placeholder="e.g. for weekend tournament"
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+              />
+            </div>
+            <button
+              onClick={handleAssign}
+              disabled={assignSaving}
+              className="flex items-center justify-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-xs uppercase disabled:opacity-60"
+            >
+              {assignSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <UserCheck className="w-4 h-4" />
+              )}
+              Record
+            </button>
+          </div>
+
+          {!!assignFor.assignments?.filter((a) => !a.returnedAt).length && (
+            <div className="mt-5 border-t-2 border-black pt-4">
+              <p className="text-xs font-bold uppercase mb-2">Currently taken out</p>
+              <div className="flex flex-col gap-2">
+                {assignFor.assignments
+                  .filter((a) => !a.returnedAt)
+                  .map((a) => (
+                    <div
+                      key={a._id}
+                      className="flex flex-wrap items-center justify-between gap-2 border-2 border-black px-3 py-2 text-sm"
+                    >
+                      <span className="font-bold text-black">
+                        {typeof a.assignedTo === "object"
+                          ? `${a.assignedTo.firstName} ${a.assignedTo.lastName}`
+                          : "Unknown"}{" "}
+                        <span className="font-medium text-muted-foreground">
+                          ({a.assignedToModel}) · Qty {a.quantity}
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => handleReturnAssignment(a._id)}
+                        className="flex items-center gap-1 bg-blue-500 text-white border-2 border-black px-2 py-1 text-[10px] font-bold uppercase"
+                      >
+                        <Undo2 className="w-3 h-3" /> Mark Returned
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -515,13 +806,38 @@ export default function InventoryPage() {
                       /{i.totalQuantity} available
                     </span>
                   </p>
+                  {!!i.onOrderQuantity && (
+                    <p className="text-xs font-bold text-purple-600 flex items-center gap-1 mt-1">
+                      <Truck className="w-3 h-3" /> {i.onOrderQuantity} on order
+                    </p>
+                  )}
                   {canManage && (
-                    <button
-                      onClick={() => setTxnFor(i)}
-                      className="mt-3 w-full border-2 border-black bg-white py-2 text-xs font-bold hover:bg-[#024BAB]/5"
-                    >
-                      Record Movement
-                    </button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => openAssign(i)}
+                        className="flex-1 border-2 border-black bg-white py-2 text-xs font-bold hover:bg-[#024BAB]/5 flex items-center justify-center gap-1"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" /> Check Out
+                      </button>
+                      <button
+                        onClick={() => setTxnFor(i)}
+                        className="flex-1 border-2 border-black bg-white py-2 text-xs font-bold hover:bg-[#024BAB]/5"
+                      >
+                        Record Movement
+                      </button>
+                      <button
+                        onClick={() => startEdit(i)}
+                        className="p-2 border-2 border-black bg-white hover:bg-[#024BAB]/5"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(i._id)}
+                        className="p-2 border-2 border-black bg-white hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -574,6 +890,11 @@ export default function InventoryPage() {
                         <span className="text-muted-foreground font-medium">
                           /{i.totalQuantity}
                         </span>
+                        {!!i.onOrderQuantity && (
+                          <span className="block text-[10px] font-bold text-purple-600 flex items-center gap-1 mt-0.5">
+                            <Truck className="w-3 h-3" /> {i.onOrderQuantity} on order
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-black">
                         {i.reorderThreshold}
@@ -591,12 +912,34 @@ export default function InventoryPage() {
                       </td>
                       {canManage && (
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => setTxnFor(i)}
-                            className="text-xs font-bold text-[#024BAB] hover:underline"
-                          >
-                            Record movement →
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openAssign(i)}
+                              className="text-xs font-bold text-[#024BAB] hover:underline mr-2"
+                            >
+                              Check out →
+                            </button>
+                            <button
+                              onClick={() => setTxnFor(i)}
+                              className="text-xs font-bold text-[#024BAB] hover:underline mr-2"
+                            >
+                              Record movement →
+                            </button>
+                            <button
+                              onClick={() => startEdit(i)}
+                              className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(i._id)}
+                              className="p-1.5 border-2 border-transparent hover:border-black hover:bg-red-50 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -605,6 +948,22 @@ export default function InventoryPage() {
               </tbody>
             </table>
           </div>
+
+          {page < pages && (
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Showing {items.length} of {total}
+              </p>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase hover:bg-[#024BAB]/5 disabled:opacity-60"
+              >
+                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </AppLayout>
