@@ -72,6 +72,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/internal/stats", require("./routes/statsRoutes"));
+app.use("/api/crm", require("./routes/crmRoutes"));
 
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,

@@ -75,6 +75,17 @@ function toFormData(fields: Record<string, RNFile | undefined>): FormData {
   return form;
 }
 
+function toFormDataWithFields(
+  textFields: Record<string, string | undefined>,
+  files: Record<string, RNFile | undefined>,
+): FormData {
+  const form = toFormData(files);
+  for (const [key, value] of Object.entries(textFields)) {
+    if (value !== undefined) form.append(key, value);
+  }
+  return form;
+}
+
 export const authAPI = {
   login: (email: string, password: string) =>
     request('/auth/login', {
@@ -421,6 +432,12 @@ export const studentAPI = {
       `/students/${id}/guardians/${guardianId}/photo`,
       toFormData({ photo }),
     ),
+  enrollFace: (id: string, photo: RNFile) =>
+    upload(`/students/${id}/face-enroll`, toFormData({ photo })),
+};
+
+export const sportAPI = {
+  getAll: () => request('/sports'),
 };
 
 export const studentAttendanceAPI = {
@@ -438,6 +455,14 @@ export const studentAttendanceAPI = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  markByFace: (
+    fields: { student: string; date: string; batch?: string },
+    selfie: RNFile,
+  ) =>
+    upload(
+      '/student-attendance/face-mark',
+      toFormDataWithFields(fields, { selfie }),
+    ),
 };
 
 export const sportsPlanAPI = {
@@ -547,6 +572,8 @@ export const inventoryAPI = {
   update: (id: string, body: object) =>
     request(`/inventory/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (id: string) => request(`/inventory/${id}`, { method: 'DELETE' }),
+  uploadPhoto: (id: string, photo: RNFile) =>
+    upload(`/inventory/${id}/photo`, toFormData({ photo })),
   recordTransaction: (id: string, body: object) =>
     request(`/inventory/${id}/transactions`, {
       method: 'POST',

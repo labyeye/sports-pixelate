@@ -184,6 +184,28 @@ const uploadGuardianPhoto = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("photo");
 
+// Inventory item photo upload
+const inventoryPhotoStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    const dir = path.join(UPLOAD_BASE, "inventory-photos");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    cb(null, `item_${req.params.id}_${Date.now()}${ext}`);
+  },
+});
+
+const uploadInventoryPhoto = multer({
+  storage: inventoryPhotoStorage,
+  fileFilter(_req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("photo");
+
 // Document vault — generic file upload to disk
 const documentVaultStorage = multer.diskStorage({
   destination(_req, _file, cb) {
@@ -246,5 +268,6 @@ module.exports = {
   uploadGuardianPhoto,
   uploadAttendanceSelfie,
   uploadFaceEnrollPhoto,
+  uploadInventoryPhoto,
   validateMagicBytes,
 };

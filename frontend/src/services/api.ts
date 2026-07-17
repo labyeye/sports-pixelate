@@ -305,6 +305,7 @@ export const billingAPI = {
       panNumber: string;
     },
     tier: "standard" | "whatsapp" = "standard",
+    offerCode?: string,
   ) =>
     request<{ success: boolean; data: any }>("/billing/create-order", {
       method: "POST",
@@ -314,8 +315,21 @@ export const billingAPI = {
         gateway,
         company,
         tier,
+        offerCode: offerCode || undefined,
       }),
     }),
+  validateOfferCode: (
+    code: string,
+    studentCount?: number,
+    tier: "standard" | "whatsapp" = "standard",
+  ) =>
+    request<{ success: boolean; message: string; data: any }>(
+      "/billing/validate-offer",
+      {
+        method: "POST",
+        body: JSON.stringify({ code, studentCount, tier }),
+      },
+    ),
   verifyRazorpay: (payload: {
     razorpayOrderId: string;
     razorpayPaymentId: string;

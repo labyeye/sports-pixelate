@@ -47,6 +47,10 @@ export default function BillingPage() {
   const [newStudentCount, setNewStudentCount] = useState<number | "">("");
   const [tier, setTier] = useState<Tier>("standard");
   const [gatewayModal, setGatewayModal] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -132,6 +136,32 @@ export default function BillingPage() {
     }
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponChecking(true);
+    setCouponError("");
+    try {
+      const res = await billingAPI.validateOfferCode(
+        couponCode.trim(),
+        Number(newStudentCount) || undefined,
+        tier,
+      );
+      setAppliedCoupon(res.data);
+      toast({ title: "Coupon applied", description: res.message });
+    } catch (err: any) {
+      setAppliedCoupon(null);
+      setCouponError(err.message || "Invalid coupon code");
+    } finally {
+      setCouponChecking(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError("");
+  };
+
   const handleUpdateStudentCount = () => {
     const count = Number(newStudentCount);
     if (!count || count < 1) {
@@ -157,6 +187,7 @@ export default function BillingPage() {
         gateway,
         undefined,
         tier,
+        appliedCoupon?.code,
       );
       if (!res.success) throw new Error("Failed to create order");
       const order = res.data;
@@ -385,7 +416,10 @@ export default function BillingPage() {
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button
                 type="button"
-                onClick={() => setTier("standard")}
+                onClick={() => {
+                  setTier("standard");
+                  handleRemoveCoupon();
+                }}
                 className={cn(
                   "text-left p-3 border-2 transition-all",
                   tier === "standard"
@@ -400,7 +434,10 @@ export default function BillingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTier("whatsapp")}
+                onClick={() => {
+                  setTier("whatsapp");
+                  handleRemoveCoupon();
+                }}
                 className={cn(
                   "text-left p-3 border-2 transition-all",
                   tier === "whatsapp"
@@ -432,13 +469,83 @@ export default function BillingPage() {
               className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
             />
 
+            <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
+              Coupon code
+            </label>
+            <div className="flex gap-2 mb-1">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponError("");
+                }}
+                disabled={!!appliedCoupon}
+                placeholder="Enter code"
+                className="flex-1 min-w-0 border-2 border-black px-3 py-2 text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[#024BAB] disabled:bg-gray-100"
+              />
+              {appliedCoupon ? (
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="border-2 border-black px-3 py-2 text-xs font-bold bg-white hover:bg-gray-50 shrink-0"
+                >
+                  Remove
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponChecking || !couponCode.trim()}
+                  className="border-2 border-black px-3 py-2 text-xs font-bold bg-white hover:bg-gray-50 disabled:opacity-50 shrink-0"
+                >
+                  {couponChecking ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    "Apply"
+                  )}
+                </button>
+              )}
+            </div>
+            {couponError && (
+              <p className="text-xs text-[#EF4444] font-medium mb-3">
+                {couponError}
+              </p>
+            )}
+            {appliedCoupon && (
+              <p className="text-xs text-[#00C48C] font-bold mb-3">
+                "{appliedCoupon.code}" applied —{" "}
+                {appliedCoupon.discountType === "bonus_months" &&
+                  `${appliedCoupon.bonusMonths} bonus month(s)`}
+                {appliedCoupon.discountType === "flat_rate" &&
+                  `₹${appliedCoupon.flatRate}/student/year`}
+                {appliedCoupon.discountType === "percent_off" &&
+                  `${appliedCoupon.percentOff}% off`}
+              </p>
+            )}
+            {!appliedCoupon && !couponError && <div className="mb-3" />}
+
             {Number(newStudentCount) > 0 && (
               <div className="mb-4">
                 {(() => {
                   const count = Number(newStudentCount);
-                  const yearly = count * RATE_PER_STUDENT[tier];
+                  const baseRate = RATE_PER_STUDENT[tier];
+                  let rate = baseRate;
+                  if (appliedCoupon?.discountType === "flat_rate" && appliedCoupon.flatRate) {
+                    rate = appliedCoupon.flatRate;
+                  }
+                  let yearly = count * rate;
+                  if (appliedCoupon?.discountType === "percent_off" && appliedCoupon.percentOff) {
+                    yearly = Math.round(yearly * (1 - appliedCoupon.percentOff / 100));
+                  }
+                  const discounted = yearly !== count * baseRate;
                   return (
                     <>
+                      {discounted && (
+                        <span className="text-sm font-medium text-muted-foreground line-through mr-2">
+                          ₹{(count * baseRate).toLocaleString("en-IN")}
+                        </span>
+                      )}
                       <span className="font-display font-bold text-3xl text-black">
                         ₹{yearly.toLocaleString("en-IN")}
                       </span>
@@ -446,7 +553,9 @@ export default function BillingPage() {
                         /yr
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
-                        ₹{RATE_PER_STUDENT[tier]}/student/year
+                        ₹{rate}/student/year
+                        {appliedCoupon?.discountType === "bonus_months" &&
+                          ` + ${appliedCoupon.bonusMonths} bonus month(s)`}
                       </p>
                     </>
                   );

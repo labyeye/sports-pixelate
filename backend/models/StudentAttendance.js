@@ -15,7 +15,7 @@ const studentAttendanceSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["present", "absent", "excused"],
+      enum: ["present", "late", "absent", "excused"],
       default: "absent",
     },
     batch: { type: String, default: "" }, // session label, e.g. "Morning U-12"

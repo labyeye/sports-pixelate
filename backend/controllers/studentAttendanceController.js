@@ -1,25 +1,62 @@
 const asyncHandler = require("express-async-handler");
+const fs = require("fs");
 const StudentAttendance = require("../models/StudentAttendance");
 const Student = require("../models/Student");
+const Employee = require("../models/Employee");
 const { safePagination } = require("../middleware/validate");
+const { verifyFace } = require("../services/faceService");
+const { validateMagicBytes } = require("../middleware/upload");
 
+// Builds a UTC midnight Date for a given calendar day, independent of the
+// server process's local timezone. A plain "YYYY-MM-DD" string parses as
+// UTC midnight per spec, but the previous `setHours(0,0,0,0)` re-zeroed it
+// using the server's LOCAL timezone — on a server east of UTC that rolled
+// the stored date back to the previous day, so attendance marked "today"
+// from an IST device could be stored (and later read back) as yesterday.
 function toDateOnly(d) {
+  const match = typeof d === "string" && d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, y, m, day] = match;
+    return new Date(Date.UTC(Number(y), Number(m) - 1, Number(day)));
+  }
   const date = new Date(d);
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
 }
 
-// owner/staff: whole roster (optionally filtered by student/batch/date range).
-// parent: only their linked children's records.
+// Mirrors studentController's coachStudentFilter: a coach only ever sees
+// attendance for students assigned to them, never the whole company roster.
+async function coachEmployeeId(user) {
+  if (user.role !== "employee") return null;
+  const employee = await Employee.findOne({ user: user._id }).select(
+    "_id role",
+  );
+  if (!employee || employee.role !== "coach") return null;
+  return employee._id;
+}
+
+// owner/staff: whole roster (optionally filtered by student/sport/coach/batch/date range).
+// coach: only their assigned students. parent: only their linked children's records.
 const getStudentAttendance = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query, 50, 200);
-  const { student, batch, month, year } = req.query;
+  const { student, batch, sport, coach, month, year } = req.query;
 
   const filter = { company: req.user.company };
   if (req.user.role === "parent") {
     filter.student = { $in: req.user.children || [] };
   } else if (student) {
     filter.student = student;
+  }
+
+  const coachId = await coachEmployeeId(req.user);
+  const effectiveCoach = coachId || coach;
+  if (!filter.student && (sport || effectiveCoach)) {
+    const studentFilter = { company: req.user.company };
+    if (sport) studentFilter.sport = sport;
+    if (effectiveCoach) studentFilter.coach = effectiveCoach;
+    const matches = await Student.find(studentFilter).select("_id");
+    filter.student = { $in: matches.map((s) => s._id) };
   }
   if (batch) filter.batch = batch;
   if (month && year) {
@@ -33,6 +70,7 @@ const getStudentAttendance = asyncHandler(async (req, res) => {
   const total = await StudentAttendance.countDocuments(filter);
   const records = await StudentAttendance.find(filter)
     .populate("student", "firstName lastName studentId sport batch")
+    .populate("markedBy", "name")
     .sort({ date: -1 })
     .skip(skip)
     .limit(limit);
@@ -122,8 +160,82 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
   });
 });
 
+// Coach marks a single student present by matching a live photo against the
+// student's enrolled face embedding, mirroring the employee self check-in
+// flow in attendanceController.selfMarkAttendance.
+const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
+  const cleanup = () => {
+    if (req.file) fs.unlink(req.file.path, () => {});
+  };
+
+  if (!req.file) {
+    res.status(400);
+    throw new Error("Selfie photo is required");
+  }
+
+  try {
+    await validateMagicBytes(req.file.path); // throws + deletes file if invalid
+  } catch (err) {
+    res.status(400);
+    throw err;
+  }
+
+  const { student, date, batch, notes } = req.body;
+
+  const studentDoc = await Student.findOne({
+    _id: student,
+    company: req.user.company,
+  });
+  if (!studentDoc) {
+    cleanup();
+    res.status(404);
+    throw new Error("Student not found");
+  }
+
+  if (
+    !Array.isArray(studentDoc.faceDescriptor) ||
+    studentDoc.faceDescriptor.length !== 128
+  ) {
+    cleanup();
+    res.status(400);
+    throw new Error("Face not enrolled for this student");
+  }
+
+  const { match, distance } = await verifyFace(
+    fs.readFileSync(req.file.path),
+    req.file.filename,
+    req.file.mimetype,
+    studentDoc.faceDescriptor,
+  );
+  if (!match) {
+    cleanup();
+    res.status(403);
+    throw new Error(
+      `Face does not match enrolled records (distance: ${distance.toFixed(3)})`,
+    );
+  }
+
+  const d = toDateOnly(date || Date.now());
+  const record = await StudentAttendance.findOneAndUpdate(
+    { student, date: d },
+    {
+      company: req.user.company,
+      student,
+      date: d,
+      status: "present",
+      batch: batch ?? studentDoc.batch,
+      notes,
+      markedBy: req.user._id,
+    },
+    { upsert: true, new: true },
+  ).populate("student", "firstName lastName studentId sport batch");
+
+  res.json({ success: true, data: record, distance });
+});
+
 module.exports = {
   getStudentAttendance,
   markStudentAttendance,
   bulkMarkStudentAttendance,
+  markStudentAttendanceByFace,
 };

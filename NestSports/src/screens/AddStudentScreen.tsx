@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -14,8 +14,8 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
-import { Plus, Trash2 } from 'lucide-react-native';
-import { studentAPI, RNFile } from '../api/client';
+import { Plus, Trash2, ScanFace } from 'lucide-react-native';
+import { studentAPI, employeeAPI, RNFile } from '../api/client';
 import {
   Card,
   Avatar,
@@ -67,6 +67,15 @@ function pickPhoto(onPicked: (file: RNFile) => void) {
   ]);
 }
 
+// Face enrollment must be a live capture (never a gallery photo) so it's
+// taken under the same conditions as the coach's check-in verification photos.
+function captureFacePhoto(onPicked: (file: RNFile) => void) {
+  launchCamera({ mediaType: 'photo', quality: 0.7, cameraType: 'front' }, r => {
+    const file = r.assets?.[0] && assetToRNFile(r.assets[0]);
+    if (file) onPicked(file);
+  });
+}
+
 export default function AddStudentScreen({ navigation }: any) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -74,8 +83,23 @@ export default function AddStudentScreen({ navigation }: any) {
   const [batch, setBatch] = useState('');
   const [gender, setGender] = useState<(typeof GENDERS)[number]>('male');
   const [avatarFile, setAvatarFile] = useState<RNFile | undefined>();
+  const [faceFile, setFaceFile] = useState<RNFile | undefined>();
   const [guardians, setGuardians] = useState<GuardianForm[]>([]);
   const [saving, setSaving] = useState(false);
+  const [coaches, setCoaches] = useState<any[]>([]);
+  const [coachId, setCoachId] = useState('');
+
+  useEffect(() => {
+    employeeAPI
+      .getAll({ role: 'coach' })
+      .then((res: any) => setCoaches(res.data || []))
+      .catch(() => {});
+  }, []);
+
+  const coachOptions = useMemo(
+    () => (sport.trim() ? coaches.filter(c => c.sport === sport.trim()) : coaches),
+    [coaches, sport],
+  );
 
   const addGuardian = () => {
     setGuardians(p => [...p, { relation: 'father', name: '', phone: '' }]);
@@ -110,6 +134,7 @@ export default function AddStudentScreen({ navigation }: any) {
         sport: sport.trim(),
         batch: batch.trim(),
         gender,
+        coach: coachId || undefined,
         guardians: guardians.map(g => ({
           relation: g.relation,
           name: g.name.trim(),
@@ -120,6 +145,9 @@ export default function AddStudentScreen({ navigation }: any) {
 
       if (avatarFile) {
         await studentAPI.uploadAvatar(student._id, avatarFile).catch(() => {});
+      }
+      if (faceFile) {
+        await studentAPI.enrollFace(student._id, faceFile).catch(() => {});
       }
       for (let i = 0; i < guardians.length; i++) {
         const file = guardians[i].photo;
@@ -154,6 +182,24 @@ export default function AddStudentScreen({ navigation }: any) {
             onPress={() => pickPhoto(setAvatarFile)}
           />
           <Text style={styles.avatarHint}>Tap to add student photo</Text>
+          <TouchableOpacity
+            style={styles.faceEnrollBtn}
+            onPress={() => captureFacePhoto(setFaceFile)}
+          >
+            <ScanFace
+              size={14}
+              color={faceFile ? colors.green : colors.blue}
+              strokeWidth={2.5}
+            />
+            <Text
+              style={[
+                styles.faceEnrollText,
+                faceFile && { color: colors.green },
+              ]}
+            >
+              {faceFile ? 'Face captured — tap to retake' : 'Enroll face for attendance'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <Card>
@@ -189,6 +235,34 @@ export default function AddStudentScreen({ navigation }: any) {
             value={gender}
             onChange={setGender}
           />
+          {coachOptions.length > 0 && (
+            <View style={{ marginTop: 4 }}>
+              <Text style={styles.coachLabel}>Coach</Text>
+              <View style={styles.coachChipRow}>
+                {coachOptions.map(c => (
+                  <TouchableOpacity
+                    key={c._id}
+                    onPress={() =>
+                      setCoachId(p => (p === c._id ? '' : c._id))
+                    }
+                    style={[
+                      styles.coachChip,
+                      coachId === c._id && styles.coachChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.coachChipText,
+                        coachId === c._id && styles.coachChipTextActive,
+                      ]}
+                    >
+                      {c.firstName} {c.lastName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </Card>
 
         <Card>
@@ -269,6 +343,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
   },
+  faceEnrollBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  faceEnrollText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.blue,
+  },
+  coachLabel: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+    marginBottom: 6,
+  },
+  coachChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  coachChip: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  coachChipActive: { backgroundColor: colors.blue },
+  coachChipText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 11,
+    color: colors.black,
+  },
+  coachChipTextActive: { color: colors.white },
   guardianHeader: { marginBottom: 4 },
   guardianBlock: {
     borderWidth: 1.5,

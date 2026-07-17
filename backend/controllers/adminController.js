@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Company = require("../models/Company");
 const Subscription = require("../models/Subscription");
 const Invoice = require("../models/Invoice");
+const OfferCode = require("../models/OfferCode");
 const { FEATURES_BY_TIER } = require("../utils/planFeatures");
 
 const getSaasStats = asyncHandler(async (req, res) => {
@@ -160,4 +161,101 @@ const updateCompanyTier = asyncHandler(async (req, res) => {
   res.json({ success: true, data: subscription });
 });
 
-module.exports = { getSaasStats, updateCompanyTier };
+// ---- Offer codes (called from the company CRM to generate/manage coupons) ----
+
+const DISCOUNT_TYPES = ["bonus_months", "flat_rate", "percent_off"];
+
+const listOfferCodes = asyncHandler(async (req, res) => {
+  const offers = await OfferCode.find().sort({ createdAt: -1 });
+  res.json({ success: true, data: offers });
+});
+
+const createOfferCode = asyncHandler(async (req, res) => {
+  const {
+    code,
+    description,
+    discountType = "bonus_months",
+    bonusMonths,
+    flatRate,
+    percentOff,
+    applicableTier,
+    maxUses,
+    expiresAt,
+    createdByEmail,
+  } = req.body;
+
+  if (!code || !code.trim()) {
+    res.status(400);
+    throw new Error("Code is required");
+  }
+  if (!DISCOUNT_TYPES.includes(discountType)) {
+    res.status(400);
+    throw new Error(`discountType must be one of: ${DISCOUNT_TYPES.join(", ")}`);
+  }
+  if (discountType === "bonus_months" && !(Number(bonusMonths) > 0)) {
+    res.status(400);
+    throw new Error("bonusMonths must be a positive number for this discount type");
+  }
+  if (discountType === "flat_rate" && !(Number(flatRate) > 0)) {
+    res.status(400);
+    throw new Error("flatRate must be a positive number for this discount type");
+  }
+  if (
+    discountType === "percent_off" &&
+    !(Number(percentOff) > 0 && Number(percentOff) <= 100)
+  ) {
+    res.status(400);
+    throw new Error("percentOff must be between 1 and 100 for this discount type");
+  }
+  if (applicableTier && !["standard", "whatsapp"].includes(applicableTier)) {
+    res.status(400);
+    throw new Error("applicableTier must be standard or whatsapp");
+  }
+
+  const normalizedCode = code.toUpperCase().trim();
+  if (await OfferCode.findOne({ code: normalizedCode })) {
+    res.status(400);
+    throw new Error("An offer code with this code already exists");
+  }
+
+  const offer = await OfferCode.create({
+    code: normalizedCode,
+    description: description || "",
+    discountType,
+    bonusMonths: discountType === "bonus_months" ? Number(bonusMonths) : 0,
+    flatRate: discountType === "flat_rate" ? Number(flatRate) : null,
+    percentOff: discountType === "percent_off" ? Number(percentOff) : null,
+    applicableTier: applicableTier || null,
+    maxUses: maxUses ? Number(maxUses) : 200,
+    expiresAt: expiresAt || null,
+    createdByEmail: createdByEmail || "",
+  });
+
+  res.status(201).json({ success: true, data: offer });
+});
+
+const updateOfferCode = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { isActive, maxUses, expiresAt, description } = req.body;
+
+  const update = {};
+  if (typeof isActive === "boolean") update.isActive = isActive;
+  if (maxUses != null) update.maxUses = Number(maxUses);
+  if (expiresAt !== undefined) update.expiresAt = expiresAt || null;
+  if (description !== undefined) update.description = description;
+
+  const offer = await OfferCode.findByIdAndUpdate(id, update, { new: true });
+  if (!offer) {
+    res.status(404);
+    throw new Error("Offer code not found");
+  }
+  res.json({ success: true, data: offer });
+});
+
+module.exports = {
+  getSaasStats,
+  updateCompanyTier,
+  listOfferCodes,
+  createOfferCode,
+  updateOfferCode,
+};

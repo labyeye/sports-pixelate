@@ -102,6 +102,26 @@ const deleteItem = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Item deleted" });
 });
 
+// Item photo — file is saved to disk by the uploadInventoryPhoto middleware.
+const uploadItemPhoto = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error("No file uploaded");
+  }
+  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const photoUrl = `${baseUrl}/uploads/inventory-photos/${req.file.filename}`;
+  const item = await InventoryItem.findOneAndUpdate(
+    { _id: req.params.id, company: req.user.company },
+    { photo: photoUrl },
+    { new: true },
+  );
+  if (!item) {
+    res.status(404);
+    throw new Error("Item not found");
+  }
+  res.json({ success: true, photo: photoUrl, data: item });
+});
+
 // Records a stock movement (purchase adds, consume/damage subtracts, return adds back).
 const recordTransaction = asyncHandler(async (req, res) => {
   const { type, quantity, notes } = req.body;
@@ -204,6 +224,7 @@ module.exports = {
   createItem,
   updateItem,
   deleteItem,
+  uploadItemPhoto,
   recordTransaction,
   assignItem,
   returnAssignment,

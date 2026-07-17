@@ -7,9 +7,14 @@ const {
   deleteStudent,
   uploadStudentAvatar,
   uploadGuardianPhotoHandler,
+  enrollStudentFace,
 } = require("../controllers/studentController");
 const { protect, authorize } = require("../middleware/auth");
-const { uploadAvatar, uploadGuardianPhoto } = require("../middleware/upload");
+const {
+  uploadAvatar,
+  uploadGuardianPhoto,
+  uploadFaceEnrollPhoto,
+} = require("../middleware/upload");
 const { validateMongoId } = require("../middleware/validate");
 const router = express.Router();
 
@@ -43,6 +48,15 @@ router.post(
   validateMongoId("id", "guardianId"),
   uploadGuardianPhoto,
   uploadGuardianPhotoHandler,
+);
+
+router.post(
+  "/:id/face-enroll",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  validateMongoId("id"),
+  uploadFaceEnrollPhoto,
+  enrollStudentFace,
 );
 
 module.exports = router;

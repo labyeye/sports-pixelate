@@ -21,7 +21,28 @@ const offerCodeSchema = new mongoose.Schema(
       trim: true,
     },
     description: { type: String, default: "" },
-    bonusMonths: { type: Number, required: true, default: 2, min: 1 },
+
+    // A code applies exactly one kind of discount:
+    //  - bonus_months: extra free months tacked onto the renewal date
+    //  - flat_rate:    overrides the per-student/year rate (e.g. 150 -> 100)
+    //  - percent_off:  knocks a percentage off the computed yearly price
+    discountType: {
+      type: String,
+      enum: ["bonus_months", "flat_rate", "percent_off"],
+      required: true,
+      default: "bonus_months",
+    },
+    bonusMonths: { type: Number, default: 0, min: 0 },
+    flatRate: { type: Number, default: null, min: 1 },
+    percentOff: { type: Number, default: null, min: 1, max: 100 },
+
+    // Restrict to a single tier, or null to allow on any tier
+    applicableTier: {
+      type: String,
+      enum: ["standard", "whatsapp", null],
+      default: null,
+    },
+
     maxUses: { type: Number, required: true, default: 200 },
     usedCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },

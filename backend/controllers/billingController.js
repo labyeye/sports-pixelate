@@ -60,39 +60,65 @@ const getInvoices = asyncHandler(async (req, res) => {
   res.json({ success: true, data: invoices });
 });
 
+// Shared checks used by both the validate-only endpoint and createOrder.
+// Throws with res.status already set — call inside asyncHandler.
+async function _lookupAndCheckOffer(code, tier, res) {
+  const offer = await OfferCode.findOne({ code: code.toUpperCase().trim() });
+  if (!offer || !offer.isActive) {
+    res.status(404);
+    throw new Error("Invalid or expired offer code");
+  }
+  if (offer.expiresAt && offer.expiresAt < new Date()) {
+    res.status(400);
+    throw new Error("This offer code has expired");
+  }
+  if (offer.usedCount >= offer.maxUses) {
+    res.status(400);
+    throw new Error("This offer code has reached its usage limit");
+  }
+  if (offer.applicableTier && tier && offer.applicableTier !== tier) {
+    res.status(400);
+    throw new Error(
+      `This offer code only applies to the ${PLAN_NAMES[offer.applicableTier]} plan`,
+    );
+  }
+  return offer;
+}
+
+function _offerMessage(offer) {
+  if (offer.discountType === "bonus_months") {
+    return `Offer code applied! You will get ${offer.bonusMonths} bonus month(s) added to your subscription.`;
+  }
+  if (offer.discountType === "flat_rate") {
+    return `Offer code applied! Your rate is now ₹${offer.flatRate}/student/year.`;
+  }
+  return `Offer code applied! ${offer.percentOff}% off your order.`;
+}
+
 const validateOfferCode = asyncHandler(async (req, res) => {
-  const { code } = req.body;
+  const { code, studentCount, tier = "standard" } = req.body;
   if (!code) {
     res.status(400);
     throw new Error("Offer code is required");
   }
 
-  const offer = await OfferCode.findOne({ code: code.toUpperCase().trim() });
-  if (!offer || !offer.isActive) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Invalid or expired offer code" });
-  }
-  if (offer.expiresAt && offer.expiresAt < new Date()) {
-    return res
-      .status(400)
-      .json({ success: false, message: "This offer code has expired" });
-  }
-  if (offer.usedCount >= offer.maxUses) {
-    return res.status(400).json({
-      success: false,
-      message: "This offer code has reached its usage limit",
-    });
-  }
+  const offer = await _lookupAndCheckOffer(code, tier, res);
+
+  const count = Number(studentCount) || 0;
+  const preview = count > 0 ? calculatePricing(count, tier, offer) : null;
 
   res.json({
     success: true,
-    message: `Offer code applied! You will get ${offer.bonusMonths} bonus month(s) added to your subscription.`,
+    message: _offerMessage(offer),
     data: {
       code: offer.code,
+      discountType: offer.discountType,
       bonusMonths: offer.bonusMonths,
+      flatRate: offer.flatRate,
+      percentOff: offer.percentOff,
       description: offer.description,
       remainingUses: offer.maxUses - offer.usedCount,
+      preview,
     },
   });
 });
@@ -125,7 +151,6 @@ const createOrder = asyncHandler(async (req, res) => {
     throw new Error(`Invalid tier. Must be one of: ${TIERS.join(", ")}`);
   }
 
-  const pricing = calculatePricing(count, tier);
   const planName = PLAN_NAMES[tier];
 
   const existingCompany = await Company.findOne({ createdBy: req.user._id });
@@ -133,23 +158,10 @@ const createOrder = asyncHandler(async (req, res) => {
   // Validate offer code if provided
   let validatedOffer = null;
   if (offerCode) {
-    const offer = await OfferCode.findOne({
-      code: offerCode.toUpperCase().trim(),
-    });
-    if (!offer || !offer.isActive) {
-      res.status(400);
-      throw new Error("Invalid or expired offer code");
-    }
-    if (offer.expiresAt && offer.expiresAt < new Date()) {
-      res.status(400);
-      throw new Error("This offer code has expired");
-    }
-    if (offer.usedCount >= offer.maxUses) {
-      res.status(400);
-      throw new Error("This offer code has reached its usage limit");
-    }
-    validatedOffer = offer;
+    validatedOffer = await _lookupAndCheckOffer(offerCode, tier, res);
   }
+
+  const pricing = calculatePricing(count, tier, validatedOffer);
 
   const amountRupees =
     billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;

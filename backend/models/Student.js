@@ -39,6 +39,7 @@ const studentSchema = new mongoose.Schema(
     guardians: [guardianSchema],
     emergencyContact: { type: String },
     medicalNotes: { type: String },
+    faceDescriptor: { type: [Number], default: [] },
     enrollmentDate: { type: Date, default: Date.now },
     exitDate: { type: Date },
     status: {

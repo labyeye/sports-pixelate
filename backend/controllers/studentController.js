@@ -8,6 +8,7 @@ const {
   safePagination,
   validateBody,
 } = require("../middleware/validate");
+const { enrollFace } = require("../services/faceService");
 
 const createSchema = {
   firstName: { required: true, type: "string", minLength: 1, maxLength: 80 },
@@ -314,6 +315,35 @@ const uploadGuardianPhotoHandler = asyncHandler(async (req, res) => {
   res.json({ success: true, photo: photoUrl });
 });
 
+// Enrolls (or re-enrolls) a student's face embedding for coach-verified
+// attendance check-ins, using the internal face-recognition microservice.
+// The uploaded photo itself is never persisted — only the resulting embedding.
+const enrollStudentFace = asyncHandler(async (req, res) => {
+  const student = await Student.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!student) {
+    res.status(404);
+    throw new Error("Student not found");
+  }
+  if (!req.file) {
+    res.status(400);
+    throw new Error("Photo is required");
+  }
+
+  const encoding = await enrollFace(
+    req.file.buffer,
+    req.file.originalname || "enroll.jpg",
+    req.file.mimetype,
+  );
+
+  student.faceDescriptor = encoding;
+  await student.save();
+
+  res.json({ success: true, message: "Face enrolled successfully" });
+});
+
 const deleteStudent = asyncHandler(async (req, res) => {
   const student = await Student.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
@@ -335,4 +365,5 @@ module.exports = {
   deleteStudent,
   uploadStudentAvatar,
   uploadGuardianPhotoHandler,
+  enrollStudentFace,
 };
