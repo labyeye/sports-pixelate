@@ -609,7 +609,7 @@ const deleteLeave = asyncHandler(async (req, res) => {
 
     try {
       if (leave.employee?.phone) {
-        // Reuse neshr_leave_rejected template: params [firstName, leaveType, reason]
+        // Reuse nestsports_leave_rejected template: params [firstName, leaveType, reason]
         await sendLeaveRejected(
           leave.employee.phone,
           {

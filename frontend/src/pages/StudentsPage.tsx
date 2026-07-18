@@ -25,6 +25,7 @@ import {
   PauseCircle,
   Download,
   FileSpreadsheet,
+  Droplet,
 } from "lucide-react";
 
 const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
@@ -98,6 +99,26 @@ interface Guardian {
   photo?: string;
 }
 
+interface EmergencyContactPerson {
+  name?: string;
+  relation?: string;
+  phone?: string;
+}
+
+interface Address {
+  line1?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
+}
+
+interface SportsProfile {
+  experienceLevel?: "Beginner" | "Intermediate" | "Advanced";
+  previousAcademy?: string;
+  yearsOfExperience?: number | string;
+}
+
 interface Student {
   _id: string;
   studentId: string;
@@ -110,7 +131,32 @@ interface Student {
   enrollmentDate: string;
   avatar?: string;
   guardians?: Guardian[];
+  bloodGroup?: string;
+  emergencyContactPerson?: EmergencyContactPerson;
+  address?: Address;
+  sportsProfile?: SportsProfile;
 }
+
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
+
+const EMPTY_EMERGENCY_CONTACT_PERSON: EmergencyContactPerson = {
+  name: "",
+  relation: "",
+  phone: "",
+};
+const EMPTY_ADDRESS: Address = {
+  line1: "",
+  city: "",
+  state: "",
+  pincode: "",
+  country: "",
+};
+const EMPTY_SPORTS_PROFILE: SportsProfile = {
+  experienceLevel: undefined,
+  previousAcademy: "",
+  yearsOfExperience: "",
+};
 
 interface GuardianForm extends Guardian {
   photoFile?: File | null;
@@ -139,6 +185,55 @@ const STATUS_META: Record<string, { bg: string; text: string }> = {
 };
 
 type SortKey = "name" | "sport" | "enrollmentDate";
+
+// The specific guardian entry (if any) matching this student + relation, so
+// callers can show whose name was actually entered, not just yes/no.
+function getGuardianName(s: Student, relation: "father" | "mother") {
+  return s.guardians?.find((g) => g.relation === relation && g.name?.trim())
+    ?.name;
+}
+
+// Male/female glyph (lucide-react 0.462 has no Mars/Venus icons) with a
+// tick/cross corner badge — tooltip shows the actual father/mother name
+// entered for this student, or that it's missing.
+function ParentIndicator({
+  symbol,
+  name,
+  color,
+  label,
+}: {
+  symbol: "♂" | "♀";
+  name?: string;
+  color: string;
+  label: "Father" | "Mother";
+}) {
+  const present = !!name;
+  return (
+    <span
+      title={present ? `${label}: ${name}` : `${label} name not entered`}
+      className="relative inline-flex items-center justify-center w-6 h-6 shrink-0"
+    >
+      <span
+        className="text-base font-bold leading-none"
+        style={{ color: present ? color : "#D1D5DB" }}
+      >
+        {symbol}
+      </span>
+      <span
+        className={cn(
+          "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border border-white flex items-center justify-center",
+          present ? "bg-green-500" : "bg-red-400",
+        )}
+      >
+        {present ? (
+          <Check className="w-2 h-2 text-white" strokeWidth={3} />
+        ) : (
+          <X className="w-2 h-2 text-white" strokeWidth={3} />
+        )}
+      </span>
+    </span>
+  );
+}
 
 export default function StudentsPage() {
   const { user } = useAuth();
@@ -177,10 +272,17 @@ export default function StudentsPage() {
     coach: "",
     dateOfBirth: "",
     emergencyContact: "",
+    bloodGroup: "",
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [guardians, setGuardians] = useState<GuardianForm[]>([]);
+  const [emergencyContactPerson, setEmergencyContactPerson] =
+    useState<EmergencyContactPerson>({ ...EMPTY_EMERGENCY_CONTACT_PERSON });
+  const [address, setAddress] = useState<Address>({ ...EMPTY_ADDRESS });
+  const [sportsProfile, setSportsProfile] = useState<SportsProfile>({
+    ...EMPTY_SPORTS_PROFILE,
+  });
 
   const buildParams = useCallback(
     (pageNum: number) => ({
@@ -263,10 +365,14 @@ export default function StudentsPage() {
       coach: "",
       dateOfBirth: "",
       emergencyContact: "",
+      bloodGroup: "",
     });
     setAvatarFile(null);
     setAvatarPreview("");
     setGuardians([]);
+    setEmergencyContactPerson({ ...EMPTY_EMERGENCY_CONTACT_PERSON });
+    setAddress({ ...EMPTY_ADDRESS });
+    setSportsProfile({ ...EMPTY_SPORTS_PROFILE });
     setEditingId(null);
     setShowForm(false);
   };
@@ -302,6 +408,7 @@ export default function StudentsPage() {
       const payload = {
         ...form,
         coach: form.coach || undefined,
+        bloodGroup: form.bloodGroup || undefined,
         guardians: guardians.map((g) => ({
           relation: g.relation,
           name: g.name.trim(),
@@ -309,6 +416,26 @@ export default function StudentsPage() {
           email: g.email || undefined,
           photo: g.photo || undefined,
         })),
+        emergencyContactPerson:
+          emergencyContactPerson.name ||
+          emergencyContactPerson.relation ||
+          emergencyContactPerson.phone
+            ? emergencyContactPerson
+            : undefined,
+        address: Object.values(address).some((v) => v)
+          ? address
+          : undefined,
+        sportsProfile:
+          sportsProfile.experienceLevel ||
+          sportsProfile.previousAcademy ||
+          sportsProfile.yearsOfExperience
+            ? {
+                ...sportsProfile,
+                yearsOfExperience: sportsProfile.yearsOfExperience
+                  ? Number(sportsProfile.yearsOfExperience)
+                  : undefined,
+              }
+            : undefined,
       };
 
       let saved: Student;
@@ -381,12 +508,19 @@ export default function StudentsPage() {
       coach: s.coach?._id || "",
       dateOfBirth: s.dateOfBirth ? s.dateOfBirth.slice(0, 10) : "",
       emergencyContact: s.emergencyContact || "",
+      bloodGroup: s.bloodGroup || "",
     });
     setAvatarFile(null);
     setAvatarPreview(s.avatar || "");
     setGuardians(
       (s.guardians || []).map((g: Guardian) => ({ ...g, photoFile: null })),
     );
+    setEmergencyContactPerson({
+      ...EMPTY_EMERGENCY_CONTACT_PERSON,
+      ...(s.emergencyContactPerson || {}),
+    });
+    setAddress({ ...EMPTY_ADDRESS, ...(s.address || {}) });
+    setSportsProfile({ ...EMPTY_SPORTS_PROFILE, ...(s.sportsProfile || {}) });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -677,6 +811,208 @@ export default function StudentsPage() {
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Blood Group
+              </label>
+              <select
+                value={form.bloodGroup}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, bloodGroup: e.target.value }))
+                }
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              >
+                <option value="">Unspecified</option>
+                {BLOOD_GROUPS.map((bg) => (
+                  <option key={bg} value={bg}>
+                    {bg}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t-2 border-black/10">
+            <h4 className="font-bold text-sm uppercase mb-3">
+              Emergency Contact Person
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Name
+                </label>
+                <input
+                  value={emergencyContactPerson.name || ""}
+                  onChange={(e) =>
+                    setEmergencyContactPerson((p) => ({
+                      ...p,
+                      name: e.target.value,
+                    }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Relation
+                </label>
+                <input
+                  value={emergencyContactPerson.relation || ""}
+                  onChange={(e) =>
+                    setEmergencyContactPerson((p) => ({
+                      ...p,
+                      relation: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g. Father, Mother"
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Phone Number
+                </label>
+                <input
+                  value={emergencyContactPerson.phone || ""}
+                  onChange={(e) =>
+                    setEmergencyContactPerson((p) => ({
+                      ...p,
+                      phone: e.target.value,
+                    }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t-2 border-black/10">
+            <h4 className="font-bold text-sm uppercase mb-3">Address</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Line 1
+                </label>
+                <input
+                  value={address.line1 || ""}
+                  onChange={(e) =>
+                    setAddress((p) => ({ ...p, line1: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  City
+                </label>
+                <input
+                  value={address.city || ""}
+                  onChange={(e) =>
+                    setAddress((p) => ({ ...p, city: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  State
+                </label>
+                <input
+                  value={address.state || ""}
+                  onChange={(e) =>
+                    setAddress((p) => ({ ...p, state: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Pincode
+                </label>
+                <input
+                  value={address.pincode || ""}
+                  onChange={(e) =>
+                    setAddress((p) => ({ ...p, pincode: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Country
+                </label>
+                <input
+                  value={address.country || ""}
+                  onChange={(e) =>
+                    setAddress((p) => ({ ...p, country: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t-2 border-black/10">
+            <h4 className="font-bold text-sm uppercase mb-3">
+              Sports Profile
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Experience Level
+                </label>
+                <select
+                  value={sportsProfile.experienceLevel || ""}
+                  onChange={(e) =>
+                    setSportsProfile((p) => ({
+                      ...p,
+                      experienceLevel: (e.target.value ||
+                        undefined) as SportsProfile["experienceLevel"],
+                    }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                >
+                  <option value="">Unspecified</option>
+                  {EXPERIENCE_LEVELS.map((lvl) => (
+                    <option key={lvl} value={lvl}>
+                      {lvl}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Previous Academy
+                </label>
+                <input
+                  value={sportsProfile.previousAcademy || ""}
+                  onChange={(e) =>
+                    setSportsProfile((p) => ({
+                      ...p,
+                      previousAcademy: e.target.value,
+                    }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase mb-1">
+                  Years of Experience
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={sportsProfile.yearsOfExperience ?? ""}
+                  onChange={(e) =>
+                    setSportsProfile((p) => ({
+                      ...p,
+                      yearsOfExperience: e.target.value,
+                    }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 pt-4 border-t-2 border-black/10">
@@ -891,6 +1227,13 @@ export default function StudentsPage() {
                         {s.batch || "—"}
                       </span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <Droplet className="w-3 h-3 text-red-500 shrink-0" />
+                      <span className="text-muted-foreground">Blood: </span>
+                      <span className="font-bold text-black">
+                        {s.bloodGroup || "—"}
+                      </span>
+                    </div>
                     <div className="col-span-2">
                       <span className="text-muted-foreground">Coach: </span>
                       <span className="font-bold text-black">
@@ -906,6 +1249,21 @@ export default function StudentsPage() {
                           ? s.guardians.map((g) => g.name).join(", ")
                           : "—"}
                       </span>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-2 mt-1">
+                      <span className="text-muted-foreground">Parents: </span>
+                      <ParentIndicator
+                        symbol="♂"
+                        name={getGuardianName(s, "father")}
+                        color="#024BAB"
+                        label="Father"
+                      />
+                      <ParentIndicator
+                        symbol="♀"
+                        name={getGuardianName(s, "mother")}
+                        color="#A855F7"
+                        label="Mother"
+                      />
                     </div>
                   </div>
                   {canManage && (
@@ -939,8 +1297,10 @@ export default function StudentsPage() {
                     "Name",
                     "Sport",
                     "Batch",
+                    "Blood",
                     "Coach",
                     "Guardians",
+                    "Parents",
                     "Status",
                     ...(canManage ? ["Actions"] : []),
                   ].map((h) => (
@@ -986,6 +1346,9 @@ export default function StudentsPage() {
                       <td className="px-4 py-3 text-black">{s.sport}</td>
                       <td className="px-4 py-3 text-black">{s.batch || "—"}</td>
                       <td className="px-4 py-3 text-black">
+                        {s.bloodGroup || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-black">
                         {s.coach
                           ? `${s.coach.firstName} ${s.coach.lastName}`
                           : "—"}
@@ -999,6 +1362,22 @@ export default function StudentsPage() {
                               )
                               .join(", ")
                           : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <ParentIndicator
+                            symbol="♂"
+                            name={getGuardianName(s, "father")}
+                            color="#024BAB"
+                            label="Father"
+                          />
+                          <ParentIndicator
+                            symbol="♀"
+                            name={getGuardianName(s, "mother")}
+                            color="#A855F7"
+                            label="Mother"
+                          />
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span

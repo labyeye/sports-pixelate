@@ -39,6 +39,31 @@ const studentSchema = new mongoose.Schema(
     guardians: [guardianSchema],
     emergencyContact: { type: String },
     medicalNotes: { type: String },
+    bloodGroup: {
+      type: String,
+      enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    },
+    // Named emergency contact, distinct from the flat `emergencyContact` phone above.
+    emergencyContactPerson: {
+      name: { type: String, trim: true },
+      relation: { type: String, trim: true },
+      phone: { type: String, trim: true },
+    },
+    address: {
+      line1: { type: String, trim: true },
+      city: { type: String, trim: true },
+      state: { type: String, trim: true },
+      pincode: { type: String, trim: true },
+      country: { type: String, trim: true },
+    },
+    sportsProfile: {
+      experienceLevel: {
+        type: String,
+        enum: ["Beginner", "Intermediate", "Advanced"],
+      },
+      previousAcademy: { type: String, trim: true },
+      yearsOfExperience: { type: Number },
+    },
     faceDescriptor: { type: [Number], default: [] },
     biometricUserId: { type: String, default: "" },
     rfidCard: { type: String, default: "" },

@@ -284,7 +284,7 @@ export function TextField({
   required?: boolean;
 }) {
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: 14, flex: 1 }}>
       <Text style={styles.fieldLabel}>
         {label}
         {required ? ' *' : ''}

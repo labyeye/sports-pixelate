@@ -196,6 +196,10 @@ const createStudent = [
       emergencyContact,
       medicalNotes,
       enrollmentDate,
+      bloodGroup,
+      emergencyContactPerson,
+      address,
+      sportsProfile,
     } = req.body;
 
     let sanitizedGuardians;
@@ -236,6 +240,10 @@ const createStudent = [
       emergencyContact,
       medicalNotes,
       enrollmentDate: enrollmentDate || Date.now(),
+      bloodGroup,
+      emergencyContactPerson,
+      address,
+      sportsProfile,
     });
 
     if (autoParentIds.length) {

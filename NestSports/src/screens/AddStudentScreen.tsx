@@ -23,11 +23,23 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
+  CollapsibleSection,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
 const GENDERS = ['male', 'female', 'other'] as const;
 const RELATIONS = ['father', 'mother', 'guardian', 'other'] as const;
+const BLOOD_GROUPS = [
+  'A+',
+  'A-',
+  'B+',
+  'B-',
+  'AB+',
+  'AB-',
+  'O+',
+  'O-',
+] as const;
+const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Advanced'] as const;
 
 interface GuardianForm {
   _id?: string;
@@ -105,6 +117,44 @@ export default function AddStudentScreen({ navigation, route }: any) {
   const [coachId, setCoachId] = useState<string>(
     editingStudent?.coach?._id || '',
   );
+  const [bloodGroup, setBloodGroup] = useState<
+    (typeof BLOOD_GROUPS)[number] | ''
+  >(editingStudent?.bloodGroup || '');
+  const [ecName, setEcName] = useState(
+    editingStudent?.emergencyContactPerson?.name || '',
+  );
+  const [ecRelation, setEcRelation] = useState(
+    editingStudent?.emergencyContactPerson?.relation || '',
+  );
+  const [ecPhone, setEcPhone] = useState(
+    editingStudent?.emergencyContactPerson?.phone || '',
+  );
+  const [addressLine1, setAddressLine1] = useState(
+    editingStudent?.address?.line1 || '',
+  );
+  const [addressCity, setAddressCity] = useState(
+    editingStudent?.address?.city || '',
+  );
+  const [addressState, setAddressState] = useState(
+    editingStudent?.address?.state || '',
+  );
+  const [addressPincode, setAddressPincode] = useState(
+    editingStudent?.address?.pincode || '',
+  );
+  const [addressCountry, setAddressCountry] = useState(
+    editingStudent?.address?.country || '',
+  );
+  const [experienceLevel, setExperienceLevel] = useState<
+    (typeof EXPERIENCE_LEVELS)[number] | ''
+  >(editingStudent?.sportsProfile?.experienceLevel || '');
+  const [previousAcademy, setPreviousAcademy] = useState(
+    editingStudent?.sportsProfile?.previousAcademy || '',
+  );
+  const [yearsOfExperience, setYearsOfExperience] = useState(
+    editingStudent?.sportsProfile?.yearsOfExperience != null
+      ? String(editingStudent.sportsProfile.yearsOfExperience)
+      : '',
+  );
 
   useEffect(() => {
     employeeAPI
@@ -114,11 +164,14 @@ export default function AddStudentScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    navigation.setOptions?.({ title: isEditing ? 'Edit Student' : 'Add Student' });
+    navigation.setOptions?.({
+      title: isEditing ? 'Edit Student' : 'Add Student',
+    });
   }, [navigation, isEditing]);
 
   const coachOptions = useMemo(
-    () => (sport.trim() ? coaches.filter(c => c.sport === sport.trim()) : coaches),
+    () =>
+      sport.trim() ? coaches.filter(c => c.sport === sport.trim()) : coaches,
     [coaches, sport],
   );
 
@@ -162,6 +215,39 @@ export default function AddStudentScreen({ navigation, route }: any) {
           phone: g.phone.trim() || undefined,
           photo: g.existingPhoto,
         })),
+        bloodGroup: bloodGroup || undefined,
+        emergencyContactPerson:
+          ecName.trim() || ecRelation.trim() || ecPhone.trim()
+            ? {
+                name: ecName.trim() || undefined,
+                relation: ecRelation.trim() || undefined,
+                phone: ecPhone.trim() || undefined,
+              }
+            : undefined,
+        address:
+          addressLine1.trim() ||
+          addressCity.trim() ||
+          addressState.trim() ||
+          addressPincode.trim() ||
+          addressCountry.trim()
+            ? {
+                line1: addressLine1.trim() || undefined,
+                city: addressCity.trim() || undefined,
+                state: addressState.trim() || undefined,
+                pincode: addressPincode.trim() || undefined,
+                country: addressCountry.trim() || undefined,
+              }
+            : undefined,
+        sportsProfile:
+          experienceLevel || previousAcademy.trim() || yearsOfExperience.trim()
+            ? {
+                experienceLevel: experienceLevel || undefined,
+                previousAcademy: previousAcademy.trim() || undefined,
+                yearsOfExperience: yearsOfExperience.trim()
+                  ? Number(yearsOfExperience.trim())
+                  : undefined,
+              }
+            : undefined,
       };
 
       const res: any = isEditing
@@ -185,7 +271,12 @@ export default function AddStudentScreen({ navigation, route }: any) {
         }
       }
 
-      Alert.alert('Success', isEditing ? 'Student updated successfully' : 'Student added successfully');
+      Alert.alert(
+        'Success',
+        isEditing
+          ? 'Student updated successfully'
+          : 'Student added successfully',
+      );
       navigation.goBack();
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Could not save student');
@@ -223,38 +314,60 @@ export default function AddStudentScreen({ navigation, route }: any) {
                 faceFile && { color: colors.green },
               ]}
             >
-              {faceFile ? 'Face captured — tap to retake' : 'Enroll face for attendance'}
+              {faceFile
+                ? 'Face captured — tap to retake'
+                : 'Enroll face for attendance'}
             </Text>
           </TouchableOpacity>
         </View>
 
         <Card>
           <SectionTitle title="Student Details" />
-          <TextField
-            label="First Name"
-            value={firstName}
-            onChangeText={setFirstName}
-            required
-          />
-          <TextField
-            label="Last Name"
-            value={lastName}
-            onChangeText={setLastName}
-            required
-          />
-          <TextField
-            label="Sport"
-            value={sport}
-            onChangeText={setSport}
-            placeholder="e.g. Football"
-            required
-          />
-          <TextField
-            label="Batch"
-            value={batch}
-            onChangeText={setBatch}
-            placeholder="e.g. Morning U-12"
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 10,
+              marginBottom: 12,
+              flex: 1,
+              justifyContent: 'center',
+            }}
+          >
+            <TextField
+              label="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+              required
+            />
+            <TextField
+              label="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
+              required
+            />
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 10,
+              marginBottom: 12,
+              flex: 1,
+              justifyContent: 'center',
+            }}
+          >
+            <TextField
+              label="Sport"
+              value={sport}
+              onChangeText={setSport}
+              placeholder="e.g. Football"
+              required
+            />
+            <TextField
+              label="Batch"
+              value={batch}
+              onChangeText={setBatch}
+              placeholder="e.g. Morning U-12"
+            />
+          </View>
           <ChipSelect
             label="Gender"
             options={GENDERS}
@@ -268,9 +381,7 @@ export default function AddStudentScreen({ navigation, route }: any) {
                 {coachOptions.map(c => (
                   <TouchableOpacity
                     key={c._id}
-                    onPress={() =>
-                      setCoachId(p => (p === c._id ? '' : c._id))
-                    }
+                    onPress={() => setCoachId(p => (p === c._id ? '' : c._id))}
                     style={[
                       styles.coachChip,
                       coachId === c._id && styles.coachChipActive,
@@ -289,7 +400,82 @@ export default function AddStudentScreen({ navigation, route }: any) {
               </View>
             </View>
           )}
+          <ChipSelect
+            label="Blood Group"
+            options={BLOOD_GROUPS}
+            value={bloodGroup as any}
+            onChange={setBloodGroup}
+          />
         </Card>
+
+        <CollapsibleSection title="Emergency Contact">
+          <TextField label="Name" value={ecName} onChangeText={setEcName} />
+          <TextField
+            label="Relation"
+            value={ecRelation}
+            onChangeText={setEcRelation}
+            placeholder="e.g. Father, Mother"
+          />
+          <TextField
+            label="Phone Number"
+            value={ecPhone}
+            onChangeText={setEcPhone}
+            keyboardType="phone-pad"
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Address">
+          <TextField
+            label="Line 1"
+            value={addressLine1}
+            onChangeText={setAddressLine1}
+          />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TextField
+              label="City"
+              value={addressCity}
+              onChangeText={setAddressCity}
+            />
+            <TextField
+              label="State"
+              value={addressState}
+              onChangeText={setAddressState}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TextField
+              label="Pincode"
+              value={addressPincode}
+              onChangeText={setAddressPincode}
+              keyboardType="number-pad"
+            />
+            <TextField
+              label="Country"
+              value={addressCountry}
+              onChangeText={setAddressCountry}
+            />
+          </View>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Sports Profile">
+          <ChipSelect
+            label="Experience Level"
+            options={EXPERIENCE_LEVELS}
+            value={experienceLevel as any}
+            onChange={setExperienceLevel}
+          />
+          <TextField
+            label="Previous Academy"
+            value={previousAcademy}
+            onChangeText={setPreviousAcademy}
+          />
+          <TextField
+            label="Years of Experience"
+            value={yearsOfExperience}
+            onChangeText={setYearsOfExperience}
+            keyboardType="number-pad"
+          />
+        </CollapsibleSection>
 
         <Card>
           <View style={styles.guardianHeader}>
@@ -348,7 +534,9 @@ export default function AddStudentScreen({ navigation, route }: any) {
         </Card>
 
         <Button
-          title={saving ? 'Saving...' : isEditing ? 'Update Student' : 'Save Student'}
+          title={
+            saving ? 'Saving...' : isEditing ? 'Update Student' : 'Save Student'
+          }
           onPress={save}
           disabled={saving}
         />

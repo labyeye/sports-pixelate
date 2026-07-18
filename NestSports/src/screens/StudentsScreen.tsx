@@ -18,6 +18,11 @@ import {
   User,
   Download,
   FileSpreadsheet,
+  Mars,
+  Venus,
+  Check,
+  X,
+  Droplet,
 } from 'lucide-react-native';
 import { studentAPI } from '../api/client';
 import {
@@ -62,6 +67,50 @@ const SORT_OPTIONS: SortOption[] = [
   { key: 'enrollmentDate', label: 'Enrollment Date' },
   { key: 'createdAt', label: 'Date Added' },
 ];
+
+// The specific guardian entry (if any) matching this student + relation, so
+// callers can show whose name was actually entered, not just yes/no.
+function getGuardianName(s: any, relation: 'father' | 'mother') {
+  return (s.guardians || []).find(
+    (g: any) => g.relation === relation && g.name?.trim(),
+  )?.name as string | undefined;
+}
+
+// Male/female glyph with a tick/cross corner badge, plus the actual
+// father/mother name entered for this student (or "Not entered").
+function ParentIndicator({
+  icon: Icon,
+  name,
+  color,
+}: {
+  icon: any;
+  name?: string;
+  color: string;
+}) {
+  const present = !!name;
+  return (
+    <View style={styles.parentRow}>
+      <View style={styles.parentIndicator}>
+        <Icon size={14} color={present ? color : '#D1D5DB'} strokeWidth={2.5} />
+        <View
+          style={[
+            styles.parentBadge,
+            { backgroundColor: present ? colors.green : colors.red },
+          ]}
+        >
+          {present ? (
+            <Check size={7} color={colors.white} strokeWidth={3} />
+          ) : (
+            <X size={7} color={colors.white} strokeWidth={3} />
+          )}
+        </View>
+      </View>
+      <Text style={styles.metaText} numberOfLines={1}>
+        {present ? name : 'Not entered'}
+      </Text>
+    </View>
+  );
+}
 
 let searchDebounce: ReturnType<typeof setTimeout>;
 
@@ -285,18 +334,36 @@ export default function StudentsScreen({ navigation }: any) {
                 </View>
               </View>
 
-              {(s.coach || (s.guardians && s.guardians.length)) && (
-                <View style={styles.cardMeta}>
-                  {s.coach ? (
-                    <View style={styles.metaItem}>
-                      <User size={11} color={colors.muted} />
-                      <Text style={styles.metaText} numberOfLines={1}>
-                        Coach: {s.coach.firstName} {s.coach.lastName}
-                      </Text>
-                    </View>
-                  ) : null}
+              <View style={styles.cardMeta}>
+                {s.coach ? (
+                  <View style={styles.metaItem}>
+                    <User size={11} color={colors.muted} />
+                    <Text style={styles.metaText} numberOfLines={1}>
+                      Coach: {s.coach.firstName} {s.coach.lastName}
+                    </Text>
+                  </View>
+                ) : null}
+                {s.bloodGroup ? (
+                  <View style={styles.metaItem}>
+                    <Droplet size={11} color={colors.red} />
+                    <Text style={styles.metaText}>
+                      Blood Group: {s.bloodGroup}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={{ marginTop: 4, gap: 3 }}>
+                  <ParentIndicator
+                    icon={Mars}
+                    name={getGuardianName(s, 'father')}
+                    color={colors.blue}
+                  />
+                  <ParentIndicator
+                    icon={Venus}
+                    name={getGuardianName(s, 'mother')}
+                    color={colors.purple}
+                  />
                 </View>
-              )}
+              </View>
 
               <View style={styles.cardBottom}>
                 <View style={styles.typePill}>
@@ -437,6 +504,25 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 9, fontWeight: '700', color: colors.white, fontFamily: FONT.bold },
   cardMeta: { marginTop: 10, gap: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  parentRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  parentIndicator: {
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  parentBadge: {
+    position: 'absolute',
+    bottom: -1,
+    right: -3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   metaText: { fontSize: 12, color: colors.muted, fontWeight: '500', flex: 1 },
   cardBottom: {
     flexDirection: 'row',
