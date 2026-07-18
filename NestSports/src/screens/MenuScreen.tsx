@@ -97,7 +97,7 @@ export default function MenuScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

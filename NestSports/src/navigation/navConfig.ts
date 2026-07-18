@@ -12,6 +12,8 @@ import {
   Gift,
   CreditCard,
   SlidersHorizontal,
+  ShieldAlert,
+  AlertCircle,
   FileText,
   Banknote,
   Shield,
@@ -26,6 +28,8 @@ import {
   Trophy,
   UserCircle,
   ShieldCheck,
+  Cpu,
+  FileBarChart,
 } from 'lucide-react-native';
 
 // Mirrors frontend/src/config/navigation.ts (the web sidebar) so every role
@@ -98,11 +102,11 @@ export const navGroups: NavGroup[] = [
         desc: 'Staff & student document vault',
       },
       {
-        title: 'Tournaments',
-        screen: 'Tournaments',
+        title: 'Events',
+        screen: 'Events',
         icon: Trophy,
         roles: ALL,
-        desc: 'Manage tournaments & events',
+        desc: 'Manage tournaments, competitions & events',
       },
     ],
   },
@@ -136,6 +140,27 @@ export const navGroups: NavGroup[] = [
         icon: Gift,
         roles: OWNER,
         desc: 'Academy holidays calendar',
+      },
+      {
+        title: 'Attendance Settings',
+        screen: 'AttendanceSettings',
+        icon: ShieldAlert,
+        roles: OWNER,
+        desc: 'Shift, late & leave allowance rules',
+      },
+      {
+        title: 'Biometric Devices',
+        screen: 'BiometricDevices',
+        icon: Cpu,
+        roles: OWNER,
+        desc: 'Manage biometric attendance devices',
+      },
+      {
+        title: 'Late Approvals',
+        screen: 'LateApprovals',
+        icon: AlertCircle,
+        roles: OWNER,
+        desc: 'Resolve late check-ins beyond allowance',
       },
     ],
   },
@@ -216,13 +241,6 @@ export const navGroups: NavGroup[] = [
         desc: 'Manage staff salaries & payslips',
       },
       {
-        title: 'Payroll Settings',
-        screen: 'PayrollSettings',
-        icon: SlidersHorizontal,
-        roles: OWNER,
-        desc: 'Configure salary heads & rules',
-      },
-      {
         title: 'Loans & Advances',
         screen: 'Loans',
         icon: Banknote,
@@ -266,6 +284,13 @@ export const navGroups: NavGroup[] = [
         icon: BarChart2,
         roles: OWNER,
         desc: 'Analytics & export data',
+      },
+      {
+        title: 'Student Reports',
+        screen: 'StudentReports',
+        icon: FileBarChart,
+        roles: OWNER,
+        desc: 'Attendance, fees, enrollment & directory reports',
       },
       {
         title: 'Manage',

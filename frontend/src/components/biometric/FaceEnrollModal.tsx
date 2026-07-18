@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useFaceRecognition } from "@/hooks/useFaceRecognition";
-import { biometricAPI } from "@/services/api";
+import { biometricAPI, PersonType } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import {
   X,
@@ -13,19 +13,22 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Props {
-  employee: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    employeeId: string;
-    faceDescriptor?: number[];
-  };
-  onClose: () => void;
-  onSaved: (empId: string) => void;
+export interface EnrollPerson {
+  _id: string;
+  personType: PersonType;
+  firstName: string;
+  lastName: string;
+  code: string;
+  faceDescriptor?: number[];
 }
 
-export function FaceEnrollModal({ employee, onClose, onSaved }: Props) {
+interface Props {
+  person: EnrollPerson;
+  onClose: () => void;
+  onSaved: (personId: string) => void;
+}
+
+export function FaceEnrollModal({ person, onClose, onSaved }: Props) {
   const { toast } = useToast();
   const {
     videoRef,
@@ -82,13 +85,17 @@ export function FaceEnrollModal({ employee, onClose, onSaved }: Props) {
     if (!capturedDescriptor) return;
     setStep("saving");
     try {
-      await biometricAPI.saveFaceDescriptor(employee._id, capturedDescriptor);
+      await biometricAPI.saveFaceDescriptor(
+        person.personType,
+        person._id,
+        capturedDescriptor,
+      );
       setStep("done");
       toast({
         title: "Face enrolled",
-        description: `${employee.firstName}'s face is saved`,
+        description: `${person.firstName}'s face is saved`,
       });
-      onSaved(employee._id);
+      onSaved(person._id);
     } catch (e: any) {
       setError(e.message);
       setStep("capture");
@@ -111,7 +118,7 @@ export function FaceEnrollModal({ employee, onClose, onSaved }: Props) {
               <Camera className="w-4 h-4" /> Face Enrollment
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              {employee.firstName} {employee.lastName} · {employee.employeeId}
+              {person.firstName} {person.lastName} · {person.code}
             </p>
           </div>
           <button
@@ -137,8 +144,8 @@ export function FaceEnrollModal({ employee, onClose, onSaved }: Props) {
           )}
 
           {}
-          {employee.faceDescriptor &&
-            employee.faceDescriptor.length === 128 &&
+          {person.faceDescriptor &&
+            person.faceDescriptor.length === 128 &&
             step === "setup" && (
               <div className="flex items-center gap-2 bg-yellow-50 border-2 border-yellow-300 p-3 text-sm">
                 <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0" />
@@ -202,7 +209,7 @@ export function FaceEnrollModal({ employee, onClose, onSaved }: Props) {
                 Enrollment complete!
               </p>
               <p className="text-sm text-green-600 mt-1">
-                {employee.firstName} can now mark attendance using the PC
+                {person.firstName} can now mark attendance using the PC
                 camera.
               </p>
             </div>
@@ -225,7 +232,7 @@ export function FaceEnrollModal({ employee, onClose, onSaved }: Props) {
                   Click <strong>Start Camera</strong> — grant browser permission
                 </li>
                 <li>
-                  Employee looks directly at camera, face centered in frame
+                  Person looks directly at camera, face centered in frame
                 </li>
                 <li>Green box appears when face is detected</li>
                 <li>

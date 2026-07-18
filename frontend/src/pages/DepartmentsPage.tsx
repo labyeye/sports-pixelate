@@ -13,6 +13,7 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
+  IndianRupee,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
 
@@ -186,20 +187,63 @@ export default function DepartmentsPage() {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
+  const loadedHeadcount = departments.reduce(
+    (s, d) => s + (d.headcount || 0),
+    0,
+  );
+  const loadedBudget = departments.reduce((s, d) => s + (d.budget || 0), 0);
+
   return (
     <AppLayout title="Departments">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <p className="text-sm font-medium text-muted-foreground">
-          {total} department{total !== 1 ? "s" : ""} ·{" "}
-          {departments.reduce((s, d) => s + (d.headcount || 0), 0)} headcount
-          loaded
-        </p>
+        <h1 className="font-display font-bold text-2xl text-black">
+          Departments
+        </h1>
         <button
           onClick={openAdd}
           className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold"
         >
           <Plus className="w-4 h-4" /> Add Department
         </button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
+        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-[#024BAB]" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Departments
+            </p>
+            <p className="text-2xl font-bold text-black">{total}</p>
+          </div>
+        </div>
+        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-[#00C48C]" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Headcount
+            </p>
+            <p className="text-2xl font-bold text-black">{loadedHeadcount}</p>
+          </div>
+        </div>
+        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#FA731C]/10 border-2 border-[#FA731C] flex items-center justify-center shrink-0">
+            <IndianRupee className="w-5 h-5 text-[#FA731C]" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Budget
+            </p>
+            <p className="text-2xl font-bold text-black">
+              ₹{loadedBudget.toLocaleString("en-IN")}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Search & Sort */}
@@ -304,7 +348,7 @@ export default function DepartmentsPage() {
                   <td className="px-4 py-3">
                     <div
                       className={cn(
-                        "w-9 h-9 border-2 border-black flex items-center justify-center shrink-0",
+                        "w-9 h-9 border-2 border-black flex items-center rounded-full justify-center shrink-0",
                         DEPT_BG_COLORS[i % DEPT_BG_COLORS.length],
                       )}
                     >
@@ -315,7 +359,7 @@ export default function DepartmentsPage() {
                     <p className="font-bold text-black">{dept.name}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-100 border-2 border-gray-400 px-2 py-0.5">
+                    <span className="text-xs font-bold text-black uppercase tracking-wider bg-gray-100 border-2 rounded-full border-black px-2 py-0.5">
                       {dept.code}
                     </span>
                   </td>
@@ -342,7 +386,7 @@ export default function DepartmentsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 bg-[#024BAB]/10 border border-black/20 flex items-center justify-center">
+                      <div className="w-6 h-6 bg-[#024BAB]/10 border border-black/20 rounded-full flex items-center justify-center">
                         <Users className="w-3.5 h-3.5 text-[#024BAB]" />
                       </div>
                       <span className="font-bold text-black">
@@ -436,7 +480,8 @@ export default function DepartmentsPage() {
               }}
               className="p-5 space-y-4"
             >
-              <div>
+              <div className="grid grid-cols-2 gap-5">
+                <div>
                 <label className="block text-xs font-bold text-black mb-1">
                   Department Name
                 </label>
@@ -461,6 +506,7 @@ export default function DepartmentsPage() {
                   required
                   placeholder="e.g. ENG"
                 />
+              </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-black mb-1">

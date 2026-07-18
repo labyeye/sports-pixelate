@@ -17,6 +17,8 @@ import {
   Trash2,
   Mail,
   Phone,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react-native';
 import { employeeAPI, departmentAPI } from '../api/client';
 import {
@@ -29,7 +31,22 @@ import {
   LoadMoreFooter,
   SortOption,
 } from '../components/ui';
+import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+
+const EMPLOYEE_IMPORT_HEADERS: ImportHeader[] = [
+  { key: 'firstName', label: 'First Name', required: true, example: 'Rahul' },
+  { key: 'lastName', label: 'Last Name', required: true, example: 'Sharma' },
+  { key: 'email', label: 'Email', required: true, example: 'rahul@sportsclub.com' },
+  { key: 'designation', label: 'Designation', required: true, example: 'Software Engineer' },
+  { key: 'joinDate', label: 'Join Date', required: true, example: '2024-01-15' },
+  { key: 'phone', label: 'Phone', required: false, example: '9876543210' },
+  { key: 'department', label: 'Department', required: false, example: 'Engineering' },
+  { key: 'employmentType', label: 'Employment Type', required: false, example: 'full_time' },
+  { key: 'gender', label: 'Gender', required: false, example: 'male' },
+  { key: 'salary', label: 'Salary', required: false, example: '35000' },
+];
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   active: { color: colors.green, label: 'Active' },
@@ -65,6 +82,7 @@ export default function EmployeesScreen({ navigation }: any) {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [importVisible, setImportVisible] = useState(false);
 
   useEffect(() => {
     departmentAPI
@@ -175,6 +193,27 @@ export default function EmployeesScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Staff</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() =>
+              exportRowsToExcel(
+                EMPLOYEE_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                employees,
+                'employees_export.xlsx',
+                'Employees',
+              )
+            }
+            style={styles.iconBtn}
+            hitSlop={8}
+          >
+            <Download size={18} color={colors.black} strokeWidth={2.5} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setImportVisible(true)}
+            style={styles.iconBtn}
+            hitSlop={8}
+          >
+            <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortVisible(true)}
             style={styles.iconBtn}
@@ -326,12 +365,29 @@ export default function EmployeesScreen({ navigation }: any) {
           setSortVisible(false);
         }}
       />
+
+      <ImportExportModal
+        visible={importVisible}
+        onClose={() => setImportVisible(false)}
+        entityLabel="Employee"
+        headers={EMPLOYEE_IMPORT_HEADERS}
+        templateFilename="employees_import_template.xlsx"
+        notes={[
+          'Join Date must be in YYYY-MM-DD format.',
+          'Employment Type must be one of: full_time, part_time, contract, intern.',
+          'Department must exactly match a department already created.',
+          'Maximum 200 employees per import.',
+        ]}
+        previewLine={r => `${r.firstName} ${r.lastName} — ${r.designation || '—'}`}
+        onImport={rows => employeeAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

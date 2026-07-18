@@ -6,10 +6,13 @@ import {
   sportsPlanAPI,
   studentAPI,
   settingsAPI,
+  getToken,
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Wallet,
   Loader2,
@@ -23,7 +26,47 @@ import {
   IndianRupee,
   QrCode,
   Upload,
+  Eye,
+  Download,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
+
+const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
+  { key: "studentId", label: "Student ID", required: true, example: "STU0001" },
+  {
+    key: "planName",
+    label: "Plan Name",
+    required: true,
+    example: "Elite Tennis",
+  },
+  {
+    key: "billingCycle",
+    label: "Billing Cycle",
+    required: true,
+    example: "monthly",
+  },
+  { key: "amount", label: "Amount", required: false, example: "2500" },
+  {
+    key: "startDate",
+    label: "Start Date",
+    required: false,
+    example: "2024-01-15",
+  },
+  {
+    key: "renewalDate",
+    label: "Renewal Date",
+    required: false,
+    example: "2024-02-15",
+  },
+  { key: "status", label: "Status", required: false, example: "active" },
+  {
+    key: "paymentMethod",
+    label: "Payment Method",
+    required: false,
+    example: "razorpay",
+  },
+];
 
 declare global {
   interface Window {
@@ -31,19 +74,33 @@ declare global {
   }
 }
 
+interface PaymentEntry {
+  _id: string;
+  amount: number;
+  method: "qr" | "razorpay";
+  utrNumber?: string;
+  transactionNumber?: string;
+  screenshot?: string;
+  status: "pending" | "verified" | "rejected";
+  submittedAt: string;
+  verifiedAt?: string;
+  rejectionReason?: string;
+}
+
 interface Subscription {
   _id: string;
-  student: { _id: string; firstName: string; lastName: string };
+  student: { _id: string; firstName: string; lastName: string; studentId?: string };
   plan: { _id: string; name: string };
   planName: string;
   billingCycle: string;
   amount: number;
+  amountPaid: number;
   renewalDate: string;
   status: string;
   paymentStatus: string;
   paymentMethod?: string;
-  qrReferenceNumber?: string;
-  paymentScreenshot?: string;
+  payments: PaymentEntry[];
+  rejectionReason?: string;
 }
 
 const STATUS_META: Record<string, { bg: string; text: string }> = {
@@ -51,6 +108,14 @@ const STATUS_META: Record<string, { bg: string; text: string }> = {
   inactive: { bg: "bg-gray-50", text: "text-gray-500" },
   cancelled: { bg: "bg-red-50", text: "text-red-600" },
   pending_renewal: { bg: "bg-yellow-50", text: "text-yellow-700" },
+};
+
+const PAYMENT_STATUS_META: Record<string, { bg: string; text: string; label: string }> = {
+  completed: { bg: "bg-green-50", text: "text-green-700", label: "Completed" },
+  partial: { bg: "bg-purple-50", text: "text-purple-700", label: "Partial" },
+  pending: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending" },
+  rejected: { bg: "bg-red-50", text: "text-red-600", label: "Rejected" },
+  failed: { bg: "bg-red-50", text: "text-red-600", label: "Failed" },
 };
 
 type SortKey = "student" | "plan" | "amount" | "renewalDate";
@@ -70,6 +135,7 @@ export default function SubscriptionsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isParent = user?.role === "parent";
+  const [importModal, setImportModal] = useState(false);
 
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
@@ -85,9 +151,23 @@ export default function SubscriptionsPage() {
 
   const [paymentQrUrl, setPaymentQrUrl] = useState("");
   const [showQrModal, setShowQrModal] = useState(false);
+  // Set when "Pay Remaining" is clicked on an existing subscription with a
+  // balance due — routes the submission to the top-up endpoint instead of
+  // the first-payment (qr-renewal) one.
+  const [qrTopUpSub, setQrTopUpSub] = useState<Subscription | null>(null);
+  const [qrAmount, setQrAmount] = useState("");
   const [qrReferenceNumber, setQrReferenceNumber] = useState("");
+  const [qrTransactionNumber, setQrTransactionNumber] = useState("");
   const [qrScreenshot, setQrScreenshot] = useState<File | null>(null);
   const [submittingQr, setSubmittingQr] = useState(false);
+
+  const [reviewSub, setReviewSub] = useState<Subscription | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // At most one payment entry is ever pending at a time — the backend
+  // rejects a new submission while one is awaiting review.
+  const reviewPayment = reviewSub?.payments?.find((p) => p.status === "pending");
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -230,13 +310,26 @@ export default function SubscriptionsPage() {
   };
 
   const handleSubmitQrPayment = async () => {
-    if (!selectedChild || !selectedPlan) {
+    const isTopUp = !!qrTopUpSub;
+    if (!isTopUp && (!selectedChild || !selectedPlan)) {
       toast({ title: "Select a child and a plan", variant: "destructive" });
+      return;
+    }
+    const amount = Number(qrAmount);
+    if (!amount || amount <= 0) {
+      toast({ title: "Enter a valid amount to pay", variant: "destructive" });
       return;
     }
     if (!qrReferenceNumber.trim()) {
       toast({
-        title: "Enter the UPI reference number",
+        title: "Enter the UTR number",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!qrTransactionNumber.trim()) {
+      toast({
+        title: "Enter the transaction number",
         variant: "destructive",
       });
       return;
@@ -250,19 +343,33 @@ export default function SubscriptionsPage() {
     }
     setSubmittingQr(true);
     try {
-      await subscriptionAPI.qrRenewal({
-        studentId: selectedChild,
-        planId: selectedPlan,
-        billingCycle,
-        referenceNumber: qrReferenceNumber.trim(),
-        screenshot: qrScreenshot,
-      });
+      if (isTopUp) {
+        await subscriptionAPI.submitPayment(qrTopUpSub!._id, {
+          referenceNumber: qrReferenceNumber.trim(),
+          transactionNumber: qrTransactionNumber.trim(),
+          amount,
+          screenshot: qrScreenshot,
+        });
+      } else {
+        await subscriptionAPI.qrRenewal({
+          studentId: selectedChild,
+          planId: selectedPlan,
+          billingCycle,
+          referenceNumber: qrReferenceNumber.trim(),
+          transactionNumber: qrTransactionNumber.trim(),
+          amount,
+          screenshot: qrScreenshot,
+        });
+      }
       toast({
         title: "Submitted",
-        description: "Waiting for the club to confirm your payment.",
+        description: "Waiting for the club to verify your payment.",
       });
       setShowQrModal(false);
+      setQrTopUpSub(null);
+      setQrAmount("");
       setQrReferenceNumber("");
+      setQrTransactionNumber("");
       setQrScreenshot(null);
       load();
     } catch (e: any) {
@@ -272,15 +379,64 @@ export default function SubscriptionsPage() {
     }
   };
 
-  const handleConfirmQrPayment = async (id: string) => {
-    if (!confirm("Confirm you've received this payment in your UPI app?"))
-      return;
+  const openPayRemaining = (sub: Subscription) => {
+    setQrTopUpSub(sub);
+    setQrAmount(String(sub.amount - (sub.amountPaid || 0)));
+    setShowQrModal(true);
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!reviewSub || !reviewPayment) return;
+    setReviewing(true);
     try {
-      await subscriptionAPI.confirmQrPayment(id);
-      toast({ title: "Renewal confirmed" });
+      await subscriptionAPI.verifyQrPayment(reviewSub._id, reviewPayment._id);
+      toast({ title: "Payment verified" });
+      setReviewSub(null);
       load();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!reviewSub || !reviewPayment) return;
+    setReviewing(true);
+    try {
+      await subscriptionAPI.rejectQrPayment(reviewSub._id, reviewPayment._id);
+      toast({
+        title: "Marked as not verified",
+        description: "The parent can resubmit a new payment.",
+      });
+      setReviewSub(null);
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (subId: string, paymentId: string) => {
+    setDownloadingId(paymentId);
+    try {
+      const token = getToken();
+      const res = await fetch(subscriptionAPI.receiptUrl(subId, paymentId), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed to download receipt");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipt_${paymentId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -338,6 +494,40 @@ export default function SubscriptionsPage() {
               : "All active student subscriptions"}
           </p>
         </div>
+        {!isParent && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                exportRowsToExcel(
+                  SUBSCRIPTION_IMPORT_HEADERS.map((h) => ({
+                    key: h.key,
+                    label: h.label,
+                  })),
+                  displayed.map((s) => ({
+                    studentId: s.student?.studentId || "",
+                    planName: s.planName,
+                    billingCycle: s.billingCycle,
+                    amount: s.amount,
+                    renewalDate: s.renewalDate?.slice(0, 10),
+                    status: s.status,
+                    paymentMethod: s.paymentMethod,
+                  })),
+                  "subscriptions_export.xlsx",
+                  "Subscriptions",
+                )
+              }
+              className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+            >
+              <Download className="w-4 h-4" /> Export
+            </button>
+            <button
+              onClick={() => setImportModal(true)}
+              className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4" /> Import Excel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -447,7 +637,17 @@ export default function SubscriptionsPage() {
             </button>
             {paymentQrUrl && (
               <button
-                onClick={() => setShowQrModal(true)}
+                onClick={() => {
+                  setQrTopUpSub(null);
+                  const plan = plans.find((p) => p._id === selectedPlan);
+                  const amount = plan
+                    ? billingCycle === "yearly"
+                      ? plan.yearlyPrice
+                      : plan.monthlyPrice
+                    : 0;
+                  setQrAmount(amount ? String(amount) : "");
+                  setShowQrModal(true);
+                }}
                 className="flex items-center gap-2 bg-white text-black border-2 border-black px-4 py-2 font-bold text-sm uppercase"
               >
                 <QrCode className="w-4 h-4" />
@@ -462,8 +662,15 @@ export default function SubscriptionsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white border-2 border-black w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base">Pay via QR</h3>
-              <button onClick={() => setShowQrModal(false)}>
+              <h3 className="font-bold text-base">
+                {qrTopUpSub ? "Pay Remaining Balance" : "Pay via QR"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowQrModal(false);
+                  setQrTopUpSub(null);
+                }}
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -478,13 +685,37 @@ export default function SubscriptionsPage() {
             />
             <div className="mb-3">
               <label className="block text-xs font-bold uppercase mb-1">
-                UPI Reference Number
+                Amount to Pay
+              </label>
+              <input
+                type="number"
+                value={qrAmount}
+                onChange={(e) => setQrAmount(e.target.value)}
+                placeholder="e.g. 800"
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs font-bold uppercase mb-1">
+                UTR Number
               </label>
               <input
                 type="text"
                 value={qrReferenceNumber}
                 onChange={(e) => setQrReferenceNumber(e.target.value)}
                 placeholder="e.g. 123456789012"
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs font-bold uppercase mb-1">
+                Transaction Number
+              </label>
+              <input
+                type="text"
+                value={qrTransactionNumber}
+                onChange={(e) => setQrTransactionNumber(e.target.value)}
+                placeholder="e.g. TXN20250117001"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               />
             </div>
@@ -511,6 +742,92 @@ export default function SubscriptionsPage() {
               )}
               Submit Payment
             </button>
+          </div>
+        </div>
+      )}
+
+      {reviewSub && reviewPayment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-2 border-black w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-base">Review Payment</h3>
+              <button onClick={() => setReviewSub(null)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-2 mb-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-medium">Student</span>
+                <span className="font-bold text-black">
+                  {reviewSub.student?.firstName} {reviewSub.student?.lastName}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-medium">Plan</span>
+                <span className="font-bold text-black">{reviewSub.planName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-medium">Amount</span>
+                <span className="font-bold text-black">₹{reviewPayment.amount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-medium">UTR Number</span>
+                <span className="font-bold text-black">
+                  {reviewPayment.utrNumber || "—"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground font-medium">
+                  Transaction Number
+                </span>
+                <span className="font-bold text-black">
+                  {reviewPayment.transactionNumber || "—"}
+                </span>
+              </div>
+            </div>
+            {reviewPayment.screenshot ? (
+              <a
+                href={reviewPayment.screenshot}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={reviewPayment.screenshot}
+                  alt="Payment screenshot"
+                  className="w-full max-h-72 object-contain border-2 border-black mb-4"
+                />
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground mb-4">
+                No screenshot uploaded.
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={handleVerifyPayment}
+                disabled={reviewing}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
+              >
+                {reviewing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                Verified
+              </button>
+              <button
+                onClick={handleRejectPayment}
+                disabled={reviewing}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
+              >
+                {reviewing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                Not Verified
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -639,7 +956,7 @@ export default function SubscriptionsPage() {
                         {s.billingCycle}
                       </td>
                       <td className="px-4 py-3 text-black font-medium">
-                        ₹{s.amount}
+                        ₹{s.amountPaid || 0} / ₹{s.amount}
                       </td>
                       <td className="px-4 py-3 text-black">
                         {new Date(s.renewalDate).toLocaleDateString("en-IN")}
@@ -656,40 +973,59 @@ export default function SubscriptionsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {s.paymentStatus === "completed" ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-red-500" />
-                        )}
+                        {(() => {
+                          const pm =
+                            PAYMENT_STATUS_META[s.paymentStatus] ||
+                            PAYMENT_STATUS_META.pending;
+                          return (
+                            <span
+                              className={cn(
+                                "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
+                                pm.bg,
+                                pm.text,
+                              )}
+                            >
+                              {pm.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1 items-start">
-                          {s.paymentMethod === "qr" &&
-                            s.paymentStatus === "pending" && (
-                              <>
-                                {s.qrReferenceNumber && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Ref: {s.qrReferenceNumber}
-                                  </span>
-                                )}
-                                {s.paymentScreenshot && (
-                                  <a
-                                    href={s.paymentScreenshot}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[10px] font-bold text-[#024BAB] hover:underline"
-                                  >
-                                    View screenshot
-                                  </a>
-                                )}
-                                <button
-                                  onClick={() => handleConfirmQrPayment(s._id)}
-                                  className="text-xs font-bold text-green-600 hover:underline"
-                                >
-                                  Confirm Payment
-                                </button>
-                              </>
+                          {!isParent &&
+                            s.payments?.some((p) => p.status === "pending") && (
+                              <button
+                                onClick={() => setReviewSub(s)}
+                                className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Review
+                              </button>
                             )}
+                          {isParent &&
+                            s.status !== "active" &&
+                            s.status !== "cancelled" &&
+                            !s.payments?.some((p) => p.status === "pending") &&
+                            (s.amountPaid || 0) < s.amount && (
+                              <button
+                                onClick={() => openPayRemaining(s)}
+                                className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
+                              >
+                                <QrCode className="w-3.5 h-3.5" />
+                                {s.amountPaid > 0 ? "Pay Remaining" : "Pay via QR"}
+                              </button>
+                            )}
+                          {s.payments
+                            ?.filter((p) => p.status === "verified")
+                            .map((p) => (
+                              <button
+                                key={p._id}
+                                onClick={() => handleDownloadReceipt(s._id, p._id)}
+                                disabled={downloadingId === p._id}
+                                className="flex items-center gap-1 text-xs font-bold text-green-700 hover:underline disabled:opacity-60"
+                              >
+                                <FileText className="w-3.5 h-3.5" /> Receipt (₹{p.amount})
+                              </button>
+                            ))}
                           {s.status === "active" && (
                             <button
                               onClick={() => handleCancel(s._id)}
@@ -723,6 +1059,41 @@ export default function SubscriptionsPage() {
           )}
         </>
       )}
+      <ImportExportModal
+        open={importModal}
+        onClose={() => setImportModal(false)}
+        entityLabel="Subscription"
+        headers={SUBSCRIPTION_IMPORT_HEADERS}
+        templateFilename="subscriptions_import_template.xlsx"
+        notes={
+          <>
+            <p>
+              • <strong>Student ID</strong> must exactly match a student's ID
+              (e.g. <code>STU0001</code>) from the Students page.
+            </p>
+            <p>
+              • <strong>Plan Name</strong> must exactly match an existing
+              coaching plan.
+            </p>
+            <p>
+              • <strong>Billing Cycle</strong> must be <code>monthly</code> or{" "}
+              <code>yearly</code>. This creates the subscription as already
+              paid — for backfilling historical records only.
+            </p>
+            <p>
+              • Maximum <strong>200 subscriptions</strong> per import.
+            </p>
+          </>
+        }
+        previewColumns={[
+          { key: "studentId", label: "Student ID" },
+          { key: "planName", label: "Plan" },
+          { key: "billingCycle", label: "Billing Cycle" },
+          { key: "amount", label: "Amount" },
+        ]}
+        onImport={(rows) => subscriptionAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </AppLayout>
   );
 }

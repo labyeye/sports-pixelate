@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Leave = require("../models/Leave");
 const Attendance = require("../models/Attendance");
+const AttendanceBalance = require("../models/AttendanceBalance");
 const Employee = require("../models/Employee");
 const User = require("../models/User");
 const Company = require("../models/Company");
@@ -269,6 +270,24 @@ const createLeave = asyncHandler(async (req, res) => {
     );
   }
 
+  // Check current-month AttendanceBalance for this leave type — if enough
+  // balance remains, deduct from it and mark as no-deduction; otherwise leave
+  // deductSalary at its schema default and flag noBalanceLeft for HR.
+  // Balance is only decremented after the Leave record is created below, so a
+  // failed create never leaves a stray deduction with no request to match it.
+  const balance = await AttendanceBalance.getOrCreateCurrentMonth(
+    employee,
+    req.user.company,
+  );
+  const leaveBalanceEntry = balance.leaveUsed.find(
+    (l) => l.leaveType === leaveType,
+  );
+  const remaining = leaveBalanceEntry
+    ? leaveBalanceEntry.daysAllowed - leaveBalanceEntry.daysUsed
+    : 0;
+  const willDeductFromBalance = leaveBalanceEntry && remaining >= daysNum;
+  const noBalanceLeft = !willDeductFromBalance;
+
   const leave = await Leave.create({
     company: req.user.company,
     employee,
@@ -281,7 +300,13 @@ const createLeave = asyncHandler(async (req, res) => {
     halfDayType: isHalfDay ? halfDayType : undefined,
     startHour: req.body.startHour,
     endHour: req.body.endHour,
+    ...(willDeductFromBalance ? { deductSalary: false } : {}),
   });
+
+  if (willDeductFromBalance) {
+    leaveBalanceEntry.daysUsed += daysNum;
+    await balance.save();
+  }
 
   try {
     // Notify employee that their request was submitted
@@ -337,7 +362,7 @@ const createLeave = asyncHandler(async (req, res) => {
     }
   } catch {}
 
-  res.status(201).json({ success: true, data: leave });
+  res.status(201).json({ success: true, data: leave, noBalanceLeft });
 });
 
 const updateLeaveStatus = asyncHandler(async (req, res) => {

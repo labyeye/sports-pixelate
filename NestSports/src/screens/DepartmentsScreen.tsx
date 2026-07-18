@@ -12,7 +12,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, ArrowUpDown, Edit2, Trash2, X, Users } from 'lucide-react-native';
+import {
+  Plus,
+  ArrowUpDown,
+  Edit2,
+  Trash2,
+  X,
+  Users,
+  Building2,
+  Wallet,
+} from 'lucide-react-native';
 import { departmentAPI } from '../api/client';
 import {
   EmptyState,
@@ -24,6 +33,7 @@ import {
   TextField,
   Button,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
@@ -222,6 +232,32 @@ export default function DepartmentsScreen() {
         />
       </View>
 
+      <View style={styles.kpiGrid}>
+        <KpiTile
+          label="Departments"
+          value={departments.length}
+          sub="Total"
+          color={colors.blue}
+          icon={Building2}
+        />
+        <KpiTile
+          label="Headcount"
+          value={departments.reduce((sum, d) => sum + (d.headcount || 0), 0)}
+          sub="Across all departments"
+          color={colors.purple}
+          icon={Users}
+        />
+        <KpiTile
+          label="Total Budget"
+          value={`₹${departments
+            .reduce((sum, d) => sum + (d.budget || 0), 0)
+            .toLocaleString('en-IN')}`}
+          sub="Combined annual budget"
+          color={colors.green}
+          icon={Wallet}
+        />
+      </View>
+
       <FlatList
         data={departments}
         keyExtractor={d => d._id}
@@ -355,7 +391,14 @@ export default function DepartmentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

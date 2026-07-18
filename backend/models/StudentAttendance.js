@@ -21,6 +21,13 @@ const studentAttendanceSchema = new mongoose.Schema(
     batch: { type: String, default: "" }, // session label, e.g. "Morning U-12"
     notes: { type: String },
     markedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    checkIn: { type: Date },
+    checkOut: { type: Date },
+    verifyMode: {
+      type: String,
+      enum: ["fingerprint", "card", "face", "password", "manual", "auto"],
+      default: "manual",
+    },
   },
   { timestamps: true },
 );

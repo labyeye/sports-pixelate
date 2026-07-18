@@ -1,8 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { ScrollView, View, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { IndianRupee, Wallet, CheckCircle2 } from 'lucide-react-native';
 import { loanAPI } from '../api/client';
-import { Card, Row, Badge, EmptyState, LoadingView } from '../components/ui';
+import {
+  Card,
+  Row,
+  Badge,
+  EmptyState,
+  LoadingView,
+  KpiTile,
+} from '../components/ui';
 import { colors } from '../theme/colors';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -44,6 +52,13 @@ export default function MyLoansScreen() {
 
   if (loading) return <LoadingView />;
 
+  const totalBorrowed = loans.reduce((sum, l) => sum + (l.amount || 0), 0);
+  const outstandingBalance = loans.reduce(
+    (sum, l) => sum + (l.remainingBalance || 0),
+    0,
+  );
+  const activeCount = loans.filter(l => l.status === 'active').length;
+
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
@@ -53,6 +68,30 @@ export default function MyLoansScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Total Borrowed"
+            value={formatCurrency(totalBorrowed)}
+            sub="All loans/advances"
+            color={colors.blue}
+            icon={IndianRupee}
+          />
+          <KpiTile
+            label="Outstanding"
+            value={formatCurrency(outstandingBalance)}
+            sub="Remaining balance"
+            color={colors.orange}
+            icon={Wallet}
+          />
+          <KpiTile
+            label="Active Loans"
+            value={activeCount}
+            sub="Currently active"
+            color={colors.green}
+            icon={CheckCircle2}
+          />
+        </View>
+
         <Card>
           {loans.length === 0 ? (
             <EmptyState title="No loans or advances found" />
@@ -84,5 +123,11 @@ export default function MyLoansScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
 });

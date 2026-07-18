@@ -6,6 +6,8 @@ import { studentAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   GraduationCap,
   Plus,
@@ -21,7 +23,71 @@ import {
   ArrowDown,
   Users,
   PauseCircle,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
+
+const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
+  { key: "firstName", label: "First Name", required: true, example: "Aarav" },
+  { key: "lastName", label: "Last Name", required: true, example: "Mehta" },
+  { key: "sport", label: "Sport", required: true, example: "Tennis" },
+  { key: "batch", label: "Batch", required: false, example: "Morning U-12" },
+  {
+    key: "dateOfBirth",
+    label: "Date of Birth",
+    required: false,
+    example: "2014-05-10",
+  },
+  { key: "gender", label: "Gender", required: false, example: "male" },
+  {
+    key: "enrollmentDate",
+    label: "Enrollment Date",
+    required: false,
+    example: "2024-01-15",
+  },
+  {
+    key: "coach",
+    label: "Coach Name",
+    required: false,
+    example: "Rahul Sharma",
+  },
+  {
+    key: "emergencyContact",
+    label: "Emergency Contact",
+    required: false,
+    example: "9876500000",
+  },
+  {
+    key: "medicalNotes",
+    label: "Medical Notes",
+    required: false,
+    example: "",
+  },
+  {
+    key: "guardianName",
+    label: "Guardian Name",
+    required: false,
+    example: "Priya Mehta",
+  },
+  {
+    key: "guardianRelation",
+    label: "Guardian Relation",
+    required: false,
+    example: "mother",
+  },
+  {
+    key: "guardianPhone",
+    label: "Guardian Phone",
+    required: false,
+    example: "9876543210",
+  },
+  {
+    key: "guardianEmail",
+    label: "Guardian Email",
+    required: false,
+    example: "priya@example.com",
+  },
+];
 
 interface Guardian {
   _id?: string;
@@ -83,6 +149,7 @@ export default function StudentsPage() {
   const [sportOptions, setSportOptions] = useState<string[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [importModal, setImportModal] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -335,17 +402,47 @@ export default function StudentsPage() {
         <h1 className="font-display font-bold text-2xl text-black">
           Student Roster
         </h1>
-        {canManage && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+            onClick={() =>
+              exportRowsToExcel(
+                STUDENT_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                displayed.map((s) => ({
+                  firstName: s.firstName,
+                  lastName: s.lastName,
+                  sport: s.sport,
+                  batch: s.batch,
+                  coach: s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "",
+                  enrollmentDate: s.enrollmentDate?.slice(0, 10),
+                })),
+                "students_export.xlsx",
+                "Students",
+              )
+            }
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Enroll Student
+            <Download className="w-4 h-4" /> Export
           </button>
-        )}
+          {canManage && (
+            <>
+              <button
+                onClick={() => setImportModal(true)}
+                className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" /> Import Excel
+              </button>
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowForm(true);
+                }}
+                className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Enroll Student
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -893,7 +990,7 @@ export default function StudentsPage() {
                           ? `${s.coach.firstName} ${s.coach.lastName}`
                           : "—"}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">
+                      <td className="px-4 py-3 text-black text-xs max-w-xs truncate">
                         {s.guardians && s.guardians.length > 0
                           ? s.guardians
                               .map(
@@ -906,7 +1003,7 @@ export default function StudentsPage() {
                       <td className="px-4 py-3">
                         <span
                           className={cn(
-                            "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
+                            "text-[10px] rounded-full font-bold uppercase px-1.5 py-0.5 border-2 border-black",
                             m.bg,
                             m.text,
                           )}
@@ -956,6 +1053,46 @@ export default function StudentsPage() {
           )}
         </>
       )}
+      <ImportExportModal
+        open={importModal}
+        onClose={() => setImportModal(false)}
+        entityLabel="Student"
+        headers={STUDENT_IMPORT_HEADERS}
+        templateFilename="students_import_template.xlsx"
+        notes={
+          <>
+            <p>
+              • <strong>Date of Birth</strong> and{" "}
+              <strong>Enrollment Date</strong> must be in{" "}
+              <strong>YYYY-MM-DD</strong> format.
+            </p>
+            <p>
+              • <strong>Coach Name</strong> must exactly match an existing
+              employee's full name.
+            </p>
+            <p>
+              • <strong>Guardian Relation</strong> must be one of:{" "}
+              <code>father</code>, <code>mother</code>, <code>guardian</code>,{" "}
+              <code>other</code>.
+            </p>
+            <p>
+              • Maximum <strong>200 students</strong> per import.
+            </p>
+          </>
+        }
+        previewColumns={[
+          {
+            key: "name",
+            label: "Name",
+            render: (r) => `${r.firstName} ${r.lastName}`,
+          },
+          { key: "sport", label: "Sport" },
+          { key: "batch", label: "Batch" },
+          { key: "coach", label: "Coach" },
+        ]}
+        onImport={(rows) => studentAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </AppLayout>
   );
 }

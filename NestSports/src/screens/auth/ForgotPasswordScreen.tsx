@@ -7,12 +7,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
+import Mail from 'lucide-react-native/icons/mail';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authAPI } from '../../api/client';
 import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
-
+import LottieView from 'lottie-react-native';
+import { Smartphone } from 'lucide-react-native';
 export default function ForgotPasswordScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -39,17 +42,25 @@ export default function ForgotPasswordScreen({ navigation }: any) {
   return (
     <SafeAreaView
       edges={['top']}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: colors.white }}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.logo}>
-            Nest<Text style={{ color: colors.orange }}>Sports</Text>
-          </Text>
-          <Text style={styles.subtitle}>Reset your password</Text>
+          <LottieView
+            source={require('../../assets/lottie/forgot.json')}
+            autoPlay
+            loop
+            style={{
+              width: '100%',
+              height: 250,
+              marginTop: -204,
+              marginBottom: 24,
+            }}
+          />
+          <Text style={styles.title}>Reset your password</Text>
 
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
@@ -77,11 +88,59 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           />
 
           <Text
-            style={styles.link}
-            onPress={() => navigation.navigate('Login')}
+            style={{
+              textAlign: 'center',
+              marginVertical: 16,
+              color: colors.muted,
+              marginTop: 25,
+            }}
           >
-            Back to sign in
+            ----------------------------------- Or Login With
+            ---------------------------------
           </Text>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}
+          >
+            <View>
+              <TouchableOpacity
+              style={{
+                alignSelf: 'center',
+                marginBottom: 16,
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: colors.blue,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 8,
+              }}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Mail color={colors.white} size={26} />
+            </TouchableOpacity>
+            <Text style={{ color: colors.muted, marginTop: 0 , textAlign: 'center' }}>Email</Text>
+            </View>
+            <View>
+              <TouchableOpacity
+              style={{
+                alignSelf: 'center',
+                marginBottom: 16,
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: colors.blue,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 8,
+              }}
+              onPress={() => navigation.navigate('PhoneOtpLogin')}
+            >
+              <Smartphone color={colors.white} size={26} />
+            </TouchableOpacity>
+                        <Text style={{ color: colors.muted, marginTop: 0 , textAlign: 'center' }}>Phone</Text>
+
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -93,7 +152,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
   logo: {
     fontSize: 32,
@@ -102,10 +161,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
   },
-  subtitle: {
+  title: {
     textAlign: 'center',
-    color: colors.muted,
-    marginBottom: 24,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.black,
+    marginBottom: 8,
   },
   field: { marginBottom: 14 },
   label: { fontWeight: '700', marginBottom: 6, color: colors.black },

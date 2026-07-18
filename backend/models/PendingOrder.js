@@ -17,8 +17,10 @@ const pendingOrderSchema = new mongoose.Schema(
     panNumber: { type: String },
 
     studentCount: { type: Number, required: true },
+    employeeCount: { type: Number, default: 0 },
+    wantsWhatsapp: { type: Boolean, default: false },
     billingCycle: { type: String, enum: ["monthly", "yearly"], required: true },
-    ratePerStudent: { type: Number, required: true },
+    ratePerUnit: { type: Number, required: true },
     monthlyPrice: { type: Number, required: true },
     yearlyPrice: { type: Number, required: true },
 

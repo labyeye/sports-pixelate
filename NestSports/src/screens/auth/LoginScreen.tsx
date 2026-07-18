@@ -7,17 +7,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
-import NestSportsLogo from '../../assets/logo.png';
+import LottieView from 'lottie-react-native';
+import { Smartphone, Eye, EyeOff } from 'lucide-react-native';
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,23 +31,30 @@ export default function LoginScreen({ navigation }: any) {
     if (!res.success && !res.requires2FA) {
       setError(res.error || 'Login failed');
     }
-    // On success, AuthContext flips isAuthenticated and RootNavigator swaps
-    // to the main app automatically.
   };
 
   return (
     <SafeAreaView
       edges={['top']}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: colors.white }}
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <Image source={NestSportsLogo} style={styles.logo} />
-          <Text style={styles.subtitle}>Sign in to your academy</Text>
-
+          <LottieView
+            source={require('../../assets/lottie/login.json')}
+            autoPlay
+            loop
+            style={{
+              width: '100%',
+              height: 250,
+              marginTop: -74,
+              marginBottom: 24,
+            }}
+          />
+          <Text style={styles.title}>Login</Text>
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -59,37 +68,83 @@ export default function LoginScreen({ navigation }: any) {
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-            />
+            <View style={{ justifyContent: 'center' }}>
+              <TextInput
+                style={[styles.input, { paddingRight: 44 }]}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(prev => !prev)}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  height: '100%',
+                  justifyContent: 'center',
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                {showPassword ? (
+                  <EyeOff color={colors.muted} size={20} />
+                ) : (
+                  <Eye color={colors.muted} size={20} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Button title="Sign In" onPress={onSubmit} loading={loading} />
-
           <Text
-            style={styles.link}
-            onPress={() => navigation.navigate('PhoneOtpLogin')}
-          >
-            Sign in with WhatsApp OTP
-          </Text>
-          <Text
-            style={styles.link}
+            style={styles.forgot}
             onPress={() => navigation.navigate('ForgotPassword')}
           >
             Forgot password?
           </Text>
           <Text
-            style={styles.link}
-            onPress={() => navigation.navigate('Register')}
+            style={{
+              textAlign: 'center',
+              marginVertical: 16,
+              color: colors.muted,
+            }}
           >
-            New academy? Create an account
+            ----------------------------------- Or Login With
+            ---------------------------------
           </Text>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}
+          >
+            <View>
+              <TouchableOpacity
+                style={{
+                  alignSelf: 'center',
+                  marginBottom: 16,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: colors.blue,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 8,
+                }}
+                onPress={() => navigation.navigate('PhoneOtpLogin')}
+              >
+                <Smartphone color={colors.white} size={26} />
+              </TouchableOpacity>
+              <Text
+                style={{
+                  color: colors.muted,
+                  marginTop: 0,
+                  textAlign: 'center',
+                }}
+              >
+                Phone
+              </Text>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -101,7 +156,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
   logo: {
     width: '100%',
@@ -109,10 +164,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 24,
   },
-  subtitle: {
+  title: {
     textAlign: 'center',
-    color: colors.muted,
-    marginBottom: 24,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.black,
+    marginBottom: 8,
   },
   field: { marginBottom: 14 },
   label: { fontWeight: '700', marginBottom: 6, color: colors.black },
@@ -127,8 +184,19 @@ const styles = StyleSheet.create({
   error: { color: colors.red, marginBottom: 12, fontWeight: '600' },
   link: {
     textAlign: 'center',
-    marginTop: 16,
+    color: colors.white,
+    fontWeight: '700',
+  },
+  forgot: {
+    textAlign: 'right',
     color: colors.blue,
     fontWeight: '700',
+    marginTop: 25,
+  },
+  signinview: {
+    backgroundColor: colors.blue,
+    padding: 15,
+    borderRadius: 5,
+    marginTop: 5,
   },
 });

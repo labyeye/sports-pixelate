@@ -71,6 +71,7 @@ app.use(morgan("dev"));
 app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+app.use("/iclock", require("./routes/admsRoutes"));
 app.use("/internal/stats", require("./routes/statsRoutes"));
 app.use("/api/crm", require("./routes/crmRoutes"));
 
@@ -105,6 +106,12 @@ app.use("/api/billing", require("./routes/billingRoutes"));
 app.use("/api/payment-methods", require("./routes/paymentMethodRoutes"));
 app.use("/api/holidays", require("./routes/holidayRoutes"));
 app.use("/api/payroll-config", require("./routes/payrollConfigRoutes"));
+app.use(
+  "/api/attendance-settings",
+  require("./routes/attendanceSettingsRoutes"),
+);
+app.use("/api/biometric", require("./routes/biometricRoutes"));
+app.use("/api/late-approvals", require("./routes/lateApprovalRoutes"));
 app.use("/api/loans", require("./routes/loanRoutes"));
 app.use("/api/shifts", require("./routes/shiftRoutes"));
 app.use("/api/salary-heads", require("./routes/salaryHeadRoutes"));
@@ -131,7 +138,9 @@ app.use("/api/expenses", require("./routes/expenseRoutes"));
 app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/facilities", require("./routes/facilityRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
-app.use("/api/tournaments", require("./routes/tournamentRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
+// Reports (student & billing reports)
+app.use("/api/reports", require("./routes/reportsRoutes"));
 
 app.get("/api/health", (req, res) =>
   res.json({ status: "ok", service: "NestSports API" }),

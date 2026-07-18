@@ -24,7 +24,7 @@ const offerCodeSchema = new mongoose.Schema(
 
     // A code applies exactly one kind of discount:
     //  - bonus_months: extra free months tacked onto the renewal date
-    //  - flat_rate:    overrides the per-student/year rate (e.g. 150 -> 100)
+    //  - flat_rate:    overrides the per-unit/year rate (e.g. 150 -> 100)
     //  - percent_off:  knocks a percentage off the computed yearly price
     discountType: {
       type: String,

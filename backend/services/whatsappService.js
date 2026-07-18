@@ -396,6 +396,67 @@ async function sendCheckOutHR(
   }
 }
 
+// ─── Attendance (student / guardian) ──────────────────────────────────────────
+// NOTE: these templates ("nestsports_student_checkin"/"nestsports_student_checkout")
+// must be submitted and approved in Meta Business Manager before delivery will work —
+// they are new, distinct from the neshr_* templates reused above.
+
+/**
+ * Template: nestsports_student_checkin
+ * Body:  Hi {{1}}, {{2}} checked in at {{3}} at {{4}}.
+ */
+async function sendStudentCheckIn(
+  phone,
+  { guardianName, studentName, locationName, time },
+  companyId,
+) {
+  try {
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    if (!s) return;
+    const t = new Date(time).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata",
+    });
+    await sendTemplate(
+      phone,
+      "nestsports_student_checkin",
+      [guardianName || "there", studentName, locationName, t],
+      s.whatsappLang || "en",
+    );
+  } catch (err) {
+    console.error("[WhatsApp] sendStudentCheckIn:", err.message);
+  }
+}
+
+/**
+ * Template: nestsports_student_checkout
+ * Body:  Hi {{1}}, {{2}} checked out at {{3}} at {{4}}.
+ */
+async function sendStudentCheckOut(
+  phone,
+  { guardianName, studentName, locationName, time },
+  companyId,
+) {
+  try {
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    if (!s) return;
+    const t = new Date(time).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata",
+    });
+    await sendTemplate(
+      phone,
+      "nestsports_student_checkout",
+      [guardianName || "there", studentName, locationName, t],
+      s.whatsappLang || "en",
+    );
+  } catch (err) {
+    console.error("[WhatsApp] sendStudentCheckOut:", err.message);
+  }
+}
+
 // ─── Payroll ──────────────────────────────────────────────────────────────────
 
 /**
@@ -815,6 +876,8 @@ module.exports = {
   sendCheckOut,
   sendCheckInHR,
   sendCheckOutHR,
+  sendStudentCheckIn,
+  sendStudentCheckOut,
   sendLeaveSubmitted,
   sendLeaveApproved,
   sendLeaveRejected,

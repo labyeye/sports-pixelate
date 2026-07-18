@@ -8,6 +8,7 @@ const {
   recordTransaction,
   assignItem,
   returnAssignment,
+  bulkImportItems,
 } = require("../controllers/inventoryController");
 const { protect, authorize } = require("../middleware/auth");
 const { uploadInventoryPhoto } = require("../middleware/upload");
@@ -20,6 +21,8 @@ router
   .route("/")
   .get(protect, ownerOrStaff, getItems)
   .post(protect, ownerOnly, createItem);
+
+router.post("/bulk-import", protect, ownerOnly, bulkImportItems);
 
 router
   .route("/:id")

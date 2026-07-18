@@ -218,7 +218,7 @@ export default function ProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   uploadingText: { color: colors.muted, fontSize: 12, marginTop: 6 },

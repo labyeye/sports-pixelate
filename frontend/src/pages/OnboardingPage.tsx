@@ -33,7 +33,8 @@ interface CompanyFormData {
   panNumber: string;
 }
 
-const RATE_PER_STUDENT = 150;
+const RATE_STANDARD = 150;
+const RATE_WHATSAPP = 300;
 
 const STEPS: { id: Step; label: string }[] = [
   { id: "company", label: "SportsClub" },
@@ -98,6 +99,8 @@ export default function OnboardingPage() {
     user?.company ? "students" : "company",
   );
   const [studentCount, setStudentCount] = useState<number | "">("");
+  const [employeeCount, setEmployeeCount] = useState<number | "">("");
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
   const [paying, setPaying] = useState(false);
   const [companyError, setCompanyError] = useState("");
   const [companyForm, setCompanyForm] = useState<CompanyFormData | null>(null);
@@ -109,8 +112,9 @@ export default function OnboardingPage() {
   }, [user?.company, user?.subscription?.status, navigate]);
 
   const count = Number(studentCount) || 0;
-  const rate = RATE_PER_STUDENT;
-  const yearlyPrice = count * rate;
+  const empCount = Number(employeeCount) || 0;
+  const rate = wantsWhatsapp ? RATE_WHATSAPP : RATE_STANDARD;
+  const yearlyPrice = (count + empCount) * rate;
   const monthlyEquiv = Math.round(yearlyPrice / 12);
 
   const handleCreateCompany = async (formData: CompanyFormData) => {
@@ -157,6 +161,8 @@ export default function OnboardingPage() {
     try {
       const res = await billingAPI.createOrder(
         count,
+        empCount,
+        wantsWhatsapp,
         "yearly",
         "razorpay",
         user?.company ? undefined : companyForm!,
@@ -287,10 +293,11 @@ export default function OnboardingPage() {
           <div>
             <div className="text-center mb-8">
               <h1 className="font-display font-bold text-3xl text-black mb-2">
-                How many students?
+                How many students & employees?
               </h1>
               <p className="text-gray-500 font-medium text-sm">
-                ₹{RATE_PER_STUDENT}/student/year — every feature included
+                ₹{RATE_STANDARD}/person/year, or ₹{RATE_WHATSAPP}/person/year
+                with WhatsApp notifications
               </p>
             </div>
 
@@ -313,33 +320,66 @@ export default function OnboardingPage() {
                 autoFocus
                 className="w-full border-2 border-black px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-2"
               />
-              <p className="text-xs text-gray-400 font-medium text-center mb-2">
+              <p className="text-xs text-gray-400 font-medium text-center mb-4">
                 Your current enrolled students, across all sports and batches
               </p>
-              {count > 0 && (
+
+              <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
+                Number of employees
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={employeeCount}
+                onChange={(e) =>
+                  setEmployeeCount(
+                    e.target.value === ""
+                      ? ""
+                      : Math.max(0, parseInt(e.target.value) || 0),
+                  )
+                }
+                placeholder="e.g. 5"
+                className="w-full border-2 border-black px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-2"
+              />
+              <p className="text-xs text-gray-400 font-medium text-center mb-4">
+                Coaches and staff you'll manage on the platform
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setWantsWhatsapp((v) => !v)}
+                className={cn(
+                  "w-full border-2 border-black px-4 py-3 mb-2 flex items-center justify-between text-left transition-all",
+                  wantsWhatsapp ? "bg-[#024BAB] text-white" : "bg-white text-black",
+                )}
+              >
+                <span className="font-bold text-sm">
+                  Enable WhatsApp notifications
+                </span>
+                <span
+                  className={cn(
+                    "w-5 h-5 border-2 flex items-center justify-center shrink-0",
+                    wantsWhatsapp
+                      ? "bg-white border-white"
+                      : "bg-white border-black",
+                  )}
+                >
+                  {wantsWhatsapp && (
+                    <Check className="w-3.5 h-3.5 text-[#024BAB]" />
+                  )}
+                </span>
+              </button>
+              <p className="text-xs text-gray-400 font-medium text-center mb-4">
+                Without WhatsApp: ₹{RATE_STANDARD}/person/year. With WhatsApp:
+                ₹{RATE_WHATSAPP}/person/year.
+              </p>
+
+              {(count > 0 || empCount > 0) && (
                 <p className="text-sm font-bold text-[#024BAB] text-center mb-6">
                   ₹{yearlyPrice.toLocaleString("en-IN")}/year (₹
                   {monthlyEquiv.toLocaleString("en-IN")}/mo equiv.)
                 </p>
               )}
-
-              {/* Quick picks */}
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {[20, 50, 100, 200].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setStudentCount(n)}
-                    className={cn(
-                      "py-2 text-sm font-bold border-2 transition-all",
-                      Number(studentCount) === n
-                        ? "bg-[#024BAB] text-white border-black"
-                        : "bg-white text-black border-black hover:bg-gray-50",
-                    )}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
 
               <button
                 onClick={handleStudentContinue}
@@ -376,12 +416,26 @@ export default function OnboardingPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Plan</span>
                     <span className="font-bold text-black">
-                      ₹{rate}/student/year
+                      ₹{rate}/person/year
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Students</span>
                     <span className="font-bold text-black">{studentCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-bold text-gray-600">Employees</span>
+                    <span className="font-bold text-black">
+                      {employeeCount || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-bold text-gray-600">
+                      WhatsApp notifications
+                    </span>
+                    <span className="font-bold text-black">
+                      {wantsWhatsapp ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">

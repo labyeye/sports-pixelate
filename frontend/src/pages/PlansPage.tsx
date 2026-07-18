@@ -4,6 +4,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { sportsPlanAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Gift,
   Plus,
@@ -17,6 +19,8 @@ import {
   ArrowDown,
   Layers,
   IndianRupee,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 
 interface Plan {
@@ -28,6 +32,35 @@ interface Plan {
   yearlyPrice: number;
   description?: string;
 }
+
+const PLAN_IMPORT_HEADERS: ImportHeader[] = [
+  { key: "name", label: "Plan Name", required: true, example: "Elite Tennis" },
+  { key: "sport", label: "Sport", required: true, example: "Tennis" },
+  {
+    key: "monthlyPrice",
+    label: "Monthly Price",
+    required: true,
+    example: "2500",
+  },
+  {
+    key: "yearlyPrice",
+    label: "Yearly Price",
+    required: true,
+    example: "25000",
+  },
+  {
+    key: "sessionsPerWeek",
+    label: "Sessions Per Week",
+    required: false,
+    example: "3",
+  },
+  {
+    key: "description",
+    label: "Description",
+    required: false,
+    example: "Advanced coaching with video analysis",
+  },
+];
 
 type SortKey = "name" | "sport" | "monthlyPrice" | "sessionsPerWeek";
 
@@ -55,6 +88,7 @@ export default function PlansPage() {
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [importModal, setImportModal] = useState(false);
 
   const planParams = useCallback(
     (pageNum: number): Record<string, string> => {
@@ -205,15 +239,36 @@ export default function PlansPage() {
         <h1 className="font-display font-bold text-2xl text-black">
           Coaching Plans
         </h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-          className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Plan
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              exportRowsToExcel(
+                PLAN_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                displayed,
+                "coaching_plans_export.xlsx",
+                "Plans",
+              )
+            }
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button
+            onClick={() => setImportModal(true)}
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Import Excel
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Plan
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -569,6 +624,26 @@ export default function PlansPage() {
           )}
         </>
       )}
+      <ImportExportModal
+        open={importModal}
+        onClose={() => setImportModal(false)}
+        entityLabel="Plan"
+        headers={PLAN_IMPORT_HEADERS}
+        templateFilename="coaching_plans_import_template.xlsx"
+        notes={
+          <p>
+            • Maximum <strong>200 plans</strong> per import.
+          </p>
+        }
+        previewColumns={[
+          { key: "name", label: "Name" },
+          { key: "sport", label: "Sport" },
+          { key: "monthlyPrice", label: "Monthly Price" },
+          { key: "yearlyPrice", label: "Yearly Price" },
+        ]}
+        onImport={(rows) => sportsPlanAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </AppLayout>
   );
 }

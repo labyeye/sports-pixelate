@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, X } from 'lucide-react-native';
+import { Plus, X, Clock, CheckCircle2, XCircle } from 'lucide-react-native';
 import { leaveAPI, employeeAPI } from '../api/client';
 import {
   Card,
@@ -23,6 +23,7 @@ import {
   TextField,
   ChipSelect,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
@@ -177,6 +178,30 @@ export default function LeaveScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Pending"
+            value={leaves.filter(l => l.status === 'pending').length}
+            sub="Awaiting approval"
+            color={colors.yellow}
+            icon={Clock}
+          />
+          <KpiTile
+            label="Approved"
+            value={leaves.filter(l => l.status === 'approved').length}
+            sub="Approved leaves"
+            color={colors.green}
+            icon={CheckCircle2}
+          />
+          <KpiTile
+            label="Rejected"
+            value={leaves.filter(l => l.status === 'rejected').length}
+            sub="Rejected leaves"
+            color={colors.red}
+            icon={XCircle}
+          />
+        </View>
+
         <Card>
           {leaves.length === 0 ? (
             <EmptyState title="No leave requests found" />
@@ -336,7 +361,7 @@ export default function LeaveScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -369,6 +394,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   item: { marginBottom: 4 },
   actions: { flexDirection: 'row', gap: 8, marginBottom: 10 },

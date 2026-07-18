@@ -953,7 +953,7 @@ export default function SettingsPage() {
       setSettings((prev: any) => ({ ...prev, logoUrl: res.logoUrl }));
       toast({
         title: "Logo uploaded",
-        description: "SportsClub logo saved to server.",
+        description: "Club logo saved to server.",
       });
     } catch (err: any) {
       toast({
@@ -1014,7 +1014,7 @@ export default function SettingsPage() {
           show: true,
           type: "error",
           title: "Required Field Missing",
-          message: "Please fill in: SportsClub Name",
+          message: "Please fill in: Club Name",
         });
         return;
       }
@@ -1023,7 +1023,7 @@ export default function SettingsPage() {
           show: true,
           type: "error",
           title: "Required Field Missing",
-          message: "Please fill in: SportsClub Address",
+          message: "Please fill in: Club Address",
         });
         return;
       }
@@ -1099,7 +1099,7 @@ export default function SettingsPage() {
 
   const SETTING_TABS = [
     {
-      group: "SportsClub",
+      group: "Club",
       items: [
         { id: "general", label: "General Info", icon: Building2 },
         { id: "bank", label: "Bank Details", icon: Landmark },
@@ -1143,7 +1143,7 @@ export default function SettingsPage() {
             Settings
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage SportsClub, HR and system configuration
+            Manage Club, HR and system configuration
           </p>
         </div>
 
@@ -1190,21 +1190,21 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
-                      label="SportsClub Name"
+                      label="Club Name"
                       name="companyName"
                       value={settings?.companyName || ""}
                       required
                       onChange={handleChange}
                     />
                     <InputField
-                      label="SportsClub Email"
+                      label="Club Email"
                       name="companyEmail"
                       value={settings?.companyEmail || ""}
                       type="email"
                       onChange={handleChange}
                     />
                     <InputField
-                      label="SportsClub Phone"
+                      label="Club Phone"
                       name="companyPhone"
                       value={settings?.companyPhone || ""}
                       maxLength={10}
@@ -1255,7 +1255,7 @@ export default function SettingsPage() {
                   {}
                   <div className="border-t-2 border-black pt-4 mt-4">
                     <label className="block text-xs font-bold text-black uppercase tracking-wider mb-3">
-                      SportsClub Logo
+                      Club Logo
                     </label>
                     <div className="flex gap-4 items-start">
                       <div className="flex-1">
@@ -1286,7 +1286,7 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-2">
                           <img
                             src={`${import.meta.env.VITE_API_URL?.replace(/\/api$/, "")}${settings.logoUrl}`}
-                            alt="SportsClub logo"
+                            alt="Club logo"
                             className="w-24 h-24 object-contain border-2 border-black bg-white p-2"
                           />
                           <button
@@ -1425,10 +1425,10 @@ export default function SettingsPage() {
                   </div>
 
                   <TextAreaField
-                    label="SportsClub Address"
+                    label="Club Address"
                     name="companyAddress"
                     value={settings?.companyAddress || ""}
-                    placeholder="Enter full SportsClub address"
+                    placeholder="Enter full Club address"
                     rows={3}
                     required
                     onChange={handleChange}

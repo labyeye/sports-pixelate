@@ -18,12 +18,14 @@ import OnboardingPage from "./pages/OnboardingPage";
 import BillingPage from "./pages/BillingPage";
 import ReportsPage from "./pages/ReportsPage";
 import HolidaysPage from "./pages/HolidaysPage";
-import PayrollSettingsPage from "./pages/PayrollSettingsPage";
+import AttendanceSettingsPage from "./pages/AttendanceSettingsPage";
+import LateApprovalsPage from "./pages/LateApprovalsPage";
 import StudentsPage from "./pages/StudentsPage";
 import StudentAttendancePage from "./pages/StudentAttendancePage";
 import PlansPage from "./pages/PlansPage";
-import TournamentsPage from "./pages/TournamentsPage";
-import TournamentDetailPage from "./pages/TournamentDetailPage";
+import EventsPage from "./pages/EventsPage";
+import EventCreatePage from "./pages/EventCreatePage";
+import EventDetailPage from "./pages/EventDetailPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import InventoryPage from "./pages/InventoryPage";
@@ -44,6 +46,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import SupportPage from "./pages/SupportPage";
 import DocumentVaultPage from "./pages/DocumentVaultPage";
+import BiometricPage from "./pages/BiometricPage";
+import BiometricDevicePage from "./pages/BiometricDevicePage";
 import nesthrlogo from "../assets/nesthr.png";
 import PageTransition from "@/components/layout/PageTransition";
 const queryClient = new QueryClient({
@@ -119,6 +123,8 @@ function AppRoutes() {
         />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        {}
+        <Route path="/device/:token" element={<BiometricDevicePage />} />
         <Route
           path="/onboarding"
           element={
@@ -253,10 +259,18 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/payroll-settings"
+          path="/attendance-settings"
           element={
             <ProtectedRoute>
-              <PayrollSettingsPage />
+              <AttendanceSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/late-approvals"
+          element={
+            <ProtectedRoute>
+              <LateApprovalsPage />
             </ProtectedRoute>
           }
         />
@@ -326,6 +340,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/biometric"
+          element={
+            <ProtectedRoute>
+              <BiometricPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/students"
           element={
             <ProtectedRoute>
@@ -350,18 +372,26 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/tournaments"
+          path="/events"
           element={
             <ProtectedRoute>
-              <TournamentsPage />
+              <EventsPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/tournaments/:id"
+          path="/events/new"
           element={
             <ProtectedRoute>
-              <TournamentDetailPage />
+              <EventCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/:id"
+          element={
+            <ProtectedRoute>
+              <EventDetailPage />
             </ProtectedRoute>
           }
         />

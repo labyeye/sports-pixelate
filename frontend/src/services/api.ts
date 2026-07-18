@@ -9,10 +9,13 @@ async function request<T = any>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getToken();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      // FormData bodies must NOT get a manual Content-Type — the browser
+      // sets the multipart boundary itself when the header is left off.
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
@@ -297,6 +300,8 @@ export const billingAPI = {
     request<{ success: boolean; data: any }>("/billing/invoices"),
   createOrder: (
     studentCount: number,
+    employeeCount: number,
+    wantsWhatsapp: boolean,
     billingCycle: "monthly" | "yearly",
     gateway: "razorpay" | "hdfc" = "razorpay",
     company?: {
@@ -314,18 +319,25 @@ export const billingAPI = {
       method: "POST",
       body: JSON.stringify({
         studentCount,
+        employeeCount,
+        wantsWhatsapp,
         billingCycle,
         gateway,
         company,
         offerCode: offerCode || undefined,
       }),
     }),
-  validateOfferCode: (code: string, studentCount?: number) =>
+  validateOfferCode: (
+    code: string,
+    studentCount?: number,
+    employeeCount?: number,
+    wantsWhatsapp?: boolean,
+  ) =>
     request<{ success: boolean; message: string; data: any }>(
       "/billing/validate-offer",
       {
         method: "POST",
-        body: JSON.stringify({ code, studentCount }),
+        body: JSON.stringify({ code, studentCount, employeeCount, wantsWhatsapp }),
       },
     ),
   verifyRazorpay: (payload: {
@@ -395,6 +407,8 @@ export const holidayAPI = {
   delete: (id: string) => request(`/holidays/${id}`, { method: "DELETE" }),
 };
 
+export type PersonType = "employee" | "student";
+
 export const biometricAPI = {
   getLocations: () => request("/biometric/locations"),
   createLocation: (body: object) =>
@@ -426,10 +440,16 @@ export const biometricAPI = {
   regenerateDeviceToken: (id: string) =>
     request(`/biometric/devices/${id}/regenerate-token`, { method: "POST" }),
 
-  assignNfcCard: (deviceId: string, body: object) =>
+  assignNfcCard: (
+    deviceId: string,
+    uid: string,
+    personType: PersonType,
+    personId: string,
+    label?: string,
+  ) =>
     request(`/biometric/devices/${deviceId}/nfc`, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify({ uid, personType, personId, label }),
     }),
   removeNfcCard: (deviceId: string, uid: string) =>
     request(`/biometric/devices/${deviceId}/nfc/${uid}`, { method: "DELETE" }),
@@ -461,32 +481,52 @@ export const biometricAPI = {
       method: "PUT",
       body: JSON.stringify({ serialNumber }),
     }),
-  syncEmployeeToDevice: (
+  syncPersonToDevice: (
     deviceId: string,
-    employeeId: string,
+    personType: PersonType,
+    personId: string,
     rfidCard?: string,
   ) =>
-    request(`/biometric/devices/${deviceId}/sync-employee`, {
+    request(`/biometric/devices/${deviceId}/sync-person`, {
       method: "POST",
-      body: JSON.stringify({ employeeId, rfidCard }),
+      body: JSON.stringify({ personType, personId, rfidCard }),
     }),
   syncAllToDevice: (deviceId: string) =>
     request(`/biometric/devices/${deviceId}/sync-all`, { method: "POST" }),
-  removeEmployeeFromDevice: (deviceId: string, employeeId: string) =>
-    request(`/biometric/devices/${deviceId}/sync-employee/${employeeId}`, {
-      method: "DELETE",
-    }),
+  removePersonFromDevice: (
+    deviceId: string,
+    personType: PersonType,
+    personId: string,
+  ) =>
+    request(
+      `/biometric/devices/${deviceId}/sync-person/${personType}/${personId}`,
+      { method: "DELETE" },
+    ),
   getDeviceCommands: (deviceId: string) =>
     request(`/biometric/devices/${deviceId}/commands`),
 
-  saveRfidCard: (employeeId: string, rfidCard: string) =>
-    request(`/biometric/employees/${employeeId}/rfid`, {
+  assignBiometricUserId: (
+    personType: PersonType,
+    personId: string,
+    biometricUserId: string,
+  ) =>
+    request(`/biometric/people/${personType}/${personId}/biometric-id`, {
+      method: "POST",
+      body: JSON.stringify({ biometricUserId }),
+    }),
+
+  saveRfidCard: (personType: PersonType, personId: string, rfidCard: string) =>
+    request(`/biometric/people/${personType}/${personId}/rfid`, {
       method: "POST",
       body: JSON.stringify({ rfidCard }),
     }),
 
-  saveFaceDescriptor: (employeeId: string, descriptor: number[]) =>
-    request(`/biometric/employees/${employeeId}/face`, {
+  saveFaceDescriptor: (
+    personType: PersonType,
+    personId: string,
+    descriptor: number[],
+  ) =>
+    request(`/biometric/people/${personType}/${personId}/face`, {
       method: "POST",
       body: JSON.stringify({ descriptor }),
     }),
@@ -497,34 +537,48 @@ export const biometricAPI = {
       body: JSON.stringify({ descriptor, deviceToken }),
     }),
 
-  enrollFingerprint: (deviceId: string, employeeId: string, fingerIndex = 0) =>
+  enrollFingerprint: (
+    deviceId: string,
+    personType: PersonType,
+    personId: string,
+    fingerIndex = 0,
+  ) =>
     request(`/biometric/devices/${deviceId}/enroll-fingerprint`, {
       method: "POST",
-      body: JSON.stringify({ employeeId, fingerIndex }),
+      body: JSON.stringify({ personType, personId, fingerIndex }),
     }),
 
-  enrollFaceOnDevice: (deviceId: string, employeeId: string) =>
+  enrollFaceOnDevice: (
+    deviceId: string,
+    personType: PersonType,
+    personId: string,
+  ) =>
     request(`/biometric/devices/${deviceId}/enroll-face-device`, {
       method: "POST",
-      body: JSON.stringify({ employeeId }),
+      body: JSON.stringify({ personType, personId }),
     }),
 
-  pushFaceTemplateToDevice: (deviceId: string, employeeId: string) =>
+  pushFaceTemplateToDevice: (
+    deviceId: string,
+    personType: PersonType,
+    personId: string,
+  ) =>
     request(`/biometric/devices/${deviceId}/push-face-template`, {
       method: "POST",
-      body: JSON.stringify({ employeeId }),
+      body: JSON.stringify({ personType, personId }),
     }),
 
-  getDeviceEmployees: (token: string) =>
-    request(`/biometric/device/${token}/employees`),
+  getDevicePeople: (token: string) =>
+    request(`/biometric/device/${token}/people`),
   enrollFaceFromDevice: (
     deviceToken: string,
-    employeeId: string,
+    personType: PersonType,
+    personId: string,
     descriptor: number[],
   ) =>
     request("/biometric/device-face-enroll", {
       method: "POST",
-      body: JSON.stringify({ deviceToken, employeeId, descriptor }),
+      body: JSON.stringify({ deviceToken, personType, personId, descriptor }),
     }),
 };
 
@@ -537,11 +591,45 @@ export const payrollConfigAPI = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
-  getDeductionRules: () => request("/payroll-config/deduction-rules"),
-  upsertDeductionRules: (body: object) =>
-    request("/payroll-config/deduction-rules", {
+};
+
+export const attendanceSettingsAPI = {
+  get: () => request("/attendance-settings"),
+  update: (body: object) =>
+    request("/attendance-settings", {
       method: "PUT",
       body: JSON.stringify(body),
+    }),
+  upsertLateAllowance: (body: {
+    mode: "bulk" | "custom";
+    bulkCount?: number;
+    perEmployee?: { employee: string; count: number }[];
+  }) =>
+    request("/attendance-settings/late-allowance", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  upsertLeaveAllowance: (body: {
+    leaveType: string;
+    mode: "bulk" | "custom";
+    bulkDays?: number;
+    perEmployee?: { employee: string; days: number }[];
+  }) =>
+    request("/attendance-settings/leave-allowance", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  getBalanceSummary: () => request("/attendance-settings/balance-summary"),
+  getMyBalance: () => request("/attendance-settings/my-balance"),
+};
+
+export const lateApprovalAPI = {
+  getAll: (status?: string) =>
+    request(`/late-approvals${status ? `?status=${status}` : ""}`),
+  resolve: (id: string, resolvedStatus: string) =>
+    request(`/late-approvals/${id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ resolvedStatus }),
     }),
 };
 
@@ -569,6 +657,11 @@ export const loanAPI = {
       body: JSON.stringify(body),
     }),
   delete: (id: string) => request(`/loans/${id}`, { method: "DELETE" }),
+  bulkImport: (loans: object[]) =>
+    request("/loans/bulk-import", {
+      method: "POST",
+      body: JSON.stringify({ loans }),
+    }),
 };
 
 export const branchAPI = {
@@ -791,6 +884,11 @@ export const studentAPI = {
       return data;
     });
   },
+  bulkImport: (students: object[]) =>
+    request("/students/bulk-import", {
+      method: "POST",
+      body: JSON.stringify({ students }),
+    }),
 };
 
 export const studentAttendanceAPI = {
@@ -829,53 +927,123 @@ export const sportsPlanAPI = {
   update: (id: string, body: object) =>
     request(`/plans/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/plans/${id}`, { method: "DELETE" }),
+  bulkImport: (plans: object[]) =>
+    request("/plans/bulk-import", {
+      method: "POST",
+      body: JSON.stringify({ plans }),
+    }),
 };
 
-export const tournamentAPI = {
+export const eventAPI = {
   getAll: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
-    return request(`/tournaments${q}`);
+    return request(`/events${q}`);
   },
-  getOne: (id: string) => request(`/tournaments/${id}`),
+  getOne: (id: string) => request(`/events/${id}`),
   create: (body: object) =>
-    request("/tournaments", { method: "POST", body: JSON.stringify(body) }),
+    request("/events", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: object) =>
-    request(`/tournaments/${id}`, {
+    request(`/events/${id}`, {
       method: "PUT",
       body: JSON.stringify(body),
     }),
-  delete: (id: string) => request(`/tournaments/${id}`, { method: "DELETE" }),
+  delete: (id: string) => request(`/events/${id}`, { method: "DELETE" }),
+  getDashboard: (id: string) => request(`/events/${id}/dashboard`),
+  uploadImages: (id: string, files: { coverImage?: File; bannerImage?: File }) => {
+    const form = new FormData();
+    if (files.coverImage) form.append("coverImage", files.coverImage);
+    if (files.bannerImage) form.append("bannerImage", files.bannerImage);
+    return request(`/events/${id}/images`, { method: "POST", body: form });
+  },
   addTeam: (id: string, name: string) =>
-    request(`/tournaments/${id}/teams`, {
+    request(`/events/${id}/teams`, {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
   removeTeam: (id: string, teamId: string) =>
-    request(`/tournaments/${id}/teams/${teamId}`, { method: "DELETE" }),
-  generateFixtures: (
-    id: string,
-    opts?: { regenerate?: boolean; shuffle?: boolean },
-  ) =>
-    request(`/tournaments/${id}/fixtures/generate`, {
-      method: "POST",
-      body: JSON.stringify(opts || {}),
-    }),
-  getFixtures: (id: string) => request(`/tournaments/${id}/fixtures`),
-  recordResult: (
-    fixtureId: string,
-    body: { scoreA?: number; scoreB?: number; winner?: "A" | "B" },
-  ) =>
-    request(`/tournaments/fixtures/${fixtureId}/result`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    }),
+    request(`/events/${id}/teams/${teamId}`, { method: "DELETE" }),
   register: (id: string, studentId: string) =>
-    request(`/tournaments/${id}/registrations`, {
+    request(`/events/${id}/registrations`, {
       method: "POST",
       body: JSON.stringify({ studentId }),
     }),
   unregister: (id: string, studentId: string) =>
-    request(`/tournaments/${id}/registrations/${studentId}`, { method: "DELETE" }),
+    request(`/events/${id}/registrations/${studentId}`, { method: "DELETE" }),
+  generateFixtures: (
+    id: string,
+    opts?: { regenerate?: boolean; shuffle?: boolean },
+  ) =>
+    request(`/events/${id}/fixtures/generate`, {
+      method: "POST",
+      body: JSON.stringify(opts || {}),
+    }),
+  getFixtures: (id: string) => request(`/events/${id}/fixtures`),
+  recordResult: (
+    fixtureId: string,
+    body: { scoreA?: number; scoreB?: number; winner?: "A" | "B" },
+  ) =>
+    request(`/events/fixtures/${fixtureId}/result`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  addOfficial: (id: string, body: { name: string; role?: string; phone?: string; email?: string }) =>
+    request(`/events/${id}/officials`, { method: "POST", body: JSON.stringify(body) }),
+  updateOfficial: (id: string, officialId: string, body: object) =>
+    request(`/events/${id}/officials/${officialId}`, { method: "PUT", body: JSON.stringify(body) }),
+  removeOfficial: (id: string, officialId: string) =>
+    request(`/events/${id}/officials/${officialId}`, { method: "DELETE" }),
+  addDocument: (id: string, file: File, kind: string, label: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("kind", kind);
+    form.append("label", label);
+    return request(`/events/${id}/documents`, { method: "POST", body: form });
+  },
+  removeDocument: (id: string, docId: string) =>
+    request(`/events/${id}/documents/${docId}`, { method: "DELETE" }),
+  getGallery: (id: string) => request(`/events/${id}/gallery`),
+  addGalleryItem: (id: string, photo: File, caption: string) => {
+    const form = new FormData();
+    form.append("photo", photo);
+    form.append("caption", caption);
+    return request(`/events/${id}/gallery`, { method: "POST", body: form });
+  },
+  deleteGalleryItem: (id: string, itemId: string) =>
+    request(`/events/${id}/gallery/${itemId}`, { method: "DELETE" }),
+  getAnnouncements: (id: string) => request(`/events/${id}/announcements`),
+  createAnnouncement: (id: string, body: { title: string; message: string }) =>
+    request(`/events/${id}/announcements`, { method: "POST", body: JSON.stringify(body) }),
+  getPayments: (id: string) => request(`/events/${id}/payments`),
+  getAttendance: (id: string) => request(`/events/${id}/attendance`),
+};
+
+export const reportAPI = {
+  studentFees: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/reports/student-fees${q}`);
+  },
+  studentOutstanding: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/reports/student-outstanding${q}`);
+  },
+  studentPerformance: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/reports/student-performance${q}`);
+  },
+  studentEnrollment: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/reports/student-enrollment${q}`);
+  },
+  batchSummary: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/reports/batch-summary${q}`);
+  },
+  sportSummary: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/reports/sport-summary${q}`);
+  },
+  studentProfile: (studentId: string) =>
+    request(`/reports/student-profile/${studentId}`),
 };
 
 export const subscriptionAPI = {
@@ -897,8 +1065,15 @@ export const subscriptionAPI = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  confirmQrPayment: (id: string) =>
-    request(`/subscriptions/${id}/confirm-qr-payment`, { method: "POST" }),
+  verifyQrPayment: (id: string, paymentId: string) =>
+    request(`/subscriptions/${id}/payments/${paymentId}/verify`, {
+      method: "POST",
+    }),
+  rejectQrPayment: (id: string, paymentId: string, reason?: string) =>
+    request(`/subscriptions/${id}/payments/${paymentId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
   cancel: (id: string) =>
     request(`/subscriptions/${id}/cancel`, { method: "POST" }),
   qrRenewal: (body: {
@@ -906,6 +1081,8 @@ export const subscriptionAPI = {
     planId: string;
     billingCycle?: string;
     referenceNumber: string;
+    transactionNumber: string;
+    amount?: number;
     screenshot: File;
   }) => {
     const form = new FormData();
@@ -913,6 +1090,8 @@ export const subscriptionAPI = {
     form.append("planId", body.planId);
     form.append("billingCycle", body.billingCycle || "monthly");
     form.append("referenceNumber", body.referenceNumber);
+    form.append("transactionNumber", body.transactionNumber);
+    if (body.amount !== undefined) form.append("amount", String(body.amount));
     form.append("screenshot", body.screenshot);
     const token = getToken();
     return fetch(`${BASE_URL}/subscriptions/qr-renewal`, {
@@ -925,6 +1104,39 @@ export const subscriptionAPI = {
       return data;
     });
   },
+  // Top up the remaining balance on an existing subscription (installment).
+  submitPayment: (
+    id: string,
+    body: {
+      referenceNumber: string;
+      transactionNumber: string;
+      amount: number;
+      screenshot: File;
+    },
+  ) => {
+    const form = new FormData();
+    form.append("referenceNumber", body.referenceNumber);
+    form.append("transactionNumber", body.transactionNumber);
+    form.append("amount", String(body.amount));
+    form.append("screenshot", body.screenshot);
+    const token = getToken();
+    return fetch(`${BASE_URL}/subscriptions/${id}/payments`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || "Submission failed");
+      return data;
+    });
+  },
+  receiptUrl: (id: string, paymentId: string) =>
+    `${BASE_URL}/subscriptions/${id}/payments/${paymentId}/receipt`,
+  bulkImport: (subscriptions: object[]) =>
+    request("/subscriptions/bulk-import", {
+      method: "POST",
+      body: JSON.stringify({ subscriptions }),
+    }),
 };
 
 export const expenseAPI = {
@@ -949,6 +1161,11 @@ export const inventoryAPI = {
   update: (id: string, body: object) =>
     request(`/inventory/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/inventory/${id}`, { method: "DELETE" }),
+  bulkImport: (items: object[]) =>
+    request("/inventory/bulk-import", {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    }),
   recordTransaction: (id: string, body: object) =>
     request(`/inventory/${id}/transactions`, {
       method: "POST",

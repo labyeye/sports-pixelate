@@ -9,7 +9,18 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, ArrowUpDown, Edit2, Trash2 } from 'lucide-react-native';
+import {
+  Plus,
+  ArrowUpDown,
+  Edit2,
+  Trash2,
+  ListChecks,
+  Trophy,
+  IndianRupee,
+  CalendarClock,
+  Download,
+  FileSpreadsheet,
+} from 'lucide-react-native';
 import { sportsPlanAPI } from '../api/client';
 import {
   Card,
@@ -20,9 +31,21 @@ import {
   SortSheet,
   LoadMoreFooter,
   SortOption,
+  KpiTile,
 } from '../components/ui';
+import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import { exportRowsToExcel } from '../utils/excelImportExport';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
+
+const PLAN_IMPORT_HEADERS: ImportHeader[] = [
+  { key: 'name', label: 'Plan Name', required: true, example: 'Elite Tennis' },
+  { key: 'sport', label: 'Sport', required: true, example: 'Tennis' },
+  { key: 'monthlyPrice', label: 'Monthly Price', required: true, example: '2500' },
+  { key: 'yearlyPrice', label: 'Yearly Price', required: true, example: '25000' },
+  { key: 'sessionsPerWeek', label: 'Sessions Per Week', required: false, example: '3' },
+  { key: 'description', label: 'Description', required: false, example: '' },
+];
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
@@ -53,6 +76,7 @@ export default function PlansScreen({ navigation }: any) {
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [importVisible, setImportVisible] = useState(false);
 
   const fetchPage = useCallback(
     (pageNum: number) =>
@@ -136,6 +160,14 @@ export default function PlansScreen({ navigation }: any) {
 
   if (loading) return <LoadingView />;
 
+  const uniqueSports = new Set(plans.map(p => p.sport).filter(Boolean)).size;
+  const avgMonthlyPrice = plans.length
+    ? plans.reduce((sum, p) => sum + (p.monthlyPrice || 0), 0) / plans.length
+    : 0;
+  const avgSessionsPerWeek = plans.length
+    ? plans.reduce((sum, p) => sum + (p.sessionsPerWeek || 0), 0) / plans.length
+    : 0;
+
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
@@ -145,6 +177,29 @@ export default function PlansScreen({ navigation }: any) {
             <Text style={styles.subtitle}>Available sports coaching plans</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity
+              onPress={() =>
+                exportRowsToExcel(
+                  PLAN_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                  plans,
+                  'coaching_plans_export.xlsx',
+                  'Plans',
+                )
+              }
+              style={styles.sortBtn}
+              hitSlop={8}
+            >
+              <Download size={18} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            {isOwner && (
+              <TouchableOpacity
+                onPress={() => setImportVisible(true)}
+                style={styles.sortBtn}
+                hitSlop={8}
+              >
+                <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => setSortVisible(true)}
               style={styles.sortBtn}
@@ -163,6 +218,37 @@ export default function PlansScreen({ navigation }: any) {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Total Plans"
+            value={plans.length}
+            sub="Coaching plans"
+            color={colors.blue}
+            icon={ListChecks}
+          />
+          <KpiTile
+            label="Sports Offered"
+            value={uniqueSports}
+            sub="Unique sports"
+            color={colors.purple}
+            icon={Trophy}
+          />
+          <KpiTile
+            label="Avg Monthly Price"
+            value={formatCurrency(avgMonthlyPrice)}
+            sub="Per plan"
+            color={colors.orange}
+            icon={IndianRupee}
+          />
+          <KpiTile
+            label="Avg Sessions/Week"
+            value={avgSessionsPerWeek.toFixed(1)}
+            sub="Per plan"
+            color={colors.green}
+            icon={CalendarClock}
+          />
         </View>
 
         <SearchBar
@@ -246,12 +332,24 @@ export default function PlansScreen({ navigation }: any) {
           setSortVisible(false);
         }}
       />
+
+      <ImportExportModal
+        visible={importVisible}
+        onClose={() => setImportVisible(false)}
+        entityLabel="Plan"
+        headers={PLAN_IMPORT_HEADERS}
+        templateFilename="coaching_plans_import_template.xlsx"
+        notes={['Maximum 200 plans per import.']}
+        previewLine={r => `${r.name} — ${r.sport || '—'}`}
+        onImport={rows => sportsPlanAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -261,6 +359,12 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   sortBtn: {
     width: 36,
     height: 36,

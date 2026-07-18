@@ -5,6 +5,8 @@ import { inventoryAPI, studentAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Package,
   Plus,
@@ -23,7 +25,51 @@ import {
   UserCheck,
   Undo2,
   Truck,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
+
+const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
+  { key: "name", label: "Item Name", required: true, example: "Tennis Racket" },
+  {
+    key: "category",
+    label: "Category",
+    required: true,
+    example: "equipment",
+  },
+  { key: "sport", label: "Sport", required: false, example: "Tennis" },
+  {
+    key: "trackQuantity",
+    label: "Track Quantity",
+    required: false,
+    example: "true",
+  },
+  {
+    key: "totalQuantity",
+    label: "Total Quantity",
+    required: false,
+    example: "20",
+  },
+  {
+    key: "availableQuantity",
+    label: "Available Quantity",
+    required: false,
+    example: "20",
+  },
+  {
+    key: "onOrderQuantity",
+    label: "On Order Quantity",
+    required: false,
+    example: "0",
+  },
+  { key: "unitCost", label: "Unit Cost", required: false, example: "1500" },
+  {
+    key: "reorderThreshold",
+    label: "Reorder Threshold",
+    required: false,
+    example: "5",
+  },
+];
 
 interface Assignment {
   _id: string;
@@ -62,6 +108,7 @@ export default function InventoryPage() {
   const canManage = user?.role === "super_admin" || user?.role === "hr_manager";
 
   const [items, setItems] = useState<Item[]>([]);
+  const [importModal, setImportModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -336,17 +383,40 @@ export default function InventoryPage() {
         <h1 className="font-display font-bold text-2xl text-black">
           Inventory
         </h1>
-        {canManage && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+            onClick={() =>
+              exportRowsToExcel(
+                INVENTORY_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                displayed,
+                "inventory_export.xlsx",
+                "Inventory",
+              )
+            }
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Add Item
+            <Download className="w-4 h-4" /> Export
           </button>
-        )}
+          {canManage && (
+            <>
+              <button
+                onClick={() => setImportModal(true)}
+                className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" /> Import Excel
+              </button>
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowForm(true);
+                }}
+                className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Add Item
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -966,6 +1036,36 @@ export default function InventoryPage() {
           )}
         </>
       )}
+      <ImportExportModal
+        open={importModal}
+        onClose={() => setImportModal(false)}
+        entityLabel="Item"
+        headers={INVENTORY_IMPORT_HEADERS}
+        templateFilename="inventory_import_template.xlsx"
+        notes={
+          <>
+            <p>
+              • <strong>Category</strong> must be one of: <code>equipment</code>,{" "}
+              <code>apparel</code>, <code>consumable</code>, <code>other</code>.
+            </p>
+            <p>
+              • If <strong>Available Quantity</strong> is blank, it defaults
+              to <strong>Total Quantity</strong>.
+            </p>
+            <p>
+              • Maximum <strong>200 items</strong> per import.
+            </p>
+          </>
+        }
+        previewColumns={[
+          { key: "name", label: "Name" },
+          { key: "category", label: "Category" },
+          { key: "totalQuantity", label: "Total Qty" },
+          { key: "unitCost", label: "Unit Cost" },
+        ]}
+        onImport={(rows) => inventoryAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </AppLayout>
   );
 }

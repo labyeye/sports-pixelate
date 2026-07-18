@@ -26,6 +26,8 @@ import {
   MapPin,
   Receipt,
   Trophy,
+  Fingerprint,
+  AlertCircle,
 } from "lucide-react";
 
 export interface NavItem {
@@ -93,7 +95,7 @@ const allGroups: NavGroup[] = [
         icon: FolderOpen,
         roles: ["super_admin", "hr_manager", "employee"],
       },
-      { title: "Tournaments", href: "/tournaments", icon: Trophy, roles: ALL },
+      { title: "Events", href: "/events", icon: Trophy, roles: ALL },
     ],
   },
   {
@@ -113,6 +115,24 @@ const allGroups: NavGroup[] = [
       },
       { title: "Leave", href: "/leave", icon: CalendarDays, roles: OWNER },
       { title: "Holidays", href: "/holidays", icon: Gift, roles: OWNER },
+      {
+        title: "Attendance Settings",
+        href: "/attendance-settings",
+        icon: SlidersHorizontal,
+        roles: OWNER,
+      },
+      {
+        title: "Biometric Devices",
+        href: "/biometric",
+        icon: Fingerprint,
+        roles: OWNER,
+      },
+      {
+        title: "Late Approvals",
+        href: "/late-approvals",
+        icon: AlertCircle,
+        roles: OWNER,
+      },
     ],
   },
   {
@@ -173,12 +193,6 @@ const allGroups: NavGroup[] = [
       },
       { title: "Expenses", href: "/expenses", icon: Receipt, roles: OWNER },
       { title: "Payroll", href: "/payroll", icon: IndianRupee, roles: OWNER },
-      {
-        title: "Payroll Settings",
-        href: "/payroll-settings",
-        icon: SlidersHorizontal,
-        roles: OWNER,
-      },
       {
         title: "Loans & Advances",
         href: "/loans",

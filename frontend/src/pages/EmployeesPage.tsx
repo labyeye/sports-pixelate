@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
-import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SportPicker } from "@/components/SportPicker";
+import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   employeeAPI,
   departmentAPI,
@@ -267,17 +268,6 @@ export default function EmployeesPage() {
   }>({ show: false, type: "success", title: "", message: "" });
 
   const [importModal, setImportModal] = useState(false);
-  const [importStep, setImportStep] = useState<"guide" | "preview" | "result">(
-    "guide",
-  );
-  const [importRows, setImportRows] = useState<any[]>([]);
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{
-    imported: number;
-    failed: number;
-    results: any[];
-  } | null>(null);
-  const importFileRef = useRef<HTMLInputElement>(null);
 
   const empParams = useCallback(
     (pageNum: number): Record<string, string> => {
@@ -557,7 +547,7 @@ export default function EmployeesPage() {
     }
   };
 
-  const IMPORT_HEADERS = [
+  const IMPORT_HEADERS: ImportHeader[] = [
     { key: "firstName", label: "First Name", required: true, example: "Rahul" },
     { key: "lastName", label: "Last Name", required: true, example: "Sharma" },
     {
@@ -679,89 +669,13 @@ export default function EmployeesPage() {
     },
   ];
 
-  const downloadTemplate = () => {
-    const headerRow = IMPORT_HEADERS.map((h) => h.label);
-    const exampleRow = IMPORT_HEADERS.map((h) => h.example);
-    const ws = XLSX.utils.aoa_to_sheet([headerRow, exampleRow]);
-    ws["!cols"] = IMPORT_HEADERS.map(() => ({ wch: 22 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Employees");
-    XLSX.writeFile(wb, "nesthr_employees_template.xlsx");
-  };
-
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const wb = XLSX.read(evt.target?.result, {
-        type: "array",
-        cellDates: true,
-      });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw: any[][] = XLSX.utils.sheet_to_json(ws, {
-        header: 1,
-        defval: "",
-      });
-      if (raw.length < 2) {
-        alert("Sheet is empty or has no data rows.");
-        return;
-      }
-
-      const headerRow = (raw[0] as string[]).map((h) => String(h).trim());
-      const labelToKey: Record<string, string> = {};
-      IMPORT_HEADERS.forEach((h) => {
-        labelToKey[h.label.toLowerCase()] = h.key;
-      });
-
-      const parsed = raw
-        .slice(1)
-        .filter((r) => r.some((c) => c !== ""))
-        .map((row) => {
-          const obj: Record<string, string> = {};
-          headerRow.forEach((hdr, i) => {
-            const key = labelToKey[hdr.toLowerCase()];
-            if (key) {
-              const val = row[i];
-              if (val instanceof Date) {
-                obj[key] = val.toISOString().split("T")[0];
-              } else {
-                obj[key] = String(val ?? "").trim();
-              }
-            }
-          });
-          return obj;
-        });
-
-      setImportRows(parsed);
-      setImportStep("preview");
-    };
-    reader.readAsArrayBuffer(file);
-    e.target.value = "";
-  };
-
-  const handleImport = async () => {
-    setImporting(true);
-    try {
-      const res: any = await employeeAPI.bulkImport(importRows);
-      setImportResult({
-        imported: res.imported,
-        failed: res.failed,
-        results: res.results,
-      });
-      setImportStep("result");
-      if (res.imported > 0) load();
-    } catch (err: any) {
-      alert(err.message || "Import failed");
-    }
-    setImporting(false);
-  };
-
-  const closeImportModal = () => {
-    setImportModal(false);
-    setImportStep("guide");
-    setImportRows([]);
-    setImportResult(null);
+  const handleExport = () => {
+    exportRowsToExcel(
+      IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+      displayedEmployees,
+      "nesthr_employees_export.xlsx",
+      "Employees",
+    );
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -837,12 +751,15 @@ export default function EmployeesPage() {
         <h1 className="font-display font-bold text-2xl text-black">
           Employees
         </h1>
-        <div className="grid-cols-2 grid gap-2">
+        <div className="grid-cols-3 grid gap-2">
           <button
-            onClick={() => {
-              setImportModal(true);
-              setImportStep("guide");
-            }}
+            onClick={handleExport}
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button
+            onClick={() => setImportModal(true)}
             className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
           >
             <FileSpreadsheet className="w-4 h-4" /> Import Excel
@@ -3379,9 +3296,9 @@ export default function EmployeesPage() {
                 },
                 {
                   icon: CreditCard,
-                  label: "Payroll Config",
+                  label: "Attendance Settings",
                   color: "text-[#024BAB]",
-                  action: () => navigate("/payroll-settings"),
+                  action: () => navigate("/attendance-settings"),
                 },
                 {
                   icon: Clock,
@@ -3954,273 +3871,54 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
-      {/* ── EXCEL IMPORT MODAL ─────────────────────────────────────── */}
-      {importModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-black w-full max-w-2xl max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black shrink-0">
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-[#024BAB]" />
-                <h2 className="font-bold text-lg text-black">
-                  {importStep === "guide" && "Import Employees via Excel"}
-                  {importStep === "preview" &&
-                    `Preview — ${importRows.length} row${importRows.length !== 1 ? "s" : ""} found`}
-                  {importStep === "result" && "Import Complete"}
-                </h2>
-              </div>
-              <button onClick={closeImportModal}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-5 space-y-5">
-              {/* ── STEP 1: Guide ── */}
-              {importStep === "guide" && (
-                <>
-                  <div className="bg-[#F0F6FF] border-2 border-[#024BAB] p-4 text-sm text-[#024BAB] font-medium">
-                    Prepare your Excel file with the columns listed below.
-                    Download the template to get started instantly.
-                  </div>
-
-                  <div className="border-2 border-black overflow-hidden">
-                    <div className="grid grid-cols-[1fr_80px_1fr] bg-[#024BAB] text-white text-xs font-bold uppercase px-3 py-2">
-                      <span>Column Header (exact)</span>
-                      <span>Required</span>
-                      <span>Example Value</span>
-                    </div>
-                    {IMPORT_HEADERS.map((h) => (
-                      <div
-                        key={h.key}
-                        className="grid grid-cols-[1fr_80px_1fr] px-3 py-2 border-t border-black/10 text-sm hover:bg-gray-50"
-                      >
-                        <span className="font-bold text-black">{h.label}</span>
-                        <span
-                          className={cn(
-                            "text-xs font-bold",
-                            h.required ? "text-[#EF4444]" : "text-gray-400",
-                          )}
-                        >
-                          {h.required ? "Yes" : "No"}
-                        </span>
-                        <span className="text-muted-foreground font-mono text-xs">
-                          {h.example}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="bg-amber-50 border-2 border-amber-400 p-3 text-xs font-medium text-amber-800 space-y-1">
-                    <p className="font-bold">Notes:</p>
-                    <p>
-                      • <strong>Join Date</strong> and{" "}
-                      <strong>Date of Birth</strong> must be in{" "}
-                      <strong>YYYY-MM-DD</strong> format.
-                    </p>
-                    <p>
-                      • <strong>Employment Type</strong> must be one of:{" "}
-                      <code>full_time</code>, <code>part_time</code>,{" "}
-                      <code>contract</code>, <code>intern</code>.
-                    </p>
-                    <p>
-                      • <strong>Department</strong> and{" "}
-                      <strong>Shift Name</strong> must exactly match names
-                      already created in NestSports.
-                    </p>
-                    <p>
-                      • <strong>Gender</strong> must be one of:{" "}
-                      <code>male</code>, <code>female</code>, <code>other</code>
-                      .
-                    </p>
-                    <p>
-                      • If <strong>Password</strong> is blank, a random password
-                      is auto-generated.
-                    </p>
-                    <p>
-                      • Maximum <strong>200 employees</strong> per import.
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {/* ── STEP 2: Preview ── */}
-              {importStep === "preview" && (
-                <>
-                  {importRows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No data rows found in the file.
-                    </p>
-                  ) : (
-                    <div className="border-2 border-black overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-[#024BAB]/5 border-b-2 border-black">
-                            <th className="px-3 py-2 text-left font-bold">#</th>
-                            <th className="px-3 py-2 text-left font-bold">
-                              Name
-                            </th>
-                            <th className="px-3 py-2 text-left font-bold">
-                              Email
-                            </th>
-                            <th className="px-3 py-2 text-left font-bold">
-                              Designation
-                            </th>
-                            <th className="px-3 py-2 text-left font-bold">
-                              Department
-                            </th>
-                            <th className="px-3 py-2 text-left font-bold">
-                              Join Date
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {importRows.map((r, i) => (
-                            <tr
-                              key={i}
-                              className="border-t border-black/10 hover:bg-gray-50"
-                            >
-                              <td className="px-3 py-2 text-muted-foreground">
-                                {i + 1}
-                              </td>
-                              <td className="px-3 py-2 font-medium">
-                                {r.firstName} {r.lastName}
-                              </td>
-                              <td className="px-3 py-2 text-muted-foreground">
-                                {r.email}
-                              </td>
-                              <td className="px-3 py-2">{r.designation}</td>
-                              <td className="px-3 py-2">
-                                {r.department || "—"}
-                              </td>
-                              <td className="px-3 py-2">{r.joinDate}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* ── STEP 3: Result ── */}
-              {importStep === "result" && importResult && (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="border-2 border-[#00C48C] bg-[#00C48C]/10 p-4 text-center">
-                      <p className="text-3xl font-bold text-[#00C48C]">
-                        {importResult.imported}
-                      </p>
-                      <p className="text-xs font-bold text-[#00C48C] mt-1">
-                        Successfully Imported
-                      </p>
-                    </div>
-                    <div className="border-2 border-[#EF4444] bg-[#EF4444]/10 p-4 text-center">
-                      <p className="text-3xl font-bold text-[#EF4444]">
-                        {importResult.failed}
-                      </p>
-                      <p className="text-xs font-bold text-[#EF4444] mt-1">
-                        Failed
-                      </p>
-                    </div>
-                  </div>
-
-                  {importResult.failed > 0 && (
-                    <div className="border-2 border-black overflow-hidden">
-                      <div className="bg-[#EF4444] text-white text-xs font-bold px-3 py-2">
-                        Failed Rows
-                      </div>
-                      {importResult.results
-                        .filter((r) => r.status === "error")
-                        .map((r) => (
-                          <div
-                            key={r.row}
-                            className="flex items-start gap-3 px-3 py-2 border-t border-black/10 text-sm"
-                          >
-                            <span className="font-bold text-[#EF4444] shrink-0">
-                              Row {r.row}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {r.message}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Footer actions */}
-            <div className="px-5 py-4 border-t-2 border-black flex items-center gap-3 shrink-0">
-              {importStep === "guide" && (
-                <>
-                  <button
-                    onClick={downloadTemplate}
-                    className="border-2 border-black px-4 py-2 text-sm font-bold flex items-center gap-1.5 hover:bg-gray-50"
-                  >
-                    <Download className="w-4 h-4" /> Download Template
-                  </button>
-                  <label className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-1.5 cursor-pointer hover:bg-[#01368A]">
-                    <Upload className="w-4 h-4" /> Choose Excel File
-                    <input
-                      ref={importFileRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      className="hidden"
-                      onChange={handleImportFile}
-                    />
-                  </label>
-                  <button
-                    onClick={closeImportModal}
-                    className="ml-auto text-sm font-bold text-muted-foreground hover:text-black"
-                  >
-                    Cancel
-                  </button>
-                </>
-              )}
-
-              {importStep === "preview" && (
-                <>
-                  <button
-                    onClick={() => setImportStep("guide")}
-                    className="border-2 border-black px-4 py-2 text-sm font-bold hover:bg-gray-50"
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    onClick={handleImport}
-                    disabled={importing || importRows.length === 0}
-                    className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-[#01368A] disabled:opacity-50"
-                  >
-                    {importing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Importing…
-                      </>
-                    ) : (
-                      `Import ${importRows.length} Employee${importRows.length !== 1 ? "s" : ""}`
-                    )}
-                  </button>
-                  <button
-                    onClick={closeImportModal}
-                    className="ml-auto text-sm font-bold text-muted-foreground hover:text-black"
-                  >
-                    Cancel
-                  </button>
-                </>
-              )}
-
-              {importStep === "result" && (
-                <button
-                  onClick={closeImportModal}
-                  className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold hover:bg-[#01368A]"
-                >
-                  Done
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ImportExportModal
+        open={importModal}
+        onClose={() => setImportModal(false)}
+        entityLabel="Employee"
+        headers={IMPORT_HEADERS}
+        templateFilename="nesthr_employees_template.xlsx"
+        notes={
+          <>
+            <p>
+              • <strong>Join Date</strong> and <strong>Date of Birth</strong>{" "}
+              must be in <strong>YYYY-MM-DD</strong> format.
+            </p>
+            <p>
+              • <strong>Employment Type</strong> must be one of:{" "}
+              <code>full_time</code>, <code>part_time</code>,{" "}
+              <code>contract</code>, <code>intern</code>.
+            </p>
+            <p>
+              • <strong>Department</strong> and <strong>Shift Name</strong>{" "}
+              must exactly match names already created in NestSports.
+            </p>
+            <p>
+              • <strong>Gender</strong> must be one of: <code>male</code>,{" "}
+              <code>female</code>, <code>other</code>.
+            </p>
+            <p>
+              • If <strong>Password</strong> is blank, a random password is
+              auto-generated.
+            </p>
+            <p>
+              • Maximum <strong>200 employees</strong> per import.
+            </p>
+          </>
+        }
+        previewColumns={[
+          {
+            key: "name",
+            label: "Name",
+            render: (r) => `${r.firstName} ${r.lastName}`,
+          },
+          { key: "email", label: "Email" },
+          { key: "designation", label: "Designation" },
+          { key: "department", label: "Department" },
+          { key: "joinDate", label: "Join Date" },
+        ]}
+        onImport={(rows) => employeeAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </AppLayout>
   );
 }

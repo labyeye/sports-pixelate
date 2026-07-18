@@ -9,7 +9,8 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { RATE_PER_STUDENT, calculatePricing } = require("../utils/pricing");
+const { RATE_STANDARD, RATE_WHATSAPP, calculatePricing } = require("../utils/pricing");
+const { lookupAndValidateOffer } = require("../utils/offerCode");
 
 const PLAN_NAME = "NestSports";
 
@@ -19,7 +20,8 @@ const getPlans = asyncHandler(async (req, res) => {
     data: [
       {
         name: PLAN_NAME,
-        ratePerStudent: RATE_PER_STUDENT,
+        ratePerUnit: RATE_STANDARD,
+        ratePerUnitWhatsapp: RATE_WHATSAPP,
       },
     ],
   });
@@ -60,20 +62,12 @@ const getInvoices = asyncHandler(async (req, res) => {
 // Shared checks used by both the validate-only endpoint and createOrder.
 // Throws with res.status already set — call inside asyncHandler.
 async function _lookupAndCheckOffer(code, res) {
-  const offer = await OfferCode.findOne({ code: code.toUpperCase().trim() });
-  if (!offer || !offer.isActive) {
-    res.status(404);
-    throw new Error("Invalid or expired offer code");
+  try {
+    return await lookupAndValidateOffer(code);
+  } catch (err) {
+    res.status(err.status || 500);
+    throw err;
   }
-  if (offer.expiresAt && offer.expiresAt < new Date()) {
-    res.status(400);
-    throw new Error("This offer code has expired");
-  }
-  if (offer.usedCount >= offer.maxUses) {
-    res.status(400);
-    throw new Error("This offer code has reached its usage limit");
-  }
-  return offer;
 }
 
 function _offerMessage(offer) {
@@ -81,13 +75,13 @@ function _offerMessage(offer) {
     return `Offer code applied! You will get ${offer.bonusMonths} bonus month(s) added to your subscription.`;
   }
   if (offer.discountType === "flat_rate") {
-    return `Offer code applied! Your rate is now ₹${offer.flatRate}/student/year.`;
+    return `Offer code applied! Your rate is now ₹${offer.flatRate}/unit/year.`;
   }
   return `Offer code applied! ${offer.percentOff}% off your order.`;
 }
 
 const validateOfferCode = asyncHandler(async (req, res) => {
-  const { code, studentCount } = req.body;
+  const { code, studentCount, employeeCount, wantsWhatsapp } = req.body;
   if (!code) {
     res.status(400);
     throw new Error("Offer code is required");
@@ -96,7 +90,11 @@ const validateOfferCode = asyncHandler(async (req, res) => {
   const offer = await _lookupAndCheckOffer(code, res);
 
   const count = Number(studentCount) || 0;
-  const preview = count > 0 ? calculatePricing(count, offer) : null;
+  const empCount = Number(employeeCount) || 0;
+  const preview =
+    count > 0 || empCount > 0
+      ? calculatePricing(count, empCount, !!wantsWhatsapp, offer)
+      : null;
 
   res.json({
     success: true,
@@ -117,6 +115,8 @@ const validateOfferCode = asyncHandler(async (req, res) => {
 const createOrder = asyncHandler(async (req, res) => {
   const {
     studentCount,
+    employeeCount = 0,
+    wantsWhatsapp = false,
     billingCycle = "monthly",
     gateway = "razorpay",
     offerCode,
@@ -127,6 +127,11 @@ const createOrder = asyncHandler(async (req, res) => {
   if (!count || count < 1 || !Number.isInteger(count)) {
     res.status(400);
     throw new Error("Please provide a valid number of students");
+  }
+  const empCount = Number(employeeCount) || 0;
+  if (empCount < 0 || !Number.isInteger(empCount)) {
+    res.status(400);
+    throw new Error("Please provide a valid number of employees");
   }
   if (!["monthly", "yearly"].includes(billingCycle)) {
     res.status(400);
@@ -147,7 +152,7 @@ const createOrder = asyncHandler(async (req, res) => {
     validatedOffer = await _lookupAndCheckOffer(offerCode, res);
   }
 
-  const pricing = calculatePricing(count, validatedOffer);
+  const pricing = calculatePricing(count, empCount, !!wantsWhatsapp, validatedOffer);
 
   const amountRupees =
     billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
@@ -186,6 +191,7 @@ const createOrder = asyncHandler(async (req, res) => {
       receipt: `rcpt_${Date.now()}`,
       notes: {
         studentCount: count,
+        employeeCount: empCount,
         billingCycle,
         userId: req.user._id.toString(),
         companyId: existingCompany ? existingCompany._id.toString() : "",
@@ -199,10 +205,13 @@ const createOrder = asyncHandler(async (req, res) => {
           company: existingCompany._id,
           plan: planName,
           studentCount: count,
-          ratePerStudent: pricing.ratePerStudent,
+          employeeCount: empCount,
+          wantsWhatsapp: !!wantsWhatsapp,
+          ratePerUnit: pricing.ratePerUnit,
           monthlyPrice: pricing.monthlyPrice,
           yearlyPrice: pricing.yearlyPrice,
           maxStudents: count,
+          maxEmployees: empCount,
           billingCycle,
           startDate: new Date(),
           renewalDate: new Date(),
@@ -229,8 +238,10 @@ const createOrder = asyncHandler(async (req, res) => {
         gstNumber: newCompanyDetails.gstNumber,
         panNumber: newCompanyDetails.panNumber,
         studentCount: count,
+        employeeCount: empCount,
+        wantsWhatsapp: !!wantsWhatsapp,
         billingCycle,
-        ratePerStudent: pricing.ratePerStudent,
+        ratePerUnit: pricing.ratePerUnit,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
         offerCode: validatedOffer ? validatedOffer.code : null,
@@ -245,7 +256,9 @@ const createOrder = asyncHandler(async (req, res) => {
       amount: amountRupees,
       currency: "INR",
       studentCount: count,
-      ratePerStudent: pricing.ratePerStudent,
+      employeeCount: empCount,
+      wantsWhatsapp: !!wantsWhatsapp,
+      ratePerUnit: pricing.ratePerUnit,
       plan: planName,
       billingCycle,
       companyName: existingCompany
@@ -289,10 +302,13 @@ const createOrder = asyncHandler(async (req, res) => {
           company: existingCompany._id,
           plan: planName,
           studentCount: count,
-          ratePerStudent: pricing.ratePerStudent,
+          employeeCount: empCount,
+          wantsWhatsapp: !!wantsWhatsapp,
+          ratePerUnit: pricing.ratePerUnit,
           monthlyPrice: pricing.monthlyPrice,
           yearlyPrice: pricing.yearlyPrice,
           maxStudents: count,
+          maxEmployees: empCount,
           billingCycle,
           startDate: new Date(),
           renewalDate: new Date(),
@@ -319,8 +335,10 @@ const createOrder = asyncHandler(async (req, res) => {
         gstNumber: newCompanyDetails.gstNumber,
         panNumber: newCompanyDetails.panNumber,
         studentCount: count,
+        employeeCount: empCount,
+        wantsWhatsapp: !!wantsWhatsapp,
         billingCycle,
-        ratePerStudent: pricing.ratePerStudent,
+        ratePerUnit: pricing.ratePerUnit,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
         offerCode: validatedOffer ? validatedOffer.code : null,
@@ -335,7 +353,9 @@ const createOrder = asyncHandler(async (req, res) => {
       amount: amountRupees,
       currency: "INR",
       studentCount: count,
-      ratePerStudent: pricing.ratePerStudent,
+      employeeCount: empCount,
+      wantsWhatsapp: !!wantsWhatsapp,
+      ratePerUnit: pricing.ratePerUnit,
       plan: planName,
       billingCycle,
       offerApplied: !!validatedOffer,
@@ -505,10 +525,13 @@ async function _createCompanyAndActivate({
     company: company._id,
     plan: planName,
     studentCount: pendingOrder.studentCount,
-    ratePerStudent: pendingOrder.ratePerStudent,
+    employeeCount: pendingOrder.employeeCount,
+    wantsWhatsapp: pendingOrder.wantsWhatsapp,
+    ratePerUnit: pendingOrder.ratePerUnit,
     monthlyPrice: pendingOrder.monthlyPrice,
     yearlyPrice: pendingOrder.yearlyPrice,
     maxStudents: pendingOrder.studentCount,
+    maxEmployees: pendingOrder.employeeCount,
     billingCycle: pendingOrder.billingCycle,
     startDate,
     renewalDate,

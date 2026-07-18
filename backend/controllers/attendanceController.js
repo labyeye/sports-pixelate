@@ -3,6 +3,9 @@ const fs = require("fs");
 const Attendance = require("../models/Attendance");
 const Employee = require("../models/Employee");
 const Shift = require("../models/Shift");
+const DeductionRule = require("../models/DeductionRule");
+const AttendanceBalance = require("../models/AttendanceBalance");
+const LateApproval = require("../models/LateApproval");
 const { isHolidayDate } = require("./holidayController");
 const { safePagination } = require("../middleware/validate");
 const { sendAttendanceStatus } = require("../services/whatsappService");
@@ -48,8 +51,18 @@ async function notifyAttendanceStatus(emp, date, status, companyId) {
   );
 }
 
-const GRACE_MINUTES = 15;
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30
+
+// Reads the company's configured grace period (falls back to 15 min if no
+// DeductionRule exists yet). Queried per-call — no cross-request cache needed
+// at this volume.
+async function getGraceMinutes(companyId) {
+  if (!companyId) return 15;
+  const rule = await DeductionRule.findOne({ company: companyId }).select(
+    "lateThresholdMinutes",
+  );
+  return rule?.lateThresholdMinutes ?? 15;
+}
 
 // Resolves the shift doc/subdoc (custom-per-employee or company Shift ref) to use
 // for this employee, or null if none is configured.
@@ -98,26 +111,27 @@ async function calcOTHours(emp, checkOutISO) {
   return parseFloat((otMs / 3_600_000).toFixed(2));
 }
 
-// Returns true if checkout happened more than GRACE_MINUTES before shift end.
+// Returns true if checkout happened more than the company's grace period before shift end.
 // Returns false if there's no shift configured or no checkout time.
-async function calcEarlyLeaving(emp, checkOutISO) {
+async function calcEarlyLeaving(emp, checkOutISO, companyId) {
   if (!checkOutISO) return false;
 
   const shift = await resolveShift(emp);
   const endTimeStr = shift?.endTime;
   if (!endTimeStr) return false;
 
+  const graceMinutes = await getGraceMinutes(companyId || emp.company);
   const checkOutUTC = new Date(checkOutISO).getTime();
   const earlyMs = shiftEndUTC(endTimeStr, checkOutISO) - checkOutUTC;
-  return earlyMs > GRACE_MINUTES * 60000;
+  return earlyMs > graceMinutes * 60000;
 }
 
-async function resolveStatus(employeeId, checkIn, requestedStatus) {
+async function resolveStatus(employeeId, checkIn, requestedStatus, companyId) {
   // Only auto-promote present → late; never override an explicit absent/leave/etc.
   if (!checkIn || requestedStatus !== "present") return requestedStatus;
 
   const emp = await Employee.findById(employeeId).select(
-    "shift isCustomShift customShift",
+    "shift isCustomShift customShift company",
   );
   if (!emp) return requestedStatus;
 
@@ -137,9 +151,57 @@ async function resolveStatus(employeeId, checkIn, requestedStatus) {
   const checkInMinutes =
     checkInIST.getUTCHours() * 60 + checkInIST.getUTCMinutes();
 
-  return checkInMinutes > shiftStartMinutes + GRACE_MINUTES
+  const graceMinutes = await getGraceMinutes(companyId || emp.company);
+  return checkInMinutes > shiftStartMinutes + graceMinutes
     ? "late"
     : requestedStatus;
+}
+
+// Minutes the check-in was past shift start (negative/0 if on time). Duplicates
+// part of resolveStatus's math but returns a number instead of a status string.
+async function computeMinutesLate(employeeId, checkIn) {
+  const emp = await Employee.findById(employeeId).select(
+    "shift isCustomShift customShift",
+  );
+  if (!emp) return 0;
+  const shift =
+    emp.isCustomShift && emp.customShift?.startTime
+      ? emp.customShift
+      : emp.shift
+        ? await Shift.findById(emp.shift).select("startTime")
+        : null;
+  if (!shift?.startTime) return 0;
+  const [shiftH, shiftM] = shift.startTime.split(":").map(Number);
+  const shiftStartMinutes = shiftH * 60 + shiftM;
+  const checkInIST = new Date(new Date(checkIn).getTime() + IST_OFFSET_MS);
+  const checkInMinutes =
+    checkInIST.getUTCHours() * 60 + checkInIST.getUTCMinutes();
+  return checkInMinutes - shiftStartMinutes;
+}
+
+// Called when an employee checks in late (beyond the company's grace period).
+// If they still have late allowance left this month, consume it silently
+// (no deduction). Otherwise, park the record in the HR/Admin approval queue
+// instead of finalizing it as "late".
+async function handleLateAllowance(employeeId, companyId, date, checkIn) {
+  const balance = await AttendanceBalance.getOrCreateCurrentMonth(
+    employeeId,
+    companyId,
+  );
+  if (balance.lateUsed < balance.lateAllowed) {
+    balance.lateUsed += 1;
+    await balance.save();
+    return false;
+  }
+  const minutesLate = await computeMinutesLate(employeeId, checkIn);
+  await LateApproval.create({
+    employee: employeeId,
+    company: companyId,
+    date,
+    checkInTime: checkIn,
+    minutesLate,
+  });
+  return true;
 }
 
 const getAttendance = asyncHandler(async (req, res) => {
@@ -259,7 +321,17 @@ const markAttendance = asyncHandler(async (req, res) => {
   const holiday = await isHolidayDate(req.user.company, d);
   const computedStatus = holiday
     ? "holiday"
-    : await resolveStatus(employee, checkIn, status);
+    : await resolveStatus(employee, checkIn, status, req.user.company);
+
+  let approvalPending = false;
+  if (computedStatus === "late") {
+    approvalPending = await handleLateAllowance(
+      employee,
+      req.user.company,
+      d,
+      checkIn,
+    );
+  }
 
   let workHours = 0;
   let autoOT = 0;
@@ -267,7 +339,7 @@ const markAttendance = asyncHandler(async (req, res) => {
   if (checkIn && checkOut && !holiday) {
     workHours = (new Date(checkOut) - new Date(checkIn)) / 3600000;
     autoOT = await calcOTHours(emp, checkOut);
-    earlyLeaving = await calcEarlyLeaving(emp, checkOut);
+    earlyLeaving = await calcEarlyLeaving(emp, checkOut, req.user.company);
   }
 
   const record = await Attendance.findOneAndUpdate(
@@ -281,6 +353,7 @@ const markAttendance = asyncHandler(async (req, res) => {
       workHours,
       overtime: autoOT,
       earlyLeaving,
+      approvalPending,
       verifyMode: verifyMode || "manual",
       notes: holiday ? `Holiday: ${holiday.name}` : notes || undefined,
       markedBy: req.user._id,
@@ -424,7 +497,17 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
     }
     const computedStatus = holiday
       ? "holiday"
-      : await resolveStatus(emp._id, now, "present");
+      : await resolveStatus(emp._id, now, "present", req.user.company);
+
+    let approvalPending = false;
+    if (computedStatus === "late") {
+      approvalPending = await handleLateAllowance(
+        emp._id,
+        req.user.company,
+        d,
+        now,
+      );
+    }
 
     record = await Attendance.findOneAndUpdate(
       { employee: emp._id, date: d },
@@ -433,6 +516,7 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
         date: d,
         status: computedStatus,
         checkIn: holiday ? undefined : now,
+        approvalPending,
         verifyMode: "geo_camera",
         checkInSelfie: selfieUrl,
         checkInLocation: location,
@@ -453,7 +537,11 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
     }
     const workHours = (now - record.checkIn) / 3600000;
     const autoOT = await calcOTHours(emp, now.toISOString());
-    const earlyLeaving = await calcEarlyLeaving(emp, now.toISOString());
+    const earlyLeaving = await calcEarlyLeaving(
+      emp,
+      now.toISOString(),
+      req.user.company,
+    );
 
     record = await Attendance.findOneAndUpdate(
       { employee: emp._id, date: d },
@@ -515,6 +603,7 @@ const updateAttendance = asyncHandler(async (req, res) => {
       record.employee._id,
       record.checkIn,
       "present",
+      req.user.company,
     );
   } else if (status !== undefined) {
     record.status = status;
@@ -534,7 +623,11 @@ const updateAttendance = asyncHandler(async (req, res) => {
       );
     }
     record.earlyLeaving = empForOT
-      ? await calcEarlyLeaving(empForOT, record.checkOut.toISOString())
+      ? await calcEarlyLeaving(
+          empForOT,
+          record.checkOut.toISOString(),
+          req.user.company,
+        )
       : false;
   } else if (overtime !== undefined) {
     record.overtime = parseFloat(overtime) || 0;
@@ -650,4 +743,5 @@ module.exports = {
   updateAttendance,
   bulkMarkAttendance,
   getMonthSummary,
+  handleLateAllowance,
 };

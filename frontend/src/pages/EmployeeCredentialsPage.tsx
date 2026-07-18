@@ -373,7 +373,7 @@ export default function EmployeeCredentialsPage() {
                   )}
                 >
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 ">
                       {emp.avatar ? (
                         <img
                           src={emp.avatar}
@@ -381,7 +381,7 @@ export default function EmployeeCredentialsPage() {
                           className="w-8 h-8 object-cover border-2 border-black rounded-full"
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-[#024BAB] border-2 border-black flex items-center justify-center text-xs font-bold text-white shrink-0">
+                        <div className="w-8 h-8 bg-[#024BAB] rounded-full border-2 border-black flex items-center justify-center text-xs font-bold text-white shrink-0">
                           {emp.firstName?.[0]?.toUpperCase()}
                         </div>
                       )}

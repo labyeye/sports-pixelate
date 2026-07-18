@@ -243,6 +243,84 @@ const deleteLoan = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Deleted" });
 });
 
+// Bulk create loans/advances from a parsed spreadsheet (Excel import), for
+// backfilling historical records — created directly as "active", bypassing
+// the pending-approval flow used by requestLoan/updateLoanStatus.
+const bulkImportLoans = asyncHandler(async (req, res) => {
+  const { loans: rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    res.status(400);
+    throw new Error("loans array is required");
+  }
+  if (rows.length > 200) {
+    res.status(400);
+    throw new Error("Maximum 200 loans per import");
+  }
+
+  const allEmployees = await Employee.find({ company: req.user.company }).select(
+    "employeeId firstName lastName",
+  );
+
+  const results = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const empMatch = allEmployees.find(
+        (e) =>
+          e.employeeId?.toLowerCase() ===
+          String(row.employeeId || "").toLowerCase(),
+      );
+      const amount = Number(row.amount);
+
+      if (!empMatch || !Number.isFinite(amount) || amount <= 0) {
+        results.push({
+          row: i + 1,
+          status: "error",
+          message: !empMatch
+            ? `No employee found with employeeId "${row.employeeId}"`
+            : "amount is required and must be greater than 0",
+        });
+        continue;
+      }
+
+      const remainingBalance = Number.isFinite(Number(row.remainingBalance))
+        ? Number(row.remainingBalance)
+        : amount;
+
+      const loan = await Loan.create({
+        company: req.user.company,
+        employee: empMatch._id,
+        type: row.type === "advance" ? "advance" : "loan",
+        amount,
+        remainingBalance,
+        monthlyEmi: Number(row.monthlyEmi) || 0,
+        tenureMonths: Number(row.tenureMonths) || 0,
+        reason: row.reason || undefined,
+        disbursedOn: row.disbursedOn || Date.now(),
+        status: ["active", "cleared", "paused"].includes(row.status)
+          ? row.status
+          : "active",
+        remarks: row.remarks || undefined,
+      });
+      await syncLoanBalance(loan.employee);
+
+      results.push({
+        row: i + 1,
+        status: "success",
+        employee: `${empMatch.firstName} ${empMatch.lastName}`,
+      });
+    } catch (err) {
+      results.push({ row: i + 1, status: "error", message: err.message });
+    }
+  }
+
+  const imported = results.filter((r) => r.status === "success").length;
+  const failed = results.filter((r) => r.status === "error").length;
+
+  res.json({ success: true, imported, failed, results });
+});
+
 module.exports = {
   getLoans,
   createLoan,
@@ -250,4 +328,5 @@ module.exports = {
   updateLoanStatus,
   updateLoan,
   deleteLoan,
+  bulkImportLoans,
 };

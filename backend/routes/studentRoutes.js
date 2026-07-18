@@ -5,6 +5,7 @@ const {
   createStudent,
   updateStudent,
   deleteStudent,
+  bulkImportStudents,
   uploadStudentAvatar,
   uploadGuardianPhotoHandler,
   enrollStudentFace,
@@ -31,6 +32,13 @@ router
   .get(protect, getStudent)
   .put(protect, authorize("super_admin", "hr_manager"), updateStudent)
   .delete(protect, authorize("super_admin", "hr_manager"), deleteStudent);
+
+router.post(
+  "/bulk-import",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  bulkImportStudents,
+);
 
 router.post(
   "/:id/avatar",

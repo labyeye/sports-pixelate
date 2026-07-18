@@ -423,7 +423,7 @@ export default function DocumentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

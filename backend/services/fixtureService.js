@@ -79,9 +79,57 @@ function toSlot(team) {
     : { team: null, name: null };
 }
 
+// Given just a team count and format, describes the round-by-round shape a
+// tournament will have once fixtures are generated — used to preview "how
+// many rounds, and what happens in each" before any teams are seeded or
+// fixtures actually created.
+function previewRounds(teamCount, format) {
+  if (!teamCount || teamCount < 2) return [];
+
+  if (format === "round_robin") {
+    const n = teamCount % 2 !== 0 ? teamCount + 1 : teamCount;
+    const totalRounds = n - 1;
+    const matchesPerRound = n / 2 - (teamCount % 2 !== 0 ? 1 : 0);
+    return Array.from({ length: totalRounds }, (_, i) => ({
+      round: i + 1,
+      label: `Round ${i + 1}`,
+      matchCount: matchesPerRound,
+      byes: teamCount % 2 !== 0 ? 1 : 0,
+    }));
+  }
+
+  let size = 1;
+  while (size < teamCount) size *= 2;
+  const totalRounds = Math.log2(size);
+  const byesNeeded = size - teamCount;
+  const preview = [];
+  let matchCount = size / 2;
+  for (let roundIdx = 0; roundIdx < totalRounds; roundIdx++) {
+    preview.push({
+      round: roundIdx + 1,
+      label: knockoutRoundLabel(roundIdx, totalRounds),
+      matchCount,
+      byes: roundIdx === 0 ? byesNeeded : 0,
+    });
+    matchCount /= 2;
+  }
+  return preview;
+}
+
+// Only these two formats have a real bracket generator implemented. The
+// other 6 values accepted by Event.format are valid-to-store ("coming soon"
+// in the UI) but generateFixtures rejects them with a clear message rather
+// than silently mis-generating a bracket for them.
+const SUPPORTED_FORMATS = new Set(["knockout", "round_robin"]);
+function isFormatSupported(format) {
+  return SUPPORTED_FORMATS.has(format);
+}
+
 module.exports = {
   roundRobinRounds,
   knockoutRounds,
   knockoutRoundLabel,
+  previewRounds,
   toSlot,
+  isFormatSupported,
 };

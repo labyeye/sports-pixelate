@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,24 @@ import {
   KeyboardTypeOptions,
   ScrollView,
   Modal,
+  Alert,
+  Animated,
+  Switch,
 } from 'react-native';
-import { LucideIcon, Camera, Search, X, ArrowUpDown, Check } from 'lucide-react-native';
+import {
+  LucideIcon,
+  Camera,
+  Search,
+  X,
+  ArrowUpDown,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  FileUp,
+} from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { pick, types } from '@react-native-documents/picker';
 import { colors, FONT } from '../theme/colors';
 
 export function ScreenContainer({ children }: { children: React.ReactNode }) {
@@ -550,6 +565,344 @@ export function LoadMoreFooter({
   );
 }
 
+// RN accordion built from the existing Card styling — used to group the
+// many optional form sections on the Event form/detail screens without
+// overwhelming a single scroll view.
+export function CollapsibleSection({
+  title,
+  icon: Icon,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  icon?: LucideIcon;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <View style={styles.collapsible}>
+      <TouchableOpacity
+        onPress={() => setOpen(o => !o)}
+        style={styles.collapsibleHeader}
+        activeOpacity={0.7}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+          {Icon ? <Icon size={16} color={colors.black} strokeWidth={2.5} /> : null}
+          <Text style={styles.collapsibleTitle}>{title}</Text>
+        </View>
+        {open ? (
+          <ChevronUp size={18} color={colors.black} strokeWidth={2.5} />
+        ) : (
+          <ChevronDown size={18} color={colors.black} strokeWidth={2.5} />
+        )}
+      </TouchableOpacity>
+      {open ? <View style={styles.collapsibleBody}>{children}</View> : null}
+    </View>
+  );
+}
+
+// Deliberate scope decision: a plain TextInput with placeholder + light regex
+// validation instead of adding @react-native-community/datetimepicker as a
+// new native dependency mid-implementation (would require native re-linking).
+export function DateTimeField({
+  label,
+  value,
+  onChangeText,
+  mode = 'date',
+  required,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  mode?: 'date' | 'time';
+  required?: boolean;
+}) {
+  const placeholder = mode === 'date' ? 'YYYY-MM-DD' : 'HH:mm';
+  const re = mode === 'date' ? /^\d{4}-\d{2}-\d{2}$/ : /^\d{2}:\d{2}$/;
+  const invalid = value.length > 0 && !re.test(value);
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required ? ' *' : ''}
+      </Text>
+      <TextInput
+        style={[styles.fieldInput, invalid && { borderColor: colors.red }]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.muted}
+      />
+      {invalid ? (
+        <Text style={styles.fieldError}>Use format {placeholder}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+// The RN equivalent of a browser File for a picked photo — structurally
+// compatible with api/client.ts's RNFile so it can be passed straight into
+// toFormData()/upload() without conversion.
+export interface PickedImage {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+// Wraps the already-installed react-native-image-picker with a thumbnail
+// preview, for cover/banner/gallery image fields.
+export function ImagePicker({
+  label,
+  value,
+  previewUrl,
+  onChange,
+}: {
+  label: string;
+  value?: PickedImage;
+  previewUrl?: string;
+  onChange: (file: PickedImage) => void;
+}) {
+  const handle = (r: any) => {
+    const a = r?.assets?.[0];
+    if (a?.uri) {
+      onChange({
+        uri: a.uri,
+        name: a.fileName || `photo-${Date.now()}.jpg`,
+        type: a.type || 'image/jpeg',
+      });
+    }
+  };
+
+  const openPicker = () => {
+    Alert.alert(label, 'Choose a source', [
+      {
+        text: 'Camera',
+        onPress: () => launchCamera({ mediaType: 'photo', quality: 0.7 }, handle),
+      },
+      {
+        text: 'Gallery',
+        onPress: () =>
+          launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, handle),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const uri = value?.uri || previewUrl;
+
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity onPress={openPicker} style={styles.imagePickerBox}>
+        {uri ? (
+          <Image source={{ uri }} style={styles.imagePickerPreview} />
+        ) : (
+          <>
+            <Camera size={22} color={colors.muted} strokeWidth={1.5} />
+            <Text style={styles.imagePickerHint}>Tap to select image</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// The RN equivalent of a browser File for a picked document.
+export interface PickedFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+// Wraps the already-installed @react-native-documents/picker for the
+// Documents tab (rule books, consent forms, etc.).
+export function FilePicker({
+  label,
+  value,
+  onChange,
+}: {
+  label?: string;
+  value?: PickedFile;
+  onChange: (file: PickedFile) => void;
+}) {
+  const pickFile = async () => {
+    try {
+      const [file] = await pick({ type: [types.allFiles] });
+      if (file) {
+        onChange({
+          uri: file.uri,
+          name: file.name || 'file',
+          type: file.type || 'application/octet-stream',
+        });
+      }
+    } catch {
+      // user cancelled — no-op
+    }
+  };
+
+  return (
+    <View style={{ marginBottom: 14 }}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <TouchableOpacity onPress={pickFile} style={styles.filePickerBox}>
+        <FileUp size={16} color={colors.black} strokeWidth={2.5} />
+        <Text style={styles.filePickerText} numberOfLines={1}>
+          {value?.name || 'Choose file'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+interface ToastAPI {
+  success: (msg: string) => void;
+  error: (msg: string) => void;
+  info: (msg: string) => void;
+}
+
+const noopToast: ToastAPI = {
+  success: () => {},
+  error: () => {},
+  info: () => {},
+};
+
+const ToastContext = React.createContext<ToastAPI>(noopToast);
+
+// Lightweight fade-banner toast — mobile currently only has Alert.alert
+// (which blocks with a modal); this gives non-blocking success/error
+// feedback, matching the web app's useToast API shape.
+export function useToast(): ToastAPI {
+  return React.useContext(ToastContext);
+}
+
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const show = useCallback(
+    (msg: string, type: 'success' | 'error' | 'info') => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      setToast({ msg, type });
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      hideTimer.current = setTimeout(() => {
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => setToast(null));
+      }, 2500);
+    },
+    [opacity],
+  );
+
+  const api = useMemo<ToastAPI>(
+    () => ({
+      success: m => show(m, 'success'),
+      error: m => show(m, 'error'),
+      info: m => show(m, 'info'),
+    }),
+    [show],
+  );
+
+  const bg =
+    toast?.type === 'error'
+      ? colors.red
+      : toast?.type === 'info'
+      ? colors.blue
+      : colors.green;
+
+  return (
+    <ToastContext.Provider value={api}>
+      {children}
+      {toast ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.toast, { backgroundColor: bg, opacity }]}
+        >
+          <Text style={styles.toastText}>{toast.msg}</Text>
+        </Animated.View>
+      ) : null}
+    </ToastContext.Provider>
+  );
+}
+
+// Pinned bottom Save/Cancel row for long forms (EventFormScreen).
+export function StickyFooter({
+  onSave,
+  onCancel,
+  saveLabel = 'Save',
+  cancelLabel = 'Cancel',
+  saving,
+}: {
+  onSave: () => void;
+  onCancel?: () => void;
+  saveLabel?: string;
+  cancelLabel?: string;
+  saving?: boolean;
+}) {
+  return (
+    <View style={styles.stickyFooter}>
+      {onCancel ? (
+        <TouchableOpacity
+          onPress={onCancel}
+          disabled={saving}
+          style={styles.stickyFooterCancel}
+        >
+          <Text style={styles.stickyFooterCancelText}>{cancelLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
+      <TouchableOpacity
+        onPress={onSave}
+        disabled={saving}
+        style={[styles.stickyFooterSave, saving && { opacity: 0.6 }]}
+      >
+        {saving ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.stickyFooterSaveText}>{saveLabel}</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// Labelled boolean switch — for the many yes/no automation/participation
+// fields on the Event form (built on RN's native Switch, no new dependency).
+export function ToggleRow({
+  label,
+  value,
+  onChange,
+  sub,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  sub?: string;
+}) {
+  return (
+    <View style={styles.toggleRow}>
+      <View style={{ flex: 1, marginRight: 10 }}>
+        <Text style={styles.toggleLabel}>{label}</Text>
+        {sub ? <Text style={styles.toggleSub}>{sub}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: '#D1D5DB', true: colors.blue }}
+        thumbColor={colors.white}
+      />
+    </View>
+  );
+}
+
 const textStyle: TextStyle = {
   fontFamily: FONT.bold,
   fontWeight: '700',
@@ -557,7 +910,7 @@ const textStyle: TextStyle = {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   card: {
     backgroundColor: colors.white,
     borderWidth: 2,
@@ -799,5 +1152,144 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     paddingVertical: 10,
     alignItems: 'center',
+  },
+  collapsible: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.black,
+    marginBottom: 12,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  collapsibleTitle: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  collapsibleBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#0000001A',
+    paddingTop: 14,
+  },
+  fieldError: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.red,
+    marginTop: 4,
+  },
+  imagePickerBox: {
+    height: 110,
+    borderWidth: 2,
+    borderColor: colors.black,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+  },
+  imagePickerPreview: { width: '100%', height: '100%' },
+  imagePickerHint: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 6,
+  },
+  filePickerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  filePickerText: {
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    color: colors.black,
+    flex: 1,
+  },
+  toast: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    zIndex: 999,
+  },
+  toastText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.white,
+  },
+  stickyFooter: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+    borderTopWidth: 2,
+    borderTopColor: colors.black,
+    backgroundColor: colors.white,
+  },
+  stickyFooterCancel: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  stickyFooterCancelText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  stickyFooterSave: {
+    flex: 2,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  stickyFooterSaveText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.white,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#0000001A',
+  },
+  toggleLabel: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  toggleSub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
   },
 });

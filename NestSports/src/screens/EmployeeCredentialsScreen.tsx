@@ -240,7 +240,7 @@ export default function EmployeeCredentialsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

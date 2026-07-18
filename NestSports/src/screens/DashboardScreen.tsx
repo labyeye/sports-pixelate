@@ -179,7 +179,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   greeting: { fontSize: 22, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   kpiGrid: {

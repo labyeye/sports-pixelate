@@ -156,6 +156,6 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   emailHint: { color: colors.muted, fontSize: 11, marginTop: -8, marginBottom: 14 },
 });

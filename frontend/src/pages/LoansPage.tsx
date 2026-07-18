@@ -4,6 +4,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { loanAPI, employeeAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Banknote,
   Plus,
@@ -15,8 +17,48 @@ import {
   CheckCircle2,
   Check,
   Clock,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Employee } from "@/types/hrms";
+
+const LOAN_IMPORT_HEADERS: ImportHeader[] = [
+  {
+    key: "employeeId",
+    label: "Employee ID",
+    required: true,
+    example: "EMP0001",
+  },
+  { key: "type", label: "Type", required: true, example: "loan" },
+  { key: "amount", label: "Amount", required: true, example: "20000" },
+  {
+    key: "remainingBalance",
+    label: "Remaining Balance",
+    required: false,
+    example: "15000",
+  },
+  {
+    key: "monthlyEmi",
+    label: "Monthly EMI",
+    required: false,
+    example: "2000",
+  },
+  {
+    key: "tenureMonths",
+    label: "Tenure (Months)",
+    required: false,
+    example: "10",
+  },
+  { key: "reason", label: "Reason", required: false, example: "Medical" },
+  {
+    key: "disbursedOn",
+    label: "Disbursed On",
+    required: false,
+    example: "2024-01-15",
+  },
+  { key: "status", label: "Status", required: false, example: "active" },
+  { key: "remarks", label: "Remarks", required: false, example: "" },
+];
 
 interface Loan {
   _id: string;
@@ -62,6 +104,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function LoansPage() {
   const { toast } = useToast();
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [importModal, setImportModal] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<"all" | "loan" | "advance">(
@@ -296,12 +339,44 @@ export default function LoansPage() {
             </button>
           ))}
         </div>
-        <button
-          onClick={openAdd}
-          className="border-2 bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold"
-        >
-          <Plus className="w-4 h-4" /> Add Loan / Advance
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              exportRowsToExcel(
+                LOAN_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                displayedLoans.map((l) => ({
+                  employeeId: l.employee?.employeeId || "",
+                  type: l.type,
+                  amount: l.amount,
+                  remainingBalance: l.remainingBalance,
+                  monthlyEmi: l.monthlyEmi,
+                  tenureMonths: l.tenureMonths,
+                  reason: l.reason,
+                  disbursedOn: l.disbursedOn?.slice(0, 10),
+                  status: l.status,
+                  remarks: l.remarks,
+                })),
+                "loans_export.xlsx",
+                "Loans",
+              )
+            }
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button
+            onClick={() => setImportModal(true)}
+            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Import Excel
+          </button>
+          <button
+            onClick={openAdd}
+            className="border-2 bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold"
+          >
+            <Plus className="w-4 h-4" /> Add Loan / Advance
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -694,6 +769,38 @@ export default function LoansPage() {
           </div>
         </div>
       )}
+      <ImportExportModal
+        open={importModal}
+        onClose={() => setImportModal(false)}
+        entityLabel="Loan"
+        headers={LOAN_IMPORT_HEADERS}
+        templateFilename="loans_import_template.xlsx"
+        notes={
+          <>
+            <p>
+              • <strong>Employee ID</strong> must exactly match an employee's
+              ID (e.g. <code>EMP0001</code>).
+            </p>
+            <p>
+              • <strong>Type</strong> must be <code>loan</code> or{" "}
+              <code>advance</code>. Imported records are created as{" "}
+              <strong>active</strong> immediately, bypassing the
+              pending-approval flow — for backfilling historical records.
+            </p>
+            <p>
+              • Maximum <strong>200 loans</strong> per import.
+            </p>
+          </>
+        }
+        previewColumns={[
+          { key: "employeeId", label: "Employee ID" },
+          { key: "type", label: "Type" },
+          { key: "amount", label: "Amount" },
+          { key: "monthlyEmi", label: "Monthly EMI" },
+        ]}
+        onImport={(rows) => loanAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </AppLayout>
   );
 }

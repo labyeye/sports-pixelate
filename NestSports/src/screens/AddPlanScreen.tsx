@@ -127,5 +127,5 @@ export default function AddPlanScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
 });

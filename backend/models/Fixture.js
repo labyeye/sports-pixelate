@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 // A team slot on a fixture — denormalized (id + name) so the bracket reads
-// without populating Tournament.teams on every request. `team` is null for
+// without populating Event.teams on every request. `team` is null for
 // a knockout slot still waiting on a previous round's winner.
 const slotSchema = new mongoose.Schema(
   {
@@ -18,9 +18,9 @@ const fixtureSchema = new mongoose.Schema(
       ref: "Company",
       required: true,
     },
-    tournament: {
+    event: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Tournament",
+      ref: "Event",
       required: true,
     },
     round: { type: Number, required: true }, // 1-based
@@ -49,6 +49,6 @@ const fixtureSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-fixtureSchema.index({ tournament: 1, round: 1, matchIndex: 1 });
+fixtureSchema.index({ event: 1, round: 1, matchIndex: 1 });
 
 module.exports = mongoose.model("Fixture", fixtureSchema);

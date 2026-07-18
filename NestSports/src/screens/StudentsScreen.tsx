@@ -10,7 +10,15 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, ArrowUpDown, Edit2, Trash2, User } from 'lucide-react-native';
+import {
+  Plus,
+  ArrowUpDown,
+  Edit2,
+  Trash2,
+  User,
+  Download,
+  FileSpreadsheet,
+} from 'lucide-react-native';
 import { studentAPI } from '../api/client';
 import {
   EmptyState,
@@ -21,7 +29,24 @@ import {
   LoadMoreFooter,
   SortOption,
 } from '../components/ui';
+import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+
+const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
+  { key: 'firstName', label: 'First Name', required: true, example: 'Aarav' },
+  { key: 'lastName', label: 'Last Name', required: true, example: 'Mehta' },
+  { key: 'sport', label: 'Sport', required: true, example: 'Tennis' },
+  { key: 'batch', label: 'Batch', required: false, example: 'Morning U-12' },
+  { key: 'dateOfBirth', label: 'Date of Birth', required: false, example: '2014-05-10' },
+  { key: 'gender', label: 'Gender', required: false, example: 'male' },
+  { key: 'enrollmentDate', label: 'Enrollment Date', required: false, example: '2024-01-15' },
+  { key: 'coach', label: 'Coach Name', required: false, example: 'Rahul Sharma' },
+  { key: 'emergencyContact', label: 'Emergency Contact', required: false, example: '9876500000' },
+  { key: 'guardianName', label: 'Guardian Name', required: false, example: 'Priya Mehta' },
+  { key: 'guardianRelation', label: 'Guardian Relation', required: false, example: 'mother' },
+  { key: 'guardianPhone', label: 'Guardian Phone', required: false, example: '9876543210' },
+];
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   active: { color: colors.green, label: 'Active' },
@@ -55,6 +80,7 @@ export default function StudentsScreen({ navigation }: any) {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [importVisible, setImportVisible] = useState(false);
 
   const fetchPage = useCallback(
     (pageNum: number) =>
@@ -157,6 +183,27 @@ export default function StudentsScreen({ navigation }: any) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Students</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() =>
+              exportRowsToExcel(
+                STUDENT_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                students,
+                'students_export.xlsx',
+                'Students',
+              )
+            }
+            style={styles.iconBtn}
+            hitSlop={8}
+          >
+            <Download size={18} color={colors.black} strokeWidth={2.5} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setImportVisible(true)}
+            style={styles.iconBtn}
+            hitSlop={8}
+          >
+            <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortVisible(true)}
             style={styles.iconBtn}
@@ -284,12 +331,29 @@ export default function StudentsScreen({ navigation }: any) {
           setSortVisible(false);
         }}
       />
+
+      <ImportExportModal
+        visible={importVisible}
+        onClose={() => setImportVisible(false)}
+        entityLabel="Student"
+        headers={STUDENT_IMPORT_HEADERS}
+        templateFilename="students_import_template.xlsx"
+        notes={[
+          'Date of Birth and Enrollment Date must be in YYYY-MM-DD format.',
+          "Coach Name must exactly match an existing employee's full name.",
+          'Guardian Relation must be one of: father, mother, guardian, other.',
+          'Maximum 200 students per import.',
+        ]}
+        previewLine={r => `${r.firstName} ${r.lastName} — ${r.sport || '—'}`}
+        onImport={rows => studentAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

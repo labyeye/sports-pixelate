@@ -64,9 +64,9 @@ export default function ManageScreen({ navigation }: any) {
             onPress={() => navigation?.navigate?.('Plans')}
           />
           <Row
-            title="Payroll Settings"
-            subtitle="Deduction rules"
-            onPress={() => navigation?.navigate?.('PayrollSettings')}
+            title="Attendance Settings"
+            subtitle="Shift, late & leave allowance rules"
+            onPress={() => navigation?.navigate?.('AttendanceSettings')}
           />
         </Card>
 
@@ -92,7 +92,7 @@ export default function ManageScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
 });

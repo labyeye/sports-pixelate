@@ -90,4 +90,69 @@ const deletePlan = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Plan deactivated" });
 });
 
-module.exports = { getPlans, createPlan, updatePlan, deletePlan };
+// Bulk create coaching plans from a parsed spreadsheet (Excel import).
+const bulkImportPlans = asyncHandler(async (req, res) => {
+  const { plans: rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    res.status(400);
+    throw new Error("plans array is required");
+  }
+  if (rows.length > 200) {
+    res.status(400);
+    throw new Error("Maximum 200 plans per import");
+  }
+
+  const results = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const name = (row.name || "").trim();
+      const sport = (row.sport || "").trim();
+      const monthlyPrice = Number(row.monthlyPrice);
+      const yearlyPrice = Number(row.yearlyPrice);
+
+      if (
+        !name ||
+        !sport ||
+        !Number.isFinite(monthlyPrice) ||
+        !Number.isFinite(yearlyPrice)
+      ) {
+        results.push({
+          row: i + 1,
+          status: "error",
+          message:
+            "Missing required field (name, sport, monthlyPrice, yearlyPrice)",
+        });
+        continue;
+      }
+
+      const plan = await SportsPlan.create({
+        company: req.user.company,
+        name,
+        sport,
+        monthlyPrice,
+        yearlyPrice,
+        sessionsPerWeek: Number(row.sessionsPerWeek) || undefined,
+        description: row.description || undefined,
+      });
+
+      results.push({ row: i + 1, status: "success", name: plan.name });
+    } catch (err) {
+      results.push({ row: i + 1, status: "error", message: err.message });
+    }
+  }
+
+  const imported = results.filter((r) => r.status === "success").length;
+  const failed = results.filter((r) => r.status === "error").length;
+
+  res.json({ success: true, imported, failed, results });
+});
+
+module.exports = {
+  getPlans,
+  createPlan,
+  updatePlan,
+  deletePlan,
+  bulkImportPlans,
+};

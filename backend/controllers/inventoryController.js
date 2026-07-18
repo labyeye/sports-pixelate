@@ -244,6 +244,79 @@ const returnAssignment = asyncHandler(async (req, res) => {
   res.json({ success: true, data: item });
 });
 
+// Bulk create inventory items from a parsed spreadsheet (Excel import).
+const bulkImportItems = asyncHandler(async (req, res) => {
+  const { items: rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    res.status(400);
+    throw new Error("items array is required");
+  }
+  if (rows.length > 200) {
+    res.status(400);
+    throw new Error("Maximum 200 items per import");
+  }
+
+  const CATEGORIES = ["equipment", "apparel", "consumable", "other"];
+  const results = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const name = (row.name || "").trim();
+      const category = (row.category || "").trim().toLowerCase();
+
+      if (!name || !CATEGORIES.includes(category)) {
+        results.push({
+          row: i + 1,
+          status: "error",
+          message: `Missing/invalid required field (name, category must be one of: ${CATEGORIES.join(", ")})`,
+        });
+        continue;
+      }
+
+      const trackQuantity =
+        String(row.trackQuantity).toLowerCase() !== "false";
+      const totalQuantity = Number(row.totalQuantity) || 0;
+      const availableQuantity = Number.isFinite(Number(row.availableQuantity))
+        ? Number(row.availableQuantity)
+        : totalQuantity;
+
+      const item = await InventoryItem.create({
+        company: req.user.company,
+        name,
+        category,
+        sport: row.sport || undefined,
+        trackQuantity,
+        totalQuantity,
+        availableQuantity,
+        onOrderQuantity: Number(row.onOrderQuantity) || 0,
+        unitCost: Number(row.unitCost) || undefined,
+        reorderThreshold: Number(row.reorderThreshold) || undefined,
+      });
+
+      if (totalQuantity > 0) {
+        await InventoryTransaction.create({
+          company: req.user.company,
+          item: item._id,
+          type: "purchase",
+          quantity: totalQuantity,
+          notes: "Imported stock",
+          recordedBy: req.user._id,
+        });
+      }
+
+      results.push({ row: i + 1, status: "success", name: item.name });
+    } catch (err) {
+      results.push({ row: i + 1, status: "error", message: err.message });
+    }
+  }
+
+  const imported = results.filter((r) => r.status === "success").length;
+  const failed = results.filter((r) => r.status === "error").length;
+
+  res.json({ success: true, imported, failed, results });
+});
+
 module.exports = {
   getItems,
   createItem,
@@ -253,4 +326,5 @@ module.exports = {
   recordTransaction,
   assignItem,
   returnAssignment,
+  bulkImportItems,
 };

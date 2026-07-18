@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Trash2, X } from 'lucide-react-native';
+import { Plus, Trash2, X, CalendarDays, CalendarClock } from 'lucide-react-native';
 import { holidayAPI } from '../api/client';
 import {
   Card,
@@ -22,6 +22,7 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
@@ -153,6 +154,26 @@ export default function HolidaysScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Holidays"
+            value={holidays.length}
+            sub="Total"
+            color={colors.blue}
+            icon={CalendarDays}
+          />
+          <KpiTile
+            label="Upcoming"
+            value={
+              holidays.filter(h => new Date(h.date) >= new Date(new Date().toDateString()))
+                .length
+            }
+            sub="From today onward"
+            color={colors.orange}
+            icon={CalendarClock}
+          />
+        </View>
+
         <Card>
           {holidays.length === 0 ? (
             <EmptyState title="No holidays found" />
@@ -236,7 +257,7 @@ export default function HolidaysScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -269,6 +290,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   deleteBtn: {
     width: 30,

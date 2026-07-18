@@ -12,7 +12,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, ArrowUpDown, Edit2, Trash2, X } from 'lucide-react-native';
+import {
+  Plus,
+  ArrowUpDown,
+  Edit2,
+  Trash2,
+  X,
+  Building2,
+  Users2,
+  MapPin,
+} from 'lucide-react-native';
 import { facilityAPI } from '../api/client';
 import {
   Card,
@@ -28,6 +37,7 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -220,6 +230,27 @@ export default function FacilitiesScreen() {
           </View>
         </View>
 
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Total Facilities"
+            value={facilities.length}
+            color={colors.blue}
+            icon={Building2}
+          />
+          <KpiTile
+            label="Total Capacity"
+            value={facilities.reduce((s, f) => s + (f.capacity || 0), 0)}
+            color={colors.green}
+            icon={Users2}
+          />
+          <KpiTile
+            label="Free to Book"
+            value={facilities.filter(f => !f.hourlyFee).length}
+            color={colors.blue}
+            icon={MapPin}
+          />
+        </View>
+
         <SearchBar
           value={searchInput}
           onChangeText={setSearchInput}
@@ -363,7 +394,13 @@ export default function FacilitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

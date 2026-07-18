@@ -23,8 +23,10 @@ import {
   leaveAPI,
   settingsAPI,
   studentAttendanceAPI,
-  subscriptionAPI,
-  tournamentAPI,
+  reportAPI,
+  eventAPI,
+  studentAPI,
+  sportAPI,
 } from "@/services/api";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import {
@@ -361,6 +363,78 @@ const REPORTS: ReportDef[] = [
     desc: "Fixtures, scores and winners for a tournament — round by round results by team.",
     category: "student",
     icon: TrendingUp,
+    available: true,
+  },
+  {
+    id: "student-directory",
+    name: "Student Directory",
+    desc: "Full student list with contact, batch, sport and guardian details.",
+    category: "student",
+    icon: Users,
+    available: true,
+  },
+  {
+    id: "student-fee-report",
+    name: "Student Fee Report",
+    desc: "Fee charges, invoices and payment status for students.",
+    category: "student",
+    icon: IndianRupee,
+    available: true,
+  },
+  {
+    id: "student-outstanding-dues",
+    name: "Outstanding Dues Report",
+    desc: "List of students with outstanding payments and overdue amounts.",
+    category: "student",
+    icon: CreditCard,
+    available: true,
+  },
+  {
+    id: "student-performance",
+    name: "Student Performance Report",
+    desc: "Progress and assessment reports for students (coach/assessment inputs).",
+    category: "student",
+    icon: BookOpen,
+    available: false,
+  },
+  {
+    id: "student-enrollment",
+    name: "Enrollment Report",
+    desc: "New enrollments, cancellations and net joins for the selected period.",
+    category: "student",
+    icon: Calendar,
+    available: true,
+  },
+  {
+    id: "student-batch-summary",
+    name: "Batch Summary Report",
+    desc: "Batch-wise headcount and active/inactive summary.",
+    category: "student",
+    icon: Building2,
+    available: true,
+  },
+  {
+    id: "student-sport-summary",
+    name: "Sport-wise Summary",
+    desc: "Summary of students grouped by sport with counts and subscriptions.",
+    category: "student",
+    icon: BarChart2,
+    available: true,
+  },
+  {
+    id: "student-guardian-list",
+    name: "Guardian Contact List",
+    desc: "Guardian names and contact details for all students.",
+    category: "student",
+    icon: Users,
+    available: true,
+  },
+  {
+    id: "student-payment-history",
+    name: "Student Payment History",
+    desc: "Detailed payment ledger for each student (transactions and receipts).",
+    category: "student",
+    icon: FileText,
     available: true,
   },
 ];
@@ -2968,20 +3042,42 @@ function StudentAttendanceReportGen({
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year, setYear] = useState(String(now.getFullYear()));
   const [status, setStatus] = useState("all");
+  const [batch, setBatch] = useState("all");
+  const [sport, setSport] = useState("all");
+  const [batchOptions, setBatchOptions] = useState<string[]>([]);
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    studentAPI
+      .getAll({ limit: "1000" })
+      .then((r) => {
+        if (r.success) {
+          setBatchOptions(
+            Array.from(
+              new Set((r.data as any[]).map((s) => s.batch).filter(Boolean)),
+            ).sort(),
+          );
+        }
+      })
+      .catch(() => {});
+    sportAPI
+      .getAll()
+      .then((r) => r.success && setSportOptions(r.data.map((s: any) => s.name || s)))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     load();
-  }, [month, year]);
+  }, [month, year, batch, sport]);
   async function load() {
     setLoading(true);
     try {
-      const r = await studentAttendanceAPI.getAll({
-        month,
-        year,
-        limit: "500",
-      });
+      const params: Record<string, string> = { month, year, limit: "500" };
+      if (batch !== "all") params.batch = batch;
+      if (sport !== "all") params.sport = sport;
+      const r = await studentAttendanceAPI.getAll(params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -2990,7 +3086,25 @@ function StudentAttendanceReportGen({
   const filtered =
     status === "all" ? data : data.filter((rec) => rec.status === status);
 
-  const headers = ["Date", "Student", "Student ID", "Sport", "Batch", "Status"];
+  function viaLabel(rec: any): string {
+    if (rec.verifyMode === "manual")
+      return `Manual — marked by ${rec.markedBy?.name || "staff"}`;
+    if (rec.checkInLog)
+      return `${rec.checkInLog.method} @ ${rec.checkInLog.location?.name || "—"} (${rec.checkInLog.device?.name || "—"})`;
+    return rec.verifyMode || "—";
+  }
+
+  const headers = [
+    "Date",
+    "Student",
+    "Student ID",
+    "Sport",
+    "Batch",
+    "Status",
+    "Check In",
+    "Check Out",
+    "Via",
+  ];
   const rows = filtered.map((rec) => [
     formatDate(rec.date),
     rec.student ? `${rec.student.firstName} ${rec.student.lastName}` : "—",
@@ -2998,6 +3112,19 @@ function StudentAttendanceReportGen({
     rec.student?.sport || "—",
     rec.batch || rec.student?.batch || "—",
     rec.status?.toUpperCase() || "—",
+    rec.checkIn
+      ? new Date(rec.checkIn).toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—",
+    rec.checkOut
+      ? new Date(rec.checkOut).toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—",
+    viaLabel(rec),
   ]);
 
   return (
@@ -3022,6 +3149,22 @@ function StudentAttendanceReportGen({
           <option value="present">Present</option>
           <option value="absent">Absent</option>
           <option value="excused">Excused</option>
+        </NbSelect>
+        <NbSelect value={batch} onChange={setBatch} className="w-40">
+          <option value="all">All Batches</option>
+          {batchOptions.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </NbSelect>
+        <NbSelect value={sport} onChange={setSport} className="w-40">
+          <option value="all">All Sports</option>
+          {sportOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
         </NbSelect>
         <div className="ml-auto flex gap-2">
           <button
@@ -3073,8 +3216,8 @@ function StudentSubscriptionReportGen({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    subscriptionAPI
-      .getAll()
+    reportAPI
+      .studentFees({ limit: "1000" })
       .then((r) => r.success && setData(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -3082,6 +3225,17 @@ function StudentSubscriptionReportGen({
 
   const filtered =
     status === "all" ? data : data.filter((sub) => sub.status === status);
+
+  function guardianName(sub: any): string {
+    const guardians: any[] = sub.student?.guardians || [];
+    const byRelation = (rel: string) =>
+      guardians.find((g) => g.relation === rel);
+    const g =
+      byRelation("father") ||
+      byRelation("mother") ||
+      guardians[0];
+    return g?.name || "—";
+  }
 
   const headers = [
     "Student",
@@ -3094,19 +3248,29 @@ function StudentSubscriptionReportGen({
     "Status",
     "Payment Status",
     "Amount Paid",
+    "Parent/Guardian",
+    "Amount Remaining",
+    "Verified",
   ];
-  const rows = filtered.map((sub) => [
-    sub.student ? `${sub.student.firstName} ${sub.student.lastName}` : "—",
-    sub.student?.sport || "—",
-    sub.planName || sub.plan?.name || "—",
-    sub.billingCycle?.toUpperCase() || "—",
-    formatCurrency(sub.amount || 0),
-    sub.startDate ? formatDate(sub.startDate) : "—",
-    sub.renewalDate ? formatDate(sub.renewalDate) : "—",
-    sub.status?.toUpperCase().replace("_", " ") || "—",
-    sub.paymentStatus?.toUpperCase() || "—",
-    formatCurrency(sub.amountPaid || 0),
-  ]);
+  const rows = filtered.map((sub) => {
+    const due = (sub.amount || 0) - (sub.amountPaid || 0);
+    const verified = sub.paymentStatus === "completed" && !!sub.confirmedBy;
+    return [
+      sub.student ? `${sub.student.firstName} ${sub.student.lastName}` : "—",
+      sub.student?.sport || "—",
+      sub.planName || sub.plan?.name || "—",
+      sub.billingCycle?.toUpperCase() || "—",
+      formatCurrency(sub.amount || 0),
+      sub.startDate ? formatDate(sub.startDate) : "—",
+      sub.renewalDate ? formatDate(sub.renewalDate) : "—",
+      sub.status?.toUpperCase().replace("_", " ") || "—",
+      sub.paymentStatus?.toUpperCase() || "—",
+      formatCurrency(sub.amountPaid || 0),
+      guardianName(sub),
+      due > 0 ? formatCurrency(due) : "—",
+      verified ? "Yes" : "No",
+    ];
+  });
 
   return (
     <div className="space-y-4">
@@ -3154,6 +3318,167 @@ function StudentSubscriptionReportGen({
   );
 }
 
+function StudentFeeReportGen({ company }: { departments?: any[]; company: ReportCompany }) {
+  const [status, setStatus] = useState("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = { limit: "500" };
+      if (status !== "all") params.status = status;
+      if (from) params.from = from;
+      if (to) params.to = to;
+      const r = await reportAPI.studentFees(params);
+      if (r.success) setData(r.data);
+    } catch (e) {}
+    setLoading(false);
+  }
+
+  const headers = [
+    "Student",
+    "Student ID",
+    "Sport",
+    "Batch",
+    "Plan",
+    "Billing Cycle",
+    "Amount",
+    "Amount Paid",
+    "Status",
+    "Start Date",
+    "Renewal Date",
+  ];
+
+  const rows = data.map((s) => [
+    s.student ? `${s.student.firstName} ${s.student.lastName}` : "—",
+    s.student?.studentId || "—",
+    s.student?.sport || "—",
+    s.student?.batch || "—",
+    s.planName || "—",
+    s.billingCycle?.toUpperCase() || "—",
+    formatCurrency(s.amount || 0),
+    formatCurrency(s.amountPaid || 0),
+    s.status?.toUpperCase() || "—",
+    s.startDate ? formatDate(s.startDate) : "—",
+    s.renewalDate ? formatDate(s.renewalDate) : "—",
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={status} onChange={setStatus} className="w-44">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="pending_renewal">Pending Renewal</option>
+          <option value="inactive">Inactive</option>
+          <option value="cancelled">Cancelled</option>
+        </NbSelect>
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border-2 border-black px-2 py-2" />
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border-2 border-black px-2 py-2" />
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={load}
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Search className="w-4 h-4" /> Load
+          </button>
+          <button
+            onClick={() =>
+              printReport(
+                "Student Fee Report",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() => exportCSV([headers, ...rows], `student_fees.csv`)}
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#00C48C] text-white"
+          >
+            <Download className="w-4 h-4" /> CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No student fee records found" />
+      ) : (
+        <ReportTable id="student-fee-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function StudentOutstandingDuesGen({ company }: { departments?: any[]; company: ReportCompany }) {
+  const [minAmount, setMinAmount] = useState(0);
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (minAmount) params.minAmount = String(minAmount);
+      const r = await reportAPI.studentOutstanding(params);
+      if (r.success) setData(r.data);
+    } catch (e) {}
+    setLoading(false);
+  }
+
+  const headers = [
+    "Student",
+    "Student ID",
+    "Plan",
+    "Amount",
+    "Amount Paid",
+    "Due",
+    "Status",
+    "Renewal Date",
+  ];
+
+  const rows = data.map((r) => [
+    r.student ? `${r.student.firstName} ${r.student.lastName}` : "—",
+    r.student?.studentId || "—",
+    r.planName || "—",
+    formatCurrency(r.amount || 0),
+    formatCurrency(r.amountPaid || 0),
+    formatCurrency(r.due || 0),
+    r.status?.toUpperCase() || "—",
+    r.renewalDate ? formatDate(r.renewalDate) : "—",
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <input type="number" value={minAmount} onChange={(e) => setMinAmount(Number(e.target.value))} className="border-2 border-black px-2 py-2 w-36" placeholder="Min due amount" />
+        <div className="ml-auto flex gap-2">
+          <button onClick={load} className="border-2 border-black px-3 py-2 bg-[#024BAB] text-white font-bold">Load</button>
+          <button onClick={() => printReport("Outstanding Dues", new Date().toLocaleDateString("en-IN"), headers, rows, { company, reportCategory: "Student" })} className="border-2 border-black px-3 py-2 bg-white font-bold">Print</button>
+          <button onClick={() => exportCSV([headers, ...rows], `student_outstanding.csv`)} className="border-2 border-black px-3 py-2 bg-[#00C48C] text-white font-bold">CSV</button>
+        </div>
+      </div>
+      {loading ? <LoadingState /> : rows.length === 0 ? <EmptyState msg="No outstanding dues found" /> : <ReportTable id="student-outstanding-tbl" headers={headers} rows={rows} />}
+    </div>
+  );
+}
+
 function TournamentReportGen({
   company,
 }: {
@@ -3166,7 +3491,7 @@ function TournamentReportGen({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    tournamentAPI.getAll().then((r) => {
+    eventAPI.getAll({ eventType: "tournament" }).then((r) => {
       if (r.success) {
         setTournaments(r.data);
         if (r.data.length > 0) setTournamentId(r.data[0]._id);
@@ -3177,7 +3502,7 @@ function TournamentReportGen({
   useEffect(() => {
     if (!tournamentId) return;
     setLoading(true);
-    tournamentAPI
+    eventAPI
       .getFixtures(tournamentId)
       .then((r) => r.success && setFixtures(r.data))
       .catch(() => {})
@@ -3225,7 +3550,7 @@ function TournamentReportGen({
         >
           {tournaments.map((t) => (
             <option key={t._id} value={t._id}>
-              {t.name} ({t.sport})
+              {t.name} ({t.activity})
             </option>
           ))}
         </NbSelect>
@@ -3235,7 +3560,7 @@ function TournamentReportGen({
               printReport(
                 `Tournament Results — ${tournament?.name || ""}`,
                 tournament
-                  ? `${tournament.sport} · ${tournament.format?.replace("_", " ")}`
+                  ? `${tournament.activity} · ${tournament.format?.replace("_", " ")}`
                   : "",
                 headers,
                 rows,
@@ -3272,7 +3597,887 @@ function TournamentReportGen({
   );
 }
 
-function ComingSoonGen() {
+function useSportBatchOptions() {
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
+  const [batchOptions, setBatchOptions] = useState<string[]>([]);
+  useEffect(() => {
+    studentAPI
+      .getAll({ limit: "1000" })
+      .then((r) => {
+        if (r.success) {
+          setBatchOptions(
+            Array.from(
+              new Set((r.data as any[]).map((s) => s.batch).filter(Boolean)),
+            ).sort(),
+          );
+        }
+      })
+      .catch(() => {});
+    sportAPI
+      .getAll()
+      .then(
+        (r) =>
+          r.success &&
+          setSportOptions(r.data.map((s: any) => s.name || s)),
+      )
+      .catch(() => {});
+  }, []);
+  return { sportOptions, batchOptions };
+}
+
+function guardianRelationName(guardians: any[] | undefined): string {
+  const list = guardians || [];
+  const byRelation = (rel: string) => list.find((g) => g.relation === rel);
+  const g = byRelation("father") || byRelation("mother") || list[0];
+  return g?.name || "—";
+}
+
+function StudentDirectoryGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [search, setSearch] = useState("");
+  const [sport, setSport] = useState("all");
+  const [batch, setBatch] = useState("all");
+  const [status, setStatus] = useState("all");
+  const { sportOptions, batchOptions } = useSportBatchOptions();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState("");
+  const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileGenerated, setProfileGenerated] = useState(false);
+
+  useEffect(() => {
+    load();
+  }, [search, sport, batch, status]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = { limit: "200" };
+      if (search) params.search = search;
+      if (sport !== "all") params.sport = sport;
+      if (batch !== "all") params.batch = batch;
+      if (status !== "all") params.status = status;
+      const r = await studentAPI.getAll(params);
+      if (r.success) setData(r.data);
+    } catch {}
+    setLoading(false);
+  }
+
+  const headers = [
+    "Student ID",
+    "Student",
+    "Sport",
+    "Batch",
+    "Status",
+    "Coach",
+    "Guardian",
+    "Phone",
+  ];
+  const rows = data.map((s) => [
+    s.studentId || "—",
+    `${s.firstName} ${s.lastName}`,
+    s.sport || "—",
+    s.batch || "—",
+    (s.status || "").toUpperCase(),
+    s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "—",
+    guardianRelationName(s.guardians),
+    (s.guardians || [])[0]?.phone || "—",
+  ]);
+
+  async function generateProfile() {
+    if (!selectedId) return;
+    setProfileLoading(true);
+    setProfileGenerated(false);
+    try {
+      const r = await reportAPI.studentProfile(selectedId);
+      if (r.success) setProfile(r.data);
+    } catch {}
+    setProfileLoading(false);
+    setProfileGenerated(true);
+  }
+
+  function profileRows(): string[][] {
+    if (!profile) return [];
+    const s = profile.student || {};
+    const out: string[][] = [
+      ["Student ID", s.studentId || "—"],
+      ["Name", `${s.firstName || ""} ${s.lastName || ""}`.trim()],
+      ["Sport", s.sport || "—"],
+      ["Batch", s.batch || "—"],
+      ["Coach", s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "—"],
+      ["Status", (s.status || "").toUpperCase()],
+      ["Enrollment Date", s.enrollmentDate ? formatDate(s.enrollmentDate) : "—"],
+    ];
+    (s.guardians || []).forEach((g: any) => {
+      out.push([`Guardian (${g.relation})`, `${g.name || "—"} — ${g.phone || "—"}`]);
+    });
+    const att = profile.attendance || {};
+    out.push(["Attendance — Present", String(att.present ?? 0)]);
+    out.push(["Attendance — Late", String(att.late ?? 0)]);
+    out.push(["Attendance — Absent", String(att.absent ?? 0)]);
+    out.push(["Attendance — Excused", String(att.excused ?? 0)]);
+    out.push(["Attendance — Rate", `${att.rate ?? 0}%`]);
+    (profile.subscriptions || []).forEach((sub: any) => {
+      out.push([
+        `Subscription (${sub.startDate ? formatDate(sub.startDate) : "—"})`,
+        `${sub.planName || "—"} — ${sub.status || "—"}, paid ${sub.amountPaid ?? 0}/${sub.amount ?? 0}`,
+      ]);
+    });
+    (profile.tournaments || []).forEach((t: any) => {
+      out.push([
+        "Tournament",
+        `${t.eventName || "—"} (${t.activity || "—"}) — ${t.team || "individual"}`,
+      ]);
+    });
+    return out;
+  }
+
+  const pRows = profileRows();
+  const pHeaders = ["Field", "Value"];
+  const selectedName = (() => {
+    const s = data.find((d) => d._id === selectedId);
+    return s ? `${s.firstName} ${s.lastName}` : "";
+  })();
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or student ID..."
+            className="border-2 border-black pl-9 pr-4 py-2 text-sm font-medium bg-white focus:outline-none w-64"
+          />
+        </div>
+        <NbSelect value={sport} onChange={setSport} className="w-40">
+          <option value="all">All Sports</option>
+          {sportOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </NbSelect>
+        <NbSelect value={batch} onChange={setBatch} className="w-40">
+          <option value="all">All Batches</option>
+          {batchOptions.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </NbSelect>
+        <NbSelect value={status} onChange={setStatus} className="w-40">
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="on_hold">On Hold</option>
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Student Directory",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() => exportCSV([headers, ...rows], `student_directory.csv`)}
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No students match the filters" />
+      ) : (
+        <ReportTable id="student-dir-tbl" headers={headers} rows={rows} />
+      )}
+
+      <div className="border-2 border-black bg-white p-5 space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB]">
+          Generate Report Card
+        </p>
+        <div className="flex flex-wrap gap-3 items-center">
+          <NbSelect value={selectedId} onChange={setSelectedId} className="w-64">
+            <option value="">Select a student…</option>
+            {data.map((s) => (
+              <option key={s._id} value={s._id}>
+                {s.firstName} {s.lastName} ({s.studentId})
+              </option>
+            ))}
+          </NbSelect>
+          <button
+            onClick={generateProfile}
+            disabled={!selectedId || profileLoading}
+            className="flex items-center gap-2 border-2 border-black px-4 py-2 text-sm font-bold bg-[#024BAB] text-white disabled:opacity-50"
+          >
+            {profileLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4" />
+            )}
+            Generate Report Card
+          </button>
+          {profileGenerated && pRows.length > 0 && (
+            <>
+              <button
+                onClick={() =>
+                  printReport(
+                    `Student Report Card — ${selectedName}`,
+                    new Date().toLocaleDateString("en-IN"),
+                    pHeaders,
+                    pRows,
+                    { company, reportCategory: "Student", generatedFor: selectedName },
+                  )
+                }
+                className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+              >
+                <Printer className="w-4 h-4" /> Print
+              </button>
+              <button
+                onClick={() =>
+                  exportCSV(
+                    [pHeaders, ...pRows],
+                    `report_card_${selectedName.replace(/\s+/g, "_")}.csv`,
+                  )
+                }
+                className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#00C48C] text-white"
+              >
+                <Download className="w-4 h-4" /> CSV
+              </button>
+            </>
+          )}
+        </div>
+        {profileGenerated &&
+          (pRows.length === 0 ? (
+            <EmptyState msg="No profile data found for this student" />
+          ) : (
+            <ReportTable id="student-report-card-tbl" headers={pHeaders} rows={pRows} />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function StudentPerformanceGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [sport, setSport] = useState("all");
+  const [batch, setBatch] = useState("all");
+  const { sportOptions, batchOptions } = useSportBatchOptions();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, [sport, batch]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (sport !== "all") params.sport = sport;
+      if (batch !== "all") params.batch = batch;
+      const r = await reportAPI.studentPerformance(params);
+      if (r.success) setData(r.data);
+    } catch {}
+    setLoading(false);
+  }
+
+  const headers = [
+    "Student",
+    "Sport",
+    "Batch",
+    "Attendance %",
+    "Tournaments Participated",
+    "Fee Status",
+  ];
+  const rows = data.map((r) => [
+    r.student ? `${r.student.firstName} ${r.student.lastName}` : "—",
+    r.student?.sport || "—",
+    r.student?.batch || "—",
+    `${r.attendanceRate ?? 0}%`,
+    String(r.tournamentsCount ?? 0),
+    (r.feeStatus || "—").toUpperCase().replace(/_/g, " "),
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={sport} onChange={setSport} className="w-40">
+          <option value="all">All Sports</option>
+          {sportOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </NbSelect>
+        <NbSelect value={batch} onChange={setBatch} className="w-40">
+          <option value="all">All Batches</option>
+          {batchOptions.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Student Performance Report",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV([headers, ...rows], `student_performance.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No student performance data found" />
+      ) : (
+        <ReportTable id="student-perf-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function StudentEnrollmentGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [data, setData] = useState<any[]>([]);
+  const [summary, setSummary] = useState<{
+    newEnrollments: number;
+    exits: number;
+    netChange: number;
+  }>({ newEnrollments: 0, exits: 0, netChange: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (from) params.from = from;
+      if (to) params.to = to;
+      const r = await reportAPI.studentEnrollment(params);
+      if (r.success) {
+        setData(r.data);
+        if (r.summary) setSummary(r.summary);
+      }
+    } catch {}
+    setLoading(false);
+  }
+
+  const headers = ["Type", "Student", "Student ID", "Sport", "Batch", "Date"];
+  const rows = data.map((e) => [
+    e.type === "enrolled" ? "Enrolled" : "Exited",
+    e.student ? `${e.student.firstName} ${e.student.lastName}` : "—",
+    e.student?.studentId || "—",
+    e.student?.sport || "—",
+    e.student?.batch || "—",
+    e.date ? formatDate(e.date) : "—",
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-center">
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className="border-2 border-black px-2 py-2"
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className="border-2 border-black px-2 py-2"
+        />
+        <button
+          onClick={load}
+          className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+        >
+          <Search className="w-4 h-4" /> Load
+        </button>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Student Enrollment Report",
+                from || to ? `${from || "…"} to ${to || "…"}` : "All Time",
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV([headers, ...rows], `student_enrollment.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#00C48C] text-white"
+          >
+            <Download className="w-4 h-4" /> CSV
+          </button>
+        </div>
+      </div>
+      <p className="text-sm font-bold text-black">
+        New: {summary.newEnrollments} &nbsp; Exits: {summary.exits} &nbsp;
+        Net: {summary.netChange}
+      </p>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No enrollment activity for this period" />
+      ) : (
+        <ReportTable id="student-enroll-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function BatchSummaryGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const { batchOptions } = useSportBatchOptions();
+  const [batch, setBatch] = useState("");
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, [batch]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await reportAPI.batchSummary(batch ? { batch } : undefined);
+      if (r.success) setData(r.data);
+    } catch {}
+    setLoading(false);
+  }
+
+  const headers = batch
+    ? ["Student", "Sport", "Attendance %", "Fee Status"]
+    : ["Batch", "Total", "Active", "Inactive", "On Hold"];
+  const rows = batch
+    ? data.map((r) => [
+        r.student ? `${r.student.firstName} ${r.student.lastName}` : "—",
+        r.student?.sport || "—",
+        `${r.attendanceRate ?? 0}%`,
+        (r.feeStatus || "—").toUpperCase().replace(/_/g, " "),
+      ])
+    : data.map((b) => [
+        b.batch || "—",
+        String(b.total ?? 0),
+        String(b.active ?? 0),
+        String(b.inactive ?? 0),
+        String(b.on_hold ?? 0),
+      ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={batch} onChange={setBatch} className="w-48">
+          <option value="">All Batches</option>
+          {batchOptions.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Batch Summary Report",
+                batch || "All Batches",
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV(
+                [headers, ...rows],
+                `batch_summary${batch ? `_${batch}` : ""}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No batch data found" />
+      ) : (
+        <ReportTable id="batch-summary-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function SportSummaryGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [sportOptions, setSportOptions] = useState<string[]>([]);
+  const [sport, setSport] = useState("");
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sportAPI
+      .getAll()
+      .then(
+        (r) =>
+          r.success && setSportOptions(r.data.map((s: any) => s.name || s)),
+      )
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [sport]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await reportAPI.sportSummary(sport ? { sport } : undefined);
+      if (r.success) setData(r.data);
+    } catch {}
+    setLoading(false);
+  }
+
+  const headers = sport
+    ? ["Student", "Batch", "Attendance %", "Fee Status"]
+    : ["Sport", "Total", "Active", "Revenue"];
+  const rows = sport
+    ? data.map((r) => [
+        r.student ? `${r.student.firstName} ${r.student.lastName}` : "—",
+        r.student?.batch || "—",
+        `${r.attendanceRate ?? 0}%`,
+        (r.feeStatus || "—").toUpperCase().replace(/_/g, " "),
+      ])
+    : data.map((s) => [
+        s.sport || "—",
+        String(s.total ?? 0),
+        String(s.active ?? 0),
+        formatCurrency(s.revenue || 0),
+      ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={sport} onChange={setSport} className="w-48">
+          <option value="">All Sports</option>
+          {sportOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Sport-wise Summary",
+                sport || "All Sports",
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV(
+                [headers, ...rows],
+                `sport_summary${sport ? `_${sport}` : ""}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No sport data found" />
+      ) : (
+        <ReportTable id="sport-summary-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function GuardianContactListGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    studentAPI
+      .getAll({ limit: "1000" })
+      .then((r) => r.success && setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const headers = [
+    "Student",
+    "Student ID",
+    "Father Name",
+    "Father Phone",
+    "Mother Name",
+    "Mother Phone",
+    "Guardian 1 Name",
+    "Guardian 1 Phone",
+    "Guardian 2 Name",
+    "Guardian 2 Phone",
+  ];
+  const rows = data.map((s) => {
+    const guardians: any[] = s.guardians || [];
+    const father = guardians.find((g) => g.relation === "father");
+    const mother = guardians.find((g) => g.relation === "mother");
+    const others = guardians.filter(
+      (g) => g.relation !== "father" && g.relation !== "mother",
+    );
+    return [
+      `${s.firstName} ${s.lastName}`,
+      s.studentId || "—",
+      father?.name || "—",
+      father?.phone || "—",
+      mother?.name || "—",
+      mother?.phone || "—",
+      others[0]?.name || "—",
+      others[0]?.phone || "—",
+      others[1]?.name || "—",
+      others[1]?.phone || "—",
+    ];
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Guardian Contact List",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV([headers, ...rows], `guardian_contact_list.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No students found" />
+      ) : (
+        <ReportTable id="guardian-list-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function StudentPaymentHistoryGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
+  const [students, setStudents] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    studentAPI
+      .getAll({ limit: "1000" })
+      .then((r) => r.success && setStudents(r.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [selectedId]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = { limit: "1000" };
+      if (selectedId) params.student = selectedId;
+      const r = await reportAPI.studentFees(params);
+      if (r.success) setData(r.data);
+    } catch {}
+    setLoading(false);
+  }
+
+  const headers = [
+    "Student",
+    "Plan",
+    "Amount",
+    "Amount Paid",
+    "Due",
+    "Payment Method",
+    "UTR/Transaction No.",
+    "Status",
+    "Verified",
+    "Verified By",
+    "Date",
+  ];
+  const rows = data.map((s) => {
+    const due = (s.amount || 0) - (s.amountPaid || 0);
+    const verified = s.paymentStatus === "completed" && !!s.confirmedBy;
+    const utr = [s.qrReferenceNumber, s.transactionNumber]
+      .filter(Boolean)
+      .join(" / ");
+    return [
+      s.student ? `${s.student.firstName} ${s.student.lastName}` : "—",
+      s.planName || "—",
+      formatCurrency(s.amount || 0),
+      formatCurrency(s.amountPaid || 0),
+      formatCurrency(due > 0 ? due : 0),
+      (s.paymentMethod || "—").toUpperCase(),
+      utr || "—",
+      (s.paymentStatus || "—").toUpperCase(),
+      verified ? "Yes" : "No",
+      s.confirmedBy?.name || s.rejectedBy?.name || "—",
+      s.startDate ? formatDate(s.startDate) : "—",
+    ];
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3">
+        <NbSelect value={selectedId} onChange={setSelectedId} className="w-64">
+          <option value="">All Students</option>
+          {students.map((s) => (
+            <option key={s._id} value={s._id}>
+              {s.firstName} {s.lastName} ({s.studentId})
+            </option>
+          ))}
+        </NbSelect>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() =>
+              printReport(
+                "Student Payment History",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
+          >
+            <Printer className="w-4 h-4" /> Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV([headers, ...rows], `student_payment_history.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+      </div>
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No payment history found" />
+      ) : (
+        <ReportTable id="student-payment-history-tbl" headers={headers} rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function ComingSoonGen({}: { departments?: any[]; company: ReportCompany }) {
   return (
     <div className="border-2 bg-white p-12 flex flex-col items-center gap-4">
       <div className="w-16 h-16 border-2 border-black bg-[#024BAB]/10 flex items-center justify-center">
@@ -3450,7 +4655,16 @@ const REPORT_COMPONENT: Record<
   "employee-report": EmployeeReportGen,
   "student-attendance-report": StudentAttendanceReportGen,
   "student-subscription-report": StudentSubscriptionReportGen,
+  "student-fee-report": StudentFeeReportGen,
+  "student-outstanding-dues": StudentOutstandingDuesGen,
   "tournament-report": TournamentReportGen,
+  "student-directory": StudentDirectoryGen,
+  "student-performance": StudentPerformanceGen,
+  "student-enrollment": StudentEnrollmentGen,
+  "student-batch-summary": BatchSummaryGen,
+  "student-sport-summary": SportSummaryGen,
+  "student-guardian-list": GuardianContactListGen,
+  "student-payment-history": StudentPaymentHistoryGen,
 };
 
 const CATEGORY_META: Record<

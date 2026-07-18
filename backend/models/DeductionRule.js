@@ -27,6 +27,17 @@ const deductionRuleSchema = new mongoose.Schema(
 
     earlyCheckoutThresholdMinutes: { type: Number, default: 15 },
     earlyCheckoutDeductionEnabled: { type: Boolean, default: false },
+
+    lateAllowance: {
+      mode: { type: String, enum: ["bulk", "custom"], default: "bulk" },
+      bulkCount: { type: Number, default: 0 },
+      perEmployee: [
+        {
+          employee: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+          count: { type: Number, default: 0 },
+        },
+      ],
+    },
   },
   { timestamps: true },
 );

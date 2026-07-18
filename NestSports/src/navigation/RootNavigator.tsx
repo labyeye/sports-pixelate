@@ -25,9 +25,9 @@ import AddEmployeeScreen from '../screens/AddEmployeeScreen';
 import DepartmentsScreen from '../screens/DepartmentsScreen';
 import EmployeeCredentialsScreen from '../screens/EmployeeCredentialsScreen';
 import DocumentsScreen from '../screens/DocumentsScreen';
-import TournamentsScreen from '../screens/TournamentsScreen';
-import CreateTournamentScreen from '../screens/CreateTournamentScreen';
-import TournamentDetailScreen from '../screens/TournamentDetailScreen';
+import EventsScreen from '../screens/EventsScreen';
+import EventFormScreen from '../screens/EventFormScreen';
+import EventDetailScreen from '../screens/EventDetailScreen';
 
 // Attendance
 import StudentAttendanceScreen from '../screens/StudentAttendanceScreen';
@@ -48,8 +48,10 @@ import PlansScreen from '../screens/PlansScreen';
 import AddPlanScreen from '../screens/AddPlanScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
 import PayrollScreen from '../screens/PayrollScreen';
-import PayrollSettingsScreen from '../screens/PayrollSettingsScreen';
+import AttendanceSettingsScreen from '../screens/AttendanceSettingsScreen';
 import LoansScreen from '../screens/LoansScreen';
+import BiometricDeviceScreen from '../screens/BiometricDeviceScreen';
+import LateApprovalsScreen from '../screens/LateApprovalsScreen';
 
 // Facilities
 import InventoryScreen from '../screens/InventoryScreen';
@@ -57,6 +59,16 @@ import FacilitiesScreen from '../screens/FacilitiesScreen';
 
 // System
 import ReportsScreen from '../screens/ReportsScreen';
+import StudentReportsScreen from '../screens/StudentReportsScreen';
+import StudentAttendanceReportScreen from '../screens/StudentAttendanceReportScreen';
+import StudentSubscriptionReportScreen from '../screens/StudentSubscriptionReportScreen';
+import StudentDirectoryScreen from '../screens/StudentDirectoryScreen';
+import StudentPerformanceReportScreen from '../screens/StudentPerformanceReportScreen';
+import StudentEnrollmentReportScreen from '../screens/StudentEnrollmentReportScreen';
+import BatchSummaryReportScreen from '../screens/BatchSummaryReportScreen';
+import SportSummaryReportScreen from '../screens/SportSummaryReportScreen';
+import GuardianContactListScreen from '../screens/GuardianContactListScreen';
+import StudentPaymentHistoryScreen from '../screens/StudentPaymentHistoryScreen';
 import ManageScreen from '../screens/ManageScreen';
 import BillingScreen from '../screens/BillingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -186,16 +198,16 @@ export default function RootNavigator() {
               options={{ title: 'Credentials' }}
             />
             <Stack.Screen name="Documents" component={DocumentsScreen} />
-            <Stack.Screen name="Tournaments" component={TournamentsScreen} />
+            <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen
-              name="CreateTournament"
-              component={CreateTournamentScreen}
-              options={{ title: 'New Tournament' }}
+              name="EventForm"
+              component={EventFormScreen}
+              options={{ title: 'Event' }}
             />
             <Stack.Screen
-              name="TournamentDetail"
-              component={TournamentDetailScreen}
-              options={{ title: 'Tournament' }}
+              name="EventDetail"
+              component={EventDetailScreen}
+              options={{ title: 'Event' }}
             />
 
             <Stack.Screen
@@ -250,20 +262,80 @@ export default function RootNavigator() {
             <Stack.Screen name="Expenses" component={ExpensesScreen} />
             <Stack.Screen name="Payroll" component={PayrollScreen} />
             <Stack.Screen
-              name="PayrollSettings"
-              component={PayrollSettingsScreen}
-              options={{ title: 'Payroll Settings' }}
+              name="AttendanceSettings"
+              component={AttendanceSettingsScreen}
+              options={{ title: 'Attendance Settings' }}
             />
             <Stack.Screen
               name="Loans"
               component={LoansScreen}
               options={{ title: 'Loans & Advances' }}
             />
+            <Stack.Screen
+              name="BiometricDevices"
+              component={BiometricDeviceScreen}
+              options={{ title: 'Biometric Devices' }}
+            />
+            <Stack.Screen
+              name="LateApprovals"
+              component={LateApprovalsScreen}
+              options={{ title: 'Late Approvals' }}
+            />
 
             <Stack.Screen name="Inventory" component={InventoryScreen} />
             <Stack.Screen name="Facilities" component={FacilitiesScreen} />
 
             <Stack.Screen name="Reports" component={ReportsScreen} />
+            <Stack.Screen
+              name="StudentReports"
+              component={StudentReportsScreen}
+              options={{ title: 'Student Reports' }}
+            />
+            <Stack.Screen
+              name="StudentAttendanceReport"
+              component={StudentAttendanceReportScreen}
+              options={{ title: 'Student Attendance Report' }}
+            />
+            <Stack.Screen
+              name="StudentSubscriptionReport"
+              component={StudentSubscriptionReportScreen}
+              options={{ title: 'Student Subscription Report' }}
+            />
+            <Stack.Screen
+              name="StudentDirectory"
+              component={StudentDirectoryScreen}
+              options={{ title: 'Student Directory' }}
+            />
+            <Stack.Screen
+              name="StudentPerformanceReport"
+              component={StudentPerformanceReportScreen}
+              options={{ title: 'Student Performance Report' }}
+            />
+            <Stack.Screen
+              name="StudentEnrollmentReport"
+              component={StudentEnrollmentReportScreen}
+              options={{ title: 'Enrollment Report' }}
+            />
+            <Stack.Screen
+              name="BatchSummaryReport"
+              component={BatchSummaryReportScreen}
+              options={{ title: 'Batch Summary' }}
+            />
+            <Stack.Screen
+              name="SportSummaryReport"
+              component={SportSummaryReportScreen}
+              options={{ title: 'Sport-wise Summary' }}
+            />
+            <Stack.Screen
+              name="GuardianContactList"
+              component={GuardianContactListScreen}
+              options={{ title: 'Guardian Contact List' }}
+            />
+            <Stack.Screen
+              name="StudentPaymentHistory"
+              component={StudentPaymentHistoryScreen}
+              options={{ title: 'Student Payment History' }}
+            />
             <Stack.Screen name="Manage" component={ManageScreen} />
             <Stack.Screen name="Billing" component={BillingScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />

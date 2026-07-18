@@ -1,1080 +1,1030 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ScrollView,
   View,
   Text,
+  StyleSheet,
+  FlatList,
   TouchableOpacity,
   TextInput,
-  RefreshControl,
-  StyleSheet,
   ActivityIndicator,
+  RefreshControl,
   Alert,
+  Modal,
+  ScrollView,
+  Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchCamera } from 'react-native-image-picker';
 import {
-  ChevronLeft,
-  ChevronRight,
+  Clock,
+  Search,
   CheckCircle2,
   XCircle,
   AlertCircle,
-  MinusCircle,
-  Save,
-  Users,
-  CalendarClock,
-  Search,
+  Calendar,
+  LogIn,
+  LogOut,
   X,
+  Pencil,
   Trophy,
-  UserCog,
-  ClipboardCheck,
   ScanFace,
 } from 'lucide-react-native';
-import {
-  studentAPI,
-  studentAttendanceAPI,
-  sportAPI,
-  employeeAPI,
-  RNFile,
-} from '../api/client';
-import { Card, EmptyState, LoadingView, Avatar } from '../components/ui';
+import { studentAttendanceAPI, studentAPI, RNFile } from '../api/client';
 import { colors, FONT } from '../theme/colors';
-import { useAuth } from '../contexts/AuthContext';
+import { DateTimeField } from '../components/ui';
+import { requestSelfMarkPermissions } from '../utils/location';
 
-const STATUS_COLORS: Record<string, string> = {
-  present: colors.green,
-  late: colors.orange,
-  absent: colors.red,
-  excused: colors.orange,
+// Mirrors AttendanceScreen's (staff) STATUS_CONFIG 1:1 — same colors, same
+// bg tints, same icon set — so the two attendance screens read as one
+// consistent design instead of two different apps bolted together.
+const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = {
+  present: { color: colors.green, bg: '#E7F9F1', icon: CheckCircle2 },
+  absent: { color: colors.red, bg: '#FDEBEB', icon: XCircle },
+  late: { color: colors.yellow, bg: '#FEF3E2', icon: AlertCircle },
+  excused: { color: colors.blue, bg: '#E8F0FB', icon: Calendar },
+  not_marked: { color: '#9CA3AF', bg: '#F3F4F6', icon: Clock },
 };
 
-const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
-  present: CheckCircle2,
-  late: CalendarClock,
-  absent: XCircle,
-  excused: AlertCircle,
-};
-
-type MarkStatus = 'present' | 'late' | 'absent';
-
-const MARK_OPTIONS: { value: MarkStatus; label: string }[] = [
-  { value: 'present', label: 'Present' },
-  { value: 'late', label: 'Late' },
-  { value: 'absent', label: 'Absent' },
-];
-
-// Builds a local (device-timezone) YYYY-MM-DD string, matching the format
-// the server expects — never use toISOString() here, it shifts by the UTC
-// offset and can land on the wrong calendar day.
 function toDateStr(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-    2,
-    '0',
-  )}-${String(d.getDate()).padStart(2, '0')}`;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-// Parses a "YYYY-MM-DD" string as local midnight (not UTC midnight, which is
-// what `new Date("YYYY-MM-DD")` would give and can shift the day when the
-// device is ahead of UTC).
-function fromDateStr(s: string) {
-  const [y, m, d] = s.split('-').map(Number);
-  return new Date(y, m - 1, d);
+function timeToISO(dateStr: string, timeStr: string): string | undefined {
+  if (!timeStr) return undefined;
+  return `${dateStr}T${timeStr}:00+05:30`;
 }
 
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-type MarkStep = 'closed' | 'sport' | 'coach' | 'list';
+function isoToTime(iso: string | undefined): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
 
 export default function StudentAttendanceScreen() {
-  const { user } = useAuth();
-  const [isCoach, setIsCoach] = useState(false);
-  const [checkingRole, setCheckingRole] = useState(true);
-
-  const todayStr = useMemo(() => toDateStr(new Date()), []);
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-  // The most recent date shown in the 7-day chip strip; paging moves this by
-  // a week at a time but never past today.
-  const [weekEnd, setWeekEnd] = useState(todayStr);
-
-  // ── Full roster + this-month's records (read-only list) ──────────────────
+  const [records, setRecords] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const [rosterLoading, setRosterLoading] = useState(true);
-  const [monthRecords, setMonthRecords] = useState<any[]>([]);
-  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-
-  // ── Mark-attendance wizard ─────────────────────────────────────────────
-  const [markStep, setMarkStep] = useState<MarkStep>('closed');
-  const [sports, setSports] = useState<any[]>([]);
-  const [coaches, setCoaches] = useState<any[]>([]);
-  const [sportChoice, setSportChoice] = useState('');
-  const [coachChoice, setCoachChoice] = useState('');
-  const [markStudents, setMarkStudents] = useState<any[]>([]);
-  const [marks, setMarks] = useState<Record<string, MarkStatus>>({});
-  const [markLoading, setMarkLoading] = useState(false);
+  const [dateFilter, setDateFilter] = useState(toDateStr(new Date()));
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [verifyingFaceId, setVerifyingFaceId] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [editRecord, setEditRecord] = useState<any | null>(null);
+  const [form, setForm] = useState({
+    status: 'present',
+    checkIn: '',
+    checkOut: '',
+    notes: '',
+  });
 
-  const weekScrollRef = useRef<ScrollView>(null);
+  // Calendar modal state
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+  });
 
-  useEffect(() => {
-    weekScrollRef.current?.scrollToEnd({ animated: false });
-  }, [weekEnd]);
+  // Bulk modal state
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState('present');
+  const [bulkSelected, setBulkSelected] = useState<string[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [markingByFaceId, setMarkingByFaceId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user?.role !== 'employee') {
-      setCheckingRole(false);
-      return;
-    }
-    employeeAPI
-      .getMe()
-      .then((res: any) => setIsCoach(res?.data?.role === 'coach'))
-      .catch(() => {})
-      .finally(() => setCheckingRole(false));
-  }, [user?.role]);
+  const todayStr = toDateStr(new Date());
 
-  const loadRoster = useCallback(() => {
-    return studentAPI
-      .getAll({ status: 'active' })
-      .then((res: any) => setStudents(res.data || []));
+  const load = useCallback(
+    async (showLoader = true) => {
+      if (showLoader) {
+        setLoading(true);
+        setRecords([]);
+      }
+      try {
+        const d = new Date(dateFilter + 'T00:00:00');
+        const res: any = await studentAttendanceAPI.getAll({
+          month: String(d.getMonth() + 1),
+          year: String(d.getFullYear()),
+          limit: '200',
+        });
+        const all: any[] = res.data || [];
+        const forDate = all.filter(r =>
+          r.date ? toDateStr(new Date(r.date)) === dateFilter : false,
+        );
+        setRecords(forDate);
+      } catch (e: any) {
+        Alert.alert('Error', e.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [dateFilter],
+  );
+
+  const loadStudents = useCallback(async () => {
+    try {
+      const res: any = await studentAPI.getAll({ status: 'active' });
+      setStudents(res.data || []);
+    } catch {}
   }, []);
 
-  const loadMonthRecords = useCallback((dateStr: string) => {
-    const d = fromDateStr(dateStr);
-    return studentAttendanceAPI
-      .getAll({ month: String(d.getMonth() + 1), year: String(d.getFullYear()) })
-      .then((res: any) => setMonthRecords(res.data || []));
-  }, []);
-
   useEffect(() => {
-    if (checkingRole) return;
-    setRosterLoading(true);
-    loadRoster()
-      .catch(() => {})
-      .finally(() => setRosterLoading(false));
-  }, [checkingRole, loadRoster]);
-
+    load();
+  }, [load]);
   useEffect(() => {
-    if (checkingRole || markStep !== 'closed') return;
-    setRecordsLoading(true);
-    loadMonthRecords(selectedDate)
-      .catch(() => {})
-      .finally(() => setRecordsLoading(false));
-  }, [checkingRole, markStep, selectedDate, loadMonthRecords]);
+    loadStudents();
+  }, [loadStudents]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadRoster(), loadMonthRecords(selectedDate)]).catch(
-      () => {},
-    );
+    await load(false);
     setRefreshing(false);
   };
 
-  // ── Week strip ────────────────────────────────────────────────────────
-  const weekDates = useMemo(() => {
-    const end = fromDateStr(weekEnd);
-    const arr: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(end);
-      d.setDate(d.getDate() - i);
-      arr.push(toDateStr(d));
-    }
-    return arr;
-  }, [weekEnd]);
-
-  const shiftWeek = (n: number) => {
-    setWeekEnd(prev => {
-      const d = fromDateStr(prev);
-      d.setDate(d.getDate() + n * 7);
-      const next = toDateStr(d);
-      return next > todayStr ? todayStr : next;
-    });
+  const openNew = () => {
+    setEditRecord(null);
+    setSelectedStudentId('');
+    setForm({ status: 'present', checkIn: '', checkOut: '', notes: '' });
+    setShowModal(true);
   };
 
-  const jumpToToday = () => {
-    setWeekEnd(todayStr);
-    setSelectedDate(todayStr);
+  const openMarkForStudent = (studentId: string) => {
+    setEditRecord(null);
+    setSelectedStudentId(studentId);
+    setForm({ status: 'present', checkIn: '', checkOut: '', notes: '' });
+    setShowModal(true);
   };
 
-  const isFutureWeek = weekEnd >= todayStr;
-
-  // ── Wizard control ────────────────────────────────────────────────────
-  const openWizard = () => {
-    setSportChoice('');
-    setCoachChoice('');
-    setMarks({});
-    setMarkStudents([]);
-    if (isCoach) {
-      startList('', '');
-    } else {
-      setMarkStep('sport');
-      if (sports.length === 0) {
-        sportAPI
-          .getAll()
-          .then((res: any) => setSports(res.data || []))
-          .catch(() => {});
-      }
-      if (coaches.length === 0) {
-        employeeAPI
-          .getAll({ role: 'coach' })
-          .then((res: any) => setCoaches(res.data || []))
-          .catch(() => {});
-      }
-    }
-  };
-
-  const closeWizard = () => setMarkStep('closed');
-
-  const pickSport = (name: string) => {
-    setSportChoice(name);
-    setMarkStep('coach');
-  };
-
-  const coachOptions = useMemo(
-    () => (sportChoice ? coaches.filter(c => c.sport === sportChoice) : coaches),
-    [coaches, sportChoice],
-  );
-
-  const startList = (sport: string, coach: string) => {
-    setMarkStep('list');
-    setMarkLoading(true);
-    const params: Record<string, string> = { status: 'active' };
-    if (sport) params.sport = sport;
-    if (coach) params.coach = coach;
-    const d = fromDateStr(selectedDate);
-    Promise.all([
-      studentAPI.getAll(params),
-      studentAttendanceAPI.getAll({
-        month: String(d.getMonth() + 1),
-        year: String(d.getFullYear()),
-      }),
-    ])
-      .then(([studentsRes, attRes]: any[]) => {
-        const list = studentsRes.data || [];
-        setMarkStudents(list);
-        const existing: Record<string, MarkStatus> = {};
-        (attRes.data || []).forEach((r: any) => {
-          if (r.date?.slice(0, 10) === selectedDate && r.student?._id) {
-            existing[r.student._id] =
-              r.status === 'present' || r.status === 'late'
-                ? r.status
-                : 'absent';
+  const markAbsent = (studentId: string) => {
+    Alert.alert('Mark Absent', `Mark this student as absent for ${dateFilter}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark Absent',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await studentAttendanceAPI.mark({
+              student: studentId,
+              date: dateFilter,
+              status: 'absent',
+            });
+            await load();
+          } catch (e: any) {
+            Alert.alert('Error', e.message);
           }
-        });
-        setMarks(existing);
-      })
-      .catch(() => {})
-      .finally(() => setMarkLoading(false));
+        },
+      },
+    ]);
   };
 
-  const pickCoach = (coachId: string) => {
-    setCoachChoice(coachId);
-    startList(sportChoice, coachId);
-  };
-
-  const setStudentStatus = (studentId: string, status: MarkStatus) => {
-    setMarks(p => ({ ...p, [studentId]: status }));
-  };
-
-  // Coach points the camera at the student; a match marks them present
-  // immediately (server-side), same verification flow as employee check-in.
-  // Only offered for today — a selfie can't retroactively verify a past day.
-  const verifyFaceForStudent = (s: any) => {
-    launchCamera({ mediaType: 'photo', quality: 0.7, cameraType: 'front' }, async r => {
-      const asset = r.assets?.[0];
-      if (!asset?.uri) return;
-      const selfie: RNFile = {
-        uri: asset.uri,
-        name: asset.fileName || `selfie_${Date.now()}.jpg`,
-        type: asset.type || 'image/jpeg',
-      };
-      setVerifyingFaceId(s._id);
-      try {
-        await studentAttendanceAPI.markByFace(
-          { student: s._id, date: selectedDate, batch: s.batch },
-          selfie,
-        );
-        setMarks(p => ({ ...p, [s._id]: 'present' }));
-      } catch (e: any) {
-        Alert.alert('Face check-in failed', e?.message || 'Could not verify face');
-      } finally {
-        setVerifyingFaceId(null);
-      }
-    });
-  };
-
-  const visibleMarkStudents = useMemo(() => {
-    if (!search.trim()) return markStudents;
-    const q = search.trim().toLowerCase();
-    return markStudents.filter(s =>
-      `${s.firstName} ${s.lastName}`.toLowerCase().includes(q),
-    );
-  }, [markStudents, search]);
-
-  const markSummary = useMemo(
-    () => ({
-      total: markStudents.length,
-      present: markStudents.filter(s => (marks[s._id] || 'absent') === 'present').length,
-      late: markStudents.filter(s => marks[s._id] === 'late').length,
-      absent: markStudents.filter(s => (marks[s._id] || 'absent') === 'absent').length,
-    }),
-    [markStudents, marks],
-  );
-
-  const saveAll = async () => {
-    if (markStudents.length === 0) {
-      Alert.alert('No students', 'There are no students to mark here');
+  // Coach-scanned face check-in: verifies the live photo against the
+  // student's enrolled face embedding server-side and marks them present.
+  const markByFace = async (student: any) => {
+    const ok = await requestSelfMarkPermissions();
+    if (!ok) {
+      Alert.alert('Permission Required', 'Camera access is required to scan a face.');
       return;
     }
-    const records = markStudents.map(s => ({
-      student: s._id,
-      status: marks[s._id] || 'absent',
-      batch: s.batch,
-    }));
+    launchCamera(
+      { mediaType: 'photo', quality: 0.8, cameraType: 'front', saveToPhotos: false },
+      async result => {
+        const asset = result.assets?.[0];
+        if (!asset?.uri) return;
+        setMarkingByFaceId(student._id);
+        try {
+          const selfie: RNFile = {
+            uri: asset.uri,
+            type: asset.type || 'image/jpeg',
+            name: asset.fileName || `face_mark_${Date.now()}.jpg`,
+          };
+          await studentAttendanceAPI.markByFace(
+            { student: student._id, date: dateFilter, batch: student.batch },
+            selfie,
+          );
+          Alert.alert('Success', `${student.firstName} marked present.`);
+          await load();
+        } catch (e: any) {
+          Alert.alert('Face Mismatch', e.message || 'Could not verify face');
+        } finally {
+          setMarkingByFaceId(null);
+        }
+      },
+    );
+  };
+
+  const openEdit = (record: any) => {
+    setEditRecord(record);
+    const st = record.student;
+    setSelectedStudentId(st?._id || '');
+    setForm({
+      status: record.status,
+      checkIn: isoToTime(record.checkIn),
+      checkOut: isoToTime(record.checkOut),
+      notes: record.notes || '',
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditRecord(null);
+  };
+
+  const mergedRows = (() => {
+    const recordByStudentId = new Map(records.map(r => [r.student?._id, r]));
+    return students.map(st => {
+      const existing = recordByStudentId.get(st._id);
+      if (existing) return existing;
+      return {
+        _id: `v_${st._id}`,
+        student: st,
+        date: dateFilter,
+        status: 'not_marked',
+      };
+    });
+  })();
+
+  const filtered = mergedRows.filter(r => {
+    const st = r.student;
+    const name = st ? `${st.firstName || ''} ${st.lastName || ''}`.toLowerCase() : '';
+    if (search && !name.includes(search.toLowerCase())) return false;
+    if (statusFilter && r.status !== statusFilter) return false;
+    return true;
+  });
+
+  const handleSave = async () => {
+    if (!selectedStudentId) {
+      Alert.alert('Validation', 'Please select a student');
+      return;
+    }
     setSaving(true);
     try {
-      await studentAttendanceAPI.bulkMark({ date: selectedDate, records });
-      Alert.alert('Saved', `Attendance saved for ${records.length} student(s)`);
-      closeWizard();
-      setSearch('');
-      await loadMonthRecords(selectedDate);
+      await studentAttendanceAPI.mark({
+        student: selectedStudentId,
+        date: dateFilter,
+        status: form.status,
+        checkIn: timeToISO(dateFilter, form.checkIn),
+        checkOut: timeToISO(dateFilter, form.checkOut),
+        notes: form.notes || undefined,
+      });
+      closeModal();
+      await load();
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save attendance');
+      Alert.alert('Error', e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Read-only roster for the selected date ────────────────────────────
-  const recordByStudent = useMemo(() => {
-    const map: Record<string, any> = {};
-    monthRecords.forEach((r: any) => {
-      if (r.date?.slice(0, 10) === selectedDate && r.student?._id) {
-        map[r.student._id] = r;
-      }
-    });
-    return map;
-  }, [monthRecords, selectedDate]);
+  const shiftDate = (n: number) => {
+    const d = new Date(dateFilter + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    setDateFilter(toDateStr(d));
+  };
 
-  const visibleRoster = useMemo(() => {
-    if (!search.trim()) return students;
-    const q = search.trim().toLowerCase();
-    return students.filter(s =>
-      `${s.firstName} ${s.lastName}`.toLowerCase().includes(q),
-    );
-  }, [students, search]);
-
-  const rosterSummary = useMemo(() => {
-    let marked = 0;
-    students.forEach(s => {
-      if (recordByStudent[s._id]) marked += 1;
-    });
-    return { total: students.length, marked, unmarked: students.length - marked };
-  }, [students, recordByStudent]);
-
-  if (checkingRole) return <LoadingView />;
+  const summary: Record<string, number> = {};
+  Object.keys(STATUS_CONFIG).forEach(s => {
+    summary[s] = 0;
+  });
+  mergedRows.forEach(r => {
+    if (r.status in summary) summary[r.status]++;
+  });
 
   return (
-    <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={styles.screen}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <ClipboardCheck size={18} color={colors.blue} strokeWidth={2.5} />
-            <Text style={styles.headerTitle}>Student Attendance</Text>
-          </View>
-          {markStep === 'closed' && (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Clock size={20} color={colors.blue} strokeWidth={2.5} />
+          <Text style={styles.headerTitle}>Student Attendance</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.bulkBtn}
+            onPress={() => {
+              setBulkSelected([]);
+              setBulkStatus('present');
+              setShowBulkModal(true);
+            }}
+          >
+            <CheckCircle2 size={14} color={colors.blue} strokeWidth={2.5} />
+            <Text style={styles.bulkBtnText}>Bulk</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={openNew}>
+            <CheckCircle2 size={14} color={colors.white} strokeWidth={2.5} />
+            <Text style={styles.addBtnText}>Mark</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.dateRow}>
+        <TouchableOpacity onPress={() => shiftDate(-1)} style={styles.dateBtnArrow}>
+          <Text style={styles.dateBtnArrowText}>‹</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.dateCurrent}
+          onPress={() => {
+            const d = new Date(dateFilter + 'T00:00:00');
+            setCalendarMonth({ year: d.getFullYear(), month: d.getMonth() });
+            setShowCalendar(true);
+          }}
+          activeOpacity={0.7}
+        >
+          <Calendar size={13} color={colors.blue} strokeWidth={2.5} />
+          <Text style={styles.dateCurrentText}>
+            {new Date(dateFilter + 'T00:00:00').toLocaleDateString('en-IN', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => shiftDate(1)} style={styles.dateBtnArrow}>
+          <Text style={styles.dateBtnArrowText}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.summaryBar}
+        contentContainerStyle={styles.summaryContent}
+      >
+        {Object.entries(summary).map(([status, count]) => {
+          const active = statusFilter === status;
+          const cfg = STATUS_CONFIG[status];
+          return (
             <TouchableOpacity
-              style={styles.markIconBtn}
-              onPress={openWizard}
+              key={status}
+              style={[
+                styles.summaryPill,
+                { backgroundColor: active ? cfg.color : cfg.bg, borderColor: cfg.color },
+              ]}
+              onPress={() => setStatusFilter(p => (p === status ? '' : status))}
               activeOpacity={0.8}
             >
-              <ClipboardCheck size={15} color={colors.white} strokeWidth={2.5} />
-              <Text style={styles.markIconBtnText}>Mark</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* ── Mark-attendance wizard ─────────────────────────────────────── */}
-        {markStep === 'sport' && (
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <View style={styles.wizardHeaderRow}>
-              <TouchableOpacity onPress={closeWizard} style={styles.backBtn}>
-                <ChevronLeft size={18} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-              <Text style={styles.wizardTitle}>Which sport?</Text>
-            </View>
-            {sports.length === 0 ? (
-              <Card>
-                <EmptyState title="No sports configured" icon={Trophy} />
-              </Card>
-            ) : (
-              sports.map(sp => (
-                <TouchableOpacity
-                  key={sp._id}
-                  style={styles.optionRow}
-                  onPress={() => pickSport(sp.name)}
-                  activeOpacity={0.7}
-                >
-                  <Trophy size={16} color={colors.blue} strokeWidth={2.5} />
-                  <Text style={styles.optionText}>{sp.name}</Text>
-                  <Text style={styles.optionSub}>
-                    {sp.studentCount ?? 0} students
-                  </Text>
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
-        )}
-
-        {markStep === 'coach' && (
-          <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <View style={styles.wizardHeaderRow}>
-              <TouchableOpacity
-                onPress={() => setMarkStep('sport')}
-                style={styles.backBtn}
-              >
-                <ChevronLeft size={18} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-              <Text style={styles.wizardTitle}>Which coach? · {sportChoice}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.optionRow}
-              onPress={() => pickCoach('')}
-              activeOpacity={0.7}
-            >
-              <UserCog size={16} color={colors.blue} strokeWidth={2.5} />
-              <Text style={styles.optionText}>All coaches</Text>
-            </TouchableOpacity>
-            {coachOptions.length === 0 ? (
-              <Card>
-                <EmptyState title="No coaches for this sport" icon={UserCog} />
-              </Card>
-            ) : (
-              coachOptions.map(c => (
-                <TouchableOpacity
-                  key={c._id}
-                  style={styles.optionRow}
-                  onPress={() => pickCoach(c._id)}
-                  activeOpacity={0.7}
-                >
-                  <UserCog size={16} color={colors.blue} strokeWidth={2.5} />
-                  <Text style={styles.optionText}>
-                    {c.firstName} {c.lastName}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
-        )}
-
-        {markStep === 'list' && (
-          <>
-            <View style={styles.wizardHeaderRow}>
-              <TouchableOpacity
-                onPress={() => (isCoach ? closeWizard() : setMarkStep('coach'))}
-                style={styles.backBtn}
-              >
-                <ChevronLeft size={18} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-              <Text style={styles.wizardTitle} numberOfLines={1}>
-                {isCoach
-                  ? `Mark Attendance · ${fromDateStr(selectedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
-                  : `${sportChoice}${coachChoice ? ' · selected coach' : ' · all coaches'}`}
+              <Text style={[styles.summaryCount, { color: active ? colors.white : cfg.color }]}>
+                {count}
               </Text>
-            </View>
+              <Text style={[styles.summaryStatus, { color: active ? colors.white : cfg.color }]}>
+                {status.replace('_', ' ')}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
-            <View style={styles.searchWrap}>
-              <Search size={15} color={colors.muted} />
-              <TextInput
-                style={styles.searchInput}
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search by student name…"
-                placeholderTextColor={colors.muted}
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <X size={14} color={colors.muted} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {markLoading ? (
-              <LoadingView />
-            ) : (
-              <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 }}>
-                <View style={styles.summaryRow}>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.blue }]}>
-                      {markSummary.total}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Total</Text>
-                  </View>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.green }]}>
-                      {markSummary.present}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Present</Text>
-                  </View>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.orange }]}>
-                      {markSummary.late}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Late</Text>
-                  </View>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.red }]}>
-                      {markSummary.absent}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Absent</Text>
-                  </View>
-                </View>
-
-                {visibleMarkStudents.length === 0 ? (
-                  <Card>
-                    <EmptyState
-                      title={
-                        markStudents.length === 0
-                          ? 'No active students found'
-                          : 'No students match your search'
-                      }
-                      icon={Users}
-                    />
-                  </Card>
-                ) : (
-                  visibleMarkStudents.map(s => {
-                    const current: MarkStatus = marks[s._id] || 'absent';
-                    return (
-                      <Card
-                        key={s._id}
-                        accentColor={STATUS_COLORS[current] || '#E5E7EB'}
-                      >
-                        <View style={styles.studentRow}>
-                          <Avatar uri={s.avatar} name={s.firstName} size={36} />
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.studentName} numberOfLines={1}>
-                              {s.firstName} {s.lastName}
-                            </Text>
-                            <Text style={styles.studentMeta} numberOfLines={1}>
-                              {s.sport}
-                              {s.batch ? ` · ${s.batch}` : ''}
-                            </Text>
-                          </View>
-                          {selectedDate === todayStr && (
-                            <TouchableOpacity
-                              style={styles.faceVerifyBtn}
-                              onPress={() => verifyFaceForStudent(s)}
-                              disabled={verifyingFaceId === s._id}
-                            >
-                              {verifyingFaceId === s._id ? (
-                                <ActivityIndicator size="small" color={colors.blue} />
-                              ) : (
-                                <ScanFace size={18} color={colors.blue} strokeWidth={2.5} />
-                              )}
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                        <View style={styles.statusRow}>
-                          {MARK_OPTIONS.map(opt => {
-                            const selected = current === opt.value;
-                            const color = STATUS_COLORS[opt.value];
-                            return (
-                              <TouchableOpacity
-                                key={opt.value}
-                                style={[
-                                  styles.statusBtn,
-                                  selected && {
-                                    backgroundColor: color,
-                                    borderColor: color,
-                                  },
-                                ]}
-                                onPress={() => setStudentStatus(s._id, opt.value)}
-                                activeOpacity={0.7}
-                              >
-                                <Text
-                                  style={[
-                                    styles.statusBtnText,
-                                    selected && styles.statusBtnTextActive,
-                                  ]}
-                                >
-                                  {opt.label}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                      </Card>
-                    );
-                  })
-                )}
-              </ScrollView>
-            )}
-
-            {markStudents.length > 0 && (
-              <TouchableOpacity
-                style={styles.saveBar}
-                onPress={saveAll}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <>
-                    <Save size={16} color={colors.white} strokeWidth={2.5} />
-                    <Text style={styles.saveBarText}>Save Attendance</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </>
-        )}
-
-        {/* ── Date tabs + full roster (read-only) ───────────────────────── */}
-        {markStep === 'closed' && (
-          <>
-            <View style={styles.searchWrap}>
-              <Search size={15} color={colors.muted} />
-              <TextInput
-                style={styles.searchInput}
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search by student name…"
-                placeholderTextColor={colors.muted}
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <X size={14} color={colors.muted} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={styles.weekBar}>
-              <TouchableOpacity onPress={() => shiftWeek(-1)} style={styles.dateNavBtn}>
-                <ChevronLeft size={16} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-              <ScrollView
-                ref={weekScrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.weekScrollContent}
-              >
-                {weekDates.map(dateStr => {
-                  const d = fromDateStr(dateStr);
-                  const active = dateStr === selectedDate;
-                  const isToday = dateStr === todayStr;
-                  return (
-                    <TouchableOpacity
-                      key={dateStr}
-                      style={[styles.dayChip, active && styles.dayChipActive]}
-                      onPress={() => setSelectedDate(dateStr)}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.dayChipDow,
-                          active && styles.dayChipTextActive,
-                        ]}
-                      >
-                        {DAY_LABELS[d.getDay()]}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.dayChipNum,
-                          active && styles.dayChipTextActive,
-                        ]}
-                      >
-                        {d.getDate()}
-                      </Text>
-                      {isToday && !active && <View style={styles.todayDot} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <TouchableOpacity
-                onPress={() => shiftWeek(1)}
-                style={styles.dateNavBtn}
-                disabled={isFutureWeek}
-              >
-                <ChevronRight
-                  size={16}
-                  color={isFutureWeek ? '#D1D5DB' : colors.black}
-                  strokeWidth={2.5}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {rosterLoading || recordsLoading ? (
-              <LoadingView />
-            ) : (
-              <ScrollView
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-                refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-              >
-                <View style={styles.summaryRow}>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.blue }]}>
-                      {rosterSummary.total}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Total</Text>
-                  </View>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.green }]}>
-                      {rosterSummary.marked}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Marked</Text>
-                  </View>
-                  <View style={styles.summaryPill}>
-                    <Text style={[styles.summaryValue, { color: colors.muted }]}>
-                      {rosterSummary.unmarked}
-                    </Text>
-                    <Text style={styles.summaryLabel}>Not Marked</Text>
-                  </View>
-                </View>
-
-                {visibleRoster.length === 0 ? (
-                  <Card>
-                    <EmptyState
-                      title={
-                        students.length === 0
-                          ? 'No active students found'
-                          : 'No students match your search'
-                      }
-                      icon={Users}
-                    />
-                  </Card>
-                ) : (
-                  visibleRoster.map(s => {
-                    const record = recordByStudent[s._id];
-                    const status = record?.status as string | undefined;
-                    const Icon = status ? STATUS_ICONS[status] || AlertCircle : MinusCircle;
-                    const color = status ? STATUS_COLORS[status] || colors.muted : '#D1D5DB';
-                    return (
-                      <Card key={s._id} accentColor={color}>
-                        <View style={styles.studentRow}>
-                          <Avatar uri={s.avatar} name={s.firstName} size={36} />
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.studentName} numberOfLines={1}>
-                              {s.firstName} {s.lastName}
-                            </Text>
-                            <Text style={styles.studentMeta} numberOfLines={1}>
-                              {s.sport}
-                              {s.batch ? ` · ${s.batch}` : ''}
-                            </Text>
-                            {record?.markedBy?.name && (
-                              <View style={styles.markedByRow}>
-                                <UserCog size={11} color={colors.muted} strokeWidth={2.5} />
-                                <Text style={styles.markedByText} numberOfLines={1}>
-                                  Marked by {record.markedBy.name}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                          <View style={styles.historyStatus}>
-                            <Icon size={14} color={color} strokeWidth={2.5} />
-                            <Text style={[styles.historyStatusText, { color }]}>
-                              {status || 'Not marked'}
-                            </Text>
-                          </View>
-                        </View>
-                      </Card>
-                    );
-                  })
-                )}
-              </ScrollView>
-            )}
-          </>
+      <View style={styles.searchWrap}>
+        <Search size={15} color={colors.muted} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search by student…"
+          placeholderTextColor={colors.muted}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <X size={14} color={colors.muted} />
+          </TouchableOpacity>
         )}
       </View>
+
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color={colors.blue} />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item._id}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.blue} />
+          }
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Clock size={40} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No records for this date</Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const st = item.student;
+            const cfg = STATUS_CONFIG[item.status] || {
+              color: colors.muted,
+              bg: '#F3F4F6',
+              icon: AlertCircle,
+            };
+            const Icon = cfg.icon;
+            const ciTime = item.checkIn
+              ? new Date(item.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : null;
+            const coTime = item.checkOut
+              ? new Date(item.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : null;
+            const initials = st
+              ? `${st.firstName?.[0] || ''}${st.lastName?.[0] || ''}`.toUpperCase()
+              : '?';
+            const ciDate = item.checkIn
+              ? new Date(item.checkIn).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : null;
+            const coDate = item.checkOut
+              ? new Date(item.checkOut).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : null;
+            const statusLabel = item.status.replace(/_/g, ' ').toUpperCase();
+            return (
+              <View style={[styles.card, { borderColor: colors.black }]}>
+                <View style={styles.cardRow}>
+                  <View style={styles.photoWrap}>
+                    {st?.avatar ? (
+                      <Image source={{ uri: st.avatar }} style={styles.stPhoto} />
+                    ) : (
+                      <View style={[styles.stPhoto, styles.stPhotoFallback, { backgroundColor: cfg.bg }]}>
+                        <Text style={[styles.stPhotoInitials, { color: cfg.color }]}>{initials}</Text>
+                      </View>
+                    )}
+                    <View
+                      style={[
+                        styles.statusBadgeOverlay,
+                        { backgroundColor: colors.white, borderColor: cfg.color },
+                      ]}
+                    >
+                      <Icon size={11} color={cfg.color} strokeWidth={2.5} />
+                    </View>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.stName} numberOfLines={1}>
+                      {st ? `${st.firstName} ${st.lastName}`.toUpperCase() : 'UNKNOWN'}
+                    </Text>
+                    <Text style={styles.stSub}>
+                      {st?.studentId || ''}
+                      {st?.batch ? ` · ${st.batch}` : ''}
+                    </Text>
+                    {!!st?.sport && (
+                      <View style={styles.stSportRow}>
+                        <Trophy size={11} color="#9CA3AF" />
+                        <Text style={styles.stSportText}>{st.sport}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.cardActions}>
+                    <View style={[styles.statusTag, { backgroundColor: cfg.bg, borderColor: cfg.color }]}>
+                      <Text style={[styles.statusTagText, { color: cfg.color }]}>{statusLabel}</Text>
+                    </View>
+                    {item._id.startsWith('v_') ? (
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <TouchableOpacity
+                          style={styles.absentBtn}
+                          onPress={() => markAbsent(item.student?._id)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <XCircle size={13} color={colors.white} strokeWidth={2.5} />
+                        </TouchableOpacity>
+                        {Array.isArray(st?.faceDescriptor) && st.faceDescriptor.length === 128 && (
+                          <TouchableOpacity
+                            style={styles.faceBtn}
+                            onPress={() => markByFace(st)}
+                            disabled={markingByFaceId === st._id}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            {markingByFaceId === st._id ? (
+                              <ActivityIndicator size="small" color={colors.white} />
+                            ) : (
+                              <ScanFace size={13} color={colors.white} strokeWidth={2.5} />
+                            )}
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={styles.markBtn}
+                          onPress={() => openMarkForStudent(item.student?._id)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <CheckCircle2 size={13} color={colors.white} strokeWidth={2.5} />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.editBtn}
+                        onPress={() => openEdit(item)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                {(ciTime || coTime) && (
+                  <>
+                    <View style={styles.cardDivider} />
+                    <View style={styles.statsRow}>
+                      <View style={styles.statCol}>
+                        <View style={styles.statLabelRow}>
+                          <View style={[styles.statIconWrap, { backgroundColor: '#E7F9F1' }]}>
+                            <LogIn size={12} color={colors.green} strokeWidth={2.5} />
+                          </View>
+                          <Text style={styles.statLabel}>Check In</Text>
+                        </View>
+                        <Text style={styles.statValue}>{ciTime || '--:--'}</Text>
+                        {ciDate && <Text style={styles.statSub}>{ciDate}</Text>}
+                      </View>
+                      <View style={styles.statDivider} />
+                      <View style={styles.statCol}>
+                        <View style={styles.statLabelRow}>
+                          <View style={[styles.statIconWrap, { backgroundColor: '#FDEBEB' }]}>
+                            <LogOut size={12} color={colors.red} strokeWidth={2.5} />
+                          </View>
+                          <Text style={styles.statLabel}>Check Out</Text>
+                        </View>
+                        <Text style={styles.statValue}>{coTime || '--:--'}</Text>
+                        {coDate && <Text style={styles.statSub}>{coDate}</Text>}
+                      </View>
+                    </View>
+                  </>
+                )}
+                {item.notes && <Text style={styles.noteText}>{item.notes}</Text>}
+              </View>
+            );
+          }}
+        />
+      )}
+
+      {/* Calendar picker modal */}
+      <Modal visible={showCalendar} transparent animationType="slide" onRequestClose={() => setShowCalendar(false)}>
+        <TouchableOpacity style={styles.calOverlay} activeOpacity={1} onPress={() => setShowCalendar(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.calSheet}>
+            <View style={styles.calNavRow}>
+              <TouchableOpacity
+                style={styles.calNavBtn}
+                onPress={() =>
+                  setCalendarMonth(p => (p.month === 0 ? { year: p.year - 1, month: 11 } : { ...p, month: p.month - 1 }))
+                }
+              >
+                <Text style={styles.calNavArrow}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.calMonthLabel}>
+                {new Date(calendarMonth.year, calendarMonth.month, 1).toLocaleDateString('en-IN', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </Text>
+              <TouchableOpacity
+                style={styles.calNavBtn}
+                onPress={() =>
+                  setCalendarMonth(p => (p.month === 11 ? { year: p.year + 1, month: 0 } : { ...p, month: p.month + 1 }))
+                }
+              >
+                <Text style={styles.calNavArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.calDowRow}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                <Text key={d} style={styles.calDowText}>
+                  {d}
+                </Text>
+              ))}
+            </View>
+
+            {(() => {
+              const { year, month } = calendarMonth;
+              const firstDay = new Date(year, month, 1).getDay();
+              const daysInMonth = new Date(year, month + 1, 0).getDate();
+              const cells: number[] = [];
+              for (let i = 0; i < firstDay; i++) cells.push(0);
+              for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+              while (cells.length % 7 !== 0) cells.push(0);
+              const rows: number[][] = [];
+              for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+              return rows.map((row, ri) => (
+                <View key={ri} style={styles.calGridRow}>
+                  {row.map((day, ci) => {
+                    if (day === 0) return <View key={ci} style={styles.calCell} />;
+                    const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const isSelected = dayStr === dateFilter;
+                    const isToday = dayStr === todayStr;
+                    return (
+                      <TouchableOpacity
+                        key={ci}
+                        style={[styles.calCell, isSelected && styles.calCellSelected, !isSelected && isToday && styles.calCellToday]}
+                        onPress={() => {
+                          setDateFilter(dayStr);
+                          setShowCalendar(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.calCellText,
+                            isSelected && styles.calCellTextSelected,
+                            !isSelected && isToday && { color: colors.blue },
+                          ]}
+                        >
+                          {day}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ));
+            })()}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Bulk attendance modal */}
+      <Modal visible={showBulkModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowBulkModal(false)}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Bulk Attendance</Text>
+            <TouchableOpacity onPress={() => setShowBulkModal(false)}>
+              <X size={22} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+            <View>
+              <Text style={styles.fieldLabel}>Status *</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                {Object.keys(STATUS_CONFIG)
+                  .filter(s => s !== 'not_marked')
+                  .map(s => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.selChip, bulkStatus === s && styles.selChipActive]}
+                      onPress={() => setBulkStatus(s)}
+                    >
+                      <Text style={[styles.selChipText, bulkStatus === s && { color: colors.white }]}>
+                        {s.replace(/_/g, ' ').toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.bulkSelectAllRow}
+              onPress={() => {
+                if (bulkSelected.length === students.length) {
+                  setBulkSelected([]);
+                } else {
+                  setBulkSelected(students.map(s => s._id));
+                }
+              }}
+            >
+              <View style={styles.bulkCheckbox}>
+                {bulkSelected.length === students.length && students.length > 0 && (
+                  <View style={styles.bulkCheckboxInner} />
+                )}
+              </View>
+              <Text style={styles.bulkSelectAllText}>Select All</Text>
+            </TouchableOpacity>
+
+            {students.map(st => {
+              const checked = bulkSelected.includes(st._id);
+              return (
+                <TouchableOpacity
+                  key={st._id}
+                  style={styles.bulkStRow}
+                  onPress={() => setBulkSelected(p => (checked ? p.filter(id => id !== st._id) : [...p, st._id]))}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.bulkCheckbox, checked && styles.bulkCheckboxChecked]}>
+                    {checked && <View style={styles.bulkCheckboxInner} />}
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={styles.stOptionName}>
+                      {st.firstName} {st.lastName}
+                    </Text>
+                    <Text style={styles.stOptionId}>{st.studentId}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <View style={{ padding: 16, backgroundColor: colors.white, borderTopWidth: 2, borderTopColor: colors.black }}>
+            <TouchableOpacity
+              style={[styles.submitBtn, bulkSelected.length === 0 && { opacity: 0.5 }]}
+              disabled={bulkSelected.length === 0 || bulkSaving}
+              onPress={async () => {
+                if (bulkSelected.length === 0) return;
+                setBulkSaving(true);
+                try {
+                  await studentAttendanceAPI.bulkMark({
+                    date: dateFilter,
+                    records: bulkSelected.map(id => ({ student: id, status: bulkStatus })),
+                  });
+                  setShowBulkModal(false);
+                  await load();
+                } catch (e: any) {
+                  Alert.alert('Error', e.message);
+                } finally {
+                  setBulkSaving(false);
+                }
+              }}
+            >
+              {bulkSaving ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.submitBtnText}>Mark Selected ({bulkSelected.length})</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Single mark/edit modal */}
+      <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{editRecord ? 'Edit Attendance' : 'Mark Attendance'}</Text>
+            <TouchableOpacity onPress={closeModal}>
+              <X size={22} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {editRecord ? (
+              <View style={styles.editInfoBox}>
+                <Text style={styles.editInfoLabel}>Student</Text>
+                <Text style={styles.editInfoValue}>
+                  {editRecord.student?.firstName} {editRecord.student?.lastName}
+                </Text>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.fieldLabel}>Student *</Text>
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+                  {students.map(s => (
+                    <TouchableOpacity
+                      key={s._id}
+                      style={[styles.stOption, selectedStudentId === s._id && styles.stOptionActive]}
+                      onPress={() => setSelectedStudentId(s._id)}
+                    >
+                      <Text style={[styles.stOptionName, selectedStudentId === s._id && { color: colors.white }]}>
+                        {s.firstName} {s.lastName}
+                      </Text>
+                      <Text style={[styles.stOptionId, selectedStudentId === s._id && { color: '#93C5FD' }]}>{s.studentId}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <View>
+              <Text style={styles.fieldLabel}>Status *</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                {Object.keys(STATUS_CONFIG)
+                  .filter(s => s !== 'not_marked')
+                  .map(s => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.selChip, form.status === s && styles.selChipActive]}
+                      onPress={() => setForm(p => ({ ...p, status: s }))}
+                    >
+                      <Text style={[styles.selChipText, form.status === s && { color: colors.white }]}>
+                        {s.replace(/_/g, ' ').toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <DateTimeField label="Check In" mode="time" value={form.checkIn} onChangeText={v => setForm(p => ({ ...p, checkIn: v }))} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <DateTimeField label="Check Out" mode="time" value={form.checkOut} onChangeText={v => setForm(p => ({ ...p, checkOut: v }))} />
+              </View>
+            </View>
+
+            <View>
+              <Text style={styles.fieldLabel}>Notes</Text>
+              <TextInput
+                style={[styles.fieldInput, { minHeight: 80 }]}
+                value={form.notes}
+                onChangeText={v => setForm(p => ({ ...p, notes: v }))}
+                placeholder="Optional…"
+                placeholderTextColor={colors.muted}
+                multiline
+              />
+            </View>
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.submitBtnText}>{editRecord ? 'Update Attendance' : 'Save Attendance'}</Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  safe: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: colors.white,
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 17,
-    color: colors.black,
-  },
-  markIconBtn: {
+  headerTitle: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 20, color: colors.black },
+  addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     backgroundColor: colors.blue,
     borderWidth: 2,
     borderColor: colors.black,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  markIconBtnText: {
-    color: colors.white,
-    fontFamily: FONT.bold,
-    fontWeight: '800',
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  weekBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.black,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    paddingHorizontal: 6,
-    gap: 4,
   },
-  weekScrollContent: { gap: 6, paddingHorizontal: 4 },
-  dayChip: {
-    width: 44,
-    paddingVertical: 8,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    backgroundColor: colors.white,
-    alignItems: 'center',
-  },
-  dayChipActive: { backgroundColor: colors.blue, borderColor: colors.black },
-  dayChipDow: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 9,
-    color: colors.muted,
-    textTransform: 'uppercase',
-  },
-  dayChipNum: {
-    fontFamily: FONT.bold,
-    fontWeight: '800',
-    fontSize: 15,
-    color: colors.black,
-    marginTop: 2,
-  },
-  dayChipTextActive: { color: colors.white },
-  todayDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.blue,
-    marginTop: 3,
-  },
-  dateNavBtn: {
-    width: 28,
-    height: 28,
-    borderWidth: 2,
-    borderColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateInfoBar: {
+  addBtnText: { color: colors.white, fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.white,
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
-    paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  dateInfoText: {
+  dateBtnArrow: { width: 44, alignItems: 'center' },
+  dateBtnArrowText: { fontSize: 24, fontFamily: FONT.bold, fontWeight: '700', color: colors.black },
+  dateCurrent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dateCurrentText: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '700', color: colors.black },
+  summaryBar: { flexShrink: 0, maxHeight: 96, backgroundColor: colors.white, borderBottomWidth: 2, borderBottomColor: colors.black },
+  summaryContent: { paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', gap: 8 },
+  summaryPill: { paddingHorizontal: 14, paddingVertical: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center', minWidth: 76 },
+  summaryCount: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 13,
-    color: colors.black,
-  },
-  todayLink: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 12,
-    color: colors.blue,
-    textTransform: 'uppercase',
-  },
-  wizardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.white,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.black,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderWidth: 2,
-    borderColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wizardTitle: {
-    flex: 1,
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 15,
-    color: colors.black,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 2,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    marginBottom: 10,
-  },
-  optionText: {
-    flex: 1,
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 14,
-    color: colors.black,
-  },
-  optionSub: {
-    fontFamily: FONT.medium,
-    fontSize: 11,
-    color: colors.muted,
-  },
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: Platform.OS === 'android' ? 28 : 24,
+    includeFontPadding: false,
+  } as any,
+  summaryStatus: { fontFamily: FONT.bold, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.white,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.black,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  searchInput: {
-    flex: 1,
-    fontFamily: FONT.medium,
-    fontSize: 14,
-    color: colors.black,
-  },
-  sectionLabel: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 11,
-    color: colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 10,
-  },
-  summaryRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  summaryPill: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: colors.black,
+  searchInput: { flex: 1, fontFamily: FONT.medium, fontSize: 14, fontWeight: '500', color: colors.black },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText: { fontFamily: FONT.bold, fontSize: 14, fontWeight: '700', color: colors.muted },
+  card: {
     backgroundColor: colors.white,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  summaryValue: { fontFamily: FONT.bold, fontWeight: '800', fontSize: 18 },
-  summaryLabel: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 9,
-    color: colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    marginTop: 2,
-  },
-  studentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  studentName: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 14,
-    color: colors.black,
-  },
-  studentMeta: {
-    fontFamily: FONT.medium,
-    fontSize: 12,
-    color: colors.muted,
-    marginTop: 1,
-  },
-  markedByRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 3,
-  },
-  markedByText: {
-    fontFamily: FONT.medium,
-    fontSize: 10,
-    color: colors.muted,
-    fontStyle: 'italic',
-  },
-  faceVerifyBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.blue,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-  },
-  statusBtn: {
-    flex: 1,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
-    backgroundColor: colors.white,
-    paddingVertical: 8,
-    alignItems: 'center',
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  statusBtnText: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 11,
-    color: colors.muted,
-    textTransform: 'uppercase',
-  },
-  statusBtnTextActive: { color: colors.white },
-  historyStatus: { alignItems: 'center', gap: 2 },
-  historyStatusText: {
-    fontFamily: FONT.bold,
-    fontWeight: '700',
-    fontSize: 10,
-    textTransform: 'capitalize',
-  },
-  saveBar: {
+  cardRow: { flexDirection: 'row', alignItems: 'center' },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  photoWrap: { position: 'relative', width: 48, height: 48 },
+  stPhoto: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.black },
+  stPhotoFallback: { alignItems: 'center', justifyContent: 'center' },
+  stPhotoInitials: { fontFamily: FONT.bold, fontSize: 16, fontWeight: '700' },
+  statusBadgeOverlay: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16,
-    backgroundColor: colors.blue,
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
-    borderColor: colors.black,
-    paddingVertical: 14,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  saveBarText: {
-    color: colors.white,
-    fontFamily: FONT.bold,
-    fontWeight: '800',
+  stSportRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  stSportText: { fontFamily: FONT.medium, fontSize: 11, color: '#9CA3AF', fontWeight: '500' },
+  cardDivider: { height: 1, backgroundColor: '#F0F1F3', marginTop: 12, marginBottom: 10 },
+  statsRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  statCol: { flex: 1, gap: 3 },
+  statDivider: { width: 1, backgroundColor: '#F0F1F3', marginHorizontal: 10 },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statIconWrap: { width: 22, height: 22, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  statLabel: { fontFamily: FONT.medium, fontSize: 10, color: '#9CA3AF', fontWeight: '600' },
+  statValue: { fontFamily: FONT.bold, fontSize: 15, fontWeight: '700', color: colors.black },
+  statSub: { fontFamily: FONT.medium, fontSize: 10, color: '#B0B4BA', fontWeight: '500' },
+  stName: { fontFamily: FONT.bold, fontSize: 15, fontWeight: '800', color: colors.black, letterSpacing: 0.2 },
+  stSub: { fontFamily: FONT.medium, fontSize: 11, color: '#9CA3AF', fontWeight: '600', marginTop: 2 },
+  statusTag: { borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 5 },
+  statusTagText: { fontFamily: FONT.bold, fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
+  editBtn: { borderWidth: 1.5, borderColor: colors.blue, padding: 4, backgroundColor: colors.white },
+  markBtn: { borderWidth: 1.5, borderColor: colors.blue, borderRadius: 8, padding: 7, backgroundColor: colors.blue },
+  absentBtn: { borderWidth: 1.5, borderColor: colors.red, borderRadius: 8, padding: 7, backgroundColor: colors.red },
+  faceBtn: { borderWidth: 1.5, borderColor: colors.green, borderRadius: 8, padding: 7, backgroundColor: colors.green, minWidth: 27, alignItems: 'center', justifyContent: 'center' },
+  noteText: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, fontStyle: 'italic', marginTop: 8 },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: colors.white,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.black,
+  },
+  modalTitle: { fontFamily: FONT.bold, fontSize: 20, fontWeight: '700', color: colors.black },
+  editInfoBox: { borderWidth: 2, borderColor: colors.blue, backgroundColor: '#EFF6FF', padding: 12 },
+  editInfoLabel: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', color: colors.blue, marginBottom: 4 },
+  editInfoValue: { fontFamily: FONT.bold, fontSize: 15, fontWeight: '700', color: colors.black },
+  fieldLabel: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', color: colors.black, marginBottom: 5, letterSpacing: 0.5 },
+  fieldInput: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontFamily: FONT.medium,
     fontSize: 14,
+    fontWeight: '500',
+    color: colors.black,
+    backgroundColor: colors.white,
   },
+  stOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 4,
+    backgroundColor: colors.white,
+  },
+  stOptionActive: { backgroundColor: colors.blue, borderColor: colors.blue },
+  stOptionName: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '700', color: colors.black },
+  stOptionId: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
+  selChip: { borderWidth: 2, borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 6 },
+  selChipActive: { backgroundColor: colors.blue },
+  selChipText: { fontFamily: FONT.bold, fontSize: 11, fontWeight: '700', color: colors.black },
+  submitBtn: { backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  submitBtnText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, textTransform: 'uppercase' },
+  bulkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.blue,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  bulkBtnText: { color: colors.blue, fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  bulkSelectAllRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: colors.black, gap: 10 },
+  bulkSelectAllText: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '700', color: colors.black, textTransform: 'uppercase' },
+  bulkStRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  bulkCheckbox: { width: 22, height: 22, borderWidth: 2, borderColor: colors.black, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  bulkCheckboxChecked: { borderColor: colors.blue, backgroundColor: colors.blue },
+  bulkCheckboxInner: { width: 10, height: 10, backgroundColor: colors.white },
+  calOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  calSheet: { backgroundColor: colors.white, borderTopWidth: 2, borderTopColor: colors.black, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
+  calNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calNavBtn: { width: 36, alignItems: 'center' },
+  calNavArrow: { fontFamily: FONT.bold, fontSize: 26, fontWeight: '700', color: colors.black },
+  calMonthLabel: { fontFamily: FONT.bold, fontSize: 15, fontWeight: '700', color: colors.black },
+  calDowRow: { flexDirection: 'row', marginBottom: 4 },
+  calDowText: { flex: 1, textAlign: 'center', fontFamily: FONT.bold, fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase' },
+  calGridRow: { flexDirection: 'row', marginBottom: 2 },
+  calCell: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', margin: 1 },
+  calCellSelected: { backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black },
+  calCellToday: { borderWidth: 2, borderColor: colors.blue },
+  calCellText: { fontFamily: FONT.medium, fontSize: 13, fontWeight: '600', color: colors.black },
+  calCellTextSelected: { color: colors.white, fontFamily: FONT.bold, fontWeight: '700' },
 });

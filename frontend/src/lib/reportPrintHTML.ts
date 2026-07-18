@@ -94,7 +94,7 @@ export function buildReportHTML(
   const { company, reportCategory = "", generatedFor = "" } = opts;
 
   const nameColIdx = headers.findIndex((h) =>
-    ["employee", "name", "employee name"].includes(h.toLowerCase()),
+    ["employee", "name", "employee name", "student"].includes(h.toLowerCase()),
   );
   const statusColIdx = headers.findIndex((h) =>
     ["status", "payment status"].includes(h.toLowerCase()),

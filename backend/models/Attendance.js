@@ -28,6 +28,7 @@ const attendanceSchema = new mongoose.Schema(
     earlyLeaving: { type: Boolean, default: false },
     notes: { type: String },
     leaveDeductSalary: { type: Boolean, default: true }, // for on_leave records: true = deduct, false = paid leave
+    approvalPending: { type: Boolean, default: false }, // late beyond allowance, awaiting HR/Admin resolution via LateApproval
     markedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     verifyMode: {
       type: String,

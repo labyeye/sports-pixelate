@@ -12,7 +12,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowUpDown, Plus, X } from 'lucide-react-native';
+import {
+  ArrowUpDown,
+  Plus,
+  X,
+  CalendarClock,
+  CheckCircle2,
+  IndianRupee,
+} from 'lucide-react-native';
 import { bookingAPI, facilityAPI, studentAPI } from '../api/client';
 import {
   Card,
@@ -26,6 +33,7 @@ import {
   SortOption,
   TextField,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
@@ -215,6 +223,32 @@ export default function BookingsScreen() {
           </View>
         </View>
 
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Total Bookings"
+            value={bookings.length}
+            color={colors.blue}
+            icon={CalendarClock}
+          />
+          <KpiTile
+            label="Confirmed"
+            value={bookings.filter(b => b.status === 'confirmed').length}
+            color={colors.green}
+            icon={CheckCircle2}
+          />
+          <KpiTile
+            label="Total Revenue"
+            value={`₹${bookings
+              .reduce(
+                (s, b) => s + (b.paymentStatus === 'completed' ? b.fee || 0 : 0),
+                0,
+              )
+              .toLocaleString('en-IN')}`}
+            color={colors.blue}
+            icon={IndianRupee}
+          />
+        </View>
+
         <FilterPills options={STATUS_OPTIONS} value={status} onChange={setStatus} />
 
         <FlatList
@@ -385,7 +419,13 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
   subtitle: { color: colors.muted, marginTop: 2 },
   headerRow: {

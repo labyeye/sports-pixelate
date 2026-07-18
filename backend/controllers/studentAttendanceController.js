@@ -3,6 +3,7 @@ const fs = require("fs");
 const StudentAttendance = require("../models/StudentAttendance");
 const Student = require("../models/Student");
 const Employee = require("../models/Employee");
+const BiometricLog = require("../models/BiometricLog");
 const { safePagination } = require("../middleware/validate");
 const { verifyFace } = require("../services/faceService");
 const { validateMagicBytes } = require("../middleware/upload");
@@ -75,9 +76,36 @@ const getStudentAttendance = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
+  // "Via" detail for device-originated punches: join BiometricLog by the
+  // attendance record it created (manual entries have no log — markedBy
+  // already covers who marked those).
+  const recordIds = records.map((r) => r._id);
+  const logs = recordIds.length
+    ? await BiometricLog.find({
+        attendance: { $in: recordIds },
+        attendanceModel: "StudentAttendance",
+      })
+        .populate("device", "name")
+        .populate("location", "name")
+        .sort({ timestamp: 1 })
+    : [];
+  const logsByAttendance = {};
+  for (const log of logs) {
+    const key = String(log.attendance);
+    (logsByAttendance[key] = logsByAttendance[key] || []).push(log);
+  }
+
+  const data = records.map((r) => {
+    const obj = r.toObject();
+    const recLogs = logsByAttendance[String(r._id)] || [];
+    obj.checkInLog = recLogs.find((l) => l.type === "check_in") || null;
+    obj.checkOutLog = recLogs.find((l) => l.type === "check_out") || null;
+    return obj;
+  });
+
   res.json({
     success: true,
-    data: records,
+    data,
     total,
     page,
     pages: Math.ceil(total / limit),
@@ -86,7 +114,7 @@ const getStudentAttendance = asyncHandler(async (req, res) => {
 
 // Coach/owner marks one student present/absent/excused for a session date.
 const markStudentAttendance = asyncHandler(async (req, res) => {
-  const { student, date, status, batch, notes } = req.body;
+  const { student, date, status, batch, notes, checkIn, checkOut } = req.body;
 
   const studentDoc = await Student.findOne({
     _id: student,
@@ -107,6 +135,9 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
       status: status || "present",
       batch: batch ?? studentDoc.batch,
       notes,
+      checkIn: checkIn || undefined,
+      checkOut: checkOut || undefined,
+      verifyMode: "manual",
       markedBy: req.user._id,
     },
     { upsert: true, new: true },

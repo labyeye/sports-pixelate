@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { biometricAPI } from "@/services/api";
+import { biometricAPI, PersonType } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import {
   X,
@@ -23,19 +23,22 @@ const FINGER_NAMES = [
   "Left Little (9)",
 ];
 
+export interface EnrollPerson {
+  _id: string;
+  personType: PersonType;
+  firstName: string;
+  lastName: string;
+  code: string;
+  biometricUserId?: string;
+}
+
 interface Props {
   device: { _id: string; name: string; serialNumber?: string };
-  employee: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    employeeId: string;
-    biometricUserId?: string;
-  };
+  person: EnrollPerson;
   onClose: () => void;
 }
 
-export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
+export function FingerprintEnrollModal({ device, person, onClose }: Props) {
   const { toast } = useToast();
   const [fingerIndex, setFingerIndex] = useState(0);
   const [sending, setSending] = useState(false);
@@ -47,7 +50,8 @@ export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
     try {
       const res = await biometricAPI.enrollFingerprint(
         device._id,
-        employee._id,
+        person.personType,
+        person._id,
         fingerIndex,
       );
       setQueued(true);
@@ -67,7 +71,7 @@ export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
               <Fingerprint className="w-4 h-4" /> Fingerprint Enrollment
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              {employee.firstName} {employee.lastName} · {employee.employeeId}
+              {person.firstName} {person.lastName} · {person.code}
             </p>
           </div>
           <button onClick={onClose} className="hover:opacity-70">
@@ -77,12 +81,12 @@ export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
 
         <div className="p-6 space-y-4">
           {}
-          {!employee.biometricUserId && (
+          {!person.biometricUserId && (
             <div className="flex items-start gap-2 bg-red-50 border-2 border-red-300 p-3">
               <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <p className="text-sm font-medium text-red-800">
-                This employee has no Biometric User ID set. Set it first in the
-                employee table above.
+                This person has no Biometric User ID set. Set it first in the
+                table above.
               </p>
             </div>
           )}
@@ -110,7 +114,7 @@ export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
                 Device screen shows: <em>"Please place finger"</em>
               </li>
               <li>
-                Employee places their finger on the scanner{" "}
+                Person places their finger on the scanner{" "}
                 <strong>3 times</strong>
               </li>
               <li>Device stores the template — done!</li>
@@ -147,7 +151,7 @@ export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
                 Command queued successfully!
               </p>
               <p className="text-xs text-green-600 mt-1">
-                Ask {employee.firstName} to go to the{" "}
+                Ask {person.firstName} to go to the{" "}
                 <strong>{device.name}</strong> device and place their finger
                 when prompted.
               </p>
@@ -159,7 +163,7 @@ export function FingerprintEnrollModal({ device, employee, onClose }: Props) {
             {!queued ? (
               <button
                 onClick={handleEnroll}
-                disabled={sending || !employee.biometricUserId}
+                disabled={sending || !person.biometricUserId}
                 className="flex-1 border-2 bg-[#024BAB] text-white py-2.5 font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 {sending ? (

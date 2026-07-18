@@ -1,7 +1,14 @@
+const crypto = require("crypto");
 const Invoice = require("../models/Invoice");
 const OfferCode = require("../models/OfferCode");
 const Company = require("../models/Company");
 const Subscription = require("../models/Subscription");
+const User = require("../models/User");
+const { calculatePricing } = require("../utils/pricing");
+const { lookupAndValidateOffer } = require("../utils/offerCode");
+const { sendCrmAccountCreatedEmail } = require("../services/notificationService");
+
+const PLAN_NAME = "NestSports";
 
 // Same static-key guard as /internal/stats (statsRoutes.js), reusing
 // CRM_API_SECRET so the CRM only needs one secret per product.
@@ -237,6 +244,224 @@ exports.updateCrmSubscription = async (req, res) => {
     );
 
     res.json({ success: true, subscription });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/crm/companies — create a brand-new SportsClub (Company + owner
+// User + active Subscription) directly from the company's CRM dashboard,
+// for clients onboarded/paid offline. Mirrors billingController's
+// _createCompanyAndActivate, minus the PendingOrder/payment-gateway step.
+exports.createCrmCompany = async (req, res) => {
+  if (!crmAuth(req, res)) return;
+  try {
+    const {
+      companyName,
+      companyEmail,
+      companyPhone,
+      industry,
+      website,
+      gstNumber,
+      panNumber,
+      ownerName,
+      ownerEmail,
+      studentCount,
+      employeeCount = 0,
+      wantsWhatsapp = false,
+      billingCycle = "monthly",
+      offerCode,
+    } = req.body;
+
+    if (!companyName || !companyPhone || !companyEmail || !ownerName) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "companyName, companyEmail, companyPhone and ownerName are required",
+      });
+    }
+
+    const count = Number(studentCount);
+    if (!count || count < 1 || !Number.isInteger(count)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid number of students",
+      });
+    }
+    const empCount = Number(employeeCount) || 0;
+    if (empCount < 0 || !Number.isInteger(empCount)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid number of employees",
+      });
+    }
+    if (!["monthly", "yearly"].includes(billingCycle)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid billing cycle" });
+    }
+
+    const loginEmail = (ownerEmail || companyEmail).toLowerCase().trim();
+
+    if (await User.findOne({ email: loginEmail })) {
+      return res.status(409).json({
+        success: false,
+        message: "A user with this email already exists",
+      });
+    }
+    if (await Company.findOne({ email: companyEmail.toLowerCase().trim() })) {
+      return res.status(409).json({
+        success: false,
+        message: "A SportsClub with this email already exists",
+      });
+    }
+
+    let validatedOffer = null;
+    if (offerCode) {
+      try {
+        validatedOffer = await lookupAndValidateOffer(offerCode);
+      } catch (err) {
+        return res
+          .status(err.status || 400)
+          .json({ success: false, message: err.message });
+      }
+    }
+
+    const pricing = calculatePricing(count, empCount, !!wantsWhatsapp, validatedOffer);
+    const amountPaid =
+      billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
+
+    const ownerPassword = crypto.randomBytes(9).toString("base64").slice(0, 12);
+    const user = await User.create({
+      name: ownerName.trim(),
+      email: loginEmail,
+      password: ownerPassword,
+      role: "super_admin",
+    });
+
+    const company = await Company.create({
+      name: companyName,
+      email: companyEmail.toLowerCase().trim(),
+      phone: companyPhone,
+      password: crypto.randomBytes(16).toString("hex"),
+      industry,
+      website,
+      gstNumber,
+      panNumber,
+      status: "active",
+      createdBy: user._id,
+    });
+
+    const startDate = new Date();
+    const renewalDate = new Date();
+    if (billingCycle === "yearly") {
+      renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+    } else {
+      renewalDate.setMonth(renewalDate.getMonth() + 1);
+    }
+    const bonusMonths = validatedOffer ? validatedOffer.bonusMonths || 0 : 0;
+    if (bonusMonths > 0) {
+      renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
+    }
+
+    const subscription = await Subscription.create({
+      company: company._id,
+      plan: PLAN_NAME,
+      studentCount: count,
+      employeeCount: empCount,
+      wantsWhatsapp: !!wantsWhatsapp,
+      ratePerUnit: pricing.ratePerUnit,
+      monthlyPrice: pricing.monthlyPrice,
+      yearlyPrice: pricing.yearlyPrice,
+      maxStudents: count,
+      maxEmployees: empCount,
+      billingCycle,
+      startDate,
+      renewalDate,
+      status: "active",
+      paymentStatus: "completed",
+      paymentMethod: "manual_crm",
+      amountPaid,
+      offerCode: validatedOffer ? validatedOffer.code : null,
+      offerBonusMonths: bonusMonths,
+    });
+
+    company.subscription = subscription._id;
+    await company.save();
+    user.company = company._id;
+    await user.save();
+
+    let offerCodeDoc = null;
+    if (validatedOffer) {
+      offerCodeDoc = await OfferCode.findOneAndUpdate(
+        { code: validatedOffer.code },
+        { $inc: { usedCount: 1 } },
+        { new: true },
+      );
+    }
+
+    const invoiceCount = await Invoice.countDocuments();
+    const invoiceNumber = `KHT/HR/${String(invoiceCount + 1).padStart(3, "0")}`;
+    await Invoice.create({
+      company: company._id,
+      subscription: subscription._id,
+      invoiceNumber,
+      plan: PLAN_NAME,
+      billingCycle,
+      amount: amountPaid,
+      status: "paid",
+      paidAt: new Date(),
+    });
+
+    if (offerCodeDoc) {
+      await OfferCode.findByIdAndUpdate(offerCodeDoc._id, {
+        $push: {
+          usages: {
+            company: company._id,
+            companyName: company.name,
+            userEmail: company.email,
+            invoiceNumber,
+            usedAt: new Date(),
+          },
+        },
+      });
+    }
+
+    const dashboardUrl = process.env.FRONTEND_URL
+      ? `${process.env.FRONTEND_URL}/`
+      : "https://hrms.pixelatenest.com/";
+
+    sendCrmAccountCreatedEmail({
+      toEmail: user.email,
+      toName: user.name,
+      companyName: company.name,
+      loginEmail: user.email,
+      tempPassword: ownerPassword,
+      planName: PLAN_NAME,
+      amount: amountPaid,
+      billingCycle,
+      renewalDate,
+      dashboardUrl,
+      invoiceNumber,
+    }).catch((err) => console.error("[Notifications]", err.message));
+
+    res.status(201).json({
+      success: true,
+      message: "SportsClub created and subscription activated successfully",
+      data: {
+        company: {
+          _id: company._id,
+          name: company.name,
+          email: company.email,
+          status: company.status,
+        },
+        plan: PLAN_NAME,
+        billingCycle,
+        amount: amountPaid,
+        renewalDate,
+        invoiceNumber,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

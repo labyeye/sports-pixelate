@@ -18,6 +18,8 @@ import {
   History,
   ChevronDown,
   UserCog,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 
 interface Student {
@@ -35,6 +37,8 @@ interface AttendanceRecord {
   date: string;
   status: string;
   batch?: string;
+  checkIn?: string;
+  checkOut?: string;
   student?: {
     _id: string;
     firstName: string;
@@ -71,9 +75,13 @@ export default function StudentAttendancePage() {
   const [date, setDate] = useState(toDateStr(new Date()));
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<Record<string, Status>>({});
+  const [times, setTimes] = useState<
+    Record<string, { checkIn?: string; checkOut?: string }>
+  >({});
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [punchingId, setPunchingId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<Status | null>(null);
   const [showHistory, setShowHistory] = useState(true);
 
@@ -90,11 +98,21 @@ export default function StudentAttendancePage() {
       setStudents(studentsRes.data);
       const records: AttendanceRecord[] = attRes.data || [];
       const existing: Record<string, Status> = {};
+      const existingTimes: Record<
+        string,
+        { checkIn?: string; checkOut?: string }
+      > = {};
       records.forEach((r) => {
-        if (r.date?.slice(0, 10) === date && r.student)
+        if (r.date?.slice(0, 10) === date && r.student) {
           existing[r.student._id] = r.status as Status;
+          existingTimes[r.student._id] = {
+            checkIn: r.checkIn,
+            checkOut: r.checkOut,
+          };
+        }
       });
       setMarks(existing);
+      setTimes(existingTimes);
       setHistory(
         [...records].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -113,6 +131,30 @@ export default function StudentAttendancePage() {
 
   const setStatus = (studentId: string, status: Status) => {
     setMarks((p) => ({ ...p, [studentId]: status }));
+  };
+
+  const punch = async (studentId: string, action: "checkin" | "checkout") => {
+    setPunchingId(studentId);
+    try {
+      const now = new Date().toISOString();
+      const body: Record<string, any> = { student: studentId, date };
+      if (action === "checkin") body.checkIn = now;
+      else body.checkOut = now;
+      const res = await studentAttendanceAPI.mark(body);
+      const rec = res.data;
+      setTimes((p) => ({
+        ...p,
+        [studentId]: { checkIn: rec.checkIn, checkOut: rec.checkOut },
+      }));
+      setMarks((p) => ({ ...p, [studentId]: rec.status }));
+      toast({
+        title: action === "checkin" ? "Checked in" : "Checked out",
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setPunchingId(null);
+    }
   };
 
   const saveAll = async () => {
@@ -186,28 +228,7 @@ export default function StudentAttendancePage() {
           Save Attendance
         </button>
       </div>
-
-      {/* Attendance history: who marked what, for whom, in which sport */}
-      <div className="mb-6">
-        <button
-          onClick={() => setShowHistory((v) => !v)}
-          className="border-2 border-black bg-white px-4 py-2.5 text-sm font-bold flex items-center gap-2 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
-        >
-          <History className="w-4 h-4 text-[#024BAB]" />
-          Attendance History
-          <span className="text-[10px] font-bold text-muted-foreground bg-[#024BAB]/5 border border-black/10 px-1.5 py-0.5 rounded-full">
-            {history.length}
-          </span>
-          <ChevronDown
-            className={cn(
-              "w-4 h-4 transition-transform",
-              showHistory && "rotate-180",
-            )}
-          />
-        </button>
-      </div>
-
-      {/* Summary cards */}
+      
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         {[
           {
@@ -321,7 +342,7 @@ export default function StudentAttendancePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                {["Student", "Sport / Batch", "Status"].map((h) => (
+                {["Student", "Sport / Batch", "Check In / Out", "Status"].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
@@ -362,6 +383,40 @@ export default function StudentAttendancePage() {
                     </td>
                     <td className="px-4 py-3 text-black text-xs">
                       {s.sport} {s.batch ? `· ${s.batch}` : ""}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => punch(s._id, "checkin")}
+                          disabled={punchingId === s._id}
+                          className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#00C48C]/10 hover:border-[#00C48C] disabled:opacity-50"
+                          title="Check in now"
+                        >
+                          <LogIn className="w-3 h-3" />
+                          {times[s._id]?.checkIn
+                            ? new Date(times[s._id].checkIn!).toLocaleTimeString(
+                                "en-IN",
+                                { hour: "2-digit", minute: "2-digit" },
+                              )
+                            : "Check In"}
+                        </button>
+                        <button
+                          onClick={() => punch(s._id, "checkout")}
+                          disabled={punchingId === s._id}
+                          className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#FA731C]/10 hover:border-[#FA731C] disabled:opacity-50"
+                          title="Check out now"
+                        >
+                          <LogOut className="w-3 h-3" />
+                          {times[s._id]?.checkOut
+                            ? new Date(
+                                times[s._id].checkOut!,
+                              ).toLocaleTimeString("en-IN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "Check Out"}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">

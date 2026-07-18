@@ -369,6 +369,101 @@ const enrollStudentFace = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Face enrolled successfully" });
 });
 
+// Bulk create students from a parsed spreadsheet (Excel import). Each row is
+// processed independently so a bad row doesn't block the rest, mirroring
+// employeeController.bulkImportEmployees.
+const bulkImportStudents = asyncHandler(async (req, res) => {
+  const { students: rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    res.status(400);
+    throw new Error("students array is required");
+  }
+  if (rows.length > 200) {
+    res.status(400);
+    throw new Error("Maximum 200 students per import");
+  }
+
+  const allEmployees = await Employee.find({ company: req.user.company }).select(
+    "firstName lastName",
+  );
+
+  let count = await Student.countDocuments({ company: req.user.company });
+  const results = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const firstName = (row.firstName || "").trim();
+      const lastName = (row.lastName || "").trim();
+      const sport = (row.sport || "").trim();
+
+      if (!firstName || !lastName || !sport) {
+        results.push({
+          row: i + 1,
+          status: "error",
+          message: "Missing required field (firstName, lastName, sport)",
+        });
+        continue;
+      }
+
+      const coachMatch = row.coach
+        ? allEmployees.find(
+            (e) =>
+              `${e.firstName} ${e.lastName}`.toLowerCase() ===
+              String(row.coach).toLowerCase(),
+          )
+        : undefined;
+
+      const guardians = [];
+      if (row.guardianName) {
+        guardians.push({
+          relation: ["father", "mother", "guardian", "other"].includes(
+            row.guardianRelation,
+          )
+            ? row.guardianRelation
+            : "guardian",
+          name: String(row.guardianName).trim(),
+          phone: row.guardianPhone ? String(row.guardianPhone).trim() : undefined,
+          email: row.guardianEmail ? String(row.guardianEmail).trim() : undefined,
+        });
+      }
+
+      count += 1;
+      const studentId = `STU${String(count).padStart(4, "0")}`;
+
+      const student = await Student.create({
+        company: req.user.company,
+        studentId,
+        firstName,
+        lastName,
+        sport,
+        batch: row.batch || undefined,
+        dateOfBirth: row.dateOfBirth || undefined,
+        gender: row.gender || undefined,
+        coach: coachMatch?._id || undefined,
+        guardians,
+        emergencyContact: row.emergencyContact || undefined,
+        medicalNotes: row.medicalNotes || undefined,
+        enrollmentDate: row.enrollmentDate || Date.now(),
+      });
+
+      results.push({
+        row: i + 1,
+        status: "success",
+        studentId: student.studentId,
+        name: `${firstName} ${lastName}`,
+      });
+    } catch (err) {
+      results.push({ row: i + 1, status: "error", message: err.message });
+    }
+  }
+
+  const imported = results.filter((r) => r.status === "success").length;
+  const failed = results.filter((r) => r.status === "error").length;
+
+  res.json({ success: true, imported, failed, results });
+});
+
 const deleteStudent = asyncHandler(async (req, res) => {
   const student = await Student.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
@@ -388,6 +483,7 @@ module.exports = {
   createStudent,
   updateStudent,
   deleteStudent,
+  bulkImportStudents,
   uploadStudentAvatar,
   uploadGuardianPhotoHandler,
   enrollStudentFace,

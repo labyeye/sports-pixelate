@@ -35,6 +35,10 @@ const UPLOAD_BASE = path.join(__dirname, "../uploads");
   "employee-docs",
   "payment-qr",
   "payment-screenshots",
+  "event-covers",
+  "event-banners",
+  "event-gallery",
+  "event-documents",
 ].forEach((dir) => {
   const p = path.join(UPLOAD_BASE, dir);
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
@@ -258,6 +262,71 @@ const uploadFaceEnrollPhoto = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("photo");
 
+// Event cover + banner image upload (two optional fields in one request)
+const eventImageStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    const folderMap = {
+      coverImage: "event-covers",
+      bannerImage: "event-banners",
+    };
+    cb(null, path.join(UPLOAD_BASE, folderMap[file.fieldname] || "event-covers"));
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    cb(null, `event_${req.params.id}_${file.fieldname}_${Date.now()}${ext}`);
+  },
+});
+
+const uploadEventImages = multer({
+  storage: eventImageStorage,
+  fileFilter(_req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).fields([
+  { name: "coverImage", maxCount: 1 },
+  { name: "bannerImage", maxCount: 1 },
+]);
+
+// Event gallery photo upload
+const eventGalleryStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    cb(null, path.join(UPLOAD_BASE, "event-gallery"));
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    cb(null, `event_${req.params.id}_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+  },
+});
+
+const uploadEventGalleryPhoto = multer({
+  storage: eventGalleryStorage,
+  fileFilter(_req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("photo");
+
+// Event document upload (Rule Book / Guidelines / Consent Form / etc.)
+const eventDocumentStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    cb(null, path.join(UPLOAD_BASE, "event-documents"));
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || ".pdf";
+    const kind = (req.body?.kind || "other").replace(/[^a-z0-9_]/gi, "");
+    cb(null, `event_${req.params.id}_${kind}_${Date.now()}${ext}`);
+  },
+});
+
+const uploadEventDocument = multer({
+  storage: eventDocumentStorage,
+  fileFilter,
+  limits: { fileSize: MAX_SIZE },
+}).single("file");
+
 module.exports = {
   uploadEmployeeDocs,
   uploadCompanyLogo,
@@ -269,5 +338,8 @@ module.exports = {
   uploadAttendanceSelfie,
   uploadFaceEnrollPhoto,
   uploadInventoryPhoto,
+  uploadEventImages,
+  uploadEventGalleryPhoto,
+  uploadEventDocument,
   validateMagicBytes,
 };

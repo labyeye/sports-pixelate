@@ -40,6 +40,11 @@ const studentSchema = new mongoose.Schema(
     emergencyContact: { type: String },
     medicalNotes: { type: String },
     faceDescriptor: { type: [Number], default: [] },
+    biometricUserId: { type: String, default: "" },
+    rfidCard: { type: String, default: "" },
+    // Raw face template received from ZKTeco/ESSL device (hex string, device-specific binary format)
+    deviceFaceTemplate: { type: String, default: "" },
+    deviceFaceEnrolledAt: { type: Date },
     enrollmentDate: { type: Date, default: Date.now },
     exitDate: { type: Date },
     status: {

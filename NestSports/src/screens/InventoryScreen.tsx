@@ -31,6 +31,10 @@ import {
   Truck,
   ArrowDownCircle,
   ArrowUpCircle,
+  Boxes,
+  AlertTriangle,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react-native';
 import { inventoryAPI, studentAPI, employeeAPI, RNFile } from '../api/client';
 import {
@@ -47,9 +51,24 @@ import {
   SortSheet,
   LoadMoreFooter,
   SortOption,
+  KpiTile,
 } from '../components/ui';
+import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
+
+const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
+  { key: 'name', label: 'Item Name', required: true, example: 'Tennis Racket' },
+  { key: 'category', label: 'Category', required: true, example: 'equipment' },
+  { key: 'sport', label: 'Sport', required: false, example: 'Tennis' },
+  { key: 'trackQuantity', label: 'Track Quantity', required: false, example: 'true' },
+  { key: 'totalQuantity', label: 'Total Quantity', required: false, example: '20' },
+  { key: 'availableQuantity', label: 'Available Quantity', required: false, example: '20' },
+  { key: 'onOrderQuantity', label: 'On Order Quantity', required: false, example: '0' },
+  { key: 'unitCost', label: 'Unit Cost', required: false, example: '1500' },
+  { key: 'reorderThreshold', label: 'Reorder Threshold', required: false, example: '5' },
+];
 
 const CATEGORY_COLORS: Record<string, string> = {
   equipment: colors.blue,
@@ -148,6 +167,7 @@ export default function InventoryScreen() {
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [importVisible, setImportVisible] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -413,6 +433,29 @@ export default function InventoryScreen() {
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <TouchableOpacity
+              onPress={() =>
+                exportRowsToExcel(
+                  INVENTORY_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                  items,
+                  'inventory_export.xlsx',
+                  'Inventory',
+                )
+              }
+              style={styles.addBtn}
+              hitSlop={8}
+            >
+              <Download size={18} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            {isOwner && (
+              <TouchableOpacity
+                onPress={() => setImportVisible(true)}
+                style={styles.addBtn}
+                hitSlop={8}
+              >
+                <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
               onPress={() => setSortVisible(true)}
               style={styles.addBtn}
               hitSlop={8}
@@ -425,6 +468,31 @@ export default function InventoryScreen() {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Total Items"
+            value={items.length}
+            color={colors.blue}
+            icon={Package}
+          />
+          <KpiTile
+            label="Units Available"
+            value={items.reduce((s, i) => s + (i.availableQuantity || 0), 0)}
+            color={colors.green}
+            icon={Boxes}
+          />
+          <KpiTile
+            label="Low Stock Items"
+            value={
+              items.filter(
+                i => (i.availableQuantity ?? 0) <= (i.reorderThreshold ?? 0),
+              ).length
+            }
+            color={colors.red}
+            icon={AlertTriangle}
+          />
         </View>
 
         <SearchBar
@@ -571,6 +639,22 @@ export default function InventoryScreen() {
           setSortDir(dir);
           setSortVisible(false);
         }}
+      />
+
+      <ImportExportModal
+        visible={importVisible}
+        onClose={() => setImportVisible(false)}
+        entityLabel="Item"
+        headers={INVENTORY_IMPORT_HEADERS}
+        templateFilename="inventory_import_template.xlsx"
+        notes={[
+          'Category must be one of: equipment, apparel, consumable, other.',
+          'If Available Quantity is blank, it defaults to Total Quantity.',
+          'Maximum 200 items per import.',
+        ]}
+        previewLine={r => `${r.name} — ${r.category || '—'}`}
+        onImport={rows => inventoryAPI.bulkImport(rows) as any}
+        onImported={load}
       />
 
       <Modal
@@ -883,7 +967,13 @@ export default function InventoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -11,7 +11,18 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Trash2, Edit2, X } from 'lucide-react-native';
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  X,
+  IndianRupee,
+  Wallet,
+  CheckCircle2,
+  Clock,
+  Download,
+  FileSpreadsheet,
+} from 'lucide-react-native';
 import { loanAPI, employeeAPI } from '../api/client';
 import {
   Card,
@@ -22,8 +33,23 @@ import {
   TextField,
   ChipSelect,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
+import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+
+const LOAN_IMPORT_HEADERS: ImportHeader[] = [
+  { key: 'employeeId', label: 'Employee ID', required: true, example: 'EMP0001' },
+  { key: 'type', label: 'Type', required: true, example: 'loan' },
+  { key: 'amount', label: 'Amount', required: true, example: '20000' },
+  { key: 'remainingBalance', label: 'Remaining Balance', required: false, example: '15000' },
+  { key: 'monthlyEmi', label: 'Monthly EMI', required: false, example: '2000' },
+  { key: 'tenureMonths', label: 'Tenure (Months)', required: false, example: '10' },
+  { key: 'reason', label: 'Reason', required: false, example: 'Medical' },
+  { key: 'disbursedOn', label: 'Disbursed On', required: false, example: '2024-01-15' },
+  { key: 'status', label: 'Status', required: false, example: 'active' },
+];
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
@@ -52,6 +78,7 @@ const EMPTY_FORM = {
 
 export default function LoansScreen() {
   const [loans, setLoans] = useState<any[]>([]);
+  const [importVisible, setImportVisible] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -169,6 +196,14 @@ export default function LoansScreen() {
 
   if (loading) return <LoadingView />;
 
+  const totalDisbursed = loans.reduce((sum, l) => sum + (l.amount || 0), 0);
+  const outstanding = loans.reduce(
+    (sum, l) => sum + (l.remainingBalance || 0),
+    0,
+  );
+  const activeCount = loans.filter(l => l.status === 'active').length;
+  const pendingCount = loans.filter(l => l.status === 'pending').length;
+
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
@@ -183,10 +218,74 @@ export default function LoansScreen() {
             <Text style={styles.title}>Loans & Advances</Text>
             <Text style={styles.subtitle}>Employee loan and advance requests</Text>
           </View>
-          <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
-            <Plus size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Add</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              onPress={() =>
+                exportRowsToExcel(
+                  LOAN_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                  loans.map((l: any) => ({
+                    employeeId: l.employee?.employeeId || '',
+                    type: l.type,
+                    amount: l.amount,
+                    remainingBalance: l.remainingBalance,
+                    monthlyEmi: l.monthlyEmi,
+                    tenureMonths: l.tenureMonths,
+                    reason: l.reason,
+                    disbursedOn: l.disbursedOn?.slice(0, 10),
+                    status: l.status,
+                  })),
+                  'loans_export.xlsx',
+                  'Loans',
+                )
+              }
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
+              <Download size={16} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setImportVisible(true)}
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
+              <FileSpreadsheet size={16} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
+              <Plus size={14} color={colors.white} strokeWidth={2.5} />
+              <Text style={styles.addBtnText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Total Disbursed"
+            value={formatCurrency(totalDisbursed)}
+            sub="All loans/advances"
+            color={colors.blue}
+            icon={IndianRupee}
+          />
+          <KpiTile
+            label="Outstanding"
+            value={formatCurrency(outstanding)}
+            sub="Remaining balance"
+            color={colors.orange}
+            icon={Wallet}
+          />
+          <KpiTile
+            label="Active"
+            value={activeCount}
+            sub="Currently active"
+            color={colors.green}
+            icon={CheckCircle2}
+          />
+          <KpiTile
+            label="Pending"
+            value={pendingCount}
+            sub="Awaiting approval"
+            color={colors.purple}
+            icon={Clock}
+          />
         </View>
 
         {loans.length === 0 ? (
@@ -252,6 +351,22 @@ export default function LoansScreen() {
           ))
         )}
       </ScrollView>
+
+      <ImportExportModal
+        visible={importVisible}
+        onClose={() => setImportVisible(false)}
+        entityLabel="Loan"
+        headers={LOAN_IMPORT_HEADERS}
+        templateFilename="loans_import_template.xlsx"
+        notes={[
+          "Employee ID must exactly match an employee's ID (e.g. EMP0001).",
+          'Type must be loan or advance. Imported records are created as active immediately — for backfilling historical records.',
+          'Maximum 200 loans per import.',
+        ]}
+        previewLine={r => `${r.employeeId} — ${r.type} ₹${r.amount || 0}`}
+        onImport={rows => loanAPI.bulkImport(rows) as any}
+        onImported={load}
+      />
 
       <Modal
         visible={formVisible}
@@ -340,7 +455,17 @@ export default function LoansScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -349,6 +474,12 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',

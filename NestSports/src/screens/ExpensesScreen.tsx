@@ -11,7 +11,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Edit2, Trash2, X } from 'lucide-react-native';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Wallet,
+  ListChecks,
+  IndianRupee,
+} from 'lucide-react-native';
 import { expenseAPI } from '../api/client';
 import {
   Card,
@@ -22,6 +30,7 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
+  KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
@@ -150,6 +159,8 @@ export default function ExpensesScreen() {
 
   if (loading) return <LoadingView />;
 
+  const avgExpense = expenses.length ? totalAmount / expenses.length : 0;
+
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
@@ -170,6 +181,30 @@ export default function ExpensesScreen() {
             <Plus size={14} color={colors.white} strokeWidth={2.5} />
             <Text style={styles.addBtnText}>Add</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.kpiGrid}>
+          <KpiTile
+            label="Spent This Month"
+            value={formatCurrency(totalAmount)}
+            sub="This month"
+            color={colors.orange}
+            icon={Wallet}
+          />
+          <KpiTile
+            label="Entries"
+            value={expenses.length}
+            sub="This month"
+            color={colors.blue}
+            icon={ListChecks}
+          />
+          <KpiTile
+            label="Avg. Expense"
+            value={formatCurrency(avgExpense)}
+            sub="Per entry"
+            color={colors.green}
+            icon={IndianRupee}
+          />
         </View>
 
         {expenses.length === 0 ? (
@@ -277,7 +312,7 @@ export default function ExpensesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -286,6 +321,12 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',

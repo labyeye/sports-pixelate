@@ -361,7 +361,7 @@ export default function AddStudentScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.white },
   avatarRow: { alignItems: 'center', marginBottom: 16 },
   avatarHint: {
     fontFamily: FONT.medium,
