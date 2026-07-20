@@ -38,12 +38,21 @@ function uriToBase64(uri: string): Promise<string> {
     );
 }
 
+// Caps dimensions so the re-encoded JPEG stays well under the backend's
+// 3MB avatar limit, even for large camera photos.
+const AVATAR_PICKER_OPTS = {
+  mediaType: 'photo' as const,
+  quality: 0.7 as const,
+  maxWidth: 1024,
+  maxHeight: 1024,
+};
+
 function pickAvatar(onPicked: (uri: string) => void) {
   Alert.alert('Change Photo', 'Choose a source', [
     {
       text: 'Camera',
       onPress: () =>
-        launchCamera({ mediaType: 'photo', quality: 0.7 }, r => {
+        launchCamera(AVATAR_PICKER_OPTS, r => {
           const a: Asset | undefined = r.assets?.[0];
           if (a?.uri) onPicked(a.uri);
         }),
@@ -51,7 +60,7 @@ function pickAvatar(onPicked: (uri: string) => void) {
     {
       text: 'Gallery',
       onPress: () =>
-        launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, r => {
+        launchImageLibrary(AVATAR_PICKER_OPTS, r => {
           const a: Asset | undefined = r.assets?.[0];
           if (a?.uri) onPicked(a.uri);
         }),

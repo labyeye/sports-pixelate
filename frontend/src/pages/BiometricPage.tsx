@@ -1647,7 +1647,7 @@ export default function BiometricPage() {
                       Server Address
                     </span>
                     <code className="flex-1 text-xs font-mono bg-white border border-gray-200 px-2 py-1 text-gray-700 truncate">
-                      {window.location.origin.replace(/^https?:\/\//, "")}
+                      sports-backend.pixelatenest.com
                     </code>
                     <button
                       onClick={() =>

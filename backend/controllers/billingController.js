@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const crypto = require("crypto");
 const Company = require("../models/Company");
+const Employee = require("../models/Employee");
 const Subscription = require("../models/Subscription");
 const Invoice = require("../models/Invoice");
 const User = require("../models/User");
@@ -44,7 +45,14 @@ const getSubscription = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: "No active subscription found" });
-  res.json({ success: true, data: subscription });
+  const currentEmployeeCount = await Employee.countDocuments({
+    company: company._id,
+    status: "active",
+  });
+  res.json({
+    success: true,
+    data: { ...subscription.toObject(), currentEmployeeCount },
+  });
 });
 
 const getInvoices = asyncHandler(async (req, res) => {
@@ -606,6 +614,9 @@ async function _createCompanyAndActivate({
   await company.save();
 
   req.user.company = company._id;
+  if (!req.user.phone && company.phone) {
+    req.user.phone = company.phone;
+  }
   await req.user.save();
 
   let offerCodeDoc = null;
@@ -618,7 +629,7 @@ async function _createCompanyAndActivate({
   }
 
   const invoiceCount = await Invoice.countDocuments();
-  const invoiceNumber = `KHT/HR/${String(invoiceCount + 1).padStart(3, "0")}`;
+  const invoiceNumber = `KHT/SPORTS/${String(invoiceCount + 1).padStart(3, "0")}`;
   await Invoice.create({
     company: company._id,
     subscription: subscription._id,
@@ -747,7 +758,7 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
   });
 
   const invoiceCount = await Invoice.countDocuments();
-  const invoiceNumber = `KHT/HR/${String(invoiceCount + 1).padStart(3, "0")}`;
+  const invoiceNumber = `KHT/SPORTS/${String(invoiceCount + 1).padStart(3, "0")}`;
   await Invoice.create({
     company: company._id,
     subscription: updatedSub._id,

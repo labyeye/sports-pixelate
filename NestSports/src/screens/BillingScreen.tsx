@@ -119,6 +119,12 @@ export default function BillingScreen() {
                   ? ` + ${subscription.maxEmployees} employees`
                   : ''}
               </Text>
+              {subscription.maxEmployees ? (
+                <Text style={styles.sub}>
+                  Employees used: {subscription.currentEmployeeCount ?? 0} /{' '}
+                  {subscription.maxEmployees}
+                </Text>
+              ) : null}
               <Text style={styles.sub}>
                 {subscription.wantsWhatsapp
                   ? 'Includes WhatsApp notifications'

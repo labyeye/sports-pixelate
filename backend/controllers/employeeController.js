@@ -4,6 +4,7 @@ const path = require("path");
 const asyncHandler = require("express-async-handler");
 const Employee = require("../models/Employee");
 const User = require("../models/User");
+const Subscription = require("../models/Subscription");
 const {
   escapeRegex,
   safePagination,
@@ -38,6 +39,25 @@ const updateSchema = {
   designation: { type: "string", minLength: 1, maxLength: 100 },
   role: { enum: ["coach", "staff"] },
 };
+
+// Blocks employee creation once active headcount would exceed the
+// subscription's paid maxEmployees limit (0/unset = unlimited, for plans
+// created before this limit existed).
+async function assertWithinEmployeeLimit(companyId, res, additionalCount = 1) {
+  const subscription = await Subscription.findOne({ company: companyId });
+  if (!subscription || !subscription.maxEmployees) return;
+
+  const activeCount = await Employee.countDocuments({
+    company: companyId,
+    status: "active",
+  });
+  if (activeCount + additionalCount > subscription.maxEmployees) {
+    res.status(400);
+    throw new Error(
+      `Employee limit reached (${activeCount}/${subscription.maxEmployees}). Increase your plan's employee limit in Billing to add more.`,
+    );
+  }
+}
 
 const getEmployees = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
@@ -196,6 +216,8 @@ const createEmployee = [
       res.status(400);
       throw new Error("Invalid salary value");
     }
+
+    await assertWithinEmployeeLimit(req.user.company, res);
 
     let userId;
     const existingUser = await User.findOne({ email: normalizedEmail });
@@ -461,6 +483,8 @@ const bulkImportEmployees = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Maximum 200 employees per import");
   }
+
+  await assertWithinEmployeeLimit(req.user.company, res, rows.length);
 
   const Department = require("../models/Department");
   const Shift = require("../models/Shift");

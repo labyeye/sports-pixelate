@@ -3,6 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { settingsAPI, authAPI } from "@/services/api";
+import { compressImageFile } from "@/lib/imageCompress";
 import { useToast } from "@/hooks/use-toast";
 import {
   Building2,
@@ -782,39 +783,19 @@ export default function SettingsPage() {
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please choose an image under 3 MB",
-        variant: "destructive",
-      });
-      return;
-    }
     setPhotoUploading(true);
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
+      const compressed = await compressImageFile(
+        file,
+        3 * 1024 * 1024,
+        "image/webp",
+      );
+      const finalBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(compressed);
       });
-      let finalBase64 = base64;
-      if (base64.length > 500_000) {
-        const img = new Image();
-        img.src = base64;
-        await new Promise<void>((r) => {
-          img.onload = () => r();
-        });
-        const canvas = document.createElement("canvas");
-        const MAX = 400;
-        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        canvas
-          .getContext("2d")!
-          .drawImage(img, 0, 0, canvas.width, canvas.height);
-        finalBase64 = canvas.toDataURL("image/jpeg", 0.8);
-      }
       await authAPI.updateProfile({ avatar: finalBase64 });
       updateUser({ avatar: finalBase64 });
       toast({ title: "Photo updated" });
@@ -892,6 +873,7 @@ export default function SettingsPage() {
         companyPhone: "",
         companyEmail: user?.company?.email || "",
         companyWebsite: "",
+        companyPAN: "",
         logoUrl: "",
         bankAccountName: "",
         bankAccountNumber: "",
@@ -1274,6 +1256,24 @@ export default function SettingsPage() {
                       value={settings?.companyWebsite || ""}
                       type="url"
                       onChange={handleChange}
+                    />
+                    <InputField
+                      label="Club PAN"
+                      icon={CreditCard}
+                      name="companyPAN"
+                      value={settings?.companyPAN || ""}
+                      maxLength={10}
+                      minLength={10}
+                      pattern="[A-Z]{5}\d{4}[A-Z]{1}"
+                      title="PAN format: e.g. AAAAA0000A"
+                      placeholder="e.g. AAAAA0000A"
+                      onChange={(e) => {
+                        const v = e.target.value.toUpperCase().slice(0, 10);
+                        handleChange({
+                          ...e,
+                          target: { ...e.target, name: "companyPAN", value: v },
+                        });
+                      }}
                     />
                   </div>
 

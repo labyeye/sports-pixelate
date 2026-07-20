@@ -8,6 +8,7 @@ const MIN_QUALITY = 0.4;
 export async function compressImageFile(
   file: File,
   maxSizeBytes: number = MAX_SIZE_BYTES,
+  mimeType: "image/jpeg" | "image/webp" = "image/jpeg",
 ): Promise<File> {
   if (!file.type.startsWith("image/") || file.size <= maxSizeBytes) {
     return file;
@@ -42,7 +43,7 @@ export async function compressImageFile(
       ctx.drawImage(img, 0, 0, width, height);
 
       blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", quality),
+        canvas.toBlob(resolve, mimeType, quality),
       );
       if (!blob) return file;
 
@@ -60,8 +61,9 @@ export async function compressImageFile(
       quality -= 0.1;
     }
 
-    const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-    return new File([blob], newName, { type: "image/jpeg" });
+    const ext = mimeType === "image/webp" ? ".webp" : ".jpg";
+    const newName = file.name.replace(/\.[^.]+$/, "") + ext;
+    return new File([blob], newName, { type: mimeType });
   } catch {
     return file;
   } finally {

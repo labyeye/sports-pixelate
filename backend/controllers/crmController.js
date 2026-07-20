@@ -421,7 +421,7 @@ exports.createCrmCompany = async (req, res) => {
     }
 
     const invoiceCount = await Invoice.countDocuments();
-    const invoiceNumber = `KHT/HR/${String(invoiceCount + 1).padStart(3, "0")}`;
+    const invoiceNumber = `KHT/SPORTS/${String(invoiceCount + 1).padStart(3, "0")}`;
     await Invoice.create({
       company: company._id,
       subscription: subscription._id,

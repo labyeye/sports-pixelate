@@ -32,6 +32,10 @@ const settingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    companyPAN: {
+      type: String,
+      default: "",
+    },
     logoUrl: {
       type: String,
       default: "",

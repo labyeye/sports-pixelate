@@ -343,6 +343,13 @@ export default function SettingsScreen() {
               placeholder="22AAAAA0000A1Z5"
             />
             <TextField
+              label="Club PAN"
+              icon={CreditCard}
+              value={settings?.companyPAN || ''}
+              onChangeText={v => set({ companyPAN: v.toUpperCase() })}
+              placeholder="AAAAA0000A"
+            />
+            <TextField
               label="Website"
               icon={Globe}
               value={settings?.companyWebsite || ''}

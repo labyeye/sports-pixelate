@@ -90,6 +90,13 @@ export default function BillingPage() {
       ? Math.min(Math.round((studentsUsed / studentsMax) * 100), 100)
       : 0;
 
+  const employeesUsed = sub?.currentEmployeeCount ?? 0;
+  const employeesMax = sub?.maxEmployees ?? 0;
+  const employeesPct =
+    employeesMax > 0
+      ? Math.min(Math.round((employeesUsed / employeesMax) * 100), 100)
+      : 0;
+
   const isTrial = sub?.isTrial ?? false;
   const trialEndDate = sub?.trialEndDate ? new Date(sub.trialEndDate) : null;
   const renewalDate = sub?.renewalDate ? new Date(sub.renewalDate) : null;
@@ -349,7 +356,7 @@ export default function BillingPage() {
         </div>
 
         {}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: "Students",
@@ -357,6 +364,13 @@ export default function BillingPage() {
               max: studentsMax,
               pct: studentsPct,
               icon: Users,
+            },
+            {
+              label: "Employees",
+              value: employeesUsed,
+              max: employeesMax,
+              pct: employeesPct,
+              icon: Briefcase,
             },
             {
               label: "Days Remaining",
