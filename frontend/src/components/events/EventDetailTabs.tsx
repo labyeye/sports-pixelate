@@ -14,7 +14,11 @@ interface EventDetailTabsProps {
 // Hand-rolled button-row tab bar (NOT shadcn tabs.tsx) — bold uppercase
 // labels, active tab underlined in #024BAB, matching the flat neo-brutalist
 // convention used elsewhere in the app.
-export function EventDetailTabs({ tabs, active, onChange }: EventDetailTabsProps) {
+export function EventDetailTabs({
+  tabs,
+  active,
+  onChange,
+}: EventDetailTabsProps) {
   return (
     <div className="border-2 border-black bg-white overflow-x-auto mb-4">
       <div className="flex min-w-max">

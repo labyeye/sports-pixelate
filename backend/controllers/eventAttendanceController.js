@@ -4,7 +4,10 @@ const Event = require("../models/Event");
 
 // Read-only shell — no QR check-in/attendance-marking subsystem yet.
 const listAttendance = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");

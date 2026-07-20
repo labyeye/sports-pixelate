@@ -70,25 +70,43 @@ export function GalleryTab({ eventId }: Props) {
         <ImageIcon className="w-4 h-4" /> Gallery ({items.length})
       </h3>
       <div className="mb-4">
-        <FileUpload isImage onFileSelected={upload} uploading={uploading} label="Add photo" />
+        <FileUpload
+          isImage
+          onFileSelected={upload}
+          uploading={uploading}
+          label="Add photo"
+        />
       </div>
       {loading ? (
         <div className="flex justify-center py-6">
           <Loader2 className="w-5 h-5 animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-6">No photos yet — upload one above.</p>
+        <p className="text-xs text-muted-foreground text-center py-6">
+          No photos yet — upload one above.
+        </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {items.map((item) => (
-            <div key={item._id} className="relative border-2 border-black h-28 overflow-hidden group">
-              <img src={item.url} alt={item.caption || ""} className="w-full h-full object-cover" />
+            <div
+              key={item._id}
+              className="relative border-2 border-black h-28 overflow-hidden group"
+            >
+              <img
+                src={item.url}
+                alt={item.caption || ""}
+                className="w-full h-full object-cover"
+              />
               <button
                 onClick={() => remove(item._id)}
                 disabled={busyId === item._id}
                 className="absolute top-1 right-1 bg-white border-2 border-black p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                {busyId === item._id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                {busyId === item._id ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3 h-3" />
+                )}
               </button>
             </div>
           ))}

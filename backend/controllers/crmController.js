@@ -6,7 +6,9 @@ const Subscription = require("../models/Subscription");
 const User = require("../models/User");
 const { calculatePricing } = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
-const { sendCrmAccountCreatedEmail } = require("../services/notificationService");
+const {
+  sendCrmAccountCreatedEmail,
+} = require("../services/notificationService");
 
 const PLAN_NAME = "NestSports";
 
@@ -113,10 +115,14 @@ exports.createCrmOffer = async (req, res) => {
         .status(400)
         .json({ success: false, message: "flatRate must be >= 1" });
     }
-    if (type === "percent_off" && (!percentOff || percentOff < 1 || percentOff > 100)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "percentOff must be between 1 and 100" });
+    if (
+      type === "percent_off" &&
+      (!percentOff || percentOff < 1 || percentOff > 100)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "percentOff must be between 1 and 100",
+      });
     }
 
     const offer = await OfferCode.create({
@@ -260,7 +266,6 @@ exports.createCrmCompany = async (req, res) => {
       companyName,
       companyEmail,
       companyPhone,
-      industry,
       website,
       gstNumber,
       panNumber,
@@ -327,9 +332,22 @@ exports.createCrmCompany = async (req, res) => {
       }
     }
 
-    const pricing = calculatePricing(count, empCount, !!wantsWhatsapp, validatedOffer);
+    const pricing = calculatePricing(
+      count,
+      empCount,
+      !!wantsWhatsapp,
+      validatedOffer,
+    );
     const amountPaid =
       billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
+    const subtotal =
+      billingCycle === "yearly"
+        ? pricing.yearlySubtotal
+        : pricing.monthlySubtotal;
+    const gstAmount =
+      billingCycle === "yearly"
+        ? pricing.yearlyGstAmount
+        : pricing.monthlyGstAmount;
 
     const ownerPassword = crypto.randomBytes(9).toString("base64").slice(0, 12);
     const user = await User.create({
@@ -344,7 +362,6 @@ exports.createCrmCompany = async (req, res) => {
       email: companyEmail.toLowerCase().trim(),
       phone: companyPhone,
       password: crypto.randomBytes(16).toString("hex"),
-      industry,
       website,
       gstNumber,
       panNumber,
@@ -373,6 +390,9 @@ exports.createCrmCompany = async (req, res) => {
       ratePerUnit: pricing.ratePerUnit,
       monthlyPrice: pricing.monthlyPrice,
       yearlyPrice: pricing.yearlyPrice,
+      gstRate: pricing.gstRate,
+      subtotal,
+      gstAmount,
       maxStudents: count,
       maxEmployees: empCount,
       billingCycle,
@@ -409,6 +429,9 @@ exports.createCrmCompany = async (req, res) => {
       plan: PLAN_NAME,
       billingCycle,
       amount: amountPaid,
+      gstRate: pricing.gstRate,
+      subtotal,
+      gstAmount,
       status: "paid",
       paidAt: new Date(),
     });

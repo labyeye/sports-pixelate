@@ -21,6 +21,11 @@ import {
   Building2,
   Users2,
   MapPin,
+  Tag,
+  Layers,
+  Trophy,
+  Users,
+  IndianRupee,
 } from 'lucide-react-native';
 import { facilityAPI } from '../api/client';
 import {
@@ -212,7 +217,9 @@ export default function FacilitiesScreen() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Facilities</Text>
-            <Text style={styles.subtitle}>Sports facilities and hourly rates</Text>
+            <Text style={styles.subtitle}>
+              Sports facilities and hourly rates
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <TouchableOpacity
@@ -223,7 +230,11 @@ export default function FacilitiesScreen() {
               <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
             </TouchableOpacity>
             {isOwner && (
-              <TouchableOpacity onPress={openAdd} style={styles.iconBtn} hitSlop={8}>
+              <TouchableOpacity
+                onPress={openAdd}
+                style={styles.iconBtn}
+                hitSlop={8}
+              >
                 <Plus size={20} color={colors.blue} strokeWidth={2.5} />
               </TouchableOpacity>
             )}
@@ -347,10 +358,13 @@ export default function FacilitiesScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle title="Facility Details" />
             <TextField
               label="Name"
+              icon={Tag}
               value={form.name}
               onChangeText={v => setForm(p => ({ ...p, name: v }))}
               placeholder="e.g. Court 1"
@@ -358,34 +372,49 @@ export default function FacilitiesScreen() {
             />
             <ChipSelect
               label="Type"
+              icon={Layers}
               options={TYPES}
               value={form.type}
               onChange={v => setForm(p => ({ ...p, type: v }))}
             />
             <TextField
               label="Sport"
+              icon={Trophy}
               value={form.sport}
               onChangeText={v => setForm(p => ({ ...p, sport: v }))}
               placeholder="e.g. Tennis"
             />
             <TextField
               label="Capacity"
+              icon={Users}
               value={form.capacity}
               onChangeText={v => setForm(p => ({ ...p, capacity: v }))}
               keyboardType="numeric"
             />
             <TextField
               label="Hourly Fee (₹, 0 = free)"
+              icon={IndianRupee}
               value={form.hourlyFee}
               onChangeText={v => setForm(p => ({ ...p, hourlyFee: v }))}
               keyboardType="numeric"
             />
             <Button
-              title={saving ? 'Saving...' : editingFacility ? 'Update Facility' : 'Save Facility'}
+              title={
+                saving
+                  ? 'Saving...'
+                  : editingFacility
+                  ? 'Update Facility'
+                  : 'Save Facility'
+              }
               onPress={save}
               disabled={saving}
             />
-            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {saving && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -408,7 +437,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 10,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   subtitle: { color: colors.muted, marginTop: 2 },
   iconBtn: {
     width: 36,
@@ -424,7 +458,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  name: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   sub: { color: colors.muted, fontSize: 12, marginTop: 2 },
   fee: { fontWeight: '800', color: colors.blue, fontSize: 15, marginTop: 8 },
   actionsRow: {
@@ -447,5 +486,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
 });

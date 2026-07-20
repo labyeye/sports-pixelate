@@ -269,7 +269,10 @@ const eventImageStorage = multer.diskStorage({
       coverImage: "event-covers",
       bannerImage: "event-banners",
     };
-    cb(null, path.join(UPLOAD_BASE, folderMap[file.fieldname] || "event-covers"));
+    cb(
+      null,
+      path.join(UPLOAD_BASE, folderMap[file.fieldname] || "event-covers"),
+    );
   },
   filename(req, file, cb) {
     const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
@@ -296,7 +299,10 @@ const eventGalleryStorage = multer.diskStorage({
   },
   filename(req, file, cb) {
     const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
-    cb(null, `event_${req.params.id}_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+    cb(
+      null,
+      `event_${req.params.id}_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`,
+    );
   },
 });
 

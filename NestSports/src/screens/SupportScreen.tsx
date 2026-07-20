@@ -10,7 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X, Type, Tag, Flag, FileText, MessageSquare } from 'lucide-react-native';
 import { supportAPI } from '../api/client';
 import {
   Card,
@@ -32,7 +32,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   critical: colors.red,
 };
 
-const ISSUE_TYPES = ['general', 'billing', 'attendance', 'payroll', 'technical'] as const;
+const ISSUE_TYPES = [
+  'general',
+  'billing',
+  'attendance',
+  'payroll',
+  'technical',
+] as const;
 const PRIORITIES = ['low', 'medium', 'high', 'critical'] as const;
 
 function fmt(d: string) {
@@ -52,8 +58,10 @@ export default function SupportScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const [subject, setSubject] = useState('');
-  const [issueType, setIssueType] = useState<(typeof ISSUE_TYPES)[number]>('general');
-  const [priority, setPriority] = useState<(typeof PRIORITIES)[number]>('medium');
+  const [issueType, setIssueType] =
+    useState<(typeof ISSUE_TYPES)[number]>('general');
+  const [priority, setPriority] =
+    useState<(typeof PRIORITIES)[number]>('medium');
   const [description, setDescription] = useState('');
 
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -177,24 +185,28 @@ export default function SupportScreen() {
           <SectionTitle title="New Ticket" />
           <TextField
             label="Subject"
+            icon={Type}
             value={subject}
             onChangeText={setSubject}
             placeholder="Brief summary of the issue"
           />
           <ChipSelect
             label="Issue Type"
+            icon={Tag}
             options={ISSUE_TYPES}
             value={issueType}
             onChange={setIssueType}
           />
           <ChipSelect
             label="Priority"
+            icon={Flag}
             options={PRIORITIES}
             value={priority}
             onChange={setPriority}
           />
           <TextField
             label="Description"
+            icon={FileText}
             value={description}
             onChangeText={setDescription}
             placeholder="Describe the issue in detail"
@@ -246,53 +258,68 @@ export default function SupportScreen() {
             <Text style={styles.formTitle} numberOfLines={1}>
               {selectedTicket?.subject}
             </Text>
-            <TouchableOpacity onPress={() => setSelectedTicket(null)} hitSlop={8}>
+            <TouchableOpacity
+              onPress={() => setSelectedTicket(null)}
+              hitSlop={8}
+            >
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
           {ticketLoading ? (
             <LoadingView />
           ) : (
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            <ScrollView
+              contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+            >
               <Card>
                 <View style={styles.ticketMetaRow}>
                   <Badge
                     label={selectedTicket?.status}
                     color={
-                      selectedTicket?.status === 'closed' ? colors.muted : colors.blue
+                      selectedTicket?.status === 'closed'
+                        ? colors.muted
+                        : colors.blue
                     }
                   />
                   <Badge
                     label={selectedTicket?.priority}
-                    color={PRIORITY_COLORS[selectedTicket?.priority] || colors.blue}
+                    color={
+                      PRIORITY_COLORS[selectedTicket?.priority] || colors.blue
+                    }
                   />
                 </View>
                 <Text style={styles.threadLabel}>Conversation</Text>
                 <View style={styles.thread}>
                   <View style={styles.threadItem}>
                     <Text style={styles.threadAuthor}>
-                      {selectedTicket?.submittedBy?.name || 'Employee'} (Original Request)
+                      {selectedTicket?.submittedBy?.name || 'Employee'}{' '}
+                      (Original Request)
                     </Text>
                     <Text style={styles.threadMessage}>
                       {selectedTicket?.description}
                     </Text>
                     <Text style={styles.threadTime}>
-                      {selectedTicket?.createdAt ? fmt(selectedTicket.createdAt) : ''}
+                      {selectedTicket?.createdAt
+                        ? fmt(selectedTicket.createdAt)
+                        : ''}
                     </Text>
                   </View>
-                  {(selectedTicket?.replies || []).map((r: any, idx: number) => (
-                    <View key={idx} style={styles.threadItem}>
-                      <Text style={styles.threadAuthor}>
-                        {r.user?.name || 'System'}
-                        {r.user?.role ? ` (${r.user.role})` : ''}
-                      </Text>
-                      <Text style={styles.threadMessage}>{r.message}</Text>
-                      <Text style={styles.threadTime}>
-                        {r.createdAt ? fmt(r.createdAt) : ''}
-                      </Text>
-                    </View>
-                  ))}
-                  {(!selectedTicket?.replies || selectedTicket.replies.length === 0) && (
+                  {(selectedTicket?.replies || []).map(
+                    (r: any, idx: number) => (
+                      <View key={idx} style={styles.threadItem}>
+                        <Text style={styles.threadAuthor}>
+                          {r.user?.name || 'System'}
+                          {r.user?.role ? ` (${r.user.role})` : ''}
+                        </Text>
+                        <Text style={styles.threadMessage}>{r.message}</Text>
+                        <Text style={styles.threadTime}>
+                          {r.createdAt ? fmt(r.createdAt) : ''}
+                        </Text>
+                      </View>
+                    ),
+                  )}
+                  {(!selectedTicket?.replies ||
+                    selectedTicket.replies.length === 0) && (
                     <Text style={styles.noReplies}>No replies yet.</Text>
                   )}
                 </View>
@@ -301,6 +328,7 @@ export default function SupportScreen() {
                   <>
                     <TextField
                       label="Reply"
+                      icon={MessageSquare}
                       value={replyMessage}
                       onChangeText={setReplyMessage}
                       placeholder="Type your message..."
@@ -379,10 +407,29 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     gap: 10,
   },
-  threadItem: { borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 8 },
-  threadAuthor: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12, color: colors.black },
-  threadMessage: { fontFamily: FONT.medium, color: colors.muted, fontSize: 12, marginTop: 2 },
+  threadItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingBottom: 8,
+  },
+  threadAuthor: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+  },
+  threadMessage: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
   threadTime: { fontSize: 10, color: '#9CA3AF', marginTop: 4 },
-  noReplies: { fontFamily: FONT.medium, color: colors.muted, fontSize: 12, fontStyle: 'italic' },
+  noReplies: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
   closedNote: { color: colors.red, fontWeight: '700', fontSize: 12 },
 });

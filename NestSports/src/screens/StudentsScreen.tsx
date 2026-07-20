@@ -34,7 +34,10 @@ import {
   LoadMoreFooter,
   SortOption,
 } from '../components/ui';
-import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import {
+  ImportExportModal,
+  ImportHeader,
+} from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
@@ -43,14 +46,49 @@ const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'lastName', label: 'Last Name', required: true, example: 'Mehta' },
   { key: 'sport', label: 'Sport', required: true, example: 'Tennis' },
   { key: 'batch', label: 'Batch', required: false, example: 'Morning U-12' },
-  { key: 'dateOfBirth', label: 'Date of Birth', required: false, example: '2014-05-10' },
+  {
+    key: 'dateOfBirth',
+    label: 'Date of Birth',
+    required: false,
+    example: '2014-05-10',
+  },
   { key: 'gender', label: 'Gender', required: false, example: 'male' },
-  { key: 'enrollmentDate', label: 'Enrollment Date', required: false, example: '2024-01-15' },
-  { key: 'coach', label: 'Coach Name', required: false, example: 'Rahul Sharma' },
-  { key: 'emergencyContact', label: 'Emergency Contact', required: false, example: '9876500000' },
-  { key: 'guardianName', label: 'Guardian Name', required: false, example: 'Priya Mehta' },
-  { key: 'guardianRelation', label: 'Guardian Relation', required: false, example: 'mother' },
-  { key: 'guardianPhone', label: 'Guardian Phone', required: false, example: '9876543210' },
+  {
+    key: 'enrollmentDate',
+    label: 'Enrollment Date',
+    required: false,
+    example: '2024-01-15',
+  },
+  {
+    key: 'coach',
+    label: 'Coach Name',
+    required: false,
+    example: 'Rahul Sharma',
+  },
+  {
+    key: 'emergencyContact',
+    label: 'Emergency Contact',
+    required: false,
+    example: '9876500000',
+  },
+  {
+    key: 'guardianName',
+    label: 'Guardian Name',
+    required: false,
+    example: 'Priya Mehta',
+  },
+  {
+    key: 'guardianRelation',
+    label: 'Guardian Relation',
+    required: false,
+    example: 'mother',
+  },
+  {
+    key: 'guardianPhone',
+    label: 'Guardian Phone',
+    required: false,
+    example: '9876543210',
+  },
 ];
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
@@ -235,7 +273,10 @@ export default function StudentsScreen({ navigation }: any) {
           <TouchableOpacity
             onPress={() =>
               exportRowsToExcel(
-                STUDENT_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                STUDENT_IMPORT_HEADERS.map(h => ({
+                  key: h.key,
+                  label: h.label,
+                })),
                 students,
                 'students_export.xlsx',
                 'Students',
@@ -280,7 +321,11 @@ export default function StudentsScreen({ navigation }: any) {
       </View>
 
       <View style={styles.pillWrap}>
-        <StatPills options={statPillOptions} value={status} onChange={setStatus} />
+        <StatPills
+          options={statPillOptions}
+          value={status}
+          onChange={setStatus}
+        />
       </View>
 
       <FlatList
@@ -327,9 +372,15 @@ export default function StudentsScreen({ navigation }: any) {
                     {s.batch || 'No batch'}
                   </Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                <View
+                  style={[styles.statusBadge, { backgroundColor: statusColor }]}
+                >
                   <Text style={styles.statusText}>
-                    {(STATUS_CONFIG[s.status]?.label || s.status || '').toUpperCase()}
+                    {(
+                      STATUS_CONFIG[s.status]?.label ||
+                      s.status ||
+                      ''
+                    ).toUpperCase()}
                   </Text>
                 </View>
               </View>
@@ -367,16 +418,23 @@ export default function StudentsScreen({ navigation }: any) {
 
               <View style={styles.cardBottom}>
                 <View style={styles.typePill}>
-                  <Text style={styles.typePillText}>{(s.sport || '').toUpperCase()}</Text>
+                  <Text style={styles.typePillText}>
+                    {(s.sport || '').toUpperCase()}
+                  </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
                     style={styles.editBtn}
-                    onPress={() => navigation.navigate('AddStudent', { student: s })}
+                    onPress={() =>
+                      navigation.navigate('AddStudent', { student: s })
+                    }
                   >
                     <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(s)}>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => onDelete(s)}
+                  >
                     <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
                   </TouchableOpacity>
                 </View>
@@ -496,12 +554,37 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
   },
   avatarImg: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
-  avatarText: { color: colors.white, fontWeight: '700', fontSize: 14, fontFamily: FONT.bold },
-  empName: { fontSize: 15, fontWeight: '700', color: colors.black, fontFamily: FONT.bold },
+  avatarText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: FONT.bold,
+  },
+  empName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   empId: { fontSize: 11, color: colors.muted, fontFamily: 'monospace' },
-  empDesig: { fontSize: 12, color: colors.muted, fontWeight: '500', marginTop: 1 },
-  statusBadge: { borderWidth: 2, borderColor: colors.black, paddingHorizontal: 6, paddingVertical: 2 },
-  statusText: { fontSize: 9, fontWeight: '700', color: colors.white, fontFamily: FONT.bold },
+  empDesig: {
+    fontSize: 12,
+    color: colors.muted,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  statusBadge: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.white,
+    fontFamily: FONT.bold,
+  },
   cardMeta: { marginTop: 10, gap: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   parentRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -540,7 +623,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  typePillText: { fontSize: 9, fontWeight: '700', color: colors.blue, fontFamily: FONT.bold },
+  typePillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.blue,
+    fontFamily: FONT.bold,
+  },
   editBtn: {
     width: 30,
     height: 30,

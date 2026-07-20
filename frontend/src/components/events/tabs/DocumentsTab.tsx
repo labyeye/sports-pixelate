@@ -59,17 +59,39 @@ export function DocumentsTab({ event, onChanged }: Props) {
       </h3>
       <div className="space-y-2 mb-4">
         {event.documents.map((d) => (
-          <div key={d._id} className="flex items-center justify-between border-2 border-black/10 px-3 py-2">
-            <a href={d.url} target="_blank" rel="noreferrer" className="text-sm font-bold hover:underline">
+          <div
+            key={d._id}
+            className="flex items-center justify-between border-2 border-black/10 px-3 py-2"
+          >
+            <a
+              href={d.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-bold hover:underline"
+            >
               {d.label || KIND_LABELS[d.kind]}
-              <span className="ml-2 text-[11px] text-muted-foreground font-normal">{KIND_LABELS[d.kind]}</span>
+              <span className="ml-2 text-[11px] text-muted-foreground font-normal">
+                {KIND_LABELS[d.kind]}
+              </span>
             </a>
-            <button onClick={() => remove(d._id)} disabled={busyId === d._id} className="text-red-500 hover:text-red-700">
-              {busyId === d._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            <button
+              onClick={() => remove(d._id)}
+              disabled={busyId === d._id}
+              className="text-red-500 hover:text-red-700"
+            >
+              {busyId === d._id ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
         ))}
-        {event.documents.length === 0 && <p className="text-xs text-muted-foreground">No documents uploaded yet</p>}
+        {event.documents.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No documents uploaded yet
+          </p>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
         <div>
@@ -87,7 +109,9 @@ export function DocumentsTab({ event, onChanged }: Props) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase mb-1">Label (optional)</label>
+          <label className="block text-xs font-bold uppercase mb-1">
+            Label (optional)
+          </label>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}

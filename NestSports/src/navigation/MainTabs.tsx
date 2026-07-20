@@ -8,12 +8,18 @@ import {
   ClipboardCheck,
   UserCheck,
   Package,
+  Clock,
+  Wallet,
+  CalendarClock,
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import DashboardScreen from '../screens/DashboardScreen';
 import MyProfileScreen from '../screens/MyProfileScreen';
 import ParentHomeScreen from '../screens/ParentHomeScreen';
+import ParentAttendanceScreen from '../screens/ParentAttendanceScreen';
+import SubscriptionsScreen from '../screens/SubscriptionsScreen';
+import BookingsScreen from '../screens/BookingsScreen';
 import StudentAttendanceScreen from '../screens/StudentAttendanceScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import InventoryScreen from '../screens/InventoryScreen';
@@ -24,14 +30,17 @@ const Tab = createBottomTabNavigator();
 
 const OWNER: UserRole[] = ['super_admin', 'hr_manager'];
 const OWNER_STAFF: UserRole[] = ['super_admin', 'hr_manager', 'employee'];
+const PARENT: UserRole[] = ['parent'];
 
 // The role picks which screen sits behind the "Home" tab — same split as
 // RootRedirect in the web app's App.tsx (owner -> Dashboard, employee ->
 // My Profile, parent -> Parent Home).
-function HomeTabScreen() {
+function HomeTabScreen({ navigation }: any) {
   const { user } = useAuth();
-  if (user?.role === 'employee') return <MyProfileScreen />;
-  if (user?.role === 'parent') return <ParentHomeScreen />;
+  if (user?.role === 'employee')
+    return <MyProfileScreen navigation={navigation} />;
+  if (user?.role === 'parent')
+    return <ParentHomeScreen navigation={navigation} />;
   return <DashboardScreen />;
 }
 
@@ -65,6 +74,51 @@ export default function MainTabs() {
           ),
         }}
       />
+      {role && PARENT.includes(role) && (
+        <Tab.Screen
+          name="ParentAttendanceTab"
+          component={ParentAttendanceScreen}
+          options={{
+            title: 'Attendance',
+            tabBarLabel: 'Attendance',
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+                <Clock color={color} size={20} strokeWidth={2} />
+              </View>
+            ),
+          }}
+        />
+      )}
+      {role && PARENT.includes(role) && (
+        <Tab.Screen
+          name="SubscriptionsTab"
+          component={SubscriptionsScreen}
+          options={{
+            title: 'Subscriptions',
+            tabBarLabel: 'Wallet',
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+                <Wallet color={color} size={20} strokeWidth={2} />
+              </View>
+            ),
+          }}
+        />
+      )}
+      {role && PARENT.includes(role) && (
+        <Tab.Screen
+          name="BookingsTab"
+          component={BookingsScreen}
+          options={{
+            title: 'Bookings',
+            tabBarLabel: 'Bookings',
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+                <CalendarClock color={color} size={20} strokeWidth={2} />
+              </View>
+            ),
+          }}
+        />
+      )}
       {role && OWNER_STAFF.includes(role) && (
         <Tab.Screen
           name="StudentAttendanceTab"

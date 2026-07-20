@@ -3,32 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supportAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { cn, formatDate } from "@/lib/utils";
 import {
   Plus,
   TicketCheck,
@@ -36,8 +11,16 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  X,
+  Type,
+  Tag,
+  Flag,
+  FileText,
+  Send,
+  User,
+  Calendar,
+  Loader2,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
 
 const ISSUE_TYPES = [
   { value: "attendance", label: "Attendance" },
@@ -64,41 +47,41 @@ const PRIORITIES = [
   { value: "critical", label: "Critical" },
 ];
 
-const STATUS_CONFIG: Record<
+const STATUS_META: Record<
   string,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-    icon: React.ReactNode;
-  }
+  { label: string; icon: any; classes: string; bg: string }
 > = {
   open: {
     label: "Open",
-    variant: "secondary",
-    icon: <Clock className="h-3 w-3" />,
+    icon: Clock,
+    classes: "border-[#024BAB] text-[#024BAB]",
+    bg: "bg-[#024BAB]/10",
   },
   in_progress: {
     label: "In Progress",
-    variant: "default",
-    icon: <AlertCircle className="h-3 w-3" />,
+    icon: AlertCircle,
+    classes: "border-[#FA731C] text-[#FA731C]",
+    bg: "bg-[#FA731C]/10",
   },
   resolved: {
     label: "Resolved",
-    variant: "outline",
-    icon: <CheckCircle2 className="h-3 w-3" />,
+    icon: CheckCircle2,
+    classes: "border-[#00C48C] text-[#00C48C]",
+    bg: "bg-[#00C48C]/10",
   },
   closed: {
     label: "Closed",
-    variant: "destructive",
-    icon: <XCircle className="h-3 w-3" />,
+    icon: XCircle,
+    classes: "border-gray-400 text-gray-500",
+    bg: "bg-gray-100",
   },
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "text-green-600 bg-green-50",
-  medium: "text-yellow-600 bg-yellow-50",
-  high: "text-orange-600 bg-orange-50",
-  critical: "text-red-600 bg-red-50",
+  low: "border-[#00C48C] bg-[#00C48C]/10 text-[#00C48C]",
+  medium: "border-[#FBBF24] bg-[#FBBF24]/10 text-[#92700C]",
+  high: "border-[#FA731C] bg-[#FA731C]/10 text-[#FA731C]",
+  critical: "border-[#EF4444] bg-[#EF4444]/10 text-[#EF4444]",
 };
 
 interface Ticket {
@@ -120,18 +103,43 @@ interface Ticket {
   }>;
 }
 
+const EMPTY_FORM = {
+  subject: "",
+  issueType: "",
+  priority: "medium",
+  description: "",
+};
+
 export default function SupportPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const fetchTickets = async () => {
+    try {
+      const res = await supportAPI.getAll();
+      setTickets(res.data);
+    } catch {
+      toast({ title: "Failed to load tickets", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
   const handleSendReply = async () => {
     if (!replyMessage.trim() || !selectedTicket) return;
+    setSendingReply(true);
     try {
       const res = await supportAPI.reply(selectedTicket._id, replyMessage);
       if (res.success) {
@@ -146,6 +154,8 @@ export default function SupportPage() {
         description: err.message,
         variant: "destructive",
       });
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -168,28 +178,6 @@ export default function SupportPage() {
     }
   };
 
-  const [form, setForm] = useState({
-    subject: "",
-    issueType: "",
-    priority: "medium",
-    description: "",
-  });
-
-  const fetchTickets = async () => {
-    try {
-      const res = await supportAPI.getAll();
-      setTickets(res.data);
-    } catch {
-      toast({ title: "Failed to load tickets", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTickets();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.subject.trim() || !form.issueType || !form.description.trim()) {
@@ -203,13 +191,8 @@ export default function SupportPage() {
     try {
       await supportAPI.create(form);
       toast({ title: "Ticket submitted successfully" });
-      setForm({
-        subject: "",
-        issueType: "",
-        priority: "medium",
-        description: "",
-      });
-      setDialogOpen(false);
+      setForm(EMPTY_FORM);
+      setShowModal(false);
       fetchTickets();
     } catch (err: any) {
       toast({
@@ -234,364 +217,446 @@ export default function SupportPage() {
 
   return (
     <AppLayout title="Support">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Support Tickets</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Report issues and track their resolution status
-            </p>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Ticket
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Submit a Support Ticket</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="subject">Subject *</Label>
-                  <Input
-                    id="subject"
-                    placeholder="Brief summary of the issue"
-                    value={form.subject}
-                    onChange={(e) =>
-                      setForm({ ...form, subject: e.target.value })
-                    }
-                    maxLength={200}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>Issue Type *</Label>
-                    <Select
-                      value={form.issueType}
-                      onValueChange={(v) => setForm({ ...form, issueType: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ISSUE_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Priority</Label>
-                    <Select
-                      value={form.priority}
-                      onValueChange={(v) => setForm({ ...form, priority: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITIES.map((p) => (
-                          <SelectItem key={p.value} value={p.value}>
-                            {p.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe the issue in detail — steps to reproduce, error messages, affected employees, etc."
-                    rows={5}
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
-                    maxLength={2000}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {form.description.length}/2000
-                  </p>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Submitting..." : "Submit Ticket"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 className="font-display font-bold text-2xl text-black">
+            Support Tickets
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Report issues and track their resolution status
+          </p>
         </div>
+        <button
+          onClick={() => {
+            setForm(EMPTY_FORM);
+            setShowModal(true);
+          }}
+          className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+        >
+          <Plus className="w-4 h-4" /> New Ticket
+        </button>
+      </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Object.entries(statusCounts).map(([status, count]) => {
-            const cfg = STATUS_CONFIG[status];
+      {}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        {Object.entries(statusCounts).map(([status, count]) => {
+          const meta = STATUS_META[status];
+          const Icon = meta.icon;
+          return (
+            <div
+              key={status}
+              className="border-2 border-black bg-white p-4 flex items-center gap-3"
+            >
+              <div
+                className={cn(
+                  "w-10 h-10 border-2 flex items-center justify-center shrink-0",
+                  meta.bg,
+                  meta.classes.split(" ")[0],
+                )}
+              >
+                <Icon className={cn("w-5 h-5", meta.classes.split(" ")[1])} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  {meta.label}
+                </p>
+                <p className="text-2xl font-bold text-black">{count}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </div>
+      ) : tickets.length === 0 ? (
+        <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
+          <TicketCheck className="w-12 h-12 text-muted-foreground/30 mb-3" />
+          <p className="font-bold text-black">No support tickets yet</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Create a ticket to report an issue
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tickets.map((ticket) => {
+            const meta = STATUS_META[ticket.status] || STATUS_META.open;
+            const Icon = meta.icon;
             return (
-              <Card key={status}>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">{cfg.icon}</span>
-                    <span className="text-sm text-muted-foreground capitalize">
-                      {cfg.label}
-                    </span>
+              <button
+                key={ticket._id}
+                onClick={() => setSelectedTicket(ticket)}
+                className="w-full text-left border-2 border-black bg-white p-4 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {ticket.ticketNumber}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase px-2 py-0.5 border-2",
+                          PRIORITY_COLORS[ticket.priority],
+                        )}
+                      >
+                        {ticket.priority}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 border-2 border-black/10 bg-gray-50 text-muted-foreground">
+                        {ISSUE_TYPES.find((t) => t.value === ticket.issueType)
+                          ?.label || ticket.issueType}
+                      </span>
+                    </div>
+                    <p className="font-bold text-black truncate">
+                      {ticket.subject}
+                    </p>
+                    <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+                      {ticket.description}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      {isAdmin && (
+                        <span>
+                          By{" "}
+                          {ticket.submittedBy?.name ||
+                            ticket.submittedBy?.email}
+                        </span>
+                      )}
+                      <span>{formatDate(ticket.createdAt)}</span>
+                    </div>
                   </div>
-                  <p className="text-2xl font-bold mt-1">{count}</p>
-                </CardContent>
-              </Card>
+                  <span
+                    className={cn(
+                      "shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-1 border-2",
+                      meta.classes,
+                      meta.bg,
+                    )}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {meta.label}
+                  </span>
+                </div>
+              </button>
             );
           })}
         </div>
+      )}
 
-        {/* Ticket list */}
-        {loading ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Loading tickets...
-          </div>
-        ) : tickets.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <TicketCheck className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="font-medium">No support tickets yet</p>
-              <p className="text-sm text-muted-foreground">
-                Create a ticket to report an issue
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {tickets.map((ticket) => {
-              const cfg = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.open;
-              return (
-                <Card
-                  key={ticket._id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedTicket(ticket)}
-                >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono text-muted-foreground">
-                            {ticket.ticketNumber}
-                          </span>
-                          <span
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_COLORS[ticket.priority]}`}
-                          >
-                            {ticket.priority}
-                          </span>
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {ISSUE_TYPES.find(
-                              (t) => t.value === ticket.issueType,
-                            )?.label || ticket.issueType}
-                          </span>
-                        </div>
-                        <p className="font-medium mt-1 truncate">
-                          {ticket.subject}
-                        </p>
-                        <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                          {ticket.description}
-                        </p>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          {isAdmin && (
-                            <span>
-                              By{" "}
-                              {ticket.submittedBy?.name ||
-                                ticket.submittedBy?.email}
-                            </span>
-                          )}
-                          <span>{formatDate(ticket.createdAt)}</span>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={cfg.variant}
-                        className="flex items-center gap-1 shrink-0"
-                      >
-                        {cfg.icon}
-                        {cfg.label}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Ticket detail dialog */}
-      <Dialog
-        open={!!selectedTicket}
-        onOpenChange={(open) => !open && setSelectedTicket(null)}
-      >
-        <DialogContent className="max-w-lg">
-          {selectedTicket && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-muted-foreground">
-                    {selectedTicket.ticketNumber}
-                  </span>
-                  <Badge
-                    variant={
-                      STATUS_CONFIG[selectedTicket.status]?.variant ||
-                      "secondary"
+      {}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="border-2 border-black bg-white w-full max-w-lg max-h-[95vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b-2 border-black bg-[#024BAB]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white flex items-center justify-center shrink-0">
+                  <TicketCheck className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold text-lg text-white">
+                  Submit a Support Ticket
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-white hover:text-white/70 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form
+              onSubmit={handleSubmit}
+              className="flex-1 overflow-y-auto p-6 space-y-4"
+            >
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                  <Type className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Subject <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  placeholder="Brief summary of the issue"
+                  value={form.subject}
+                  onChange={(e) =>
+                    setForm({ ...form, subject: e.target.value })
+                  }
+                  maxLength={200}
+                  className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                    <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Issue Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={form.issueType}
+                    onChange={(e) =>
+                      setForm({ ...form, issueType: e.target.value })
                     }
+                    className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30 bg-white"
                   >
-                    {STATUS_CONFIG[selectedTicket.status]?.label ||
-                      selectedTicket.status}
-                  </Badge>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-2">
-                <div>
-                  <p className="font-semibold text-lg">
-                    {selectedTicket.subject}
-                  </p>
+                    <option value="">Select type</option>
+                    {ISSUE_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Issue Type</p>
-                    <p className="font-medium">
-                      {
-                        ISSUE_TYPES.find(
-                          (t) => t.value === selectedTicket.issueType,
-                        )?.label
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Priority</p>
-                    <p
-                      className={`font-medium capitalize ${PRIORITY_COLORS[selectedTicket.priority]?.split(" ")[0]}`}
-                    >
-                      {selectedTicket.priority}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Submitted</p>
-                    <p className="font-medium">
-                      {formatDate(selectedTicket.createdAt)}
-                    </p>
-                  </div>
-                  {isAdmin && (
-                    <div>
-                      <p className="text-muted-foreground">Submitted By</p>
-                      <p className="font-medium">
-                        {selectedTicket.submittedBy?.name ||
-                          selectedTicket.submittedBy?.email}
-                      </p>
-                    </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                    <Flag className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Priority
+                  </label>
+                  <select
+                    value={form.priority}
+                    onChange={(e) =>
+                      setForm({ ...form, priority: e.target.value })
+                    }
+                    className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30 bg-white"
+                  >
+                    {PRIORITIES.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                  <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  placeholder="Describe the issue in detail — steps to reproduce, error messages, affected employees, etc."
+                  rows={5}
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  maxLength={2000}
+                  className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none resize-none focus:ring-2 focus:ring-[#024BAB]/30"
+                />
+                <p className="text-xs text-muted-foreground text-right mt-1">
+                  {form.description.length}/2000
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="border-2 border-black bg-[#024BAB] text-white px-6 py-2.5 text-sm font-bold flex-1 disabled:opacity-60"
+                >
+                  {submitting ? "Submitting..." : "Submit Ticket"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="border-2 border-black bg-white text-black px-4 py-2.5 text-sm font-bold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {}
+      {selectedTicket && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="border-2 border-black bg-white w-full max-w-lg max-h-[95vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b-2 border-black bg-[#024BAB]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xs font-mono text-white/70 shrink-0">
+                  {selectedTicket.ticketNumber}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-1 border-2 bg-white",
+                    STATUS_META[selectedTicket.status]?.classes ||
+                      STATUS_META.open.classes,
                   )}
-                </div>
+                >
+                  {(() => {
+                    const meta =
+                      STATUS_META[selectedTicket.status] || STATUS_META.open;
+                    const Icon = meta.icon;
+                    return (
+                      <>
+                        <Icon className="w-3 h-3" />
+                        {meta.label}
+                      </>
+                    );
+                  })()}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedTicket(null)}
+                className="text-white hover:text-white/70 p-1 shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <p className="font-bold text-lg text-black">
+                {selectedTicket.subject}
+              </p>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground text-sm">Description</p>
-                  <p className="mt-1 text-sm whitespace-pre-wrap">
-                    {selectedTicket.description}
+                  <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
+                    <Tag className="w-3 h-3" /> Issue Type
+                  </p>
+                  <p className="font-bold text-black mt-0.5">
+                    {
+                      ISSUE_TYPES.find(
+                        (t) => t.value === selectedTicket.issueType,
+                      )?.label
+                    }
                   </p>
                 </div>
-                {selectedTicket.resolvedNote && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                    <p className="text-xs font-medium text-green-700 mb-1">
-                      Resolution Note
+                <div>
+                  <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
+                    <Flag className="w-3 h-3" /> Priority
+                  </p>
+                  <span
+                    className={cn(
+                      "inline-block text-[10px] font-bold uppercase px-2 py-0.5 border-2 mt-0.5",
+                      PRIORITY_COLORS[selectedTicket.priority],
+                    )}
+                  >
+                    {selectedTicket.priority}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3" /> Submitted
+                  </p>
+                  <p className="font-bold text-black mt-0.5">
+                    {formatDate(selectedTicket.createdAt)}
+                  </p>
+                </div>
+                {isAdmin && (
+                  <div>
+                    <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
+                      <User className="w-3 h-3" /> Submitted By
                     </p>
-                    <p className="text-sm text-green-800">
-                      {selectedTicket.resolvedNote}
+                    <p className="font-bold text-black mt-0.5">
+                      {selectedTicket.submittedBy?.name ||
+                        selectedTicket.submittedBy?.email}
                     </p>
                   </div>
                 )}
+              </div>
 
-                {/* Conversations & Replies */}
-                <div className="border-t border-black/10 pt-4 space-y-4">
-                  <p className="text-xs font-bold uppercase text-black">
-                    Conversation History
+              <div>
+                <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5 mb-1">
+                  <FileText className="w-3 h-3" /> Description
+                </p>
+                <p className="text-sm text-black whitespace-pre-wrap">
+                  {selectedTicket.description}
+                </p>
+              </div>
+
+              {selectedTicket.resolvedNote && (
+                <div className="border-2 border-[#00C48C] bg-[#00C48C]/10 p-3">
+                  <p className="text-xs font-bold uppercase text-[#00C48C] mb-1">
+                    Resolution Note
                   </p>
-                  <div className="max-h-40 overflow-y-auto space-y-2.5 p-2 bg-[#F8FAFF] border border-black/5">
-                    {/* Original Description */}
-                    <div className="text-xs border-b border-black/5 pb-2">
-                      <p className="font-bold text-black">
-                        {selectedTicket.submittedBy?.name || "Employee"}{" "}
+                  <p className="text-sm text-black">
+                    {selectedTicket.resolvedNote}
+                  </p>
+                </div>
+              )}
+
+              {}
+              <div className="border-t-2 border-black pt-4 space-y-3">
+                <p className="text-xs font-bold uppercase text-black">
+                  Conversation History
+                </p>
+                <div className="max-h-40 overflow-y-auto space-y-2.5 p-3 bg-[#F8FAFF] border-2 border-black">
+                  <div className="text-xs border-b border-black/10 pb-2">
+                    <p className="font-bold text-black">
+                      {selectedTicket.submittedBy?.name || "Employee"}{" "}
+                      <span className="font-normal text-muted-foreground">
                         (Original Request)
+                      </span>
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 whitespace-pre-wrap">
+                      {selectedTicket.description}
+                    </p>
+                    <p className="text-[9px] text-gray-400 mt-1">
+                      {formatDate(selectedTicket.createdAt)}
+                    </p>
+                  </div>
+                  {selectedTicket.replies?.map((r: any, idx: number) => (
+                    <div key={idx} className="text-xs">
+                      <p className="font-bold text-black">
+                        {r.user?.name || "System"}{" "}
+                        <span className="text-[9px] font-normal uppercase text-muted-foreground">
+                          ({r.user?.role})
+                        </span>
                       </p>
                       <p className="text-muted-foreground mt-0.5 whitespace-pre-wrap">
-                        {selectedTicket.description}
+                        {r.message}
                       </p>
                       <p className="text-[9px] text-gray-400 mt-1">
-                        {formatDate(selectedTicket.createdAt)}
+                        {formatDate(r.createdAt)}
                       </p>
                     </div>
-                    {/* Replies */}
-                    {selectedTicket.replies?.map((r: any, idx: number) => (
-                      <div key={idx} className="text-xs">
-                        <p className="font-bold text-black">
-                          {r.user?.name || "System"}{" "}
-                          <span className="text-[9px] font-normal uppercase text-muted-foreground">
-                            ({r.user?.role})
-                          </span>
-                        </p>
-                        <p className="text-muted-foreground mt-0.5 whitespace-pre-wrap">
-                          {r.message}
-                        </p>
-                        <p className="text-[9px] text-gray-400 mt-1">
-                          {formatDate(r.createdAt)}
-                        </p>
-                      </div>
-                    ))}
-                    {(!selectedTicket.replies ||
-                      selectedTicket.replies.length === 0) && (
-                      <p className="text-[11px] text-muted-foreground italic">
-                        No replies yet.
-                      </p>
-                    )}
-                  </div>
-
-                  {selectedTicket.status !== "closed" ? (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Type your message..."
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        className="text-xs flex-1"
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && handleSendReply()
-                        }
-                      />
-                      <Button size="sm" onClick={handleSendReply}>
-                        Send
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={handleCloseTicket}
-                      >
-                        Close
-                      </Button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-red-500 font-bold">
-                      This ticket is closed. No further replies allowed.
+                  ))}
+                  {(!selectedTicket.replies ||
+                    selectedTicket.replies.length === 0) && (
+                    <p className="text-[11px] text-muted-foreground italic">
+                      No replies yet.
                     </p>
                   )}
                 </div>
+
+                {selectedTicket.status !== "closed" ? (
+                  <div className="flex gap-2">
+                    <input
+                      placeholder="Type your message..."
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
+                      className="border-2 border-black flex-1 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                    />
+                    <button
+                      onClick={handleSendReply}
+                      disabled={sendingReply || !replyMessage.trim()}
+                      className="border-2 border-black bg-[#024BAB] text-white px-3 py-2 text-xs font-bold flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {sendingReply ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={handleCloseTicket}
+                      className="border-2 border-black bg-white text-[#EF4444] px-3 py-2 text-xs font-bold hover:bg-red-50"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#EF4444] font-bold">
+                    This ticket is closed. No further replies allowed.
+                  </p>
+                )}
               </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

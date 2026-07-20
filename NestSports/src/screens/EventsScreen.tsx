@@ -172,7 +172,11 @@ export default function EventsScreen({ navigation }: any) {
         </View>
         <View style={styles.sortRow}>
           <View style={{ flex: 1 }}>
-            <FilterPills options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+            <FilterPills
+              options={STATUS_OPTIONS}
+              value={status}
+              onChange={setStatus}
+            />
           </View>
           <TouchableOpacity
             onPress={() => setSortVisible(true)}
@@ -184,7 +188,13 @@ export default function EventsScreen({ navigation }: any) {
         </View>
 
         <View style={styles.kpiGrid}>
-          <KpiTile label="Events" value={events.length} sub="Total" color={colors.blue} icon={Trophy} />
+          <KpiTile
+            label="Events"
+            value={events.length}
+            sub="Total"
+            color={colors.blue}
+            icon={Trophy}
+          />
           <KpiTile
             label="Upcoming"
             value={events.filter(e => e.status === 'upcoming').length}
@@ -222,32 +232,46 @@ export default function EventsScreen({ navigation }: any) {
           }
           ListEmptyComponent={
             <Card>
-              <EmptyState title="No events found" sub="Try adjusting your filters" icon={Trophy} />
+              <EmptyState
+                title="No events found"
+                sub="Try adjusting your filters"
+                icon={Trophy}
+              />
             </Card>
           }
           renderItem={({ item: e }) => (
-            <TouchableOpacity onPress={() => navigation.navigate('EventDetail', { id: e._id })}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('EventDetail', { id: e._id })}
+            >
               <Card>
                 <View style={styles.topRow}>
                   <View style={styles.iconChip}>
                     <Trophy size={16} color={colors.blue} strokeWidth={2.5} />
                   </View>
-                  <Badge label={e.status?.replace(/_/g, ' ') || '-'} color={STATUS_COLORS[e.status] || colors.blue} />
+                  <Badge
+                    label={e.status?.replace(/_/g, ' ') || '-'}
+                    color={STATUS_COLORS[e.status] || colors.blue}
+                  />
                 </View>
                 <Text style={styles.name}>{e.name}</Text>
                 <Text style={styles.meta}>
-                  {(eventTypes as any)[e.eventType]?.label || e.eventType} · {e.activity}
+                  {(eventTypes as any)[e.eventType]?.label || e.eventType} ·{' '}
+                  {e.activity}
                 </Text>
                 <View style={styles.bottomRow}>
                   <View style={styles.teamsCount}>
                     <Users size={13} color={colors.black} strokeWidth={2.5} />
                     <Text style={styles.teamsCountText}>
                       {e.participation?.type === 'team'
-                        ? `${e.teams?.length || 0} team${e.teams?.length === 1 ? '' : 's'}`
+                        ? `${e.teams?.length || 0} team${
+                            e.teams?.length === 1 ? '' : 's'
+                          }`
                         : `${e.registrationCount || 0} registered`}
                     </Text>
                   </View>
-                  <Text style={styles.entryFeeText}>{e.entryFee ? `₹${e.entryFee} entry` : 'Free entry'}</Text>
+                  <Text style={styles.entryFeeText}>
+                    {e.entryFee ? `₹${e.entryFee} entry` : 'Free entry'}
+                  </Text>
                   <ChevronRight size={16} color={colors.muted} />
                 </View>
               </Card>
@@ -277,14 +301,68 @@ const styles = StyleSheet.create({
   addBtn: { paddingHorizontal: 4 },
   headerRow: { marginBottom: 0 },
   sortRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  sortBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderWidth: 2, borderColor: colors.black, marginBottom: 12 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  iconChip: { width: 32, height: 32, borderWidth: 2, borderColor: colors.blue, backgroundColor: '#024BAB1A', alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 15, color: colors.black },
-  meta: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#0000001A' },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  sortBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.black,
+    marginBottom: 12,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  iconChip: {
+    width: 32,
+    height: 32,
+    borderWidth: 2,
+    borderColor: colors.blue,
+    backgroundColor: '#024BAB1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 15,
+    color: colors.black,
+  },
+  meta: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#0000001A',
+  },
   teamsCount: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  teamsCountText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12, color: colors.black },
-  entryFeeText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12, color: colors.blue },
+  teamsCountText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+  },
+  entryFeeText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.blue,
+  },
 });

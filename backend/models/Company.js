@@ -6,7 +6,6 @@ const companySchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true },
     phone: { type: String, required: true },
     password: { type: String, required: true, minlength: 6 },
-    industry: { type: String },
     website: { type: String },
     address: { type: String },
     city: { type: String },

@@ -24,11 +24,6 @@ const loginSchema = {
 
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-// Owner roles (super_admin/hr_manager) may sign in with either email/password
-// or phone OTP. Everyone else (coaches, staff, parents, etc.) is OTP-only —
-// enforced here so it can't be bypassed by calling this endpoint directly.
-const OWNER_ROLES = ["super_admin", "hr_manager"];
-
 const register = [
   validateBody(registerSchema),
   asyncHandler(async (req, res) => {
@@ -73,7 +68,7 @@ const login = [
 
     const user = await User.findOne({ email: email.toLowerCase() }).populate({
       path: "company",
-      select: "name email phone status subscription industry website",
+      select: "name email phone status subscription website",
       populate: {
         path: "subscription",
         select:
@@ -89,13 +84,6 @@ const login = [
     if (user.status === "inactive") {
       res.status(403);
       throw new Error("Your account has been deactivated. Please contact HR.");
-    }
-
-    if (!OWNER_ROLES.includes(user.role)) {
-      res.status(403);
-      throw new Error(
-        "This account signs in with Phone OTP (WhatsApp). Please use the Phone OTP login option.",
-      );
     }
 
     if (user.company && user.role !== "super_admin") {
@@ -165,7 +153,7 @@ const getMe = asyncHandler(async (req, res) => {
     .populate("department", "name code")
     .populate({
       path: "company",
-      select: "name email phone status subscription industry website",
+      select: "name email phone status subscription website",
       populate: {
         path: "subscription",
         select:
@@ -399,7 +387,7 @@ const verify2FA = asyncHandler(async (req, res) => {
 
   const user = await User.findById(userId).populate({
     path: "company",
-    select: "name email phone status subscription industry website",
+    select: "name email phone status subscription website",
     populate: {
       path: "subscription",
       select:
@@ -528,7 +516,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
     phoneOtpExpire: { $gt: new Date() },
   }).populate({
     path: "company",
-    select: "name email phone status subscription industry website",
+    select: "name email phone status subscription website",
     populate: {
       path: "subscription",
       select:

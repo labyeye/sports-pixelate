@@ -15,7 +15,10 @@ const {
   toSlot,
   isFormatSupported,
 } = require("../services/fixtureService");
-const { getCategoryForActivity, getCategoryForEventType } = require("../config/eventTypeConfig");
+const {
+  getCategoryForActivity,
+  getCategoryForEventType,
+} = require("../config/eventTypeConfig");
 
 const MAX_TEAMS = 64;
 const EVENT_SORT_FIELDS = ["name", "startDate", "endDate", "createdAt"];
@@ -65,7 +68,11 @@ function shuffle(arr) {
 // category (e.g. tournament -> sports), otherwise look up the free-typed
 // activity string against the registry (e.g. workshop + "Yoga" -> wellness).
 function resolveActivityCategory(eventType, activity) {
-  return getCategoryForEventType(eventType) || getCategoryForActivity(activity) || null;
+  return (
+    getCategoryForEventType(eventType) ||
+    getCategoryForActivity(activity) ||
+    null
+  );
 }
 
 // Trims an event's registrations down to the caller's own children when
@@ -119,7 +126,10 @@ const getEvent = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Event not found");
   }
-  res.json({ success: true, data: scopeRegistrations(event.toObject(), req.user) });
+  res.json({
+    success: true,
+    data: scopeRegistrations(event.toObject(), req.user),
+  });
 });
 
 const createEvent = [
@@ -207,7 +217,10 @@ const updateEvent = asyncHandler(async (req, res) => {
   delete update._id;
 
   if (update.eventType || update.activity) {
-    const existing = await Event.findOne({ _id: req.params.id, company: req.user.company });
+    const existing = await Event.findOne({
+      _id: req.params.id,
+      company: req.user.company,
+    });
     if (existing) {
       update.activityCategory = resolveActivityCategory(
         update.eventType || existing.eventType,
@@ -245,20 +258,31 @@ const deleteEvent = asyncHandler(async (req, res) => {
 // placeholder so the frontend can render "—" for anything not backed by
 // a real subsystem yet (Payments/Attendance/Certificates are shells).
 const getEventDashboard = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
   }
   const totalRegistrations = event.registrations.length;
   const totalParticipants =
-    event.participation?.type === "team" ? event.teams.length : event.registrations.length;
+    event.participation?.type === "team"
+      ? event.teams.length
+      : event.registrations.length;
 
   let upcomingSessions = 0;
   let completedSessions = 0;
   if (event.fixturesGenerated) {
-    upcomingSessions = await Fixture.countDocuments({ event: event._id, status: "scheduled" });
-    completedSessions = await Fixture.countDocuments({ event: event._id, status: "completed" });
+    upcomingSessions = await Fixture.countDocuments({
+      event: event._id,
+      status: "scheduled",
+    });
+    completedSessions = await Fixture.countDocuments({
+      event: event._id,
+      status: "completed",
+    });
   }
 
   res.json({
@@ -268,7 +292,8 @@ const getEventDashboard = asyncHandler(async (req, res) => {
       totalParticipants,
       upcomingSessions,
       completedSessions,
-      revenue: totalRegistrations * (event.fees?.entryFee || event.entryFee || 0),
+      revenue:
+        totalRegistrations * (event.fees?.entryFee || event.entryFee || 0),
       pendingPayments: 0, // placeholder — Payments is a shell tab this pass
       certificatesIssued: 0, // placeholder — no certificate subsystem yet
       attendancePercent: null, // placeholder — Attendance is a shell tab this pass
@@ -302,7 +327,10 @@ const updateEventImages = asyncHandler(async (req, res) => {
 });
 
 const addTeam = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -326,7 +354,10 @@ const addTeam = asyncHandler(async (req, res) => {
 });
 
 const removeTeam = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -335,7 +366,9 @@ const removeTeam = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Cannot remove teams after fixtures have been generated");
   }
-  event.teams = event.teams.filter((t) => t._id.toString() !== req.params.teamId);
+  event.teams = event.teams.filter(
+    (t) => t._id.toString() !== req.params.teamId,
+  );
   await event.save();
   res.json({ success: true, data: event });
 });
@@ -343,7 +376,10 @@ const removeTeam = asyncHandler(async (req, res) => {
 // Parent (or owner/staff enrolling a walk-in) signs a student up to take
 // part in the event — same ownership rule as subscriptionController.createOrder.
 const registerStudent = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -362,7 +398,10 @@ const registerStudent = asyncHandler(async (req, res) => {
     throw new Error("You can only register your own child");
   }
 
-  const student = await Student.findOne({ _id: studentId, company: req.user.company });
+  const student = await Student.findOne({
+    _id: studentId,
+    company: req.user.company,
+  });
   if (!student) {
     res.status(404);
     throw new Error("Student not found");
@@ -398,7 +437,10 @@ const registerStudent = asyncHandler(async (req, res) => {
 });
 
 const unregisterStudent = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -412,14 +454,19 @@ const unregisterStudent = asyncHandler(async (req, res) => {
     throw new Error("You can only unregister your own child");
   }
 
-  event.registrations = event.registrations.filter((r) => r.student.toString() !== studentId);
+  event.registrations = event.registrations.filter(
+    (r) => r.student.toString() !== studentId,
+  );
   await event.save();
 
   const populated = await Event.findById(event._id).populate(
     "registrations.student",
     "firstName lastName sport avatar",
   );
-  res.json({ success: true, data: scopeRegistrations(populated.toObject(), req.user) });
+  res.json({
+    success: true,
+    data: scopeRegistrations(populated.toObject(), req.user),
+  });
 });
 
 // Builds and persists the full fixture list for an event from its current
@@ -428,7 +475,10 @@ const unregisterStudent = asyncHandler(async (req, res) => {
 // team counts padded to a power of two) are auto-resolved and their winner
 // is propagated into round 2 immediately.
 const generateFixtures = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -445,16 +495,20 @@ const generateFixtures = asyncHandler(async (req, res) => {
   }
   if (event.fixturesGenerated && !req.body?.regenerate) {
     res.status(400);
-    throw new Error("Fixtures already generated — pass regenerate:true to rebuild them");
+    throw new Error(
+      "Fixtures already generated — pass regenerate:true to rebuild them",
+    );
   }
 
   await Fixture.deleteMany({ event: event._id });
 
   const shouldShuffle = req.body?.shuffle !== false;
-  const teamSlots = (shouldShuffle ? shuffle(event.teams) : event.teams).map((t) => ({
-    team: t._id,
-    name: t.name,
-  }));
+  const teamSlots = (shouldShuffle ? shuffle(event.teams) : event.teams).map(
+    (t) => ({
+      team: t._id,
+      name: t.name,
+    }),
+  );
 
   if (event.format === "round_robin") {
     const rounds = roundRobinRounds(teamSlots);
@@ -526,17 +580,26 @@ const generateFixtures = asyncHandler(async (req, res) => {
   if (event.status === "draft") event.status = "upcoming";
   await event.save();
 
-  const fixtures = await Fixture.find({ event: event._id }).sort({ round: 1, matchIndex: 1 });
+  const fixtures = await Fixture.find({ event: event._id }).sort({
+    round: 1,
+    matchIndex: 1,
+  });
   res.status(201).json({ success: true, data: fixtures });
 });
 
 const getFixtures = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
   }
-  const fixtures = await Fixture.find({ event: event._id }).sort({ round: 1, matchIndex: 1 });
+  const fixtures = await Fixture.find({ event: event._id }).sort({
+    round: 1,
+    matchIndex: 1,
+  });
   res.json({ success: true, data: fixtures });
 });
 
@@ -604,7 +667,10 @@ const recordResult = asyncHandler(async (req, res) => {
 });
 
 const addOfficial = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -620,7 +686,10 @@ const addOfficial = asyncHandler(async (req, res) => {
 });
 
 const updateOfficial = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -638,18 +707,26 @@ const updateOfficial = asyncHandler(async (req, res) => {
 });
 
 const removeOfficial = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
   }
-  event.officials = event.officials.filter((o) => o._id.toString() !== req.params.officialId);
+  event.officials = event.officials.filter(
+    (o) => o._id.toString() !== req.params.officialId,
+  );
   await event.save();
   res.json({ success: true, data: event });
 });
 
 const addDocument = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
@@ -670,12 +747,17 @@ const addDocument = asyncHandler(async (req, res) => {
 });
 
 const removeDocument = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
   }
-  event.documents = event.documents.filter((d) => d._id.toString() !== req.params.docId);
+  event.documents = event.documents.filter(
+    (d) => d._id.toString() !== req.params.docId,
+  );
   await event.save();
   res.json({ success: true, data: event });
 });

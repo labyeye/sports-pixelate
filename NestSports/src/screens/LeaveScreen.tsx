@@ -11,7 +11,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, X, Clock, CheckCircle2, XCircle } from 'lucide-react-native';
+import {
+  Plus,
+  X,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  FileText,
+  CalendarDays,
+  Calendar,
+  Hash,
+} from 'lucide-react-native';
 import { leaveAPI, employeeAPI } from '../api/client';
 import {
   Card,
@@ -117,7 +127,11 @@ export default function LeaveScreen() {
     setRejectId(null);
   };
 
-  const act = async (id: string, status: 'approved' | 'rejected', extra: object) => {
+  const act = async (
+    id: string,
+    status: 'approved' | 'rejected',
+    extra: object,
+  ) => {
     setActingId(id);
     try {
       await leaveAPI.updateStatus(id, { status, ...extra });
@@ -263,6 +277,7 @@ export default function LeaveScreen() {
             <Text style={styles.formTitle}>Reject Leave</Text>
             <TextField
               label="Reason"
+              icon={FileText}
               value={rejectReason}
               onChangeText={setRejectReason}
               placeholder="Why is this leave being rejected?"
@@ -271,10 +286,18 @@ export default function LeaveScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Button title="Cancel" variant="outline" onPress={() => setRejectId(null)} />
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  onPress={() => setRejectId(null)}
+                />
               </View>
               <View style={{ flex: 1 }}>
-                <Button title="Reject" color={colors.red} onPress={confirmReject} />
+                <Button
+                  title="Reject"
+                  color={colors.red}
+                  onPress={confirmReject}
+                />
               </View>
             </View>
           </View>
@@ -290,11 +313,16 @@ export default function LeaveScreen() {
         <SafeAreaView edges={['top']} style={styles.screen}>
           <View style={styles.formHeader}>
             <Text style={styles.formTitle}>Apply for Leave</Text>
-            <TouchableOpacity onPress={() => setApplyVisible(false)} hitSlop={8}>
+            <TouchableOpacity
+              onPress={() => setApplyVisible(false)}
+              hitSlop={8}
+            >
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle title="Employee" />
             <ScrollView style={styles.pickList} nestedScrollEnabled>
               {employees.map((e: any) => {
@@ -306,7 +334,10 @@ export default function LeaveScreen() {
                     style={[styles.pickRow, selected && styles.pickRowSelected]}
                   >
                     <Text
-                      style={[styles.pickRowText, selected && { color: colors.white }]}
+                      style={[
+                        styles.pickRowText,
+                        selected && { color: colors.white },
+                      ]}
                     >
                       {e.firstName} {e.lastName}
                     </Text>
@@ -317,12 +348,14 @@ export default function LeaveScreen() {
 
             <ChipSelect
               label="Leave Type"
+              icon={CalendarDays}
               options={LEAVE_TYPES}
               value={form.leaveType}
               onChange={v => setForm(p => ({ ...p, leaveType: v }))}
             />
             <TextField
               label="Start Date"
+              icon={Calendar}
               value={form.startDate}
               onChangeText={v => setForm(p => ({ ...p, startDate: v }))}
               placeholder="YYYY-MM-DD"
@@ -330,6 +363,7 @@ export default function LeaveScreen() {
             />
             <TextField
               label="End Date"
+              icon={Calendar}
               value={form.endDate}
               onChangeText={v => setForm(p => ({ ...p, endDate: v }))}
               placeholder="YYYY-MM-DD"
@@ -337,12 +371,14 @@ export default function LeaveScreen() {
             />
             <TextField
               label="Days"
+              icon={Hash}
               value={form.days}
               onChangeText={v => setForm(p => ({ ...p, days: v }))}
               keyboardType="numeric"
             />
             <TextField
               label="Reason"
+              icon={FileText}
               value={form.reason}
               onChangeText={v => setForm(p => ({ ...p, reason: v }))}
               multiline
@@ -352,7 +388,12 @@ export default function LeaveScreen() {
               onPress={submitApply}
               disabled={saving}
             />
-            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {saving && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -425,7 +466,13 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, marginBottom: 10 },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    marginBottom: 10,
+  },
   pickList: {
     borderWidth: 2,
     borderColor: colors.black,

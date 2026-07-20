@@ -1,5 +1,11 @@
 import React from 'react';
-import { FlatList, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Clock,
@@ -98,7 +104,9 @@ export default function StudentReportsScreen({ navigation }: any) {
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Student Reports</Text>
-        <Text style={styles.headerSub}>9 reports across attendance, fees & performance</Text>
+        <Text style={styles.headerSub}>
+          9 reports across attendance, fees & performance
+        </Text>
       </View>
       <FlatList
         data={REPORTS}
@@ -109,7 +117,10 @@ export default function StudentReportsScreen({ navigation }: any) {
           const Icon = item.icon;
           return (
             <TouchableOpacity
-              style={[styles.card, { borderLeftWidth: 4, borderLeftColor: item.color }]}
+              style={[
+                styles.card,
+                { borderLeftWidth: 4, borderLeftColor: item.color },
+              ]}
               activeOpacity={0.85}
               onPress={() => navigation.navigate(item.screen)}
             >
@@ -140,7 +151,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   headerSub: { color: colors.muted, fontSize: 12, marginTop: 2 },
   card: {
     flexDirection: 'row',
@@ -158,6 +174,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, color: colors.black },
-  desc: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  title: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  desc: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
 });

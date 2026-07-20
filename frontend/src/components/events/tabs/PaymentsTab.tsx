@@ -34,7 +34,11 @@ export function PaymentsTab({ eventId }: Props) {
         const res = await eventAPI.getPayments(eventId);
         setItems(res.data || []);
       } catch (e: any) {
-        toast({ title: "Error", description: e.message, variant: "destructive" });
+        toast({
+          title: "Error",
+          description: e.message,
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -53,14 +57,22 @@ export function PaymentsTab({ eventId }: Props) {
         </div>
       ) : items.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
-          No payment records yet. Enable Online Payments in Settings to start collecting fees here.
+          No payment records yet. Enable Online Payments in Settings to start
+          collecting fees here.
         </p>
       ) : (
         <div className="space-y-2">
           {items.map((p) => (
-            <div key={p._id} className="flex items-center justify-between border-2 border-black/10 px-3 py-2">
+            <div
+              key={p._id}
+              className="flex items-center justify-between border-2 border-black/10 px-3 py-2"
+            >
               <span className="text-sm font-bold">₹{p.amount}</span>
-              <span className={`text-xs font-bold uppercase ${STATUS_COLOR[p.status]}`}>{p.status}</span>
+              <span
+                className={`text-xs font-bold uppercase ${STATUS_COLOR[p.status]}`}
+              >
+                {p.status}
+              </span>
             </div>
           ))}
         </div>

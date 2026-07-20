@@ -9,7 +9,11 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { RATE_STANDARD, RATE_WHATSAPP, calculatePricing } = require("../utils/pricing");
+const {
+  RATE_STANDARD,
+  RATE_WHATSAPP,
+  calculatePricing,
+} = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 
 const PLAN_NAME = "NestSports";
@@ -152,17 +156,40 @@ const createOrder = asyncHandler(async (req, res) => {
     validatedOffer = await _lookupAndCheckOffer(offerCode, res);
   }
 
-  const pricing = calculatePricing(count, empCount, !!wantsWhatsapp, validatedOffer);
+  const pricing = calculatePricing(
+    count,
+    empCount,
+    !!wantsWhatsapp,
+    validatedOffer,
+  );
 
   const amountRupees =
     billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
+  const subtotal =
+    billingCycle === "yearly"
+      ? pricing.yearlySubtotal
+      : pricing.monthlySubtotal;
+  const gstAmount =
+    billingCycle === "yearly"
+      ? pricing.yearlyGstAmount
+      : pricing.monthlyGstAmount;
 
   // New signup: no Company exists yet. Company/Subscription are only created
   // once payment is verified — don't touch either collection here.
   let newCompanyDetails = null;
   if (!existingCompany) {
-    const { name, email, phone, industry, website, gstNumber, panNumber } =
-      companyDetails || {};
+    const {
+      name,
+      email,
+      phone,
+      website,
+      gstNumber,
+      panNumber,
+      address,
+      city,
+      state,
+      pincode,
+    } = companyDetails || {};
     if (!name || !phone) {
       res.status(400);
       throw new Error("SportsClub name and phone are required");
@@ -176,10 +203,13 @@ const createOrder = asyncHandler(async (req, res) => {
       name,
       email: emailToUse,
       phone,
-      industry,
       website,
       gstNumber,
       panNumber,
+      address,
+      city,
+      state,
+      pincode,
     };
   }
 
@@ -210,6 +240,9 @@ const createOrder = asyncHandler(async (req, res) => {
           ratePerUnit: pricing.ratePerUnit,
           monthlyPrice: pricing.monthlyPrice,
           yearlyPrice: pricing.yearlyPrice,
+          gstRate: pricing.gstRate,
+          subtotal,
+          gstAmount,
           maxStudents: count,
           maxEmployees: empCount,
           billingCycle,
@@ -233,10 +266,13 @@ const createOrder = asyncHandler(async (req, res) => {
         companyName: newCompanyDetails.name,
         companyEmail: newCompanyDetails.email,
         companyPhone: newCompanyDetails.phone,
-        industry: newCompanyDetails.industry,
         website: newCompanyDetails.website,
         gstNumber: newCompanyDetails.gstNumber,
         panNumber: newCompanyDetails.panNumber,
+        address: newCompanyDetails.address,
+        city: newCompanyDetails.city,
+        state: newCompanyDetails.state,
+        pincode: newCompanyDetails.pincode,
         studentCount: count,
         employeeCount: empCount,
         wantsWhatsapp: !!wantsWhatsapp,
@@ -244,6 +280,9 @@ const createOrder = asyncHandler(async (req, res) => {
         ratePerUnit: pricing.ratePerUnit,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
+        gstRate: pricing.gstRate,
+        subtotal,
+        gstAmount,
         offerCode: validatedOffer ? validatedOffer.code : null,
         offerBonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
       });
@@ -254,6 +293,9 @@ const createOrder = asyncHandler(async (req, res) => {
       orderId: result.orderId,
       keyId: result.keyId,
       amount: amountRupees,
+      subtotal,
+      gstRate: pricing.gstRate,
+      gstAmount,
       currency: "INR",
       studentCount: count,
       employeeCount: empCount,
@@ -307,6 +349,9 @@ const createOrder = asyncHandler(async (req, res) => {
           ratePerUnit: pricing.ratePerUnit,
           monthlyPrice: pricing.monthlyPrice,
           yearlyPrice: pricing.yearlyPrice,
+          gstRate: pricing.gstRate,
+          subtotal,
+          gstAmount,
           maxStudents: count,
           maxEmployees: empCount,
           billingCycle,
@@ -330,10 +375,13 @@ const createOrder = asyncHandler(async (req, res) => {
         companyName: newCompanyDetails.name,
         companyEmail: newCompanyDetails.email,
         companyPhone: newCompanyDetails.phone,
-        industry: newCompanyDetails.industry,
         website: newCompanyDetails.website,
         gstNumber: newCompanyDetails.gstNumber,
         panNumber: newCompanyDetails.panNumber,
+        address: newCompanyDetails.address,
+        city: newCompanyDetails.city,
+        state: newCompanyDetails.state,
+        pincode: newCompanyDetails.pincode,
         studentCount: count,
         employeeCount: empCount,
         wantsWhatsapp: !!wantsWhatsapp,
@@ -341,6 +389,9 @@ const createOrder = asyncHandler(async (req, res) => {
         ratePerUnit: pricing.ratePerUnit,
         monthlyPrice: pricing.monthlyPrice,
         yearlyPrice: pricing.yearlyPrice,
+        gstRate: pricing.gstRate,
+        subtotal,
+        gstAmount,
         offerCode: validatedOffer ? validatedOffer.code : null,
         offerBonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
       });
@@ -351,6 +402,9 @@ const createOrder = asyncHandler(async (req, res) => {
       orderId,
       paymentUrl: result.paymentUrl,
       amount: amountRupees,
+      subtotal,
+      gstRate: pricing.gstRate,
+      gstAmount,
       currency: "INR",
       studentCount: count,
       employeeCount: empCount,
@@ -494,10 +548,13 @@ async function _createCompanyAndActivate({
     email: pendingOrder.companyEmail,
     phone: pendingOrder.companyPhone,
     password: crypto.randomBytes(16).toString("hex"),
-    industry: pendingOrder.industry,
     website: pendingOrder.website,
     gstNumber: pendingOrder.gstNumber,
     panNumber: pendingOrder.panNumber,
+    address: pendingOrder.address,
+    city: pendingOrder.city,
+    state: pendingOrder.state,
+    pincode: pendingOrder.pincode,
     status: "active",
     createdBy: req.user._id,
   });
@@ -530,6 +587,9 @@ async function _createCompanyAndActivate({
     ratePerUnit: pendingOrder.ratePerUnit,
     monthlyPrice: pendingOrder.monthlyPrice,
     yearlyPrice: pendingOrder.yearlyPrice,
+    gstRate: pendingOrder.gstRate,
+    subtotal: pendingOrder.subtotal,
+    gstAmount: pendingOrder.gstAmount,
     maxStudents: pendingOrder.studentCount,
     maxEmployees: pendingOrder.employeeCount,
     billingCycle: pendingOrder.billingCycle,
@@ -566,6 +626,9 @@ async function _createCompanyAndActivate({
     plan: planName,
     billingCycle: pendingOrder.billingCycle,
     amount: amountPaid,
+    gstRate: pendingOrder.gstRate,
+    subtotal: pendingOrder.subtotal,
+    gstAmount: pendingOrder.gstAmount,
     status: "paid",
     paidAt: new Date(),
     ...invoiceExtra,
@@ -692,6 +755,9 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
     plan: planName,
     billingCycle: subscription.billingCycle,
     amount: amountPaid,
+    gstRate: subscription.gstRate,
+    subtotal: subscription.subtotal,
+    gstAmount: subscription.gstAmount,
     status: "paid",
     paidAt: new Date(),
     ...invoiceExtra,

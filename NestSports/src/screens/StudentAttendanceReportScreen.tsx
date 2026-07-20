@@ -19,17 +19,41 @@ import {
   LogOut,
 } from 'lucide-react-native';
 import { studentAttendanceAPI, studentAPI, sportAPI } from '../api/client';
-import { Card, Badge, FilterPills, EmptyState, LoadingView } from '../components/ui';
+import {
+  Card,
+  Badge,
+  FilterPills,
+  EmptyState,
+  LoadingView,
+} from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
 // Mirrors StudentAttendanceScreen's STATUS_CONFIG so status colors read the
 // same across the app.
-const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any; label: string }> = {
-  present: { color: colors.green, bg: '#E7F9F1', icon: CheckCircle2, label: 'Present' },
-  late: { color: colors.yellow, bg: '#FEF3E2', icon: AlertCircle, label: 'Late' },
+const STATUS_CONFIG: Record<
+  string,
+  { color: string; bg: string; icon: any; label: string }
+> = {
+  present: {
+    color: colors.green,
+    bg: '#E7F9F1',
+    icon: CheckCircle2,
+    label: 'Present',
+  },
+  late: {
+    color: colors.yellow,
+    bg: '#FEF3E2',
+    icon: AlertCircle,
+    label: 'Late',
+  },
   absent: { color: colors.red, bg: '#FDEBEB', icon: XCircle, label: 'Absent' },
-  excused: { color: colors.blue, bg: '#E8F0FB', icon: Calendar, label: 'Excused' },
+  excused: {
+    color: colors.blue,
+    bg: '#E8F0FB',
+    icon: Calendar,
+    label: 'Excused',
+  },
 };
 
 function viaLabel(r: any): string {
@@ -46,7 +70,10 @@ function viaLabel(r: any): string {
 
 function fmtTime(iso?: string) {
   if (!iso) return '--:--';
-  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export default function StudentAttendanceReportScreen() {
@@ -144,7 +171,9 @@ export default function StudentAttendanceReportScreen() {
         { key: 'via', label: 'Via' },
       ],
       records.map(r => ({
-        student: r.student ? `${r.student.firstName} ${r.student.lastName}` : '',
+        student: r.student
+          ? `${r.student.firstName} ${r.student.lastName}`
+          : '',
         studentId: r.student?.studentId || '',
         batch: r.batch || r.student?.batch || '',
         sport: r.student?.sport || '',
@@ -170,7 +199,10 @@ export default function StudentAttendanceReportScreen() {
       </View>
 
       <View style={styles.monthRow}>
-        <TouchableOpacity onPress={() => shiftMonth(-1)} style={styles.monthBtn}>
+        <TouchableOpacity
+          onPress={() => shiftMonth(-1)}
+          style={styles.monthBtn}
+        >
           <Text style={styles.monthBtnText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{monthLabel}</Text>
@@ -198,7 +230,10 @@ export default function StudentAttendanceReportScreen() {
       <FilterPills
         options={[
           { value: '', label: 'All Status' },
-          ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label })),
+          ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({
+            value: k,
+            label: v.label,
+          })),
         ]}
         value={status}
         onChange={setStatus}
@@ -208,9 +243,13 @@ export default function StudentAttendanceReportScreen() {
         data={records}
         keyExtractor={(r, i) => r._id || String(i)}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No attendance records" icon={Clock} />}
+        ListEmptyComponent={
+          <EmptyState title="No attendance records" icon={Clock} />
+        }
         renderItem={({ item }) => {
           const cfg = STATUS_CONFIG[item.status] || {
             color: colors.muted,
@@ -223,17 +262,27 @@ export default function StudentAttendanceReportScreen() {
               <View style={styles.rowTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
-                    {item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Unknown'}
+                    {item.student
+                      ? `${item.student.firstName} ${item.student.lastName}`
+                      : 'Unknown'}
                   </Text>
                   <Text style={styles.sub}>
                     {item.student?.studentId || ''}
-                    {item.batch || item.student?.batch ? ` · ${item.batch || item.student?.batch}` : ''}
+                    {item.batch || item.student?.batch
+                      ? ` · ${item.batch || item.student?.batch}`
+                      : ''}
                   </Text>
                 </View>
                 <Badge label={cfg.label} color={cfg.color} />
               </View>
               <Text style={styles.dateText}>
-                {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+                {item.date
+                  ? new Date(item.date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : ''}
               </Text>
               <View style={styles.timesRow}>
                 <View style={styles.timeCol}>
@@ -268,7 +317,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, flex: 1 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flex: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -290,14 +345,56 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   monthBtn: { width: 36, alignItems: 'center' },
-  monthBtnText: { fontSize: 22, fontFamily: FONT.bold, fontWeight: '700', color: colors.black },
-  monthLabel: { fontFamily: FONT.bold, fontSize: 14, fontWeight: '700', color: colors.black, minWidth: 140, textAlign: 'center' },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, color: colors.black },
-  sub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
-  dateText: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 8 },
+  monthBtnText: {
+    fontSize: 22,
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  monthLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.black,
+    minWidth: 140,
+    textAlign: 'center',
+  },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  sub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  dateText: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 8,
+  },
   timesRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
   timeCol: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  timeText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12, color: colors.black },
-  viaText: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 6, fontStyle: 'italic' },
+  timeText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+  },
+  viaText: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
 });

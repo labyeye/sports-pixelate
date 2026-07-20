@@ -24,7 +24,6 @@ import StudentsPage from "./pages/StudentsPage";
 import StudentAttendancePage from "./pages/StudentAttendancePage";
 import PlansPage from "./pages/PlansPage";
 import EventsPage from "./pages/EventsPage";
-import EventCreatePage from "./pages/EventCreatePage";
 import EventDetailPage from "./pages/EventDetailPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import ExpensesPage from "./pages/ExpensesPage";
@@ -32,6 +31,8 @@ import InventoryPage from "./pages/InventoryPage";
 import FacilitiesPage from "./pages/FacilitiesPage";
 import BookingsPage from "./pages/BookingsPage";
 import ParentHomePage from "./pages/ParentHomePage";
+import ParentAttendancePage from "./pages/ParentAttendancePage";
+import ParentReportPage from "./pages/ParentReportPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import PaymentFailedPage from "./pages/PaymentFailedPage";
 import WelcomePage from "./pages/WelcomePage";
@@ -380,14 +381,6 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/events/new"
-          element={
-            <ProtectedRoute>
-              <EventCreatePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/events/:id"
           element={
             <ProtectedRoute>
@@ -440,6 +433,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ParentHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/parent-attendance"
+          element={
+            <ProtectedRoute>
+              <ParentAttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/parent-report"
+          element={
+            <ProtectedRoute>
+              <ParentReportPage />
             </ProtectedRoute>
           }
         />

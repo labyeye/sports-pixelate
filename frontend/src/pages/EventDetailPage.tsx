@@ -4,7 +4,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { eventAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { EventDetailTabs, type EventTabDef } from "@/components/events/EventDetailTabs";
+import {
+  EventDetailTabs,
+  type EventTabDef,
+} from "@/components/events/EventDetailTabs";
 import { OverviewTab } from "@/components/events/tabs/OverviewTab";
 import { ScheduleTab } from "@/components/events/tabs/ScheduleTab";
 import { ParticipantsTeamsTab } from "@/components/events/tabs/ParticipantsTeamsTab";
@@ -77,9 +80,14 @@ export default function EventDetailPage() {
   const tabs: EventTabDef[] = [
     { key: "overview", label: "Overview" },
     { key: "schedule", label: "Schedule" },
-    { key: "participants", label: isTeamParticipation ? "Teams" : "Participants" },
+    {
+      key: "participants",
+      label: isTeamParticipation ? "Teams" : "Participants",
+    },
     ...(isSports ? [{ key: "fixtures", label: "Fixtures" }] : []),
-    ...(isSports && event.format === "round_robin" ? [{ key: "points", label: "Points Table" }] : []),
+    ...(isSports && event.format === "round_robin"
+      ? [{ key: "points", label: "Points Table" }]
+      : []),
     { key: "awards", label: "Awards" },
     { key: "judges", label: "Judges" },
     { key: "documents", label: "Documents" },
@@ -107,12 +115,17 @@ export default function EventDetailPage() {
           <div>
             <h1 className="text-xl font-bold">{event.name}</h1>
             <p className="text-xs text-muted-foreground mt-1">
-              {eventTypes[event.eventType as keyof typeof eventTypes]?.label || event.eventType} · {event.activity}
+              {eventTypes[event.eventType as keyof typeof eventTypes]?.label ||
+                event.eventType}{" "}
+              · {event.activity}
             </p>
           </div>
           <span
             className="text-xs font-bold uppercase px-2 py-1 border-2"
-            style={{ borderColor: STATUS_COLOR[event.status], color: STATUS_COLOR[event.status] }}
+            style={{
+              borderColor: STATUS_COLOR[event.status],
+              color: STATUS_COLOR[event.status],
+            }}
           >
             {event.status.replace(/_/g, " ")}
           </span>
@@ -122,17 +135,25 @@ export default function EventDetailPage() {
 
         {tab === "overview" && <OverviewTab event={event} />}
         {tab === "schedule" && <ScheduleTab event={event} />}
-        {tab === "participants" && <ParticipantsTeamsTab event={event} onChanged={load} />}
-        {tab === "fixtures" && isSports && <FixturesTab event={event} onChanged={load} />}
+        {tab === "participants" && (
+          <ParticipantsTeamsTab event={event} onChanged={load} />
+        )}
+        {tab === "fixtures" && isSports && (
+          <FixturesTab event={event} onChanged={load} />
+        )}
         {tab === "points" && isSports && <PointsTableTab event={event} />}
-        {tab === "awards" && <AwardsTab event={event} onGoToSettings={() => setTab("settings")} />}
+        {tab === "awards" && (
+          <AwardsTab event={event} onGoToSettings={() => setTab("settings")} />
+        )}
         {tab === "judges" && <JudgesTab event={event} onChanged={load} />}
         {tab === "documents" && <DocumentsTab event={event} onChanged={load} />}
         {tab === "gallery" && <GalleryTab eventId={event._id} />}
         {tab === "announcements" && <AnnouncementsTab eventId={event._id} />}
         {tab === "payments" && <PaymentsTab eventId={event._id} />}
         {tab === "attendance" && <AttendanceTab eventId={event._id} />}
-        {tab === "settings" && canManage && <SettingsTab event={event} onChanged={load} canManage={canManage} />}
+        {tab === "settings" && canManage && (
+          <SettingsTab event={event} onChanged={load} canManage={canManage} />
+        )}
       </div>
     </AppLayout>
   );

@@ -85,10 +85,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
       return;
     }
     if (!screenshot?.uri) {
-      Alert.alert(
-        'Screenshot required',
-        'Upload a screenshot of the payment.',
-      );
+      Alert.alert('Screenshot required', 'Upload a screenshot of the payment.');
       return;
     }
     setSubmitting(true);
@@ -116,11 +113,9 @@ export default function QrRenewalScreen({ route, navigation }: any) {
           screenshot: screenshotFile,
         });
       }
-      Alert.alert(
-        'Submitted',
-        'Waiting for the club to verify your payment.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-      );
+      Alert.alert('Submitted', 'Waiting for the club to verify your payment.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to submit renewal request');
     } finally {
@@ -147,8 +142,8 @@ export default function QrRenewalScreen({ route, navigation }: any) {
           </View>
           {isTopUp && (
             <Text style={styles.instructions}>
-              {formatCurrency(amountPaid)} of {formatCurrency(subscription.amount)}{' '}
-              already verified.
+              {formatCurrency(amountPaid)} of{' '}
+              {formatCurrency(subscription.amount)} already verified.
             </Text>
           )}
 
@@ -161,8 +156,8 @@ export default function QrRenewalScreen({ route, navigation }: any) {
               />
               <Text style={styles.instructions}>
                 Scan this QR with any UPI app, pay any amount up to{' '}
-                {formatCurrency(remaining)}, then enter your UTR and
-                transaction number and upload a screenshot below.
+                {formatCurrency(remaining)}, then enter your UTR and transaction
+                number and upload a screenshot below.
               </Text>
             </>
           ) : (

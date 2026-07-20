@@ -14,18 +14,35 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
-import { Plus, Trash2, ScanFace } from 'lucide-react-native';
-import { studentAPI, employeeAPI, RNFile } from '../api/client';
+import {
+  Plus,
+  Trash2,
+  ScanFace,
+  CircleCheck,
+  Circle,
+} from 'lucide-react-native';
+import {
+  studentAPI,
+  employeeAPI,
+  sportsPlanAPI,
+  subscriptionAPI,
+  RNFile,
+} from '../api/client';
 import {
   Card,
   Avatar,
   TextField,
   ChipSelect,
+  PickerField,
   Button,
   SectionTitle,
   CollapsibleSection,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import {
+  INDIA_STATES,
+  INDIA_STATES_AND_CITIES,
+} from '../data/indiaStatesAndCities';
 
 const GENDERS = ['male', 'female', 'other'] as const;
 const RELATIONS = ['father', 'mother', 'guardian', 'other'] as const;
@@ -40,14 +57,18 @@ const BLOOD_GROUPS = [
   'O-',
 ] as const;
 const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Advanced'] as const;
+const PLAYING_LEVELS = ['School', 'District', 'State', 'National'] as const;
 
 interface GuardianForm {
   _id?: string;
   relation: (typeof RELATIONS)[number];
   name: string;
   phone: string;
+  email?: string;
+  password?: string;
   photo?: RNFile;
   existingPhoto?: string;
+  receivesWhatsapp?: boolean;
 }
 
 function assetToRNFile(asset: Asset): RNFile | undefined {
@@ -109,7 +130,9 @@ export default function AddStudentScreen({ navigation, route }: any) {
       relation: g.relation,
       name: g.name || '',
       phone: g.phone || '',
+      email: g.email || '',
       existingPhoto: g.photo,
+      receivesWhatsapp: !!g.receivesWhatsapp,
     })),
   );
   const [saving, setSaving] = useState(false);
@@ -144,6 +167,14 @@ export default function AddStudentScreen({ navigation, route }: any) {
   const [addressCountry, setAddressCountry] = useState(
     editingStudent?.address?.country || '',
   );
+  const [cityIsOther, setCityIsOther] = useState(() => {
+    const c = editingStudent?.address?.city || '';
+    const s = editingStudent?.address?.state || '';
+    return !!c && !(INDIA_STATES_AND_CITIES[s] || []).includes(c);
+  });
+  const cityOptions = addressState
+    ? INDIA_STATES_AND_CITIES[addressState] || []
+    : [];
   const [experienceLevel, setExperienceLevel] = useState<
     (typeof EXPERIENCE_LEVELS)[number] | ''
   >(editingStudent?.sportsProfile?.experienceLevel || '');
@@ -155,13 +186,41 @@ export default function AddStudentScreen({ navigation, route }: any) {
       ? String(editingStudent.sportsProfile.yearsOfExperience)
       : '',
   );
+  const [playingLevel, setPlayingLevel] = useState<
+    (typeof PLAYING_LEVELS)[number] | ''
+  >(editingStudent?.sportsProfile?.playingLevel || '');
+  const [plans, setPlans] = useState<any[]>([]);
+  const [planId, setPlanId] = useState('');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
+    'monthly',
+  );
 
   useEffect(() => {
     employeeAPI
       .getAll({ role: 'coach' })
       .then((res: any) => setCoaches(res.data || []))
       .catch(() => {});
+    sportsPlanAPI
+      .getAll()
+      .then((res: any) => setPlans(res.data || []))
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    subscriptionAPI
+      .getAll({ studentId: editingStudent._id })
+      .then((res: any) => {
+        const active = (res.data || []).find(
+          (s: any) => s.status === 'active' || s.status === 'pending_renewal',
+        );
+        if (active) {
+          setPlanId(active.plan?._id || active.plan);
+          setBillingCycle(active.billingCycle || 'monthly');
+        }
+      })
+      .catch(() => {});
+  }, [isEditing, editingStudent?._id]);
 
   useEffect(() => {
     navigation.setOptions?.({
@@ -176,7 +235,10 @@ export default function AddStudentScreen({ navigation, route }: any) {
   );
 
   const addGuardian = () => {
-    setGuardians(p => [...p, { relation: 'father', name: '', phone: '' }]);
+    setGuardians(p => [
+      ...p,
+      { relation: 'father', name: '', phone: '', email: '', password: '' },
+    ]);
   };
 
   const updateGuardian = (i: number, patch: Partial<GuardianForm>) => {
@@ -185,6 +247,14 @@ export default function AddStudentScreen({ navigation, route }: any) {
 
   const removeGuardian = (i: number) => {
     setGuardians(p => p.filter((_, idx) => idx !== i));
+  };
+
+  // Only one guardian may receive WhatsApp notifications — selecting one
+  // clears the flag on every other guardian, so it behaves like a radio.
+  const setWhatsappGuardian = (i: number) => {
+    setGuardians(p =>
+      p.map((g, idx) => ({ ...g, receivesWhatsapp: idx === i })),
+    );
   };
 
   const save = async () => {
@@ -197,6 +267,13 @@ export default function AddStudentScreen({ navigation, route }: any) {
     }
     if (guardians.some(g => !g.name.trim())) {
       Alert.alert('Missing fields', 'Every guardian needs a name');
+      return;
+    }
+    if (guardians.some(g => g.password && g.password.length < 6)) {
+      Alert.alert(
+        'Weak password',
+        'Guardian login password must be at least 6 characters',
+      );
       return;
     }
 
@@ -213,7 +290,10 @@ export default function AddStudentScreen({ navigation, route }: any) {
           relation: g.relation,
           name: g.name.trim(),
           phone: g.phone.trim() || undefined,
+          email: g.email?.trim() || undefined,
+          password: g.password || undefined,
           photo: g.existingPhoto,
+          receivesWhatsapp: !!g.receivesWhatsapp,
         })),
         bloodGroup: bloodGroup || undefined,
         emergencyContactPerson:
@@ -239,13 +319,17 @@ export default function AddStudentScreen({ navigation, route }: any) {
               }
             : undefined,
         sportsProfile:
-          experienceLevel || previousAcademy.trim() || yearsOfExperience.trim()
+          experienceLevel ||
+          previousAcademy.trim() ||
+          yearsOfExperience.trim() ||
+          playingLevel
             ? {
                 experienceLevel: experienceLevel || undefined,
                 previousAcademy: previousAcademy.trim() || undefined,
                 yearsOfExperience: yearsOfExperience.trim()
                   ? Number(yearsOfExperience.trim())
                   : undefined,
+                playingLevel: playingLevel || undefined,
               }
             : undefined,
       };
@@ -269,6 +353,12 @@ export default function AddStudentScreen({ navigation, route }: any) {
             .uploadGuardianPhoto(student._id, guardianId, file)
             .catch(() => {});
         }
+      }
+
+      if (planId) {
+        await subscriptionAPI
+          .assign({ studentId: student._id, planId, billingCycle })
+          .catch(() => {});
       }
 
       Alert.alert(
@@ -431,16 +521,42 @@ export default function AddStudentScreen({ navigation, route }: any) {
             onChangeText={setAddressLine1}
           />
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TextField
-              label="City"
-              value={addressCity}
-              onChangeText={setAddressCity}
-            />
-            <TextField
+            <PickerField
               label="State"
               value={addressState}
-              onChangeText={setAddressState}
+              options={INDIA_STATES}
+              onChange={v => {
+                setAddressState(v);
+                setAddressCity('');
+                setCityIsOther(false);
+              }}
+              placeholder="Select state"
             />
+            {cityIsOther ? (
+              <TextField
+                label="City"
+                value={addressCity}
+                onChangeText={setAddressCity}
+                placeholder="Enter city name"
+              />
+            ) : (
+              <PickerField
+                label="City"
+                value={addressCity}
+                options={[...cityOptions, 'Other']}
+                onChange={v => {
+                  if (v === 'Other') {
+                    setCityIsOther(true);
+                    setAddressCity('');
+                  } else {
+                    setAddressCity(v);
+                  }
+                }}
+                placeholder="Select city"
+                disabled={!addressState}
+                disabledHint="Select a state first"
+              />
+            )}
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TextField
@@ -475,6 +591,84 @@ export default function AddStudentScreen({ navigation, route }: any) {
             onChangeText={setYearsOfExperience}
             keyboardType="number-pad"
           />
+          <ChipSelect
+            label="Playing Level"
+            options={PLAYING_LEVELS}
+            value={playingLevel as any}
+            onChange={setPlayingLevel}
+          />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Subscription Plan">
+          <Text style={styles.planHint}>
+            Assign a coaching plan so the parent sees it as due for payment.
+            Leave unset to skip billing for now.
+          </Text>
+          <View style={styles.coachChipRow}>
+            <TouchableOpacity
+              onPress={() => setPlanId('')}
+              style={[
+                styles.coachChip,
+                planId === '' && styles.coachChipActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.coachChipText,
+                  planId === '' && styles.coachChipTextActive,
+                ]}
+              >
+                No plan
+              </Text>
+            </TouchableOpacity>
+            {plans.map(p => (
+              <TouchableOpacity
+                key={p._id}
+                onPress={() => setPlanId(p._id)}
+                style={[
+                  styles.coachChip,
+                  planId === p._id && styles.coachChipActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.coachChipText,
+                    planId === p._id && styles.coachChipTextActive,
+                  ]}
+                >
+                  {p.name} ({p.sport})
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {!!planId && (
+            <>
+              <ChipSelect
+                label="Billing Cycle"
+                options={['monthly', 'yearly'] as const}
+                value={billingCycle}
+                onChange={setBillingCycle}
+              />
+              {(() => {
+                const selected = plans.find(p => p._id === planId);
+                if (!selected) return null;
+                const amount =
+                  billingCycle === 'yearly'
+                    ? selected.yearlyPrice
+                    : selected.monthlyPrice;
+                return (
+                  <View style={styles.planAmountBox}>
+                    <Text style={styles.planAmountLabel}>
+                      Amount Due ({billingCycle})
+                    </Text>
+                    <Text style={styles.planAmountValue}>
+                      ₹{Number(amount).toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+                );
+              })()}
+            </>
+          )}
         </CollapsibleSection>
 
         <Card>
@@ -517,6 +711,40 @@ export default function AddStudentScreen({ navigation, route }: any) {
                 onChangeText={v => updateGuardian(i, { phone: v })}
                 keyboardType="phone-pad"
               />
+              <TextField
+                label="Email (Parent Login)"
+                value={g.email || ''}
+                onChangeText={v => updateGuardian(i, { email: v })}
+                keyboardType="email-address"
+              />
+              <TextField
+                label="Password (Parent Login)"
+                value={g.password || ''}
+                onChangeText={v => updateGuardian(i, { password: v })}
+                secureTextEntry
+              />
+              <TouchableOpacity
+                onPress={() => setWhatsappGuardian(i)}
+                style={styles.whatsappBtn}
+              >
+                {g.receivesWhatsapp ? (
+                  <CircleCheck
+                    size={16}
+                    color={colors.green}
+                    strokeWidth={2.5}
+                  />
+                ) : (
+                  <Circle size={16} color={colors.muted} strokeWidth={2.5} />
+                )}
+                <Text
+                  style={[
+                    styles.whatsappBtnText,
+                    g.receivesWhatsapp && { color: colors.green },
+                  ]}
+                >
+                  Sends WhatsApp updates
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => removeGuardian(i)}
                 style={styles.removeBtn}
@@ -605,6 +833,19 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 4,
   },
+  whatsappBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  whatsappBtnText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.muted,
+  },
   removeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -632,5 +873,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
     color: colors.blue,
+  },
+  planHint: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  planAmountBox: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: '#024BAB0D',
+    padding: 12,
+    marginTop: 4,
+  },
+  planAmountLabel: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 11,
+    color: colors.muted,
+    textTransform: 'uppercase',
+  },
+  planAmountValue: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 20,
+    color: colors.black,
+    marginTop: 2,
   },
 });

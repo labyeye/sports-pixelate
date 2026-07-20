@@ -1,9 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, Text, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Trophy, Download } from 'lucide-react-native';
 import { reportAPI, sportAPI } from '../api/client';
-import { Card, Badge, FilterPills, EmptyState, LoadingView } from '../components/ui';
+import {
+  Card,
+  Badge,
+  FilterPills,
+  EmptyState,
+  LoadingView,
+} from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
@@ -75,7 +88,9 @@ export default function SportSummaryReportScreen() {
           { key: 'feeStatus', label: 'Fee Status' },
         ],
         studentRows.map((r: any) => ({
-          student: r.student ? `${r.student.firstName} ${r.student.lastName}` : '',
+          student: r.student
+            ? `${r.student.firstName} ${r.student.lastName}`
+            : '',
           studentId: r.student?.studentId || '',
           status: r.student?.status || '',
           attendanceRate: r.attendanceRate,
@@ -111,7 +126,10 @@ export default function SportSummaryReportScreen() {
       </View>
 
       <FilterPills
-        options={[{ value: '', label: 'All Sports' }, ...sports.map(s => ({ value: s, label: s }))]}
+        options={[
+          { value: '', label: 'All Sports' },
+          ...sports.map(s => ({ value: s, label: s })),
+        ]}
         value={sport}
         onChange={setSport}
       />
@@ -121,21 +139,32 @@ export default function SportSummaryReportScreen() {
           data={studentRows}
           keyExtractor={(r, i) => r.student?._id || String(i)}
           contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<EmptyState title="No students for this sport" icon={Trophy} />}
+          ListEmptyComponent={
+            <EmptyState title="No students for this sport" icon={Trophy} />
+          }
           renderItem={({ item }) => (
             <Card>
               <View style={styles.rowTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
-                    {item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Unknown'}
+                    {item.student
+                      ? `${item.student.firstName} ${item.student.lastName}`
+                      : 'Unknown'}
                   </Text>
-                  <Text style={styles.sub}>Attendance: {item.attendanceRate}%</Text>
+                  <Text style={styles.sub}>
+                    Attendance: {item.attendanceRate}%
+                  </Text>
                 </View>
                 <Badge
                   label={item.feeStatus || '—'}
-                  color={FEE_STATUS_COLORS[(item.feeStatus || '').toLowerCase()] || colors.muted}
+                  color={
+                    FEE_STATUS_COLORS[(item.feeStatus || '').toLowerCase()] ||
+                    colors.muted
+                  }
                 />
               </View>
             </Card>
@@ -146,11 +175,18 @@ export default function SportSummaryReportScreen() {
           data={summaryRows}
           keyExtractor={(r, i) => r.sport || String(i)}
           contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<EmptyState title="No sports found" icon={Trophy} />}
+          ListEmptyComponent={
+            <EmptyState title="No sports found" icon={Trophy} />
+          }
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => setSport(item.sport)} activeOpacity={0.85}>
+            <TouchableOpacity
+              onPress={() => setSport(item.sport)}
+              activeOpacity={0.85}
+            >
               <Card>
                 <Text style={styles.name}>{item.sport}</Text>
                 <View style={styles.statsRow}>
@@ -160,11 +196,15 @@ export default function SportSummaryReportScreen() {
                   </View>
                   <View style={styles.statCol}>
                     <Text style={styles.statLabel}>Active</Text>
-                    <Text style={[styles.statValue, { color: colors.green }]}>{item.active}</Text>
+                    <Text style={[styles.statValue, { color: colors.green }]}>
+                      {item.active}
+                    </Text>
                   </View>
                   <View style={styles.statCol}>
                     <Text style={styles.statLabel}>Revenue</Text>
-                    <Text style={[styles.statValue, { color: colors.blue }]}>{formatCurrency(item.revenue)}</Text>
+                    <Text style={[styles.statValue, { color: colors.blue }]}>
+                      {formatCurrency(item.revenue)}
+                    </Text>
                   </View>
                 </View>
               </Card>
@@ -188,7 +228,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, flex: 1 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flex: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -199,11 +245,35 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.black,
   },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 15, color: colors.black },
-  sub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 15,
+    color: colors.black,
+  },
+  sub: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
   statsRow: { flexDirection: 'row', gap: 20, marginTop: 10 },
   statCol: { gap: 2 },
-  statLabel: { fontFamily: FONT.medium, fontSize: 10, color: colors.muted, textTransform: 'uppercase' },
-  statValue: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 15, color: colors.black },
+  statLabel: {
+    fontFamily: FONT.medium,
+    fontSize: 10,
+    color: colors.muted,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 15,
+    color: colors.black,
+  },
 });

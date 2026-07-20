@@ -64,13 +64,20 @@ const getStudentAttendance = asyncHandler(async (req, res) => {
     const m = parseInt(month),
       y = parseInt(year);
     if (!isNaN(m) && !isNaN(y)) {
-      filter.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0) };
+      // UTC boundaries to match toDateOnly() above — a local-timezone
+      // Date(y, m, 0) on a server east of UTC (e.g. IST) resolves to before
+      // the last day's UTC-midnight timestamp, silently dropping that day's
+      // records from the month.
+      filter.date = {
+        $gte: new Date(Date.UTC(y, m - 1, 1)),
+        $lte: new Date(Date.UTC(y, m, 0)),
+      };
     }
   }
 
   const total = await StudentAttendance.countDocuments(filter);
   const records = await StudentAttendance.find(filter)
-    .populate("student", "firstName lastName studentId sport batch")
+    .populate("student", "firstName lastName studentId sport batch avatar")
     .populate("markedBy", "name")
     .sort({ date: -1 })
     .skip(skip)
@@ -141,7 +148,7 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
       markedBy: req.user._id,
     },
     { upsert: true, new: true },
-  ).populate("student", "firstName lastName studentId sport batch");
+  ).populate("student", "firstName lastName studentId sport batch avatar");
 
   res.json({ success: true, data: record });
 });
@@ -259,7 +266,7 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
       markedBy: req.user._id,
     },
     { upsert: true, new: true },
-  ).populate("student", "firstName lastName studentId sport batch");
+  ).populate("student", "firstName lastName studentId sport batch avatar");
 
   res.json({ success: true, data: record, distance });
 });

@@ -11,8 +11,11 @@ import {
   ArrowRight,
   CheckCircle,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { billingAPI } from "@/services/api";
+import { buildInvoiceHTML } from "@/lib/buildInvoiceHTML";
 
 const FEATURES = [
   { icon: Users, label: "Employee Management", color: "#024BAB" },
@@ -49,6 +52,33 @@ export default function WelcomePage() {
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const [stepsVisible, setStepsVisible] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [latestInvoice, setLatestInvoice] = useState<any>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    billingAPI
+      .getInvoices()
+      .then((r) => {
+        if (r.success && r.data?.length) setLatestInvoice(r.data[0]);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleDownloadInvoice = () => {
+    if (!latestInvoice) return;
+    setDownloading(true);
+    try {
+      const html = buildInvoiceHTML(latestInvoice);
+      const w = window.open("", "_blank");
+      if (w) {
+        w.document.write(html);
+        w.document.close();
+        setTimeout(() => w.print(), 500);
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     // Staggered entrance animations
@@ -155,13 +185,25 @@ export default function WelcomePage() {
                   "Your workspace is ready"
                 )}
               </p>
-              <button
-                onClick={() => navigate("/", { replace: true })}
-                className="flex items-center gap-2 bg-[#FA731C] text-white border-2 border-black font-bold uppercase text-sm px-6 py-3 hover:bg-[#e06419] transition-all active:scale-95"
-              >
-                Go to Dashboard
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-3">
+                {latestInvoice && (
+                  <button
+                    onClick={handleDownloadInvoice}
+                    disabled={downloading}
+                    className="flex items-center gap-2 bg-white text-[#024BAB] border-2 border-black font-bold uppercase text-sm px-5 py-3 hover:bg-[#F0F6FF] transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4" />
+                    {downloading ? "Opening…" : "Download Invoice"}
+                  </button>
+                )}
+                <button
+                  onClick={() => navigate("/", { replace: true })}
+                  className="flex items-center gap-2 bg-[#FA731C] text-white border-2 border-black font-bold uppercase text-sm px-6 py-3 hover:bg-[#e06419] transition-all active:scale-95"
+                >
+                  Go to Dashboard
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

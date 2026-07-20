@@ -273,6 +273,7 @@ export function TextField({
   secureTextEntry,
   multiline,
   required,
+  icon: Icon,
 }: {
   label: string;
   value: string;
@@ -282,13 +283,17 @@ export function TextField({
   secureTextEntry?: boolean;
   multiline?: boolean;
   required?: boolean;
+  icon?: LucideIcon;
 }) {
   return (
     <View style={{ marginBottom: 14, flex: 1 }}>
-      <Text style={styles.fieldLabel}>
-        {label}
-        {required ? ' *' : ''}
-      </Text>
+      <View style={styles.fieldLabelRow}>
+        {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>
+          {label}
+          {required ? ' *' : ''}
+        </Text>
+      </View>
       <TextInput
         style={[
           styles.fieldInput,
@@ -306,22 +311,143 @@ export function TextField({
   );
 }
 
+// Tappable field that opens a searchable option sheet — the RN equivalent of
+// a web <select>, for lists too long for ChipSelect's wrapping chips (e.g.
+// India's 36 states, or a state's full city list).
+export function PickerField({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder = 'Select',
+  disabled,
+  disabledHint,
+  required,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  disabledHint?: string;
+  required?: boolean;
+  icon?: LucideIcon;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const filtered = query
+    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+  };
+
+  return (
+    <View style={{ marginBottom: 14, flex: 1 }}>
+      <View style={styles.fieldLabelRow}>
+        {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>
+          {label}
+          {required ? ' *' : ''}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.fieldInput, styles.pickerFieldBox, disabled && { opacity: 0.5 }]}
+        onPress={() => !disabled && setOpen(true)}
+        disabled={disabled}
+        activeOpacity={0.7}
+      >
+        <Text
+          style={{
+            fontFamily: FONT.medium,
+            fontSize: 14,
+            color: value ? colors.black : colors.muted,
+          }}
+          numberOfLines={1}
+        >
+          {value || (disabled ? disabledHint || placeholder : placeholder)}
+        </Text>
+        <ChevronDown size={16} color={colors.muted} strokeWidth={2.5} />
+      </TouchableOpacity>
+      <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+        <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={close}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{label}</Text>
+              <TouchableOpacity onPress={close} hitSlop={8} style={{ marginLeft: 'auto' }}>
+                <X size={18} color={colors.black} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={[styles.fieldInput, { marginBottom: 10 }]}
+              placeholder="Search..."
+              placeholderTextColor={colors.muted}
+              value={query}
+              onChangeText={setQuery}
+              autoFocus
+            />
+            <ScrollView style={{ maxHeight: 360 }} keyboardShouldPersistTaps="handled">
+              {filtered.length === 0 ? (
+                <Text style={{ color: colors.muted, paddingVertical: 12 }}>
+                  No matches
+                </Text>
+              ) : (
+                filtered.map(opt => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={styles.sheetRow}
+                    onPress={() => {
+                      onChange(opt);
+                      close();
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.sheetRowText,
+                        opt === value && { color: colors.blue, fontFamily: FONT.bold },
+                      ]}
+                    >
+                      {opt}
+                    </Text>
+                    {opt === value ? (
+                      <Check size={16} color={colors.blue} strokeWidth={2.5} />
+                    ) : null}
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
 export function ChipSelect<T extends string>({
   label,
   options,
   value,
   onChange,
   labels,
+  icon: Icon,
 }: {
   label: string;
   options: readonly T[];
   value: T;
   onChange: (v: T) => void;
   labels?: Partial<Record<T, string>>;
+  icon?: LucideIcon;
 }) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldLabelRow}>
+        {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>{label}</Text>
+      </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map(opt => {
           const selected = value === opt;
@@ -611,22 +737,27 @@ export function DateTimeField({
   onChangeText,
   mode = 'date',
   required,
+  icon: Icon,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   mode?: 'date' | 'time';
   required?: boolean;
+  icon?: LucideIcon;
 }) {
   const placeholder = mode === 'date' ? 'YYYY-MM-DD' : 'HH:mm';
   const re = mode === 'date' ? /^\d{4}-\d{2}-\d{2}$/ : /^\d{2}:\d{2}$/;
   const invalid = value.length > 0 && !re.test(value);
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={styles.fieldLabel}>
-        {label}
-        {required ? ' *' : ''}
-      </Text>
+      <View style={styles.fieldLabelRow}>
+        {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>
+          {label}
+          {required ? ' *' : ''}
+        </Text>
+      </View>
       <TextInput
         style={[styles.fieldInput, invalid && { borderColor: colors.red }]}
         value={value}
@@ -657,11 +788,13 @@ export function ImagePicker({
   value,
   previewUrl,
   onChange,
+  icon: Icon,
 }: {
   label: string;
   value?: PickedImage;
   previewUrl?: string;
   onChange: (file: PickedImage) => void;
+  icon?: LucideIcon;
 }) {
   const handle = (r: any) => {
     const a = r?.assets?.[0];
@@ -693,7 +826,10 @@ export function ImagePicker({
 
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldLabelRow}>
+        {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>{label}</Text>
+      </View>
       <TouchableOpacity onPress={openPicker} style={styles.imagePickerBox}>
         {uri ? (
           <Image source={{ uri }} style={styles.imagePickerPreview} />
@@ -721,10 +857,12 @@ export function FilePicker({
   label,
   value,
   onChange,
+  icon: Icon,
 }: {
   label?: string;
   value?: PickedFile;
   onChange: (file: PickedFile) => void;
+  icon?: LucideIcon;
 }) {
   const pickFile = async () => {
     try {
@@ -743,7 +881,12 @@ export function FilePicker({
 
   return (
     <View style={{ marginBottom: 14 }}>
-      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      {label ? (
+        <View style={styles.fieldLabelRow}>
+          {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
+          <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>{label}</Text>
+        </View>
+      ) : null}
       <TouchableOpacity onPress={pickFile} style={styles.filePickerBox}>
         <FileUp size={16} color={colors.black} strokeWidth={2.5} />
         <Text style={styles.filePickerText} numberOfLines={1}>
@@ -1038,6 +1181,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     marginBottom: 6,
   },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 6,
+  },
   fieldInput: {
     fontFamily: FONT.medium,
     borderWidth: 2,
@@ -1047,6 +1196,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: colors.black,
+  },
+  pickerFieldBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   chip: {
     borderWidth: 2,

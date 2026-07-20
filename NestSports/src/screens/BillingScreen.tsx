@@ -5,9 +5,15 @@ import {
   Text,
   RefreshControl,
   StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import RNPrint from 'react-native-print';
+import { Download } from 'lucide-react-native';
 import { billingAPI } from '../api/client';
+import { buildInvoiceHTML } from '../utils/buildInvoiceHTML';
 import {
   Card,
   SectionTitle,
@@ -26,6 +32,20 @@ export default function BillingScreen() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const downloadInvoice = async (inv: any) => {
+    setDownloading(inv._id);
+    try {
+      await RNPrint.print({ html: buildInvoiceHTML(inv) });
+    } catch (e: any) {
+      if (e?.message !== 'cancelled') {
+        Alert.alert('Error', 'Could not generate invoice PDF.');
+      }
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const load = useCallback(async () => {
     const [subRes, invRes] = await Promise.all([
@@ -145,6 +165,17 @@ export default function BillingScreen() {
                   label={inv.status}
                   color={inv.status === 'paid' ? colors.green : colors.orange}
                 />
+                <TouchableOpacity
+                  style={styles.downloadBtn}
+                  onPress={() => downloadInvoice(inv)}
+                  disabled={downloading === inv._id}
+                >
+                  {downloading === inv._id ? (
+                    <ActivityIndicator size={12} color={colors.white} />
+                  ) : (
+                    <Download size={12} color={colors.white} />
+                  )}
+                </TouchableOpacity>
               </View>
             ))
           )}
@@ -180,6 +211,15 @@ const styles = StyleSheet.create({
   },
   invoiceNumber: { fontWeight: '700', color: colors.black, fontSize: 13 },
   invoiceAmount: { fontWeight: '800', color: colors.black, fontSize: 14 },
+  downloadBtn: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.blue,
+    borderWidth: 1,
+    borderColor: colors.black,
+  },
   footnote: {
     color: colors.muted,
     fontSize: 12,

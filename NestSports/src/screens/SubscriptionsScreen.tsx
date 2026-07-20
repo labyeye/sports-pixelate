@@ -38,18 +38,41 @@ import {
   SortOption,
   KpiTile,
 } from '../components/ui';
-import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import {
+  ImportExportModal,
+  ImportHeader,
+} from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'studentId', label: 'Student ID', required: true, example: 'STU0001' },
-  { key: 'planName', label: 'Plan Name', required: true, example: 'Elite Tennis' },
-  { key: 'billingCycle', label: 'Billing Cycle', required: true, example: 'monthly' },
+  {
+    key: 'planName',
+    label: 'Plan Name',
+    required: true,
+    example: 'Elite Tennis',
+  },
+  {
+    key: 'billingCycle',
+    label: 'Billing Cycle',
+    required: true,
+    example: 'monthly',
+  },
   { key: 'amount', label: 'Amount', required: false, example: '2500' },
-  { key: 'startDate', label: 'Start Date', required: false, example: '2024-01-15' },
-  { key: 'renewalDate', label: 'Renewal Date', required: false, example: '2024-02-15' },
+  {
+    key: 'startDate',
+    label: 'Start Date',
+    required: false,
+    example: '2024-01-15',
+  },
+  {
+    key: 'renewalDate',
+    label: 'Renewal Date',
+    required: false,
+    example: '2024-02-15',
+  },
   { key: 'status', label: 'Status', required: false, example: 'active' },
 ];
 
@@ -110,7 +133,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
 
   // At most one payment entry is ever pending at a time — the backend
   // rejects a new submission while one is awaiting review.
-  const reviewPayment = reviewSub?.payments?.find((p: any) => p.status === 'pending');
+  const reviewPayment = reviewSub?.payments?.find(
+    (p: any) => p.status === 'pending',
+  );
 
   const [status, setStatus] = useState('');
   const [sortBy, setSortBy] = useState('renewalDate');
@@ -262,7 +287,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
               <TouchableOpacity
                 onPress={() =>
                   exportRowsToExcel(
-                    SUBSCRIPTION_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                    SUBSCRIPTION_IMPORT_HEADERS.map(h => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
                     subscriptions.map((s: any) => ({
                       studentId: s.student?.studentId || '',
                       planName: s.planName,
@@ -285,7 +313,11 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 style={styles.sortBtn}
                 hitSlop={8}
               >
-                <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+                <FileSpreadsheet
+                  size={18}
+                  color={colors.black}
+                  strokeWidth={2.5}
+                />
               </TouchableOpacity>
             </>
           )}
@@ -329,7 +361,20 @@ export default function SubscriptionsScreen({ navigation }: any) {
           />
         </View>
 
-        <FilterPills options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+        <FilterPills
+          options={STATUS_OPTIONS}
+          value={status}
+          onChange={setStatus}
+        />
+
+        {isParent && (
+          <TouchableOpacity
+            style={styles.choosePlanBtn}
+            onPress={() => navigation.navigate('ChoosePlan')}
+          >
+            <Text style={styles.choosePlanBtnText}>+ Subscribe a Child to a Plan</Text>
+          </TouchableOpacity>
+        )}
 
         <FlatList
           data={subscriptions}
@@ -343,7 +388,16 @@ export default function SubscriptionsScreen({ navigation }: any) {
           ListFooterComponent={
             <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
           }
-          ListEmptyComponent={<EmptyState title="No subscriptions found" />}
+          ListEmptyComponent={
+            <EmptyState
+              title="No subscriptions found"
+              sub={
+                isParent
+                  ? "Tap 'Subscribe a Child to a Plan' above to get started."
+                  : undefined
+              }
+            />
+          }
           renderItem={({ item: s }) => (
             <Card>
               <View style={styles.cardHeaderRow}>
@@ -360,7 +414,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>AMOUNT PAID</Text>
                   <Text style={styles.statValue}>
-                    {formatCurrency(s.amountPaid || 0)} / {formatCurrency(s.amount)}
+                    {formatCurrency(s.amountPaid || 0)} /{' '}
+                    {formatCurrency(s.amount)}
                   </Text>
                 </View>
                 <View style={styles.statBox}>
@@ -403,7 +458,11 @@ export default function SubscriptionsScreen({ navigation }: any) {
                           disabled={downloadingId === p._id}
                           hitSlop={8}
                         >
-                          <FileText size={14} color={colors.blue} strokeWidth={2.5} />
+                          <FileText
+                            size={14}
+                            color={colors.blue}
+                            strokeWidth={2.5}
+                          />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -411,22 +470,26 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 </View>
               )}
 
-              {isParent && s.status !== 'active' && s.status !== 'cancelled' && (
-                <Button
-                  title={
-                    s.payments?.some((p: any) => p.status === 'pending')
-                      ? 'Awaiting Verification'
-                      : s.amountPaid > 0
+              {isParent &&
+                s.status !== 'active' &&
+                s.status !== 'cancelled' && (
+                  <Button
+                    title={
+                      s.payments?.some((p: any) => p.status === 'pending')
+                        ? 'Awaiting Verification'
+                        : s.amountPaid > 0
                         ? 'Pay Remaining'
                         : 'Renew'
-                  }
-                  onPress={() =>
-                    navigation.navigate('QrRenewal', { subscription: s })
-                  }
-                  color={colors.blue}
-                  disabled={s.payments?.some((p: any) => p.status === 'pending')}
-                />
-              )}
+                    }
+                    onPress={() =>
+                      navigation.navigate('QrRenewal', { subscription: s })
+                    }
+                    color={colors.blue}
+                    disabled={s.payments?.some(
+                      (p: any) => p.status === 'pending',
+                    )}
+                  />
+                )}
               {isParent && s.status === 'active' && (
                 <Button
                   title="Cancel Subscription"
@@ -440,7 +503,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 <View style={styles.paymentRow}>
                   <Badge
                     label={s.paymentStatus}
-                    color={PAYMENT_STATUS_COLORS[s.paymentStatus] || colors.muted}
+                    color={
+                      PAYMENT_STATUS_COLORS[s.paymentStatus] || colors.muted
+                    }
                   />
                   {s.payments?.some((p: any) => p.status === 'pending') && (
                     <TouchableOpacity
@@ -541,7 +606,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
                     resizeMode="contain"
                   />
                 ) : (
-                  <Text style={styles.detailValue}>No screenshot uploaded.</Text>
+                  <Text style={styles.detailValue}>
+                    No screenshot uploaded.
+                  </Text>
                 )}
                 <View style={styles.modalActions}>
                   <Button
@@ -568,7 +635,12 @@ export default function SubscriptionsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   subtitle: { color: colors.muted, marginTop: 2 },
   headerRow: {
     flexDirection: 'row',
@@ -582,6 +654,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  choosePlanBtn: {
+    backgroundColor: colors.blue,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  choosePlanBtnText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '800',
+    fontFamily: FONT.bold,
+    textTransform: 'uppercase',
   },
   sortBtn: {
     width: 36,
@@ -681,14 +768,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  modalTitle: { fontFamily: FONT.bold, fontSize: 16, fontWeight: '800', color: colors.black },
+  modalTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.black,
+  },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 6,
   },
   detailLabel: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted },
-  detailValue: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', color: colors.black },
+  detailValue: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.black,
+  },
   screenshot: {
     width: '100%',
     height: 200,

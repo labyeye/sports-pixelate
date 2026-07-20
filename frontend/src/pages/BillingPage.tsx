@@ -19,6 +19,8 @@ import {
   Download,
   X,
   ShieldCheck,
+  Briefcase,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -410,11 +412,12 @@ export default function BillingPage() {
 
           <div className="border-2 p-5 bg-white max-w-sm">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-              ₹{RATE_STANDARD}/person/year, or ₹{RATE_WHATSAPP}/person/year
-              with WhatsApp notifications
+              ₹{RATE_STANDARD}/person/year, or ₹{RATE_WHATSAPP}/person/year with
+              WhatsApp notifications
             </p>
 
-            <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+              <Users className="w-3.5 h-3.5 text-[#024BAB]" />
               Number of students
             </label>
             <input
@@ -431,7 +434,8 @@ export default function BillingPage() {
               className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
             />
 
-            <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+              <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />
               Number of employees
             </label>
             <input
@@ -453,7 +457,9 @@ export default function BillingPage() {
               onClick={() => setNewWantsWhatsapp((v) => !v)}
               className={cn(
                 "w-full border-2 border-black px-4 py-2.5 mb-4 flex items-center justify-between text-left transition-all",
-                newWantsWhatsapp ? "bg-[#024BAB] text-white" : "bg-white text-black",
+                newWantsWhatsapp
+                  ? "bg-[#024BAB] text-white"
+                  : "bg-white text-black",
               )}
             >
               <span className="font-bold text-sm">
@@ -473,7 +479,8 @@ export default function BillingPage() {
               </span>
             </button>
 
-            <label className="block text-xs font-bold uppercase tracking-wider text-black mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+              <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
               Coupon code
             </label>
             <div className="flex gap-2 mb-1">
@@ -532,15 +539,26 @@ export default function BillingPage() {
             {(Number(newStudentCount) > 0 || Number(newEmployeeCount) > 0) && (
               <div className="mb-4">
                 {(() => {
-                  const units = Number(newStudentCount) + Number(newEmployeeCount);
-                  const baseRate = newWantsWhatsapp ? RATE_WHATSAPP : RATE_STANDARD;
+                  const units =
+                    Number(newStudentCount) + Number(newEmployeeCount);
+                  const baseRate = newWantsWhatsapp
+                    ? RATE_WHATSAPP
+                    : RATE_STANDARD;
                   let rate = baseRate;
-                  if (appliedCoupon?.discountType === "flat_rate" && appliedCoupon.flatRate) {
+                  if (
+                    appliedCoupon?.discountType === "flat_rate" &&
+                    appliedCoupon.flatRate
+                  ) {
                     rate = appliedCoupon.flatRate;
                   }
                   let yearly = units * rate;
-                  if (appliedCoupon?.discountType === "percent_off" && appliedCoupon.percentOff) {
-                    yearly = Math.round(yearly * (1 - appliedCoupon.percentOff / 100));
+                  if (
+                    appliedCoupon?.discountType === "percent_off" &&
+                    appliedCoupon.percentOff
+                  ) {
+                    yearly = Math.round(
+                      yearly * (1 - appliedCoupon.percentOff / 100),
+                    );
                   }
                   const discounted = yearly !== units * baseRate;
                   return (

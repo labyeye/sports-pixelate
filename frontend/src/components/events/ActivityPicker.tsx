@@ -11,11 +11,18 @@ interface ActivityPickerProps {
 // Wraps the existing per-academy SportPicker when activityCategory is
 // "sports" (keeps the existing Sport list/counts intact); otherwise a
 // free-text input with a <datalist> of suggestions from the registry.
-export function ActivityPicker({ value, onChange, activityCategory, required }: ActivityPickerProps) {
+export function ActivityPicker({
+  value,
+  onChange,
+  activityCategory,
+  required,
+}: ActivityPickerProps) {
   if (activityCategory === "sports") {
     return (
       <div>
-        <label className="block text-xs font-bold uppercase mb-1">Activity (Sport){required ? " *" : ""}</label>
+        <label className="block text-xs font-bold uppercase mb-1">
+          Activity (Sport){required ? " *" : ""}
+        </label>
         <SportPicker value={value} onChange={onChange} required={required} />
       </div>
     );
@@ -28,7 +35,9 @@ export function ActivityPicker({ value, onChange, activityCategory, required }: 
 
   return (
     <div>
-      <label className="block text-xs font-bold uppercase mb-1">Activity{required ? " *" : ""}</label>
+      <label className="block text-xs font-bold uppercase mb-1">
+        Activity{required ? " *" : ""}
+      </label>
       <input
         list="activity-suggestions"
         value={value}

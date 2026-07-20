@@ -51,7 +51,10 @@ export default function AuditLogScreen() {
 
   const fetchPage = useCallback(
     (pageNum: number) => {
-      const params: Record<string, string> = { page: String(pageNum), limit: '20' };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: '20',
+      };
       if (search) params.action = search;
       if (entity) params.entity = entity;
       return auditAPI.getLogs(params);
@@ -115,7 +118,11 @@ export default function AuditLogScreen() {
           onChangeText={setSearchInput}
           placeholder="Search by action..."
         />
-        <FilterPills options={ENTITY_OPTIONS} value={entity} onChange={setEntity} />
+        <FilterPills
+          options={ENTITY_OPTIONS}
+          value={entity}
+          onChange={setEntity}
+        />
 
         <FlatList
           data={logs}

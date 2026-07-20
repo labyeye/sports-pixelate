@@ -274,8 +274,7 @@ const bulkImportItems = asyncHandler(async (req, res) => {
         continue;
       }
 
-      const trackQuantity =
-        String(row.trackQuantity).toLowerCase() !== "false";
+      const trackQuantity = String(row.trackQuantity).toLowerCase() !== "false";
       const totalQuantity = Number(row.totalQuantity) || 0;
       const availableQuantity = Number.isFinite(Number(row.availableQuantity))
         ? Number(row.availableQuantity)

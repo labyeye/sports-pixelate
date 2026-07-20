@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { employeeAPI, authAPI } from "@/services/api";
+import { employeeAPI, parentAPI, authAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Employee } from "@/types/hrms";
 import { cn, formatDate } from "@/lib/utils";
@@ -16,13 +16,29 @@ import {
   Building2,
   CheckCircle,
   AlertCircle,
+  Users,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface Parent {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  lastLogin?: string;
+  children?: { _id: string; firstName: string; lastName: string }[];
+}
+
+type CredentialsTab = "staff" | "parents";
 
 export default function EmployeeCredentialsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [tab, setTab] = useState<CredentialsTab>("staff");
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [parents, setParents] = useState<Parent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
@@ -38,6 +54,10 @@ export default function EmployeeCredentialsPage() {
   const [managerCredentials, setManagerCredentials] = useState<any>(null);
   const [showEditManagerForm, setShowEditManagerForm] = useState(false);
   const [managerPassword, setManagerPassword] = useState("");
+  const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
+  const [showParentModal, setShowParentModal] = useState(false);
+  const [parentEmail, setParentEmail] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
   const [actionModal, setActionModal] = useState<{
     show: boolean;
     type: "success" | "error";
@@ -49,16 +69,20 @@ export default function EmployeeCredentialsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, string> = { status: "active" };
-      if (search) params.search = search;
-
-      const res = await employeeAPI.getAll(params);
-      if (res.success) {
-        setEmployees(res.data);
+      if (tab === "staff") {
+        const params: Record<string, string> = { status: "active" };
+        if (search) params.search = search;
+        const res = await employeeAPI.getAll(params);
+        if (res.success) setEmployees(res.data);
+      } else {
+        const params: Record<string, string> = {};
+        if (search) params.search = search;
+        const res = await parentAPI.getAll(params);
+        if (res.success) setParents(res.data);
       }
     } catch {}
     setLoading(false);
-  }, [search, companyId]);
+  }, [search, companyId, tab]);
 
   useEffect(() => {
     load();
@@ -147,6 +171,74 @@ export default function EmployeeCredentialsPage() {
       pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setNewPassword(pwd);
+  };
+
+  const generateParentPassword = () => {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+    let pwd = "";
+    for (let i = 0; i < 12; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setParentPassword(pwd);
+  };
+
+  const handleUpdateParentCredentials = async () => {
+    if (!selectedParent || (!parentEmail.trim() && !parentPassword)) {
+      setActionModal({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: "Please set an email or password to update",
+      });
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const body: { email?: string; password?: string } = {};
+      if (parentEmail.trim() && parentEmail.trim() !== selectedParent.email)
+        body.email = parentEmail.trim();
+      if (parentPassword) body.password = parentPassword;
+
+      const res = await parentAPI.updateCredentials(selectedParent._id, body);
+
+      if (res.success) {
+        await navigator.clipboard.writeText(
+          `Email: ${body.email || selectedParent.email}\nPassword: ${
+            parentPassword || "(unchanged)"
+          }`,
+        );
+        setParents((p) =>
+          p.map((par) =>
+            par._id === selectedParent._id
+              ? { ...par, email: body.email || par.email }
+              : par,
+          ),
+        );
+        setActionModal({
+          show: true,
+          type: "success",
+          title: "Credentials Updated Successfully",
+          message:
+            "Credentials copied to clipboard. Share with parent securely.",
+        });
+        setTimeout(() => {
+          setShowParentModal(false);
+          setSelectedParent(null);
+          setParentEmail("");
+          setParentPassword("");
+        }, 1500);
+      }
+    } catch (err: any) {
+      setActionModal({
+        show: true,
+        type: "error",
+        title: "Error",
+        message: err.message || "Failed to update credentials",
+      });
+    }
+    setUpdating(false);
   };
 
   const handleCreateCredential = async () => {
@@ -264,10 +356,36 @@ export default function EmployeeCredentialsPage() {
             Login Credentials
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage employee credentials for{" "}
+            Manage staff and parent login credentials for{" "}
             {user?.company?.name || "your SportsClub"}
           </p>
         </div>
+      </div>
+
+      {}
+      <div className="flex border-2 border-black bg-white mb-5 w-fit">
+        <button
+          onClick={() => setTab("staff")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors",
+            tab === "staff"
+              ? "bg-[#024BAB] text-white"
+              : "bg-white text-black hover:bg-[#024BAB]/5",
+          )}
+        >
+          <Users className="w-3.5 h-3.5" /> Staff
+        </button>
+        <button
+          onClick={() => setTab("parents")}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider border-l-2 border-black transition-colors",
+            tab === "parents"
+              ? "bg-[#024BAB] text-white"
+              : "bg-white text-black hover:bg-[#024BAB]/5",
+          )}
+        >
+          <Mail className="w-3.5 h-3.5" /> Parents
+        </button>
       </div>
 
       {}
@@ -275,7 +393,11 @@ export default function EmployeeCredentialsPage() {
         <Search className="w-4 h-4 shrink-0" />
         <input
           type="text"
-          placeholder="Search employees by name or email..."
+          placeholder={
+            tab === "staff"
+              ? "Search employees by name or email..."
+              : "Search parents by name, email or phone..."
+          }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="bg-transparent text-sm outline-none w-full font-medium"
@@ -300,7 +422,7 @@ export default function EmployeeCredentialsPage() {
       </div>
 
       {}
-      {managerCredentials && (
+      {tab === "staff" && managerCredentials && (
         <div className=" bg-white p-4 mb-5 border-2 border-[#00C48C] bg-[#00C48C]/5">
           <div className="flex items-start justify-between">
             <div>
@@ -337,36 +459,116 @@ export default function EmployeeCredentialsPage() {
         <div className="flex items-center justify-center h-64">
           <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
         </div>
-      ) : employees.length === 0 ? (
+      ) : tab === "staff" ? (
+        employees.length === 0 ? (
+          <div className="border-2 bg-white p-12 flex flex-col items-center justify-center">
+            <Lock className="w-12 h-12 text-muted-foreground/30 mb-3" />
+            <p className="font-bold text-black">No employees found</p>
+          </div>
+        ) : (
+          <div className="border-2 bg-white overflow-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-black bg-[#024BAB]/5">
+                  {[
+                    "Employee",
+                    "Email",
+                    "Designation",
+                    "Last Updated",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp, i) => (
+                  <tr
+                    key={emp._id}
+                    className={cn(
+                      "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                      i % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                    )}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5 ">
+                        {emp.avatar ? (
+                          <img
+                            src={emp.avatar}
+                            alt="Profile"
+                            className="w-8 h-8 object-cover border-2 border-black rounded-full"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-[#024BAB] rounded-full border-2 border-black flex items-center justify-center text-xs font-bold text-white shrink-0">
+                            {emp.firstName?.[0]?.toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-bold text-black">
+                            {emp.firstName} {emp.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {emp.employeeId}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-black font-medium">
+                      {emp.email}
+                    </td>
+                    <td className="px-4 py-3 text-black">{emp.designation}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {formatDate(emp.joinDate)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => {
+                          setSelectedEmp(emp);
+                          setNewPassword("");
+                          setShowModal(true);
+                        }}
+                        className="flex items-center gap-1 text-xs font-bold border-2 border-black px-3 py-1.5 hover:bg-[#024BAB] hover:text-white transition-colors"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Reset Password
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : parents.length === 0 ? (
         <div className="border-2 bg-white p-12 flex flex-col items-center justify-center">
           <Lock className="w-12 h-12 text-muted-foreground/30 mb-3" />
-          <p className="font-bold text-black">No employees found</p>
+          <p className="font-bold text-black">No parents found</p>
         </div>
       ) : (
         <div className="border-2 bg-white overflow-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                {[
-                  "Employee",
-                  "Email",
-                  "Designation",
-                  "Last Updated",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Parent", "Email", "Phone", "Children", "Actions"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp, i) => (
+              {parents.map((par, i) => (
                 <tr
-                  key={emp._id}
+                  key={par._id}
                   className={cn(
                     "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
                     i % 2 === 0 ? "" : "bg-[#F8FAFF]",
@@ -374,44 +576,52 @@ export default function EmployeeCredentialsPage() {
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5 ">
-                      {emp.avatar ? (
+                      {par.avatar ? (
                         <img
-                          src={emp.avatar}
+                          src={par.avatar}
                           alt="Profile"
                           className="w-8 h-8 object-cover border-2 border-black rounded-full"
                         />
                       ) : (
                         <div className="w-8 h-8 bg-[#024BAB] rounded-full border-2 border-black flex items-center justify-center text-xs font-bold text-white shrink-0">
-                          {emp.firstName?.[0]?.toUpperCase()}
+                          {par.name?.[0]?.toUpperCase()}
                         </div>
                       )}
-                      <div>
-                        <p className="font-bold text-black">
-                          {emp.firstName} {emp.lastName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {emp.employeeId}
-                        </p>
-                      </div>
+                      <p className="font-bold text-black">{par.name}</p>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-black font-medium">
-                    {emp.email}
+                    {par.email?.endsWith(".nestsports.local") ? (
+                      <span className="text-muted-foreground italic">
+                        Not set
+                      </span>
+                    ) : (
+                      par.email
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-black">{emp.designation}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {formatDate(emp.joinDate)}
+                  <td className="px-4 py-3 text-black">{par.phone || "—"}</td>
+                  <td className="px-4 py-3 text-black text-xs">
+                    {par.children && par.children.length > 0
+                      ? par.children
+                          .map((c) => `${c.firstName} ${c.lastName}`)
+                          .join(", ")
+                      : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => {
-                        setSelectedEmp(emp);
-                        setNewPassword("");
-                        setShowModal(true);
+                        setSelectedParent(par);
+                        setParentEmail(
+                          par.email?.endsWith(".nestsports.local")
+                            ? ""
+                            : par.email,
+                        );
+                        setParentPassword("");
+                        setShowParentModal(true);
                       }}
                       className="flex items-center gap-1 text-xs font-bold border-2 border-black px-3 py-1.5 hover:bg-[#024BAB] hover:text-white transition-colors"
                     >
-                      <RefreshCw className="w-3 h-3" /> Reset Password
+                      <RefreshCw className="w-3 h-3" /> Edit Credentials
                     </button>
                   </td>
                 </tr>
@@ -685,6 +895,146 @@ export default function EmployeeCredentialsPage() {
                   onClick={() => {
                     setShowCreateForm(false);
                     setCreateFormData({ selectedEmployee: null, password: "" });
+                  }}
+                  className=" bg-white text-black px-6 py-2.5 text-sm font-bold border-2 border-black"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {}
+      {showParentModal && selectedParent && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="border-2 bg-white w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b-2 border-black">
+              <h3 className="font-display font-bold text-lg">
+                Edit Parent Credentials
+              </h3>
+              <button
+                onClick={() => {
+                  setShowParentModal(false);
+                  setSelectedParent(null);
+                  setParentEmail("");
+                  setParentPassword("");
+                }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {}
+              <div className="p-3 bg-[#024BAB]/5 border-2 border-[#024BAB]">
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-2">
+                  Parent
+                </p>
+                <p className="font-bold text-black text-sm">
+                  {selectedParent.name}
+                </p>
+                {selectedParent.children &&
+                  selectedParent.children.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Guardian of{" "}
+                      {selectedParent.children
+                        .map((c) => `${c.firstName} ${c.lastName}`)
+                        .join(", ")}
+                    </p>
+                  )}
+              </div>
+
+              {}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                  Login Email
+                </label>
+                <input
+                  type="email"
+                  value={parentEmail}
+                  onChange={(e) => setParentEmail(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-black text-sm focus:outline-none focus:ring-2 focus:ring-[#024BAB] bg-white"
+                  placeholder="parent@example.com"
+                />
+              </div>
+
+              {}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                  New Password
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={parentPassword}
+                      onChange={(e) => setParentPassword(e.target.value)}
+                      className="w-full px-3 py-2 border-2 border-black text-sm focus:outline-none focus:ring-2 focus:ring-[#024BAB] bg-white"
+                      placeholder="Enter or generate password"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="px-3 py-2 border-2 border-black hover:bg-[#024BAB]/10"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={generateParentPassword}
+                  className="text-xs font-bold text-[#024BAB] hover:underline"
+                >
+                  💡 Generate Strong Password
+                </button>
+              </div>
+
+              {}
+              <div className="p-3 bg-[#FFD60A]/10 border-2 border-[#FFD60A]">
+                <p className="text-xs font-bold text-[#FFD60A] mb-1">
+                  ℹ️ Email + Password Login
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Parents can already log in via WhatsApp phone OTP. Setting an
+                  email and password here lets them log in that way too.
+                  Credentials will be copied to clipboard.
+                </p>
+              </div>
+
+              {}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleUpdateParentCredentials}
+                  disabled={
+                    updating || (!parentEmail.trim() && !parentPassword)
+                  }
+                  className="border-2 bg-[#024BAB] text-white px-6 py-2.5 text-sm font-bold flex-1 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {updating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Save & Copy
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowParentModal(false);
+                    setSelectedParent(null);
+                    setParentEmail("");
+                    setParentPassword("");
                   }}
                   className=" bg-white text-black px-6 py-2.5 text-sm font-bold border-2 border-black"
                 >

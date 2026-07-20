@@ -45,7 +45,11 @@ export function FileUpload({
 
   return (
     <div className={className}>
-      {label && <label className="block text-xs font-bold uppercase mb-1">{label}</label>}
+      {label && (
+        <label className="block text-xs font-bold uppercase mb-1">
+          {label}
+        </label>
+      )}
       <input
         ref={inputRef}
         type="file"
@@ -55,7 +59,11 @@ export function FileUpload({
       />
       {isImage && shownPreview ? (
         <div className="relative border-2 border-black w-full h-32 overflow-hidden group">
-          <img src={shownPreview} alt={label || "preview"} className="w-full h-full object-cover" />
+          <img
+            src={shownPreview}
+            alt={label || "preview"}
+            className="w-full h-full object-cover"
+          />
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -82,7 +90,11 @@ export function FileUpload({
             <FileText className="w-3.5 h-3.5 shrink-0" /> {fileName}
           </span>
           {onClear && (
-            <button type="button" onClick={onClear} className="text-red-500 hover:text-red-700 shrink-0">
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-red-500 hover:text-red-700 shrink-0"
+            >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -101,7 +113,11 @@ export function FileUpload({
           ) : (
             <UploadCloud className="w-4 h-4" />
           )}
-          {uploading ? "Uploading..." : isImage ? "Upload image" : "Upload file"}
+          {uploading
+            ? "Uploading..."
+            : isImage
+              ? "Upload image"
+              : "Upload file"}
         </button>
       )}
     </div>

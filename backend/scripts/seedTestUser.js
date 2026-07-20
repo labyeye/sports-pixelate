@@ -34,7 +34,6 @@ async function seedTestUser() {
       email: "company@nesthr.com",
       phone: "+91 98765 43210",
       password: "CompanyPass@123",
-      industry: "Technology",
       website: "https://testenterprise.com",
       gstNumber: "27AABCT1234A1Z5",
       panNumber: "AAAAA0000A",

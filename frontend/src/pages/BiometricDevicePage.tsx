@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import nesthrlogo from "../../assets/nesthr.png"
+import nesthrlogo from "../../assets/nesthr.png";
 import { useParams } from "react-router-dom";
 import { biometricAPI, PersonType } from "@/services/api";
 import { useFaceRecognition } from "@/hooks/useFaceRecognition";
@@ -651,9 +651,7 @@ export default function BiometricDevicePage() {
                         <>
                           <select
                             value={enrollSelected}
-                            onChange={(e) =>
-                              setEnrollSelected(e.target.value)
-                            }
+                            onChange={(e) => setEnrollSelected(e.target.value)}
                             className="w-full bg-white/10 border-2 border-white/20 text-white px-3 py-3 text-sm font-medium focus:outline-none focus:border-[#024BAB] mb-4"
                           >
                             <option value="" className="bg-[#0A0F1E]">
@@ -681,8 +679,7 @@ export default function BiometricDevicePage() {
                           <button
                             onClick={handleEnrollStartCamera}
                             disabled={
-                              !enrollSelected ||
-                              enrollLoadState === "loading"
+                              !enrollSelected || enrollLoadState === "loading"
                             }
                             className="w-full bg-[#024BAB] border-2 border-white/20 text-white font-bold uppercase py-3 disabled:opacity-40 flex items-center justify-center gap-2"
                           >

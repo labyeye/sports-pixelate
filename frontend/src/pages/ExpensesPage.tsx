@@ -16,6 +16,10 @@ import {
   ArrowDown,
   IndianRupee,
   ListOrdered,
+  Tag,
+  Layers,
+  Calendar,
+  FileText,
 } from "lucide-react";
 
 interface Expense {
@@ -284,7 +288,8 @@ export default function ExpensesPage() {
           <h3 className="font-bold text-base mb-4">Add Expense</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
                 Title *
               </label>
               <input
@@ -296,7 +301,8 @@ export default function ExpensesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Layers className="w-3.5 h-3.5 text-[#024BAB]" />
                 Category
               </label>
               <select
@@ -314,7 +320,8 @@ export default function ExpensesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                 Amount (₹) *
               </label>
               <input
@@ -327,7 +334,8 @@ export default function ExpensesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
                 Date
               </label>
               <input
@@ -340,7 +348,8 @@ export default function ExpensesPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
                 Description
               </label>
               <input

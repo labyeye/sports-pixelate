@@ -42,8 +42,11 @@ import MyLoansScreen from '../screens/MyLoansScreen';
 
 // Parents / Billing & Plans
 import SubscriptionsScreen from '../screens/SubscriptionsScreen';
+import ChoosePlanScreen from '../screens/ChoosePlanScreen';
 import QrRenewalScreen from '../screens/QrRenewalScreen';
 import BookingsScreen from '../screens/BookingsScreen';
+import ParentAttendanceScreen from '../screens/ParentAttendanceScreen';
+import ParentReportScreen from '../screens/ParentReportScreen';
 import PlansScreen from '../screens/PlansScreen';
 import AddPlanScreen from '../screens/AddPlanScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
@@ -244,11 +247,26 @@ export default function RootNavigator() {
               component={SubscriptionsScreen}
             />
             <Stack.Screen
+              name="ChoosePlan"
+              component={ChoosePlanScreen}
+              options={{ title: 'Choose a Plan' }}
+            />
+            <Stack.Screen
               name="QrRenewal"
               component={QrRenewalScreen}
               options={{ title: 'Renew Subscription' }}
             />
             <Stack.Screen name="Bookings" component={BookingsScreen} />
+            <Stack.Screen
+              name="ParentAttendance"
+              component={ParentAttendanceScreen}
+              options={{ title: 'Attendance' }}
+            />
+            <Stack.Screen
+              name="ParentReport"
+              component={ParentReportScreen}
+              options={{ title: 'Student Report' }}
+            />
             <Stack.Screen
               name="Plans"
               component={PlansScreen}

@@ -48,7 +48,6 @@ export interface Department {
   head?: { _id: string; name: string; email: string };
   description?: string;
   headcount: number;
-  budget?: number;
   status: "active" | "inactive";
 }
 
@@ -517,7 +516,12 @@ export interface EventAttendanceRecord {
   _id: string;
   event: string;
   company: string;
-  student: { _id: string; firstName: string; lastName: string; avatar?: string };
+  student: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  };
   status: "present" | "absent";
   markedAt?: string;
   createdAt: string;

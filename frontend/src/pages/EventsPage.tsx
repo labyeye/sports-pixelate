@@ -6,6 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { eventTypes } from "@/config/eventTypeConfig";
 import {
+  EventForm,
+  type EventFormPayload,
+  type StagedOfficial,
+} from "@/components/events/EventForm";
+import {
   Trophy,
   Plus,
   X,
@@ -49,10 +54,15 @@ export default function EventsPage() {
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const buildParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "21" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "21",
+      };
       if (search) params.search = search;
       if (filterEventType) params.eventType = filterEventType;
       if (filterStatus) params.status = filterStatus;
@@ -97,13 +107,41 @@ export default function EventsPage() {
     load();
   }, [load]);
 
+  const handleCreate = async (
+    payload: EventFormPayload,
+    files: { coverImage?: File; bannerImage?: File },
+    stagedOfficials: StagedOfficial[],
+  ) => {
+    setCreating(true);
+    try {
+      const res = await eventAPI.create(payload);
+      const id = res.data._id;
+      if (files.coverImage || files.bannerImage) {
+        await eventAPI.uploadImages(id, files);
+      }
+      for (const official of stagedOfficials) {
+        await eventAPI.addOfficial(id, official);
+      }
+      toast({
+        title: "Event created",
+        description: `"${payload.name}" is ready.`,
+      });
+      setShowCreateModal(false);
+      navigate(`/events/${id}`);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <AppLayout title="Events">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 className="font-display font-bold text-2xl text-black">Events</h1>
         {!isParent && (
           <button
-            onClick={() => navigate("/events/new")}
+            onClick={() => setShowCreateModal(true)}
             className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
           >
             <Plus className="w-4 h-4" /> New Event
@@ -117,7 +155,9 @@ export default function EventsPage() {
             <Trophy className="w-5 h-5 text-[#024BAB]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Events</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Events
+            </p>
             <p className="text-2xl font-bold text-black">{total}</p>
           </div>
         </div>
@@ -126,9 +166,15 @@ export default function EventsPage() {
             <PlayCircle className="w-5 h-5 text-[#00C48C]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Upcoming / Live</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Upcoming / Live
+            </p>
             <p className="text-2xl font-bold text-black">
-              {events.filter((e) => e.status === "upcoming" || e.status === "live").length}
+              {
+                events.filter(
+                  (e) => e.status === "upcoming" || e.status === "live",
+                ).length
+              }
             </p>
           </div>
         </div>
@@ -137,8 +183,12 @@ export default function EventsPage() {
             <CheckCircle2 className="w-5 h-5 text-[#A855F7]" />
           </div>
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Completed</p>
-            <p className="text-2xl font-bold text-black">{events.filter((e) => e.status === "completed").length}</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Completed
+            </p>
+            <p className="text-2xl font-bold text-black">
+              {events.filter((e) => e.status === "completed").length}
+            </p>
           </div>
         </div>
       </div>
@@ -172,13 +222,19 @@ export default function EventsPage() {
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold outline-none"
         >
           <option value="">All Status</option>
-          {["draft", "registration_open", "registration_closed", "upcoming", "live", "completed", "cancelled"].map(
-            (s) => (
-              <option key={s} value={s}>
-                {s.replace(/_/g, " ")}
-              </option>
-            ),
-          )}
+          {[
+            "draft",
+            "registration_open",
+            "registration_closed",
+            "upcoming",
+            "live",
+            "completed",
+            "cancelled",
+          ].map((s) => (
+            <option key={s} value={s}>
+              {s.replace(/_/g, " ")}
+            </option>
+          ))}
         </select>
         {(search || filterEventType || filterStatus) && (
           <button
@@ -205,7 +261,11 @@ export default function EventsPage() {
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold flex items-center gap-1"
         >
-          {sortDir === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          {sortDir === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )}
         </button>
       </div>
 
@@ -217,7 +277,9 @@ export default function EventsPage() {
         <div className="border-2 border-black bg-white p-10 text-center">
           <Trophy className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
           <p className="text-sm font-bold">No events found</p>
-          <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters, or create a new event.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Try adjusting your filters, or create a new event.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -230,17 +292,22 @@ export default function EventsPage() {
                 className="text-left border-2 border-black bg-white p-4 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 ${meta.bg} ${meta.text}`}>
+                  <span
+                    className={`text-[10px] font-bold uppercase px-2 py-0.5 ${meta.bg} ${meta.text}`}
+                  >
                     {event.status.replace(/_/g, " ")}
                   </span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                 </div>
                 <h3 className="font-bold text-sm">{event.name}</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {eventTypes[event.eventType as keyof typeof eventTypes]?.label || event.eventType} · {event.activity}
+                  {eventTypes[event.eventType as keyof typeof eventTypes]
+                    ?.label || event.eventType}{" "}
+                  · {event.activity}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {event.registrationCount ?? event.registrations?.length ?? 0} registered
+                  {event.registrationCount ?? event.registrations?.length ?? 0}{" "}
+                  registered
                   {event.teams?.length ? ` · ${event.teams.length} teams` : ""}
                 </p>
               </button>
@@ -256,8 +323,36 @@ export default function EventsPage() {
             disabled={loadingMore}
             className="border-2 border-black bg-white px-4 py-2 text-xs font-bold flex items-center gap-2 disabled:opacity-50"
           >
-            {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Load more
+            {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}{" "}
+            Load more
           </button>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-2 border-b-0 border-black bg-[#024BAB]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white flex items-center justify-center shrink-0">
+                  <Trophy className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold text-lg text-white">Create Event</h3>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-white hover:text-white/70 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <EventForm
+              mode="create"
+              onSubmit={handleCreate}
+              onCancel={() => setShowCreateModal(false)}
+              saving={creating}
+            />
+          </div>
         </div>
       )}
     </AppLayout>

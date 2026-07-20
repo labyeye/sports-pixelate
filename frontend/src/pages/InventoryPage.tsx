@@ -5,7 +5,10 @@ import { inventoryAPI, studentAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import {
+  ImportExportModal,
+  type ImportHeader,
+} from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Package,
@@ -27,6 +30,13 @@ import {
   Truck,
   Download,
   FileSpreadsheet,
+  Tag,
+  Layers,
+  Trophy,
+  Hash,
+  IndianRupee,
+  User,
+  FileText,
 } from "lucide-react";
 
 const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
@@ -154,7 +164,10 @@ export default function InventoryPage() {
 
   const itemParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (search) params.search = search;
       if (filterCategory) params.category = filterCategory;
       if (filterSport) params.sport = filterSport;
@@ -305,7 +318,8 @@ export default function InventoryPage() {
     if (!assignFor) return;
     setAssignPeopleLoading(true);
     setAssignPeople([]);
-    const api = assignForm.assignedToModel === "Student" ? studentAPI : employeeAPI;
+    const api =
+      assignForm.assignedToModel === "Student" ? studentAPI : employeeAPI;
     api
       .getAll({ limit: "500" })
       .then((r: any) => setAssignPeople(r.data || []))
@@ -334,7 +348,12 @@ export default function InventoryPage() {
       });
       setItems((p) => p.map((i) => (i._id === assignFor._id ? r.data : i)));
       setAssignFor(r.data);
-      setAssignForm((f) => ({ ...f, assignedTo: "", quantity: "1", notes: "" }));
+      setAssignForm((f) => ({
+        ...f,
+        assignedTo: "",
+        quantity: "1",
+        notes: "",
+      }));
       toast({ title: "Item checked out" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -346,7 +365,10 @@ export default function InventoryPage() {
   const handleReturnAssignment = async (assignmentId: string) => {
     if (!assignFor) return;
     try {
-      const r = await inventoryAPI.returnAssignment(assignFor._id, assignmentId);
+      const r = await inventoryAPI.returnAssignment(
+        assignFor._id,
+        assignmentId,
+      );
       setItems((p) => p.map((i) => (i._id === assignFor._id ? r.data : i)));
       setAssignFor(r.data);
       toast({ title: "Item returned" });
@@ -361,7 +383,9 @@ export default function InventoryPage() {
       .getAll({ limit: "200" })
       .then((r) =>
         setSportOptions(
-          Array.from(new Set((r.data as Item[]).map((i) => i.sport).filter(Boolean))).sort(),
+          Array.from(
+            new Set((r.data as Item[]).map((i) => i.sport).filter(Boolean)),
+          ).sort(),
         ),
       )
       .catch(() => {});
@@ -387,7 +411,10 @@ export default function InventoryPage() {
           <button
             onClick={() =>
               exportRowsToExcel(
-                INVENTORY_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                INVENTORY_IMPORT_HEADERS.map((h) => ({
+                  key: h.key,
+                  label: h.label,
+                })),
                 displayed,
                 "inventory_export.xlsx",
                 "Inventory",
@@ -546,7 +573,8 @@ export default function InventoryPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
                 Name *
               </label>
               <input
@@ -559,7 +587,8 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Layers className="w-3.5 h-3.5 text-[#024BAB]" />
                 Category
               </label>
               <select
@@ -577,7 +606,8 @@ export default function InventoryPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
                 Sport
               </label>
               <input
@@ -589,7 +619,8 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
                 Initial Quantity
               </label>
               <input
@@ -602,7 +633,8 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                 Unit Cost (₹)
               </label>
               <input
@@ -615,7 +647,8 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-[#024BAB]" />
                 Reorder Threshold
               </label>
               <input
@@ -658,7 +691,9 @@ export default function InventoryPage() {
           </h3>
           {!!txnFor.onOrderQuantity && (
             <p className="text-xs font-bold text-purple-600 mb-3">
-              {txnFor.onOrderQuantity} unit{txnFor.onOrderQuantity === 1 ? "" : "s"} on order, not yet received
+              {txnFor.onOrderQuantity} unit
+              {txnFor.onOrderQuantity === 1 ? "" : "s"} on order, not yet
+              received
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3">
@@ -714,16 +749,23 @@ export default function InventoryPage() {
             <h3 className="font-bold text-base">
               Check Out — {assignFor.name}
             </h3>
-            <button onClick={() => setAssignFor(null)} className="p-2 border-2 border-black">
+            <button
+              onClick={() => setAssignFor(null)}
+              className="p-2 border-2 border-black"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Record who is taking this item so you know where it is and when it's due back.
+            Record who is taking this item so you know where it is and when it's
+            due back.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Taken by</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <User className="w-3.5 h-3.5 text-[#024BAB]" />
+                Taken by
+              </label>
               <select
                 value={assignForm.assignedToModel}
                 onChange={(e) =>
@@ -740,7 +782,8 @@ export default function InventoryPage() {
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <UserCheck className="w-3.5 h-3.5 text-[#024BAB]" />
                 {assignForm.assignedToModel}
               </label>
               <select
@@ -762,7 +805,10 @@ export default function InventoryPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Quantity</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
+                Quantity
+              </label>
               <input
                 type="number"
                 min={1}
@@ -774,7 +820,10 @@ export default function InventoryPage() {
               />
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold uppercase mb-1">Notes (optional)</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
+                Notes (optional)
+              </label>
               <input
                 value={assignForm.notes}
                 onChange={(e) =>
@@ -800,7 +849,9 @@ export default function InventoryPage() {
 
           {!!assignFor.assignments?.filter((a) => !a.returnedAt).length && (
             <div className="mt-5 border-t-2 border-black pt-4">
-              <p className="text-xs font-bold uppercase mb-2">Currently taken out</p>
+              <p className="text-xs font-bold uppercase mb-2">
+                Currently taken out
+              </p>
               <div className="flex flex-col gap-2">
                 {assignFor.assignments
                   .filter((a) => !a.returnedAt)
@@ -962,7 +1013,8 @@ export default function InventoryPage() {
                         </span>
                         {!!i.onOrderQuantity && (
                           <span className="block text-[10px] font-bold text-purple-600 flex items-center gap-1 mt-0.5">
-                            <Truck className="w-3 h-3" /> {i.onOrderQuantity} on order
+                            <Truck className="w-3 h-3" /> {i.onOrderQuantity} on
+                            order
                           </span>
                         )}
                       </td>
@@ -1045,12 +1097,13 @@ export default function InventoryPage() {
         notes={
           <>
             <p>
-              • <strong>Category</strong> must be one of: <code>equipment</code>,{" "}
-              <code>apparel</code>, <code>consumable</code>, <code>other</code>.
+              • <strong>Category</strong> must be one of: <code>equipment</code>
+              , <code>apparel</code>, <code>consumable</code>,{" "}
+              <code>other</code>.
             </p>
             <p>
-              • If <strong>Available Quantity</strong> is blank, it defaults
-              to <strong>Total Quantity</strong>.
+              • If <strong>Available Quantity</strong> is blank, it defaults to{" "}
+              <strong>Total Quantity</strong>.
             </p>
             <p>
               • Maximum <strong>200 items</strong> per import.

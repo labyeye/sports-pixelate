@@ -114,7 +114,7 @@ const getEmployee = asyncHandler(async (req, res) => {
 
 const getMyEmployee = asyncHandler(async (req, res) => {
   let employee = await Employee.findOne({ user: req.user._id })
-    .populate("department", "name code shiftStartTime shiftEndTime")
+    .populate("department", "name code")
     .populate("reportingTo", "firstName lastName designation");
 
   // Fallback: match by email within the same company if user field isn't linked
@@ -123,7 +123,7 @@ const getMyEmployee = asyncHandler(async (req, res) => {
       email: req.user.email.toLowerCase(),
       company: req.user.company,
     })
-      .populate("department", "name code shiftStartTime shiftEndTime")
+      .populate("department", "name code")
       .populate("reportingTo", "firstName lastName designation");
 
     // Auto-link: update the user field so future lookups are instant

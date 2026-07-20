@@ -27,9 +27,9 @@ async function getCompanyFeatures(companyId) {
     : null;
   if (!company?.subscription) return NO_FEATURES;
 
-  const subscription = await Subscription.findById(
-    company.subscription,
-  ).select("wantsWhatsapp");
+  const subscription = await Subscription.findById(company.subscription).select(
+    "wantsWhatsapp",
+  );
 
   return { ...ALL_FEATURES, whatsapp: !!subscription?.wantsWhatsapp };
 }

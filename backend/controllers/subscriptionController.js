@@ -3,10 +3,110 @@ const fs = require("fs");
 const StudentSubscription = require("../models/StudentSubscription");
 const SportsPlan = require("../models/SportsPlan");
 const Student = require("../models/Student");
+const User = require("../models/User");
+const Company = require("../models/Company");
 const razorpayService = require("../services/razorpayService");
 const { validateMagicBytes } = require("../middleware/upload");
 const { safePagination, safeSort } = require("../middleware/validate");
 const { generateReceiptPdf } = require("../services/receiptService");
+const {
+  sendPaymentVerified,
+  sendPaymentVerifiedAdmin,
+  sendPaymentRejected,
+} = require("../services/whatsappService");
+
+// Fire-and-forget: emails/PDFs the parent's opted-in guardian and every
+// owner/staff user a receipt for a just-verified payment. Never throws —
+// notification failures must not affect the payment-verification response.
+async function notifyPaymentVerified(subscription, payment, companyId, verifiedByName) {
+  try {
+    const student = await Student.findById(subscription.student).select(
+      "firstName lastName studentId guardians",
+    );
+    if (!student) return;
+
+    const pdfBuffer = await generateReceiptPdf({
+      subscription: { ...subscription.toObject(), student },
+      payment,
+    });
+    const studentName = `${student.firstName} ${student.lastName}`.trim();
+    const balanceDue = Math.max(subscription.amount - subscription.amountPaid, 0);
+
+    const guardian = (student.guardians || []).find(
+      (g) => g.receivesWhatsapp && g.phone,
+    );
+    if (guardian) {
+      await sendPaymentVerified(
+        guardian.phone,
+        {
+          guardianName: guardian.name,
+          studentName,
+          planName: subscription.planName,
+          amount: payment.amount,
+          paymentMode: payment.method,
+          paidOn: payment.verifiedAt,
+          balanceDue,
+        },
+        companyId,
+        pdfBuffer,
+      );
+    }
+
+    const company = await Company.findById(companyId).select("phone");
+    const admins = await User.find({
+      company: companyId,
+      role: { $in: ["super_admin", "hr_manager"] },
+    }).select("phone role");
+    for (const admin of admins) {
+      const phone =
+        admin.phone || (admin.role === "super_admin" ? company?.phone : null);
+      if (phone) {
+        await sendPaymentVerifiedAdmin(
+          phone,
+          {
+            studentName,
+            studentId: student.studentId,
+            planName: subscription.planName,
+            amount: payment.amount,
+            paymentMode: payment.method,
+            verifiedByName,
+            balanceDue,
+          },
+          companyId,
+          pdfBuffer,
+        );
+      }
+    }
+  } catch (err) {
+    console.error("[Subscription] WA payment-verified notify failed:", err.message);
+  }
+}
+
+async function notifyPaymentRejected(subscription, payment, companyId) {
+  try {
+    const student = await Student.findById(subscription.student).select(
+      "firstName lastName guardians",
+    );
+    if (!student) return;
+    const guardian = (student.guardians || []).find(
+      (g) => g.receivesWhatsapp && g.phone,
+    );
+    if (!guardian) return;
+    await sendPaymentRejected(
+      guardian.phone,
+      {
+        guardianName: guardian.name,
+        amount: payment.amount,
+        studentName: `${student.firstName} ${student.lastName}`.trim(),
+        planName: subscription.planName,
+        reason: payment.rejectionReason,
+      },
+      companyId,
+    );
+  } catch (err) {
+    console.error("[Subscription] WA payment-rejected notify failed:", err.message);
+  }
+}
 
 // Recomputes amountPaid/paymentStatus from payments[] and, the first time the
 // subscription crosses fully-paid, activates it and extends the renewal date.
@@ -59,12 +159,17 @@ async function submitPayment(
   return subscription;
 }
 
-const SUBSCRIPTION_SORT_FIELDS = ["renewalDate", "startDate", "amount", "createdAt"];
+const SUBSCRIPTION_SORT_FIELDS = [
+  "renewalDate",
+  "startDate",
+  "amount",
+  "createdAt",
+];
 
 // owner/staff: every subscription in the academy. parent: only their children's.
 const getSubscriptions = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
-  const { status, billingCycle } = req.query;
+  const { status, billingCycle, studentId } = req.query;
 
   const filter = { company: req.user.company };
   if (req.user.role === "parent") {
@@ -72,6 +177,16 @@ const getSubscriptions = asyncHandler(async (req, res) => {
   }
   if (status) filter.status = status;
   if (billingCycle) filter.billingCycle = billingCycle;
+  if (studentId) {
+    if (
+      req.user.role === "parent" &&
+      !(req.user.children || []).some((c) => c.toString() === studentId)
+    ) {
+      filter.student = null; // not one of this parent's children — no results
+    } else {
+      filter.student = studentId;
+    }
+  }
 
   const sort = safeSort(req.query, SUBSCRIPTION_SORT_FIELDS, { createdAt: -1 });
   const total = await StudentSubscription.countDocuments(filter);
@@ -216,6 +331,9 @@ const verifyPayment = asyncHandler(async (req, res) => {
   const updated = await recalcSubscriptionTotals(subscription);
   await updated.populate("student", "firstName lastName");
 
+  const payment = updated.payments[updated.payments.length - 1];
+  notifyPaymentVerified(updated, payment, req.user.company, "Razorpay (auto)");
+
   res.json({
     success: true,
     message: "Subscription activated successfully",
@@ -257,10 +375,11 @@ async function handlePaymentSubmission(req, res, { subscription }) {
   if (payAmount > remaining + 0.01) {
     fail(400, `Amount cannot exceed the remaining balance of ₹${remaining}`);
   }
-  if (
-    subscription.payments.some((p) => p.status === "pending")
-  ) {
-    fail(400, "A payment is already awaiting verification for this subscription");
+  if (subscription.payments.some((p) => p.status === "pending")) {
+    fail(
+      400,
+      "A payment is already awaiting verification for this subscription",
+    );
   }
 
   const baseUrl = `${req.protocol}://${req.get("host")}`;
@@ -339,7 +458,10 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
       amountPaid: 0,
       payments: [],
     });
-  } else if (subscription.status === "cancelled" || subscription.status === "inactive") {
+  } else if (
+    subscription.status === "cancelled" ||
+    subscription.status === "inactive"
+  ) {
     // Re-subscribing after cancellation/expiry starts a fresh payment cycle.
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
@@ -352,11 +474,85 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
   await handlePaymentSubmission(req, res, { subscription });
 });
 
+// Owner/staff assigns a plan to a student directly from the student form —
+// no payment attached yet. Creates a pending subscription so the parent sees
+// it as "to be paid" on their subscriptions page and can pay via QR/Razorpay.
+const assignSubscription = asyncHandler(async (req, res) => {
+  const { studentId, planId, billingCycle = "monthly" } = req.body;
+
+  if (!["monthly", "yearly"].includes(billingCycle)) {
+    res.status(400);
+    throw new Error("Invalid billing cycle");
+  }
+
+  const student = await Student.findOne({
+    _id: studentId,
+    company: req.user.company,
+  });
+  if (!student) {
+    res.status(404);
+    throw new Error("Student not found");
+  }
+
+  const plan = await SportsPlan.findOne({
+    _id: planId,
+    company: req.user.company,
+    active: true,
+  });
+  if (!plan) {
+    res.status(404);
+    throw new Error("Plan not found");
+  }
+
+  const amount =
+    billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+
+  let subscription = await StudentSubscription.findOne({
+    student: student._id,
+    plan: plan._id,
+  });
+  if (!subscription) {
+    subscription = new StudentSubscription({
+      company: req.user.company,
+      student: student._id,
+      plan: plan._id,
+      planName: plan.name,
+      billingCycle,
+      amount,
+      startDate: new Date(),
+      renewalDate: new Date(),
+      status: "pending_renewal",
+      paymentStatus: "pending",
+      amountPaid: 0,
+      payments: [],
+    });
+  } else if (
+    subscription.status === "cancelled" ||
+    subscription.status === "inactive"
+  ) {
+    subscription.billingCycle = billingCycle;
+    subscription.amount = amount;
+    subscription.status = "pending_renewal";
+    subscription.paymentStatus = "pending";
+    subscription.amountPaid = 0;
+    subscription.payments = [];
+  } else {
+    // Already active/pending on this plan — just sync the billing cycle.
+    subscription.billingCycle = billingCycle;
+    subscription.amount = amount;
+  }
+
+  await subscription.save();
+  await subscription.populate("plan", "name sport");
+  res.status(201).json({ success: true, data: subscription });
+});
+
 // Parent tops up the remaining balance on an existing subscription with
 // another UTR/transaction/screenshot submission.
 const submitInstallmentPayment = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id, company: req.user.company };
-  if (req.user.role === "parent") filter.student = { $in: req.user.children || [] };
+  if (req.user.role === "parent")
+    filter.student = { $in: req.user.children || [] };
 
   const subscription = await StudentSubscription.findOne(filter);
   if (!subscription) {
@@ -399,6 +595,8 @@ const verifyQrPayment = asyncHandler(async (req, res) => {
   const updated = await recalcSubscriptionTotals(subscription);
   await updated.populate("student", "firstName lastName");
 
+  notifyPaymentVerified(updated, payment, req.user.company, req.user.name);
+
   res.json({ success: true, message: "Payment verified", data: updated });
 });
 
@@ -430,13 +628,21 @@ const rejectQrPayment = asyncHandler(async (req, res) => {
   await subscription.save();
 
   await subscription.populate("student", "firstName lastName");
-  res.json({ success: true, message: "Payment marked as not verified", data: subscription });
+
+  notifyPaymentRejected(subscription, payment, req.user.company);
+
+  res.json({
+    success: true,
+    message: "Payment marked as not verified",
+    data: subscription,
+  });
 });
 
 // Streams a PDF receipt for a single verified payment entry.
 const getPaymentReceipt = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id, company: req.user.company };
-  if (req.user.role === "parent") filter.student = { $in: req.user.children || [] };
+  if (req.user.role === "parent")
+    filter.student = { $in: req.user.children || [] };
 
   const subscription = await StudentSubscription.findOne(filter).populate(
     "student",
@@ -511,7 +717,8 @@ const bulkImportSubscriptions = asyncHandler(async (req, res) => {
           String(row.studentId || "").toLowerCase(),
       );
       const planMatch = allPlans.find(
-        (p) => p.name.toLowerCase() === String(row.planName || "").toLowerCase(),
+        (p) =>
+          p.name.toLowerCase() === String(row.planName || "").toLowerCase(),
       );
       const billingCycle = ["monthly", "yearly"].includes(row.billingCycle)
         ? row.billingCycle
@@ -579,6 +786,7 @@ module.exports = {
   createOrder,
   verifyPayment,
   createQrRenewalRequest,
+  assignSubscription,
   submitInstallmentPayment,
   verifyQrPayment,
   rejectQrPayment,

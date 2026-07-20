@@ -1,9 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, Text, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Receipt, Download } from 'lucide-react-native';
 import { reportAPI } from '../api/client';
-import { Card, Badge, SearchBar, EmptyState, LoadingView } from '../components/ui';
+import {
+  Card,
+  Badge,
+  SearchBar,
+  EmptyState,
+  LoadingView,
+} from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
@@ -41,7 +54,10 @@ export default function StudentPaymentHistoryScreen() {
 
   useEffect(() => {
     clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => setSearch(searchInput.trim().toLowerCase()), 300);
+    searchDebounce = setTimeout(
+      () => setSearch(searchInput.trim().toLowerCase()),
+      300,
+    );
     return () => clearTimeout(searchDebounce);
   }, [searchInput]);
 
@@ -53,8 +69,13 @@ export default function StudentPaymentHistoryScreen() {
 
   const filtered = rows.filter(r => {
     if (!search) return true;
-    const name = r.student ? `${r.student.firstName} ${r.student.lastName}`.toLowerCase() : '';
-    return name.includes(search) || (r.student?.studentId || '').toLowerCase().includes(search);
+    const name = r.student
+      ? `${r.student.firstName} ${r.student.lastName}`.toLowerCase()
+      : '';
+    return (
+      name.includes(search) ||
+      (r.student?.studentId || '').toLowerCase().includes(search)
+    );
   });
 
   const onExport = () =>
@@ -76,7 +97,9 @@ export default function StudentPaymentHistoryScreen() {
         const due = (r.amount || 0) - (r.amountPaid || 0);
         const verified = r.paymentStatus === 'completed' && !!r.confirmedBy;
         return {
-          student: r.student ? `${r.student.firstName} ${r.student.lastName}` : '',
+          student: r.student
+            ? `${r.student.firstName} ${r.student.lastName}`
+            : '',
           plan: r.planName,
           amount: r.amount,
           amountPaid: r.amountPaid,
@@ -105,50 +128,73 @@ export default function StudentPaymentHistoryScreen() {
       </View>
 
       <View style={styles.searchWrap}>
-        <SearchBar value={searchInput} onChangeText={setSearchInput} placeholder="Search by student name..." />
+        <SearchBar
+          value={searchInput}
+          onChangeText={setSearchInput}
+          placeholder="Search by student name..."
+        />
       </View>
 
       <FlatList
         data={filtered}
         keyExtractor={(r, i) => r._id || String(i)}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No payment records found" icon={Receipt} />}
+        ListEmptyComponent={
+          <EmptyState title="No payment records found" icon={Receipt} />
+        }
         renderItem={({ item }) => {
           const due = (item.amount || 0) - (item.amountPaid || 0);
-          const verified = item.paymentStatus === 'completed' && !!item.confirmedBy;
+          const verified =
+            item.paymentStatus === 'completed' && !!item.confirmedBy;
           return (
             <Card>
               <View style={styles.rowTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
-                    {item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Unknown'}
+                    {item.student
+                      ? `${item.student.firstName} ${item.student.lastName}`
+                      : 'Unknown'}
                   </Text>
                   <Text style={styles.sub}>{item.planName}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
                   <Badge
                     label={item.paymentStatus}
-                    color={PAYMENT_STATUS_COLORS[item.paymentStatus] || colors.muted}
+                    color={
+                      PAYMENT_STATUS_COLORS[item.paymentStatus] || colors.muted
+                    }
                   />
-                  <Badge label={verified ? 'Verified' : 'Not Verified'} color={verified ? colors.green : colors.orange} />
+                  <Badge
+                    label={verified ? 'Verified' : 'Not Verified'}
+                    color={verified ? colors.green : colors.orange}
+                  />
                 </View>
               </View>
               <View style={styles.amountRow}>
                 <Text style={styles.amountText}>
-                  {formatCurrency(item.amountPaid)} / {formatCurrency(item.amount)}
+                  {formatCurrency(item.amountPaid)} /{' '}
+                  {formatCurrency(item.amount)}
                 </Text>
-                {due > 0 ? <Text style={styles.dueText}>Due: {formatCurrency(due)}</Text> : null}
+                {due > 0 ? (
+                  <Text style={styles.dueText}>Due: {formatCurrency(due)}</Text>
+                ) : null}
               </View>
               <Text style={styles.metaText}>
                 {item.paymentMethod ? item.paymentMethod.toUpperCase() : '—'}
                 {item.qrReferenceNumber || item.transactionNumber
-                  ? ` · Ref: ${item.qrReferenceNumber || item.transactionNumber}`
+                  ? ` · Ref: ${
+                      item.qrReferenceNumber || item.transactionNumber
+                    }`
                   : ''}
               </Text>
               {item.confirmedBy ? (
-                <Text style={styles.metaText}>Verified by: {item.confirmedBy.name}</Text>
+                <Text style={styles.metaText}>
+                  Verified by: {item.confirmedBy.name}
+                </Text>
               ) : null}
               {item.startDate ? (
                 <Text style={styles.metaText}>
@@ -179,7 +225,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, flex: 1 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flex: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -197,11 +249,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, color: colors.black },
-  sub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
-  amountRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  amountText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
-  dueText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 11, color: colors.red },
-  metaText: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 4 },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  sub: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  amountText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  dueText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 11,
+    color: colors.red,
+  },
+  metaText: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 4,
+  },
 });

@@ -2,11 +2,23 @@ import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SportPicker } from "@/components/SportPicker";
-import { studentAPI, employeeAPI } from "@/services/api";
+import {
+  studentAPI,
+  employeeAPI,
+  sportsPlanAPI,
+  subscriptionAPI,
+} from "@/services/api";
+import {
+  INDIA_STATES,
+  INDIA_STATES_AND_CITIES,
+} from "@/data/indiaStatesAndCities";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import {
+  ImportExportModal,
+  type ImportHeader,
+} from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   GraduationCap,
@@ -26,7 +38,33 @@ import {
   Download,
   FileSpreadsheet,
   Droplet,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  Upload,
+  Wallet,
+  Trophy,
+  Layers,
+  UserCog,
+  Calendar,
+  Phone,
+  Heart,
+  MapPin,
+  Award,
+  Clock,
+  Mail,
+  FileText,
+  Repeat,
+  Lock,
 } from "lucide-react";
+
+const STUDENT_FORM_TABS = [
+  "Basic Info",
+  "Contact & Address",
+  "Sports Profile",
+  "Guardians",
+  "Subscription Plan",
+];
 
 const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
   { key: "firstName", label: "First Name", required: true, example: "Aarav" },
@@ -97,6 +135,7 @@ interface Guardian {
   phone?: string;
   email?: string;
   photo?: string;
+  receivesWhatsapp?: boolean;
 }
 
 interface EmergencyContactPerson {
@@ -117,6 +156,7 @@ interface SportsProfile {
   experienceLevel?: "Beginner" | "Intermediate" | "Advanced";
   previousAcademy?: string;
   yearsOfExperience?: number | string;
+  playingLevel?: "School" | "District" | "State" | "National";
 }
 
 interface Student {
@@ -139,6 +179,7 @@ interface Student {
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
+const PLAYING_LEVELS = ["School", "District", "State", "National"] as const;
 
 const EMPTY_EMERGENCY_CONTACT_PERSON: EmergencyContactPerson = {
   name: "",
@@ -152,14 +193,17 @@ const EMPTY_ADDRESS: Address = {
   pincode: "",
   country: "",
 };
+const OTHER_CITY = "__other__";
 const EMPTY_SPORTS_PROFILE: SportsProfile = {
   experienceLevel: undefined,
   previousAcademy: "",
   yearsOfExperience: "",
+  playingLevel: undefined,
 };
 
 interface GuardianForm extends Guardian {
   photoFile?: File | null;
+  password?: string;
 }
 
 const EMPTY_GUARDIAN: GuardianForm = {
@@ -169,6 +213,8 @@ const EMPTY_GUARDIAN: GuardianForm = {
   email: "",
   photo: "",
   photoFile: null,
+  receivesWhatsapp: false,
+  password: "",
 };
 
 const RELATION_LABEL: Record<string, string> = {
@@ -263,6 +309,7 @@ export default function StudentsPage() {
   };
 
   const [showForm, setShowForm] = useState(false);
+  const [formTab, setFormTab] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: "",
@@ -280,8 +327,17 @@ export default function StudentsPage() {
   const [emergencyContactPerson, setEmergencyContactPerson] =
     useState<EmergencyContactPerson>({ ...EMPTY_EMERGENCY_CONTACT_PERSON });
   const [address, setAddress] = useState<Address>({ ...EMPTY_ADDRESS });
+  const [cityIsOther, setCityIsOther] = useState(false);
+  const cityOptions = address.state
+    ? INDIA_STATES_AND_CITIES[address.state] || []
+    : [];
   const [sportsProfile, setSportsProfile] = useState<SportsProfile>({
     ...EMPTY_SPORTS_PROFILE,
+  });
+  const [plans, setPlans] = useState<any[]>([]);
+  const [subscriptionPlan, setSubscriptionPlan] = useState({
+    planId: "",
+    billingCycle: "monthly",
   });
 
   const buildParams = useCallback(
@@ -353,6 +409,10 @@ export default function StudentsPage() {
         .getAll({ role: "coach" })
         .then((r) => setCoaches(r.data))
         .catch(() => {});
+      sportsPlanAPI
+        .getAll()
+        .then((r) => setPlans(r.data))
+        .catch(() => {});
     }
   }, [canManage]);
 
@@ -372,9 +432,12 @@ export default function StudentsPage() {
     setGuardians([]);
     setEmergencyContactPerson({ ...EMPTY_EMERGENCY_CONTACT_PERSON });
     setAddress({ ...EMPTY_ADDRESS });
+    setCityIsOther(false);
     setSportsProfile({ ...EMPTY_SPORTS_PROFILE });
+    setSubscriptionPlan({ planId: "", billingCycle: "monthly" });
     setEditingId(null);
     setShowForm(false);
+    setFormTab(0);
   };
 
   const addGuardian = () => setGuardians((p) => [...p, { ...EMPTY_GUARDIAN }]);
@@ -383,6 +446,12 @@ export default function StudentsPage() {
   const updateGuardian = (i: number, patch: Partial<GuardianForm>) =>
     setGuardians((p) =>
       p.map((g, idx) => (idx === i ? { ...g, ...patch } : g)),
+    );
+  // Only one guardian may receive WhatsApp notifications — selecting one
+  // clears the flag on every other guardian, so it behaves like a radio.
+  const setWhatsappGuardian = (i: number) =>
+    setGuardians((p) =>
+      p.map((g, idx) => ({ ...g, receivesWhatsapp: idx === i })),
     );
 
   const handleSave = async () => {
@@ -403,6 +472,14 @@ export default function StudentsPage() {
       });
       return;
     }
+    if (guardians.some((g) => g.password && g.password.length < 6)) {
+      toast({
+        title: "Weak password",
+        description: "Guardian login password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -415,6 +492,8 @@ export default function StudentsPage() {
           phone: g.phone || undefined,
           email: g.email || undefined,
           photo: g.photo || undefined,
+          receivesWhatsapp: !!g.receivesWhatsapp,
+          password: g.password || undefined,
         })),
         emergencyContactPerson:
           emergencyContactPerson.name ||
@@ -422,13 +501,12 @@ export default function StudentsPage() {
           emergencyContactPerson.phone
             ? emergencyContactPerson
             : undefined,
-        address: Object.values(address).some((v) => v)
-          ? address
-          : undefined,
+        address: Object.values(address).some((v) => v) ? address : undefined,
         sportsProfile:
           sportsProfile.experienceLevel ||
           sportsProfile.previousAcademy ||
-          sportsProfile.yearsOfExperience
+          sportsProfile.yearsOfExperience ||
+          sportsProfile.playingLevel
             ? {
                 ...sportsProfile,
                 yearsOfExperience: sportsProfile.yearsOfExperience
@@ -471,6 +549,22 @@ export default function StudentsPage() {
         }
       }
       saved = { ...saved, guardians: guardiansWithPhotos };
+
+      if (subscriptionPlan.planId) {
+        try {
+          await subscriptionAPI.assign({
+            studentId: saved._id,
+            planId: subscriptionPlan.planId,
+            billingCycle: subscriptionPlan.billingCycle,
+          });
+        } catch (e: any) {
+          toast({
+            title: "Student saved, but subscription failed",
+            description: e.message,
+            variant: "destructive",
+          });
+        }
+      }
 
       setStudents((p) =>
         editingId
@@ -519,10 +613,35 @@ export default function StudentsPage() {
       ...EMPTY_EMERGENCY_CONTACT_PERSON,
       ...(s.emergencyContactPerson || {}),
     });
-    setAddress({ ...EMPTY_ADDRESS, ...(s.address || {}) });
+    const mergedAddress = { ...EMPTY_ADDRESS, ...(s.address || {}) };
+    setAddress(mergedAddress);
+    setCityIsOther(
+      !!mergedAddress.city &&
+        !(INDIA_STATES_AND_CITIES[mergedAddress.state] || []).includes(
+          mergedAddress.city,
+        ),
+    );
     setSportsProfile({ ...EMPTY_SPORTS_PROFILE, ...(s.sportsProfile || {}) });
+    setSubscriptionPlan({ planId: "", billingCycle: "monthly" });
+    if (canManage) {
+      subscriptionAPI
+        .getAll({ studentId: s._id })
+        .then((r) => {
+          const active = (r.data || []).find(
+            (sub: any) =>
+              sub.status === "active" || sub.status === "pending_renewal",
+          );
+          if (active) {
+            setSubscriptionPlan({
+              planId: active.plan?._id || active.plan,
+              billingCycle: active.billingCycle || "monthly",
+            });
+          }
+        })
+        .catch(() => {});
+    }
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setFormTab(0);
   };
 
   const displayed = students;
@@ -540,13 +659,18 @@ export default function StudentsPage() {
           <button
             onClick={() =>
               exportRowsToExcel(
-                STUDENT_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                STUDENT_IMPORT_HEADERS.map((h) => ({
+                  key: h.key,
+                  label: h.label,
+                })),
                 displayed.map((s) => ({
                   firstName: s.firstName,
                   lastName: s.lastName,
                   sport: s.sport,
                   batch: s.batch,
-                  coach: s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "",
+                  coach: s.coach
+                    ? `${s.coach.firstName} ${s.coach.lastName}`
+                    : "",
                   enrollmentDate: s.enrollmentDate?.slice(0, 10),
                 })),
                 "students_export.xlsx",
@@ -684,484 +808,882 @@ export default function StudentsPage() {
       </div>
 
       {showForm && canManage && (
-        <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">
-            {editingId ? "Edit Student" : "Enroll Student"}
-          </h3>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 border-2 border-black bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-              {avatarPreview ? (
-                <img
-                  src={avatarPreview}
-                  alt="Student"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-7 h-7 text-gray-300" />
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Student Photo
-              </label>
-              <label className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase cursor-pointer w-fit">
-                <Camera className="w-3.5 h-3.5" /> Upload
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setAvatarFile(file);
-                    if (file) setAvatarPreview(URL.createObjectURL(file));
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                First Name *
-              </label>
-              <input
-                value={form.firstName}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, firstName: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Last Name *
-              </label>
-              <input
-                value={form.lastName}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, lastName: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Sport *
-              </label>
-              <SportPicker
-                value={form.sport}
-                onChange={(sport) => setForm((p) => ({ ...p, sport }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Batch
-              </label>
-              <input
-                value={form.batch}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, batch: e.target.value }))
-                }
-                placeholder="e.g. Morning U-12"
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Coach
-              </label>
-              <select
-                value={form.coach}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, coach: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
-              >
-                <option value="">Unassigned</option>
-                {coaches.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.firstName} {c.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, dateOfBirth: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">
-                Emergency Contact
-              </label>
-              <input
-                value={form.emergencyContact}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, emergencyContact: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Blood Group
-              </label>
-              <select
-                value={form.bloodGroup}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, bloodGroup: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
-              >
-                <option value="">Unspecified</option>
-                {BLOOD_GROUPS.map((bg) => (
-                  <option key={bg} value={bg}>
-                    {bg}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t-2 border-black/10">
-            <h4 className="font-bold text-sm uppercase mb-3">
-              Emergency Contact Person
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Name
-                </label>
-                <input
-                  value={emergencyContactPerson.name || ""}
-                  onChange={(e) =>
-                    setEmergencyContactPerson((p) => ({
-                      ...p,
-                      name: e.target.value,
-                    }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="border-2 border-black bg-white w-full max-w-3xl max-h-[95vh] flex flex-col">
+            {}
+            <div className="flex items-center justify-between px-6 py-4 border-b-2 border-black bg-[#024BAB]">
+              <div className="flex items-center gap-3">
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt="avatar"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-white"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-white font-bold">
+                    {form.firstName?.[0]?.toUpperCase() || "?"}
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-bold text-lg text-white">
+                    {editingId ? "Edit Student" : "Enroll Student"}
+                  </h3>
+                  {(form.firstName || form.lastName) && (
+                    <p className="text-white/70 text-xs">
+                      {form.firstName} {form.lastName}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Relation
-                </label>
-                <input
-                  value={emergencyContactPerson.relation || ""}
-                  onChange={(e) =>
-                    setEmergencyContactPerson((p) => ({
-                      ...p,
-                      relation: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g. Father, Mother"
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Phone Number
-                </label>
-                <input
-                  value={emergencyContactPerson.phone || ""}
-                  onChange={(e) =>
-                    setEmergencyContactPerson((p) => ({
-                      ...p,
-                      phone: e.target.value,
-                    }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t-2 border-black/10">
-            <h4 className="font-bold text-sm uppercase mb-3">Address</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Line 1
-                </label>
-                <input
-                  value={address.line1 || ""}
-                  onChange={(e) =>
-                    setAddress((p) => ({ ...p, line1: e.target.value }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  City
-                </label>
-                <input
-                  value={address.city || ""}
-                  onChange={(e) =>
-                    setAddress((p) => ({ ...p, city: e.target.value }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  State
-                </label>
-                <input
-                  value={address.state || ""}
-                  onChange={(e) =>
-                    setAddress((p) => ({ ...p, state: e.target.value }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Pincode
-                </label>
-                <input
-                  value={address.pincode || ""}
-                  onChange={(e) =>
-                    setAddress((p) => ({ ...p, pincode: e.target.value }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Country
-                </label>
-                <input
-                  value={address.country || ""}
-                  onChange={(e) =>
-                    setAddress((p) => ({ ...p, country: e.target.value }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t-2 border-black/10">
-            <h4 className="font-bold text-sm uppercase mb-3">
-              Sports Profile
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Experience Level
-                </label>
-                <select
-                  value={sportsProfile.experienceLevel || ""}
-                  onChange={(e) =>
-                    setSportsProfile((p) => ({
-                      ...p,
-                      experienceLevel: (e.target.value ||
-                        undefined) as SportsProfile["experienceLevel"],
-                    }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
-                >
-                  <option value="">Unspecified</option>
-                  {EXPERIENCE_LEVELS.map((lvl) => (
-                    <option key={lvl} value={lvl}>
-                      {lvl}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Previous Academy
-                </label>
-                <input
-                  value={sportsProfile.previousAcademy || ""}
-                  onChange={(e) =>
-                    setSportsProfile((p) => ({
-                      ...p,
-                      previousAcademy: e.target.value,
-                    }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase mb-1">
-                  Years of Experience
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={sportsProfile.yearsOfExperience ?? ""}
-                  onChange={(e) =>
-                    setSportsProfile((p) => ({
-                      ...p,
-                      yearsOfExperience: e.target.value,
-                    }))
-                  }
-                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t-2 border-black/10">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-bold text-sm uppercase">
-                Parents / Guardians
-              </h4>
               <button
-                onClick={addGuardian}
-                className="flex items-center gap-1 text-xs font-bold uppercase border-2 border-black px-3 py-1.5"
+                onClick={resetForm}
+                className="text-white hover:text-white/70 p-1"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Guardian
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {guardians.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No guardians added
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {guardians.map((g, i) => (
-                  <div key={i} className="border-2 border-black/20 p-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 border-2 border-black bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
-                        {g.photoFile ? (
-                          <img
-                            src={URL.createObjectURL(g.photoFile)}
-                            alt={g.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : g.photo ? (
-                          <img
-                            src={g.photo}
-                            alt={g.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User className="w-5 h-5 text-gray-300" />
-                        )}
+            {}
+            <div className="flex border-b-2 border-black">
+              {STUDENT_FORM_TABS.map((tab, idx) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setFormTab(idx)}
+                  className={cn(
+                    "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-r-2 border-black last:border-r-0",
+                    formTab === idx
+                      ? "bg-[#024BAB] text-white"
+                      : "bg-white text-black hover:bg-[#024BAB]/5",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold mr-1.5",
+                      formTab === idx
+                        ? "bg-white text-[#024BAB]"
+                        : "bg-black/10 text-black",
+                    )}
+                  >
+                    {idx + 1}
+                  </span>
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {}
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              <div className="p-6 flex-1">
+                {}
+                {formTab === 0 && (
+                  <div className="space-y-5">
+                    {}
+                    <div className="flex items-start gap-4 p-4 bg-[#F8FAFF] border-2 border-black">
+                      <div className="relative shrink-0">
+                        <div className="w-20 h-20 border-2 border-black overflow-hidden bg-[#024BAB] flex items-center justify-center">
+                          {avatarPreview ? (
+                            <img
+                              src={avatarPreview}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-2xl font-bold text-white">
+                              {form.firstName?.[0]?.toUpperCase() || "?"}
+                            </span>
+                          )}
+                        </div>
+                        <label
+                          htmlFor="student-avatar-upload"
+                          className="absolute -bottom-2 -right-2 w-7 h-7 bg-[#024BAB] border-2 border-black flex items-center justify-center cursor-pointer hover:bg-[#01368A]"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-white" />
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="student-avatar-upload"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setAvatarFile(file);
+                            if (file)
+                              setAvatarPreview(URL.createObjectURL(file));
+                          }}
+                        />
                       </div>
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-black mb-1">
+                          Student Photo
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Click the upload icon to add a photo. PNG, JPG up to
+                          10MB.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">
-                            Relation *
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <User className="w-3.5 h-3.5 text-[#024BAB]" />
+                            First Name *
+                          </label>
+                          <input
+                            value={form.firstName}
+                            onChange={(e) =>
+                              setForm((p) => ({
+                                ...p,
+                                firstName: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter First Name"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <User className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Last Name *
+                          </label>
+                          <input
+                            value={form.lastName}
+                            onChange={(e) =>
+                              setForm((p) => ({
+                                ...p,
+                                lastName: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter Last Name"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Sport *
+                          </label>
+                          <SportPicker
+                            value={form.sport}
+                            onChange={(sport) =>
+                              setForm((p) => ({ ...p, sport }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Layers className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Batch
+                          </label>
+                          <input
+                            value={form.batch}
+                            onChange={(e) =>
+                              setForm((p) => ({ ...p, batch: e.target.value }))
+                            }
+                            placeholder="e.g. Morning U-12"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <UserCog className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Coach
                           </label>
                           <select
-                            value={g.relation}
+                            value={form.coach}
                             onChange={(e) =>
-                              updateGuardian(i, {
-                                relation: e.target
-                                  .value as Guardian["relation"],
-                              })
+                              setForm((p) => ({ ...p, coach: e.target.value }))
                             }
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
                           >
-                            {Object.entries(RELATION_LABEL).map(
-                              ([v, label]) => (
-                                <option key={v} value={v}>
-                                  {label}
-                                </option>
-                              ),
-                            )}
+                            <option value="">Unassigned</option>
+                            {coaches.map((c) => (
+                              <option key={c._id} value={c._id}>
+                                {c.firstName} {c.lastName}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">
-                            Name *
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Date of Birth
                           </label>
                           <input
-                            value={g.name}
+                            type="date"
+                            value={form.dateOfBirth}
                             onChange={(e) =>
-                              updateGuardian(i, { name: e.target.value })
+                              setForm((p) => ({
+                                ...p,
+                                dateOfBirth: e.target.value,
+                              }))
                             }
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">
-                            Phone
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Phone className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Emergency Contact
                           </label>
                           <input
-                            value={g.phone || ""}
+                            value={form.emergencyContact}
                             onChange={(e) =>
-                              updateGuardian(i, { phone: e.target.value })
+                              setForm((p) => ({
+                                ...p,
+                                emergencyContact: e.target.value,
+                              }))
                             }
+                            placeholder="Enter Emergency Contact"
+                            maxLength={10}
                             className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase mb-1">
-                            Email
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Droplet className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Blood Group
                           </label>
-                          <input
-                            value={g.email || ""}
+                          <select
+                            value={form.bloodGroup}
                             onChange={(e) =>
-                              updateGuardian(i, { email: e.target.value })
+                              setForm((p) => ({
+                                ...p,
+                                bloodGroup: e.target.value,
+                              }))
                             }
-                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase cursor-pointer w-fit">
-                            <Camera className="w-3.5 h-3.5" /> Upload Photo
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) =>
-                                updateGuardian(i, {
-                                  photoFile: e.target.files?.[0] || null,
-                                })
-                              }
-                            />
-                          </label>
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                          >
+                            <option value="">Unspecified</option>
+                            {BLOOD_GROUPS.map((bg) => (
+                              <option key={bg} value={bg}>
+                                {bg}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
-                      <button
-                        onClick={() => removeGuardian(i)}
-                        className="p-1.5 border border-black/10 hover:border-red-500 hover:text-red-500 hover:bg-red-50 shrink-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                )}
 
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
-              {saving ? "Saving..." : "Save"}
-            </button>
-            <button
-              onClick={resetForm}
-              className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
-            >
-              <X className="w-4 h-4" /> Cancel
-            </button>
+                {}
+                {formTab === 1 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="font-bold text-sm uppercase mb-3">
+                        Emergency Contact Person
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <User className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Name
+                          </label>
+                          <input
+                            value={emergencyContactPerson.name || ""}
+                            onChange={(e) =>
+                              setEmergencyContactPerson((p) => ({
+                                ...p,
+                                name: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter Name"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Heart className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Relation
+                          </label>
+                          <input
+                            value={emergencyContactPerson.relation || ""}
+                            onChange={(e) =>
+                              setEmergencyContactPerson((p) => ({
+                                ...p,
+                                relation: e.target.value,
+                              }))
+                            }
+                            placeholder="e.g. Father, Mother"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <Phone className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Phone Number
+                          </label>
+                          <input
+                            value={emergencyContactPerson.phone || ""}
+                            onChange={(e) =>
+                              setEmergencyContactPerson((p) => ({
+                                ...p,
+                                phone: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter Phone Number"
+                            maxLength={10}
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t-2 border-black/10">
+                      <h4 className="font-bold text-sm uppercase mb-3">
+                        Address
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Line 1
+                          </label>
+                          <input
+                            value={address.line1 || ""}
+                            onChange={(e) =>
+                              setAddress((p) => ({
+                                ...p,
+                                line1: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter Address Line 1"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />
+                            State
+                          </label>
+                          <select
+                            value={address.state || ""}
+                            onChange={(e) => {
+                              setAddress((p) => ({
+                                ...p,
+                                state: e.target.value,
+                                city: "",
+                              }));
+                              setCityIsOther(false);
+                            }}
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                          >
+                            <option value="">Select state</option>
+                            {INDIA_STATES.map((st) => (
+                              <option key={st} value={st}>
+                                {st}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />
+                            City
+                          </label>
+                          {cityIsOther ? (
+                            <input
+                              value={address.city || ""}
+                              onChange={(e) =>
+                                setAddress((p) => ({
+                                  ...p,
+                                  city: e.target.value,
+                                }))
+                              }
+                              placeholder="Enter city name"
+                              className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                              autoFocus
+                            />
+                          ) : (
+                            <select
+                              value={address.city || ""}
+                              onChange={(e) => {
+                                if (e.target.value === OTHER_CITY) {
+                                  setCityIsOther(true);
+                                  setAddress((p) => ({ ...p, city: "" }));
+                                } else {
+                                  setAddress((p) => ({
+                                    ...p,
+                                    city: e.target.value,
+                                  }));
+                                }
+                              }}
+                              disabled={!address.state}
+                              className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <option value="">
+                                {address.state
+                                  ? "Select city"
+                                  : "Select a state first"}
+                              </option>
+                              {cityOptions.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                              {address.state && (
+                                <option value={OTHER_CITY}>Other</option>
+                              )}
+                            </select>
+                          )}
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Pincode
+                          </label>
+                          <input
+                            value={address.pincode || ""}
+                            onChange={(e) =>
+                              setAddress((p) => ({
+                                ...p,
+                                pincode: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter Pincode"
+                            maxLength={6}
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Country
+                          </label>
+                          <input
+                            value={address.country || ""}
+                            onChange={(e) =>
+                              setAddress((p) => ({
+                                ...p,
+                                country: e.target.value,
+                              }))
+                            }
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {}
+                {formTab === 2 && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                        <Award className="w-3.5 h-3.5 text-[#024BAB]" />
+                        Experience Level
+                      </label>
+                      <select
+                        value={sportsProfile.experienceLevel || ""}
+                        onChange={(e) =>
+                          setSportsProfile((p) => ({
+                            ...p,
+                            experienceLevel: (e.target.value ||
+                              undefined) as SportsProfile["experienceLevel"],
+                          }))
+                        }
+                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                      >
+                        <option value="">Unspecified</option>
+                        {EXPERIENCE_LEVELS.map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                        <GraduationCap className="w-3.5 h-3.5 text-[#024BAB]" />
+                        Previous Academy
+                      </label>
+                      <input
+                        value={sportsProfile.previousAcademy || ""}
+                        onChange={(e) =>
+                          setSportsProfile((p) => ({
+                            ...p,
+                            previousAcademy: e.target.value,
+                          }))
+                        }
+                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                        <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
+                        Years of Experience
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={sportsProfile.yearsOfExperience ?? ""}
+                        onChange={(e) =>
+                          setSportsProfile((p) => ({
+                            ...p,
+                            yearsOfExperience: e.target.value,
+                          }))
+                        }
+                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                        <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
+                        Playing Level
+                      </label>
+                      <select
+                        value={sportsProfile.playingLevel || ""}
+                        onChange={(e) =>
+                          setSportsProfile((p) => ({
+                            ...p,
+                            playingLevel: (e.target.value ||
+                              undefined) as SportsProfile["playingLevel"],
+                          }))
+                        }
+                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                      >
+                        <option value="">Unspecified</option>
+                        {PLAYING_LEVELS.map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {}
+                {formTab === 3 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-sm uppercase">
+                        Parents / Guardians
+                      </h4>
+                      <button
+                        onClick={addGuardian}
+                        className="flex items-center gap-1 text-xs font-bold uppercase border-2 border-black px-3 py-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Guardian
+                      </button>
+                    </div>
+
+                    {guardians.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No guardians added
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {guardians.map((g, i) => (
+                          <div key={i} className="border-2 border-black/20 p-4">
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 border-2 border-black bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                                {g.photoFile ? (
+                                  <img
+                                    src={URL.createObjectURL(g.photoFile)}
+                                    alt={g.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : g.photo ? (
+                                  <img
+                                    src={g.photo}
+                                    alt={g.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <User className="w-5 h-5 text-gray-300" />
+                                )}
+                              </div>
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                                    <Heart className="w-3.5 h-3.5 text-[#024BAB]" />
+                                    Relation *
+                                  </label>
+                                  <select
+                                    value={g.relation}
+                                    onChange={(e) =>
+                                      updateGuardian(i, {
+                                        relation: e.target
+                                          .value as Guardian["relation"],
+                                      })
+                                    }
+                                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                                  >
+                                    {Object.entries(RELATION_LABEL).map(
+                                      ([v, label]) => (
+                                        <option key={v} value={v}>
+                                          {label}
+                                        </option>
+                                      ),
+                                    )}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                                    <Users className="w-3.5 h-3.5 text-[#024BAB]" />
+                                    Name *
+                                  </label>
+                                  <input
+                                    value={g.name}
+                                    onChange={(e) =>
+                                      updateGuardian(i, {
+                                        name: e.target.value,
+                                      })
+                                    }
+                                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                                    <Phone className="w-3.5 h-3.5 text-[#024BAB]" />
+                                    Phone
+                                  </label>
+                                  <input
+                                    value={g.phone || ""}
+                                    onChange={(e) =>
+                                      updateGuardian(i, {
+                                        phone: e.target.value,
+                                      })
+                                    }
+                                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                                    <Mail className="w-3.5 h-3.5 text-[#024BAB]" />
+                                    Email (Parent Login)
+                                  </label>
+                                  <input
+                                    type="email"
+                                    value={g.email || ""}
+                                    onChange={(e) =>
+                                      updateGuardian(i, {
+                                        email: e.target.value,
+                                      })
+                                    }
+                                    placeholder="parent@example.com"
+                                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                                    <Lock className="w-3.5 h-3.5 text-[#024BAB]" />
+                                    Password (Parent Login)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={g.password || ""}
+                                    onChange={(e) =>
+                                      updateGuardian(i, {
+                                        password: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Min 6 characters, optional"
+                                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                                  />
+                                </div>
+                                <div className="md:col-span-2 flex items-center gap-3 flex-wrap">
+                                  <label className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase cursor-pointer w-fit">
+                                    <Camera className="w-3.5 h-3.5" /> Upload
+                                    Photo
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) =>
+                                        updateGuardian(i, {
+                                          photoFile:
+                                            e.target.files?.[0] || null,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <label
+                                    className={cn(
+                                      "flex items-center gap-2 border-2 border-black px-3 py-2 text-xs font-bold uppercase cursor-pointer w-fit",
+                                      g.receivesWhatsapp
+                                        ? "bg-[#00C48C] text-black"
+                                        : "bg-white",
+                                    )}
+                                    title="Only one guardian can receive WhatsApp updates"
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="whatsapp-guardian"
+                                      className="w-3.5 h-3.5"
+                                      checked={!!g.receivesWhatsapp}
+                                      onChange={() => setWhatsappGuardian(i)}
+                                    />
+                                    Sends WhatsApp Updates
+                                  </label>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => removeGuardian(i)}
+                                className="p-1.5 border border-black/10 hover:border-red-500 hover:text-red-500 hover:bg-red-50 shrink-0"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {formTab === 4 && (
+                  <div>
+                    <h4 className="font-bold text-sm uppercase mb-3">
+                      Subscription Plan
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Assign a coaching plan so the parent sees it as due for
+                      payment. Leave unset to skip billing for now.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                          <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
+                          Plan
+                        </label>
+                        <select
+                          value={subscriptionPlan.planId}
+                          onChange={(e) =>
+                            setSubscriptionPlan((p) => ({
+                              ...p,
+                              planId: e.target.value,
+                            }))
+                          }
+                          className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                        >
+                          <option value="">No plan / skip billing</option>
+                          {plans.map((p) => (
+                            <option key={p._id} value={p._id}>
+                              {p.name} ({p.sport})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                          <Repeat className="w-3.5 h-3.5 text-[#024BAB]" />
+                          Billing Cycle
+                        </label>
+                        <select
+                          value={subscriptionPlan.billingCycle}
+                          onChange={(e) =>
+                            setSubscriptionPlan((p) => ({
+                              ...p,
+                              billingCycle: e.target.value,
+                            }))
+                          }
+                          disabled={!subscriptionPlan.planId}
+                          className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none disabled:opacity-50"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                      </div>
+                    </div>
+                    {subscriptionPlan.planId &&
+                      (() => {
+                        const selected = plans.find(
+                          (p) => p._id === subscriptionPlan.planId,
+                        );
+                        if (!selected) return null;
+                        const amount =
+                          subscriptionPlan.billingCycle === "yearly"
+                            ? selected.yearlyPrice
+                            : selected.monthlyPrice;
+                        return (
+                          <div className="mt-4 border-2 border-black bg-[#024BAB]/5 p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#FA731C]/10 border-2 border-[#FA731C] flex items-center justify-center shrink-0">
+                              <Wallet className="w-5 h-5 text-[#FA731C]" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                Amount Due ({subscriptionPlan.billingCycle})
+                              </p>
+                              <p className="text-xl font-bold text-black">
+                                ₹{Number(amount).toLocaleString("en-IN")}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                  </div>
+                )}
+              </div>
+
+              {}
+              <div className="flex items-center justify-between px-6 py-4 border-t-2 border-black bg-[#F8FAFF]">
+                <button
+                  type="button"
+                  onClick={() => setFormTab((t) => Math.max(0, t - 1))}
+                  disabled={formTab === 0}
+                  className="flex items-center gap-2 border-2 border-black px-4 py-2 text-sm font-bold bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Previous
+                </button>
+
+                <div className="flex gap-1.5">
+                  {STUDENT_FORM_TABS.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setFormTab(idx)}
+                      className={cn(
+                        "h-2 rounded-full border border-black transition-all",
+                        formTab === idx ? "bg-[#024BAB] w-6" : "bg-white w-2",
+                      )}
+                    />
+                  ))}
+                </div>
+
+                {formTab < STUDENT_FORM_TABS.length - 1 ? (
+                  <button
+                    key="next"
+                    type="button"
+                    onClick={() =>
+                      setFormTab((t) =>
+                        Math.min(STUDENT_FORM_TABS.length - 1, t + 1),
+                      )
+                    }
+                    className="flex items-center gap-2 border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold hover:bg-[#01368A]"
+                  >
+                    Next <ArrowRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    key="submit"
+                    type="button"
+                    disabled={saving}
+                    onClick={handleSave}
+                    className="flex items-center gap-2 border-2 border-black bg-[#024BAB] text-white px-6 py-2 text-sm font-bold hover:bg-[#01368A] disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                    {saving
+                      ? "Saving..."
+                      : editingId
+                        ? "Save Changes"
+                        : "Enroll Student"}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

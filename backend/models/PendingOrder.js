@@ -11,10 +11,13 @@ const pendingOrderSchema = new mongoose.Schema(
     companyName: { type: String, required: true },
     companyEmail: { type: String, required: true },
     companyPhone: { type: String, required: true },
-    industry: { type: String },
     website: { type: String },
     gstNumber: { type: String },
     panNumber: { type: String },
+    address: { type: String },
+    city: { type: String },
+    state: { type: String },
+    pincode: { type: String },
 
     studentCount: { type: Number, required: true },
     employeeCount: { type: Number, default: 0 },
@@ -23,6 +26,10 @@ const pendingOrderSchema = new mongoose.Schema(
     ratePerUnit: { type: Number, required: true },
     monthlyPrice: { type: Number, required: true },
     yearlyPrice: { type: Number, required: true },
+    // GST breakdown for the amount actually billed (matches billingCycle).
+    gstRate: { type: Number, default: 18 },
+    subtotal: { type: Number },
+    gstAmount: { type: Number },
 
     offerCode: { type: String, default: null },
     offerBonusMonths: { type: Number, default: 0 },

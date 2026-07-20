@@ -3,7 +3,10 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SportPicker } from "@/components/SportPicker";
-import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import {
+  ImportExportModal,
+  type ImportHeader,
+} from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   employeeAPI,
@@ -14,12 +17,17 @@ import {
   payrollAPI,
 } from "@/services/api";
 import { Employee, Department } from "@/types/hrms";
+import {
+  INDIA_STATES,
+  INDIA_STATES_AND_CITIES,
+} from "@/data/indiaStatesAndCities";
 import { cn, formatDate } from "@/lib/utils";
 import {
   Plus,
   Search,
   X,
   Users,
+  User,
   Edit,
   Trash2,
   Eye,
@@ -46,6 +54,20 @@ import {
   Loader2,
   ArrowUp,
   ArrowDown,
+  Briefcase,
+  UserCog,
+  Trophy,
+  Activity,
+  Lock,
+  Fingerprint,
+  MapPin,
+  PhoneCall,
+  Heart,
+  Droplet,
+  Flag,
+  BookOpen,
+  GraduationCap,
+  Landmark,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
@@ -207,6 +229,8 @@ const EMPTY_FORM: EmployeeFormData = {
   previousCompany: "",
 };
 
+const OTHER_CITY = "__other__";
+
 export default function EmployeesPage() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -231,6 +255,10 @@ export default function EmployeesPage() {
   const [formTab, setFormTab] = useState(0);
   const [editEmp, setEditEmp] = useState<Employee | null>(null);
   const [form, setForm] = useState<EmployeeFormData>(EMPTY_FORM);
+  const [cityIsOther, setCityIsOther] = useState(false);
+  const cityOptions = form.state
+    ? INDIA_STATES_AND_CITIES[form.state] || []
+    : [];
   const [docFiles, setDocFiles] = useState<{
     aadhaarDoc?: File;
     panDoc?: File;
@@ -271,7 +299,10 @@ export default function EmployeesPage() {
 
   const empParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (search) params.search = search;
       if (filterDept) params.department = filterDept;
       if (filterStatus) params.status = filterStatus;
@@ -346,6 +377,7 @@ export default function EmployeesPage() {
   const openAdd = () => {
     setEditEmp(null);
     setForm(EMPTY_FORM);
+    setCityIsOther(false);
     setDocFiles({});
     setAvatarPreview(null);
     setFormTab(0);
@@ -427,6 +459,11 @@ export default function EmployeesPage() {
       totalExperience: (emp as any).totalExperience || "",
       previousCompany: (emp as any).previousCompany || "",
     });
+    const empState = (emp as any).state || "";
+    const empCity = (emp as any).city || "";
+    setCityIsOther(
+      !!empCity && !(INDIA_STATES_AND_CITIES[empState] || []).includes(empCity),
+    );
     setDocFiles({});
     setFormTab(0);
     setShowModal(true);
@@ -1359,110 +1396,122 @@ export default function EmployeesPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          First Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={form.firstName}
-                          onChange={(e) =>
-                            setForm({ ...form, firstName: e.target.value })
-                          }
-                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                          placeholder="e.g. Ravi"
-                        />
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <User className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                            First Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.firstName}
+                            onChange={(e) =>
+                              setForm({ ...form, firstName: e.target.value })
+                            }
+                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                            placeholder="e.g. Ravi"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <User className="w-3.5 h-3.5 text-[#024BAB]" /> Last
+                            Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.lastName}
+                            onChange={(e) =>
+                              setForm({ ...form, lastName: e.target.value })
+                            }
+                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                            placeholder="e.g. Kumar"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Phone className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                            Mobile Number
+                          </label>
+                          <input
+                            type="tel"
+                            value={form.phone}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                phone: e.target.value
+                                  .replace(/\D/g, "")
+                                  .slice(0, 10),
+                              })
+                            }
+                            maxLength={10}
+                            minLength={10}
+                            pattern="\d{10}"
+                            title="Enter a valid 10-digit mobile number"
+                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                            placeholder="10-digit mobile number"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          Last Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={form.lastName}
-                          onChange={(e) =>
-                            setForm({ ...form, lastName: e.target.value })
-                          }
-                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                          placeholder="e.g. Kumar"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          Email Address <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={form.email}
-                          onChange={(e) =>
-                            setForm({ ...form, email: e.target.value })
-                          }
-                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                          placeholder="employee@sportsclub.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          Mobile Number
-                        </label>
-                        <input
-                          type="tel"
-                          value={form.phone}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              phone: e.target.value
-                                .replace(/\D/g, "")
-                                .slice(0, 10),
-                            })
-                          }
-                          maxLength={10}
-                          minLength={10}
-                          pattern="\d{10}"
-                          title="Enter a valid 10-digit mobile number"
-                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                          placeholder="10-digit mobile number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          Designation <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={form.designation}
-                          onChange={(e) =>
-                            setForm({ ...form, designation: e.target.value })
-                          }
-                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                          placeholder="e.g. Senior Engineer"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          Joining Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          required
-                          value={form.joinDate}
-                          onChange={(e) =>
-                            setForm({ ...form, joinDate: e.target.value })
-                          }
-                          className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                        />
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Mail className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                            Email Address{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={form.email}
+                            onChange={(e) =>
+                              setForm({ ...form, email: e.target.value })
+                            }
+                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                            placeholder="employee@sportsclub.com"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                            Designation <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.designation}
+                            onChange={(e) =>
+                              setForm({ ...form, designation: e.target.value })
+                            }
+                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                            placeholder="e.g. Senior Engineer"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                            Joining Date <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={form.joinDate}
+                            onChange={(e) =>
+                              setForm({ ...form, joinDate: e.target.value })
+                            }
+                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                          />
+                        </div>
                       </div>
                     </div>
 
                     {}
                     <div>
-                      <label className="block text-xs font-bold text-black mb-2">
-                        Gender
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-2">
+                        <Users className="w-3.5 h-3.5 text-[#024BAB]" /> Gender
                       </label>
                       <div className="flex gap-3">
                         {["male", "female", "other"].map((g) => (
@@ -1485,7 +1534,8 @@ export default function EmployeesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                          <Building2 className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                           Department
                         </label>
                         <select
@@ -1505,7 +1555,8 @@ export default function EmployeesPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                          <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                           Employment Type
                         </label>
                         <select
@@ -1522,7 +1573,8 @@ export default function EmployeesPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                          <UserCog className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                           Role
                         </label>
                         <select
@@ -1538,7 +1590,8 @@ export default function EmployeesPage() {
                       </div>
                       {form.role === "coach" && (
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Sport
                           </label>
                           <SportPicker
@@ -1549,7 +1602,8 @@ export default function EmployeesPage() {
                       )}
                       {editEmp && (
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Activity className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Status
                           </label>
                           <select
@@ -1567,7 +1621,8 @@ export default function EmployeesPage() {
                       )}
                       {!editEmp && (
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Lock className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Default Password
                           </label>
                           <input
@@ -1742,8 +1797,9 @@ export default function EmployeesPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
-                            OT Rate (₹ / Hour)
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Clock className="w-3.5 h-3.5 text-[#024BAB]" /> OT
+                            Rate (₹ / Hour)
                           </label>
                           <input
                             type="number"
@@ -1757,7 +1813,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Fingerprint className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Biometric User ID
                           </label>
                           <input
@@ -1860,7 +1917,8 @@ export default function EmployeesPage() {
                             <>
                               <div className="grid grid-cols-3 gap-4 mb-3">
                                 <div>
-                                  <label className="block text-xs font-bold text-black mb-1">
+                                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                    <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                     Latitude
                                   </label>
                                   <input
@@ -1878,7 +1936,8 @@ export default function EmployeesPage() {
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-bold text-black mb-1">
+                                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                    <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                     Longitude
                                   </label>
                                   <input
@@ -1896,7 +1955,8 @@ export default function EmployeesPage() {
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-bold text-black mb-1">
+                                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                    <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                     Radius (meters)
                                   </label>
                                   <input
@@ -1999,8 +2059,8 @@ export default function EmployeesPage() {
                         Shift Assignment
                       </p>
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">
-                          Shift
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                          <Clock className="w-3.5 h-3.5 text-[#024BAB]" /> Shift
                         </label>
                         <select
                           value={form.isCustomShift ? "custom" : form.shift}
@@ -2044,7 +2104,8 @@ export default function EmployeesPage() {
                         {form.isCustomShift && (
                           <div className="grid grid-cols-2 gap-3 mt-3 border-2 border-black p-3 bg-[#F5F5F0]">
                             <div>
-                              <label className="block text-xs font-bold text-black mb-1">
+                              <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                <Clock className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                 Start Time
                               </label>
                               <input
@@ -2063,7 +2124,8 @@ export default function EmployeesPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-black mb-1">
+                              <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                <Clock className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                 End Time
                               </label>
                               <input
@@ -2082,7 +2144,8 @@ export default function EmployeesPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-black mb-1">
+                              <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                <Clock className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                 Break (minutes)
                               </label>
                               <input
@@ -2102,7 +2165,8 @@ export default function EmployeesPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-black mb-1">
+                              <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                                <Clock className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                                 OT After (hours)
                               </label>
                               <input
@@ -2141,7 +2205,8 @@ export default function EmployeesPage() {
                         Salary Information
                       </p>
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                          <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                           Monthly Salary (₹ / Month)
                         </label>
                         <input
@@ -2188,9 +2253,10 @@ export default function EmployeesPage() {
                       <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-4">
                         Compliance Numbers
                       </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             PF Number
                           </label>
                           <input
@@ -2204,7 +2270,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             UAN Number
                           </label>
                           <input
@@ -2227,7 +2294,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             ESIC Number
                           </label>
                           <input
@@ -2263,7 +2331,8 @@ export default function EmployeesPage() {
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Date of Birth
                           </label>
                           <input
@@ -2276,7 +2345,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <PhoneCall className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Emergency Contact
                           </label>
                           <input
@@ -2299,7 +2369,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Current Address
                           </label>
                           <textarea
@@ -2313,7 +2384,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Permanent Address{" "}
                             <span className="text-gray-400 font-normal">
                               (if different)
@@ -2332,53 +2404,99 @@ export default function EmployeesPage() {
                             placeholder="Permanent address"
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-bold text-black mb-1">
-                            City
-                          </label>
-                          <input
-                            type="text"
-                            value={form.city}
-                            onChange={(e) =>
-                              setForm({ ...form, city: e.target.value })
-                            }
-                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                            placeholder="City"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-black mb-1">
-                            State
-                          </label>
-                          <input
-                            type="text"
-                            value={form.state}
-                            onChange={(e) =>
-                              setForm({ ...form, state: e.target.value })
-                            }
-                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                            placeholder="State"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-black mb-1">
-                            Pincode
-                          </label>
-                          <input
-                            type="text"
-                            value={form.pincode}
-                            onChange={(e) =>
-                              setForm({
-                                ...form,
-                                pincode: e.target.value
-                                  .replace(/\D/g, "")
-                                  .slice(0, 6),
-                              })
-                            }
-                            maxLength={6}
-                            className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                            placeholder="6-digit pincode"
-                          />
+                        <div className="col-span-2 grid grid-cols-3 gap-4">
+                          <div>
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                              <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                              State
+                            </label>
+                            <select
+                              value={form.state}
+                              onChange={(e) => {
+                                setForm({
+                                  ...form,
+                                  state: e.target.value,
+                                  city: "",
+                                });
+                                setCityIsOther(false);
+                              }}
+                              className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                            >
+                              <option value="">Select state</option>
+                              {INDIA_STATES.map((s) => (
+                                <option key={s} value={s}>
+                                  {s}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                              <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                              City
+                            </label>
+                            {cityIsOther ? (
+                              <input
+                                type="text"
+                                value={form.city}
+                                onChange={(e) =>
+                                  setForm({ ...form, city: e.target.value })
+                                }
+                                placeholder="Enter city name"
+                                className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                                autoFocus
+                              />
+                            ) : (
+                              <select
+                                value={form.city}
+                                onChange={(e) => {
+                                  if (e.target.value === OTHER_CITY) {
+                                    setCityIsOther(true);
+                                    setForm({ ...form, city: "" });
+                                  } else {
+                                    setForm({ ...form, city: e.target.value });
+                                  }
+                                }}
+                                disabled={!form.state}
+                                className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <option value="">
+                                  {form.state
+                                    ? "Select city"
+                                    : "Select a state first"}
+                                </option>
+                                {cityOptions.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                                {form.state && (
+                                  <option value={OTHER_CITY}>Other</option>
+                                )}
+                              </select>
+                            )}
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                              <MapPin className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                              Pincode
+                            </label>
+                            <input
+                              type="text"
+                              value={form.pincode}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  pincode: e.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 6),
+                                })
+                              }
+                              maxLength={6}
+                              className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
+                              placeholder="6-digit pincode"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2388,9 +2506,10 @@ export default function EmployeesPage() {
                       <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-4">
                         Personal Details
                       </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Users className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Father's Name
                           </label>
                           <input
@@ -2404,7 +2523,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Users className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Mother's Name
                           </label>
                           <input
@@ -2418,7 +2538,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Heart className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Marital Status
                           </label>
                           <select
@@ -2440,7 +2561,8 @@ export default function EmployeesPage() {
                         </div>
                         {form.maritalStatus === "married" && (
                           <div>
-                            <label className="block text-xs font-bold text-black mb-1">
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                              <Users className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                               Spouse Name
                             </label>
                             <input
@@ -2455,7 +2577,8 @@ export default function EmployeesPage() {
                           </div>
                         )}
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Droplet className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Blood Group
                           </label>
                           <select
@@ -2483,7 +2606,8 @@ export default function EmployeesPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Flag className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Nationality
                           </label>
                           <input
@@ -2497,7 +2621,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <BookOpen className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Religion
                           </label>
                           <input
@@ -2511,7 +2636,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Mail className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Personal Email
                           </label>
                           <input
@@ -2528,7 +2654,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Phone className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Alternate Phone
                           </label>
                           <input
@@ -2555,9 +2682,10 @@ export default function EmployeesPage() {
                       <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-4">
                         Professional Background
                       </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <GraduationCap className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Highest Qualification
                           </label>
                           <input
@@ -2574,7 +2702,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Total Experience
                           </label>
                           <input
@@ -2590,8 +2719,9 @@ export default function EmployeesPage() {
                             placeholder="e.g. 3 years 2 months"
                           />
                         </div>
-                        <div className="col-span-2">
-                          <label className="block text-xs font-bold text-black mb-1">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Building2 className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Previous SportsClub
                           </label>
                           <input
@@ -2617,7 +2747,8 @@ export default function EmployeesPage() {
                       <div className="grid grid-cols-2 gap-4">
                         {/* PAN Number */}
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <CreditCard className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             PAN Number
                           </label>
                           <input
@@ -2641,7 +2772,8 @@ export default function EmployeesPage() {
 
                         {/* PAN Document upload */}
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             PAN Document{" "}
                             <span className="text-gray-400 font-normal">
                               (optional, PDF/JPG/PNG, max 5MB)
@@ -2710,7 +2842,8 @@ export default function EmployeesPage() {
 
                         {/* Aadhaar Number */}
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <CreditCard className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Aadhar Number
                           </label>
                           <input
@@ -2734,7 +2867,8 @@ export default function EmployeesPage() {
 
                         {/* Aadhaar Document upload */}
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Aadhaar Document{" "}
                             <span className="text-gray-400 font-normal">
                               (optional, PDF/JPG/PNG, max 5MB)
@@ -2800,75 +2934,6 @@ export default function EmployeesPage() {
                             )}
                           </div>
                         </div>
-
-                        {/* Resume upload — full width */}
-                        <div className="col-span-2">
-                          <label className="block text-xs font-bold text-black mb-1">
-                            Resume / CV{" "}
-                            <span className="text-gray-400 font-normal">
-                              (optional, PDF/DOC, max 5MB)
-                            </span>
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <label className="cursor-pointer flex-1">
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f)
-                                    setDocFiles((prev) => ({
-                                      ...prev,
-                                      resumeDoc: f,
-                                    }));
-                                }}
-                              />
-                              <div className="border-2 border-dashed border-gray-300 hover:border-[#024BAB] px-3 py-2 text-xs text-gray-500 hover:text-[#024BAB] transition-colors text-center">
-                                {docFiles.resumeDoc
-                                  ? docFiles.resumeDoc.name
-                                  : editEmp && (editEmp as any).resumeDoc
-                                    ? "✅ Uploaded — click to replace"
-                                    : "Click to upload Resume / CV"}
-                              </div>
-                            </label>
-                            {(docFiles.resumeDoc ||
-                              (editEmp && (editEmp as any).resumeDoc)) && (
-                              <div className="flex gap-1">
-                                {docFiles.resumeDoc && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setDocFiles((prev) => {
-                                        const n = { ...prev };
-                                        delete n.resumeDoc;
-                                        return n;
-                                      })
-                                    }
-                                    className="text-red-500 text-xs border border-red-300 px-1.5 py-1 hover:bg-red-50"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
-                                {editEmp &&
-                                  (editEmp as any).resumeDoc &&
-                                  !docFiles.resumeDoc && (
-                                    <a
-                                      href={employeeAPI.getDocumentUrl(
-                                        editEmp._id,
-                                        "resume",
-                                      )}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-[#024BAB] text-xs border border-[#024BAB] px-1.5 py-1 hover:bg-[#024BAB]/10"
-                                    >
-                                      View
-                                    </a>
-                                  )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     </div>
 
@@ -2878,7 +2943,8 @@ export default function EmployeesPage() {
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Landmark className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Account Holder Name
                           </label>
                           <input
@@ -2895,7 +2961,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Landmark className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Bank Account Number
                           </label>
                           <input
@@ -2915,7 +2982,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Landmark className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             IFSC Code
                           </label>
                           <input
@@ -2938,7 +3006,8 @@ export default function EmployeesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-black mb-1">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                            <Landmark className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
                             Bank Name
                           </label>
                           <input
@@ -3889,8 +3958,8 @@ export default function EmployeesPage() {
               <code>contract</code>, <code>intern</code>.
             </p>
             <p>
-              • <strong>Department</strong> and <strong>Shift Name</strong>{" "}
-              must exactly match names already created in NestSports.
+              • <strong>Department</strong> and <strong>Shift Name</strong> must
+              exactly match names already created in NestSports.
             </p>
             <p>
               • <strong>Gender</strong> must be one of: <code>male</code>,{" "}

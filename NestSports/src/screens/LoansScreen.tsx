@@ -22,6 +22,9 @@ import {
   Clock,
   Download,
   FileSpreadsheet,
+  Banknote,
+  Calendar,
+  FileText,
 } from 'lucide-react-native';
 import { loanAPI, employeeAPI } from '../api/client';
 import {
@@ -35,19 +38,42 @@ import {
   SectionTitle,
   KpiTile,
 } from '../components/ui';
-import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import {
+  ImportExportModal,
+  ImportHeader,
+} from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
 const LOAN_IMPORT_HEADERS: ImportHeader[] = [
-  { key: 'employeeId', label: 'Employee ID', required: true, example: 'EMP0001' },
+  {
+    key: 'employeeId',
+    label: 'Employee ID',
+    required: true,
+    example: 'EMP0001',
+  },
   { key: 'type', label: 'Type', required: true, example: 'loan' },
   { key: 'amount', label: 'Amount', required: true, example: '20000' },
-  { key: 'remainingBalance', label: 'Remaining Balance', required: false, example: '15000' },
+  {
+    key: 'remainingBalance',
+    label: 'Remaining Balance',
+    required: false,
+    example: '15000',
+  },
   { key: 'monthlyEmi', label: 'Monthly EMI', required: false, example: '2000' },
-  { key: 'tenureMonths', label: 'Tenure (Months)', required: false, example: '10' },
+  {
+    key: 'tenureMonths',
+    label: 'Tenure (Months)',
+    required: false,
+    example: '10',
+  },
   { key: 'reason', label: 'Reason', required: false, example: 'Medical' },
-  { key: 'disbursedOn', label: 'Disbursed On', required: false, example: '2024-01-15' },
+  {
+    key: 'disbursedOn',
+    label: 'Disbursed On',
+    required: false,
+    example: '2024-01-15',
+  },
   { key: 'status', label: 'Status', required: false, example: 'active' },
 ];
 
@@ -216,13 +242,18 @@ export default function LoansScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.title}>Loans & Advances</Text>
-            <Text style={styles.subtitle}>Employee loan and advance requests</Text>
+            <Text style={styles.subtitle}>
+              Employee loan and advance requests
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <TouchableOpacity
               onPress={() =>
                 exportRowsToExcel(
-                  LOAN_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                  LOAN_IMPORT_HEADERS.map(h => ({
+                    key: h.key,
+                    label: h.label,
+                  })),
                   loans.map((l: any) => ({
                     employeeId: l.employee?.employeeId || '',
                     type: l.type,
@@ -248,9 +279,17 @@ export default function LoansScreen() {
               style={styles.iconBtn}
               hitSlop={8}
             >
-              <FileSpreadsheet size={16} color={colors.black} strokeWidth={2.5} />
+              <FileSpreadsheet
+                size={16}
+                color={colors.black}
+                strokeWidth={2.5}
+              />
             </TouchableOpacity>
-            <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
+            <TouchableOpacity
+              onPress={openAdd}
+              style={styles.addBtn}
+              hitSlop={8}
+            >
               <Plus size={14} color={colors.white} strokeWidth={2.5} />
               <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>
@@ -336,7 +375,9 @@ export default function LoansScreen() {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                  <Text style={[styles.actionText, { color: colors.blue }]}>Edit</Text>
+                  <Text style={[styles.actionText, { color: colors.blue }]}>
+                    Edit
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDelete(l)}
@@ -344,7 +385,9 @@ export default function LoansScreen() {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  <Text style={[styles.actionText, { color: colors.red }]}>Delete</Text>
+                  <Text style={[styles.actionText, { color: colors.red }]}>
+                    Delete
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Card>
@@ -383,7 +426,9 @@ export default function LoansScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle title="Employee" />
             <ScrollView style={styles.pickList} nestedScrollEnabled>
               {employees.map((e: any) => {
@@ -395,7 +440,10 @@ export default function LoansScreen() {
                     style={[styles.pickRow, selected && styles.pickRowSelected]}
                   >
                     <Text
-                      style={[styles.pickRowText, selected && { color: colors.white }]}
+                      style={[
+                        styles.pickRowText,
+                        selected && { color: colors.white },
+                      ]}
                     >
                       {e.firstName} {e.lastName}
                     </Text>
@@ -406,12 +454,14 @@ export default function LoansScreen() {
 
             <ChipSelect
               label="Type"
+              icon={Banknote}
               options={TYPE_OPTIONS}
               value={form.type}
               onChange={v => setForm(p => ({ ...p, type: v }))}
             />
             <TextField
               label="Amount (₹)"
+              icon={IndianRupee}
               value={form.amount}
               onChangeText={v => setForm(p => ({ ...p, amount: v }))}
               keyboardType="numeric"
@@ -419,24 +469,28 @@ export default function LoansScreen() {
             />
             <TextField
               label="Monthly EMI (₹)"
+              icon={IndianRupee}
               value={form.monthlyEmi}
               onChangeText={v => setForm(p => ({ ...p, monthlyEmi: v }))}
               keyboardType="numeric"
             />
             <TextField
               label="Reason"
+              icon={FileText}
               value={form.reason}
               onChangeText={v => setForm(p => ({ ...p, reason: v }))}
               multiline
             />
             <TextField
               label="Disbursed On"
+              icon={Calendar}
               value={form.disbursedOn}
               onChangeText={v => setForm(p => ({ ...p, disbursedOn: v }))}
               placeholder="YYYY-MM-DD"
             />
             <TextField
               label="Remarks"
+              icon={FileText}
               value={form.remarks}
               onChangeText={v => setForm(p => ({ ...p, remarks: v }))}
               multiline
@@ -446,7 +500,12 @@ export default function LoansScreen() {
               onPress={save}
               disabled={saving}
             />
-            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {saving && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -532,7 +591,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   pickList: {
     borderWidth: 2,
     borderColor: colors.black,

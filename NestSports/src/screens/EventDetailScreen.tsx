@@ -1,12 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, Text, Image, RefreshControl, StyleSheet } from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text,
+  Image,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingView, Badge } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import { eventAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { eventTypes } from '../config/eventTypeConfig';
-import EventDetailTabBar, { DetailTab } from '../components/events/EventDetailTabBar';
+import EventDetailTabBar, {
+  DetailTab,
+} from '../components/events/EventDetailTabBar';
 import OverviewTab from '../components/events/tabs/OverviewTab';
 import ScheduleTab from '../components/events/tabs/ScheduleTab';
 import ParticipantsTeamsTab from '../components/events/tabs/ParticipantsTeamsTab';
@@ -67,7 +76,9 @@ export default function EventDetailScreen({ route, navigation }: any) {
     { key: 'schedule', label: 'Schedule' },
     { key: 'participants', label: isTeam ? 'Teams' : 'Participants' },
     ...(isSports ? [{ key: 'fixtures', label: 'Fixtures' }] : []),
-    ...(isSports && event.format === 'round_robin' ? [{ key: 'points', label: 'Points Table' }] : []),
+    ...(isSports && event.format === 'round_robin'
+      ? [{ key: 'points', label: 'Points Table' }]
+      : []),
     { key: 'awards', label: 'Awards' },
     { key: 'judges', label: 'Judges' },
     { key: 'documents', label: 'Documents' },
@@ -83,19 +94,28 @@ export default function EventDetailScreen({ route, navigation }: any) {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {(event.coverImageUrl || event.bannerImageUrl) && (
-          <Image source={{ uri: event.bannerImageUrl || event.coverImageUrl }} style={styles.banner} />
+          <Image
+            source={{ uri: event.bannerImageUrl || event.coverImageUrl }}
+            style={styles.banner}
+          />
         )}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{event.name}</Text>
             <Text style={styles.subtitle}>
-              {(eventTypes as any)[event.eventType]?.label || event.eventType} · {event.activity}
+              {(eventTypes as any)[event.eventType]?.label || event.eventType} ·{' '}
+              {event.activity}
             </Text>
           </View>
-          <Badge label={event.status?.replace(/_/g, ' ') || '-'} color={STATUS_COLORS[event.status] || colors.blue} />
+          <Badge
+            label={event.status?.replace(/_/g, ' ') || '-'}
+            color={STATUS_COLORS[event.status] || colors.blue}
+          />
         </View>
 
         <EventDetailTabBar tabs={tabs} value={tab} onChange={setTab} />
@@ -103,17 +123,34 @@ export default function EventDetailScreen({ route, navigation }: any) {
         <View style={{ paddingHorizontal: 16 }}>
           {tab === 'overview' && <OverviewTab event={event} />}
           {tab === 'schedule' && <ScheduleTab event={event} />}
-          {tab === 'participants' && <ParticipantsTeamsTab event={event} onChanged={load} />}
-          {tab === 'fixtures' && isSports && <FixturesTab event={event} onChanged={load} />}
+          {tab === 'participants' && (
+            <ParticipantsTeamsTab event={event} onChanged={load} />
+          )}
+          {tab === 'fixtures' && isSports && (
+            <FixturesTab event={event} onChanged={load} />
+          )}
           {tab === 'points' && isSports && <PointsTableTab event={event} />}
-          {tab === 'awards' && <AwardsTab event={event} onGoToSettings={() => setTab('settings')} />}
+          {tab === 'awards' && (
+            <AwardsTab
+              event={event}
+              onGoToSettings={() => setTab('settings')}
+            />
+          )}
           {tab === 'judges' && <JudgesTab event={event} onChanged={load} />}
-          {tab === 'documents' && <DocumentsTab event={event} onChanged={load} />}
+          {tab === 'documents' && (
+            <DocumentsTab event={event} onChanged={load} />
+          )}
           {tab === 'gallery' && <GalleryTab eventId={event._id} />}
           {tab === 'announcements' && <AnnouncementsTab eventId={event._id} />}
           {tab === 'payments' && <PaymentsTab eventId={event._id} />}
           {tab === 'attendance' && <AttendanceTab eventId={event._id} />}
-          {tab === 'settings' && canManage && <SettingsTab event={event} navigation={navigation} canManage={canManage} />}
+          {tab === 'settings' && canManage && (
+            <SettingsTab
+              event={event}
+              navigation={navigation}
+              canManage={canManage}
+            />
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -123,7 +160,23 @@ export default function EventDetailScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   banner: { width: '100%', height: 140, backgroundColor: '#E5E7EB' },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: 16, gap: 8 },
-  title: { fontFamily: FONT.bold, fontWeight: '800', fontSize: 20, color: colors.black },
-  subtitle: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 4 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    padding: 16,
+    gap: 8,
+  },
+  title: {
+    fontFamily: FONT.bold,
+    fontWeight: '800',
+    fontSize: 20,
+    color: colors.black,
+  },
+  subtitle: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 4,
+  },
 });

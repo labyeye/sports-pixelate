@@ -1,9 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, Text, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserPlus, Download } from 'lucide-react-native';
 import { reportAPI } from '../api/client';
-import { Card, Badge, DateTimeField, KpiTile, EmptyState, LoadingView } from '../components/ui';
+import {
+  Card,
+  Badge,
+  DateTimeField,
+  KpiTile,
+  EmptyState,
+  LoadingView,
+} from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
@@ -16,7 +30,11 @@ function toDateStr(d: Date) {
 
 export default function StudentEnrollmentReportScreen() {
   const [rows, setRows] = useState<any[]>([]);
-  const [summary, setSummary] = useState<{ newEnrollments: number; exits: number; netChange: number }>({
+  const [summary, setSummary] = useState<{
+    newEnrollments: number;
+    exits: number;
+    netChange: number;
+  }>({
     newEnrollments: 0,
     exits: 0,
     netChange: 0,
@@ -61,7 +79,9 @@ export default function StudentEnrollmentReportScreen() {
       ],
       rows.map((r: any) => ({
         type: r.type,
-        student: r.student ? `${r.student.firstName} ${r.student.lastName}` : '',
+        student: r.student
+          ? `${r.student.firstName} ${r.student.lastName}`
+          : '',
         studentId: r.student?.studentId || '',
         sport: r.student?.sport || '',
         batch: r.student?.batch || '',
@@ -92,24 +112,48 @@ export default function StudentEnrollmentReportScreen() {
       </View>
 
       <View style={styles.kpiGrid}>
-        <KpiTile label="New" value={summary.newEnrollments} color={colors.green} icon={UserPlus} />
+        <KpiTile
+          label="New"
+          value={summary.newEnrollments}
+          color={colors.green}
+          icon={UserPlus}
+        />
         <KpiTile label="Exits" value={summary.exits} color={colors.red} />
-        <KpiTile label="Net Change" value={summary.netChange} color={colors.blue} />
+        <KpiTile
+          label="Net Change"
+          value={summary.netChange}
+          color={colors.blue}
+        />
       </View>
 
       <FlatList
         data={rows}
         keyExtractor={(r, i) => `${r.student?._id || i}_${r.type}`}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 10 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: 32,
+          gap: 10,
+        }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No enrollment activity in this range" icon={UserPlus} />}
+        ListEmptyComponent={
+          <EmptyState
+            title="No enrollment activity in this range"
+            icon={UserPlus}
+          />
+        }
         renderItem={({ item }) => (
-          <Card accentColor={item.type === 'enrolled' ? colors.green : colors.red}>
+          <Card
+            accentColor={item.type === 'enrolled' ? colors.green : colors.red}
+          >
             <View style={styles.rowTop}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>
-                  {item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Unknown'}
+                  {item.student
+                    ? `${item.student.firstName} ${item.student.lastName}`
+                    : 'Unknown'}
                 </Text>
                 <Text style={styles.sub}>
                   {item.student?.studentId || ''}
@@ -150,7 +194,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, flex: 1 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flex: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -161,10 +211,39 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.black,
   },
-  filterRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 14 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, color: colors.black },
-  sub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
-  dateText: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 4 },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  sub: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  dateText: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 4,
+  },
 });

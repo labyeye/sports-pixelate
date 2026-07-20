@@ -8,7 +8,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Grid, ChevronRight, LogOut as LogOutIcon, User } from 'lucide-react-native';
+import {
+  Grid,
+  ChevronRight,
+  LogOut as LogOutIcon,
+  User,
+} from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { getNavGroupsForRole } from '../navigation/navConfig';
 import { colors } from '../theme/colors';
@@ -83,7 +88,11 @@ export default function MenuScreen({ navigation }: any) {
                     <Text style={styles.itemText}>{item.title}</Text>
                     <Text style={styles.itemDesc}>{item.desc}</Text>
                   </View>
-                  <ChevronRight size={16} color={colors.muted} strokeWidth={2} />
+                  <ChevronRight
+                    size={16}
+                    color={colors.muted}
+                    strokeWidth={2}
+                  />
                 </TouchableOpacity>
               ))}
             </View>

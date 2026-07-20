@@ -56,21 +56,45 @@ router.post("/device-face-enroll", deviceRateLimit, enrollFaceFromDevice);
 router.use(protect);
 
 router.get("/locations", getLocations);
-router.post("/locations", authorize("super_admin", "hr_manager"), createLocation);
-router.put("/locations/:id", authorize("super_admin", "hr_manager"), updateLocation);
-router.delete("/locations/:id", authorize("super_admin", "hr_manager"), deleteLocation);
+router.post(
+  "/locations",
+  authorize("super_admin", "hr_manager"),
+  createLocation,
+);
+router.put(
+  "/locations/:id",
+  authorize("super_admin", "hr_manager"),
+  updateLocation,
+);
+router.delete(
+  "/locations/:id",
+  authorize("super_admin", "hr_manager"),
+  deleteLocation,
+);
 
 router.get("/devices", getDevices);
 router.post("/devices", authorize("super_admin", "hr_manager"), createDevice);
-router.put("/devices/:id", authorize("super_admin", "hr_manager"), updateDevice);
-router.delete("/devices/:id", authorize("super_admin", "hr_manager"), deleteDevice);
+router.put(
+  "/devices/:id",
+  authorize("super_admin", "hr_manager"),
+  updateDevice,
+);
+router.delete(
+  "/devices/:id",
+  authorize("super_admin", "hr_manager"),
+  deleteDevice,
+);
 router.post(
   "/devices/:id/regenerate-token",
   authorize("super_admin", "hr_manager"),
   regenerateDeviceToken,
 );
 
-router.post("/devices/:id/nfc", authorize("super_admin", "hr_manager"), assignNfcCard);
+router.post(
+  "/devices/:id/nfc",
+  authorize("super_admin", "hr_manager"),
+  assignNfcCard,
+);
 router.delete(
   "/devices/:id/nfc/:uid",
   authorize("super_admin", "hr_manager"),
@@ -79,7 +103,11 @@ router.delete(
 
 router.get("/logs", getLogs);
 
-router.put("/devices/:id/serial", authorize("super_admin", "hr_manager"), setDeviceSerial);
+router.put(
+  "/devices/:id/serial",
+  authorize("super_admin", "hr_manager"),
+  setDeviceSerial,
+);
 router.post(
   "/devices/:id/sync-person",
   authorize("super_admin", "hr_manager"),

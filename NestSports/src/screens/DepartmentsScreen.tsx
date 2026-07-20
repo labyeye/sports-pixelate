@@ -20,7 +20,9 @@ import {
   X,
   Users,
   Building2,
-  Wallet,
+  Tag,
+  Hash,
+  FileText,
 } from 'lucide-react-native';
 import { departmentAPI } from '../api/client';
 import {
@@ -40,7 +42,6 @@ import { colors, FONT } from '../theme/colors';
 const SORT_OPTIONS: SortOption[] = [
   { key: 'name', label: 'Name' },
   { key: 'code', label: 'Code' },
-  { key: 'budget', label: 'Budget' },
   { key: 'createdAt', label: 'Date Added' },
 ];
 
@@ -48,9 +49,6 @@ const EMPTY_FORM = {
   name: '',
   code: '',
   description: '',
-  budget: '',
-  shiftStartTime: '',
-  shiftEndTime: '',
 };
 
 let searchDebounce: ReturnType<typeof setTimeout>;
@@ -145,9 +143,6 @@ export default function DepartmentsScreen() {
       name: d.name || '',
       code: d.code || '',
       description: d.description || '',
-      budget: d.budget ? String(d.budget) : '',
-      shiftStartTime: d.shiftStartTime || '',
-      shiftEndTime: d.shiftEndTime || '',
     });
     setFormVisible(true);
   };
@@ -163,9 +158,6 @@ export default function DepartmentsScreen() {
         name: form.name.trim(),
         code: form.code.trim().toUpperCase(),
         description: form.description.trim() || undefined,
-        budget: form.budget ? Number(form.budget) : 0,
-        shiftStartTime: form.shiftStartTime.trim() || undefined,
-        shiftEndTime: form.shiftEndTime.trim() || undefined,
       };
       if (editingDept) {
         await departmentAPI.update(editingDept._id, payload);
@@ -247,15 +239,6 @@ export default function DepartmentsScreen() {
           color={colors.purple}
           icon={Users}
         />
-        <KpiTile
-          label="Total Budget"
-          value={`₹${departments
-            .reduce((sum, d) => sum + (d.budget || 0), 0)
-            .toLocaleString('en-IN')}`}
-          sub="Combined annual budget"
-          color={colors.green}
-          icon={Wallet}
-        />
       </View>
 
       <FlatList
@@ -287,7 +270,9 @@ export default function DepartmentsScreen() {
                 <Text style={styles.empId}>{d.code}</Text>
               </View>
               <View style={styles.headcountPill}>
-                <Text style={styles.headcountText}>{d.headcount ?? 0} staff</Text>
+                <Text style={styles.headcountText}>
+                  {d.headcount ?? 0} staff
+                </Text>
               </View>
             </View>
             <View style={styles.cardBottom}>
@@ -295,10 +280,16 @@ export default function DepartmentsScreen() {
                 {d.description || 'No description'}
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(d)}>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => openEdit(d)}
+                >
                   <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(d)}>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => onDelete(d)}
+                >
                   <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
                 </TouchableOpacity>
               </View>
@@ -335,10 +326,13 @@ export default function DepartmentsScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle title="Department Details" />
             <TextField
               label="Name"
+              icon={Tag}
               value={form.name}
               onChangeText={v => setForm(p => ({ ...p, name: v }))}
               placeholder="e.g. Engineering"
@@ -346,43 +340,39 @@ export default function DepartmentsScreen() {
             />
             <TextField
               label="Code"
+              icon={Hash}
               value={form.code}
-              onChangeText={v => setForm(p => ({ ...p, code: v.toUpperCase() }))}
+              onChangeText={v =>
+                setForm(p => ({ ...p, code: v.toUpperCase() }))
+              }
               placeholder="e.g. ENG"
               required
             />
             <TextField
               label="Description"
+              icon={FileText}
               value={form.description}
               onChangeText={v => setForm(p => ({ ...p, description: v }))}
               placeholder="Optional description"
               multiline
             />
-            <TextField
-              label="Budget (₹)"
-              value={form.budget}
-              onChangeText={v => setForm(p => ({ ...p, budget: v }))}
-              placeholder="Annual budget"
-              keyboardType="numeric"
-            />
-            <TextField
-              label="Shift Start Time"
-              value={form.shiftStartTime}
-              onChangeText={v => setForm(p => ({ ...p, shiftStartTime: v }))}
-              placeholder="e.g. 09:00"
-            />
-            <TextField
-              label="Shift End Time"
-              value={form.shiftEndTime}
-              onChangeText={v => setForm(p => ({ ...p, shiftEndTime: v }))}
-              placeholder="e.g. 18:00"
-            />
             <Button
-              title={saving ? 'Saving...' : editingDept ? 'Update Department' : 'Save Department'}
+              title={
+                saving
+                  ? 'Saving...'
+                  : editingDept
+                  ? 'Update Department'
+                  : 'Save Department'
+              }
               onPress={save}
               disabled={saving}
             />
-            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {saving && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -458,7 +448,12 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  empName: { fontSize: 15, fontWeight: '700', color: colors.black, fontFamily: FONT.bold },
+  empName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   empId: { fontSize: 11, color: colors.muted, fontFamily: 'monospace' },
   empDesig: { fontSize: 12, color: colors.muted, fontWeight: '500', flex: 1 },
   headcountPill: {
@@ -468,7 +463,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  headcountText: { fontSize: 10, fontWeight: '700', color: colors.black, fontFamily: FONT.bold },
+  headcountText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   cardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -515,5 +515,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
 });

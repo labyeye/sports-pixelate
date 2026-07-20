@@ -99,7 +99,10 @@ export default function PayrollScreen() {
             setProcessing(true);
             try {
               const res: any = await payrollAPI.process({ month, year });
-              Alert.alert('Payroll Processed', res.message || 'Payroll processed successfully.');
+              Alert.alert(
+                'Payroll Processed',
+                res.message || 'Payroll processed successfully.',
+              );
               await load();
             } catch (e: any) {
               Alert.alert('Error', e?.message || 'Failed to process payroll');
@@ -115,7 +118,9 @@ export default function PayrollScreen() {
   const handleBulkMarkPaid = () => {
     Alert.alert(
       'Mark All Paid',
-      `Mark all unpaid payroll records as paid for ${MONTHS[month - 1]} ${year}?`,
+      `Mark all unpaid payroll records as paid for ${
+        MONTHS[month - 1]
+      } ${year}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -156,7 +161,11 @@ export default function PayrollScreen() {
               {MONTHS[month - 1]} {year} · Employee salary records
             </Text>
           </View>
-          <TouchableOpacity onPress={handleProcess} style={styles.processBtn} hitSlop={8}>
+          <TouchableOpacity
+            onPress={handleProcess}
+            style={styles.processBtn}
+            hitSlop={8}
+          >
             {processing ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
@@ -171,7 +180,11 @@ export default function PayrollScreen() {
         {unpaidCount > 0 && (
           <View style={styles.bulkBar}>
             <Button
-              title={bulkMarking ? 'Marking...' : `Mark All ${unpaidCount} Unpaid as Paid`}
+              title={
+                bulkMarking
+                  ? 'Marking...'
+                  : `Mark All ${unpaidCount} Unpaid as Paid`
+              }
               onPress={handleBulkMarkPaid}
               color={colors.green}
               disabled={bulkMarking}

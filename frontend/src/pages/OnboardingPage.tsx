@@ -12,9 +12,11 @@ import {
   ChevronRight,
   ExternalLink,
   AlertCircle,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import nestsportsLogo from "../../assets/logo.png";
+import { Arrow } from "@radix-ui/react-select";
 declare global {
   interface Window {
     Razorpay: any;
@@ -27,14 +29,18 @@ interface CompanyFormData {
   name: string;
   email: string;
   phone: string;
-  industry: string;
   website: string;
   gstNumber: string;
   panNumber: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
 }
 
 const RATE_STANDARD = 150;
 const RATE_WHATSAPP = 300;
+const GST_RATE = 18;
 
 const STEPS: { id: Step; label: string }[] = [
   { id: "company", label: "SportsClub" },
@@ -54,7 +60,7 @@ function StepIndicator({ current }: { current: Step }) {
             <div className="flex flex-col items-center">
               <div
                 className={cn(
-                  "w-9 h-9 border-2 border-black flex items-center justify-center font-bold text-sm transition-all",
+                  "w-9 h-9 border-2 border-black flex items-center justify-center font-bold text-sm transition-all rounded-full",
                   done && "bg-[#024BAB] text-white",
                   active && "bg-[#FA731C] text-white",
                   !done && !active && "bg-white text-gray-400",
@@ -114,7 +120,9 @@ export default function OnboardingPage() {
   const count = Number(studentCount) || 0;
   const empCount = Number(employeeCount) || 0;
   const rate = wantsWhatsapp ? RATE_WHATSAPP : RATE_STANDARD;
-  const yearlyPrice = (count + empCount) * rate;
+  const yearlySubtotal = (count + empCount) * rate;
+  const yearlyGstAmount = Math.round(yearlySubtotal * (GST_RATE / 100));
+  const yearlyPrice = yearlySubtotal + yearlyGstAmount;
   const monthlyEquiv = Math.round(yearlyPrice / 12);
 
   const handleCreateCompany = async (formData: CompanyFormData) => {
@@ -247,18 +255,17 @@ export default function OnboardingPage() {
       <header className="bg-white border-b-2 border-black sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#024BAB] border-2 border-black flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-display font-bold text-xl text-black">
-              NestSports
-            </span>
+            <img
+              src={nestsportsLogo}
+              alt="NestSports"
+              className="w-full h-14"
+            />
           </div>
           <button
             onClick={logout}
             className="text-sm font-bold text-black hover:text-[#024BAB] transition-colors"
           >
-            Logout
+            Logout <ArrowRight className="w-4 h-4 inline-block" />
           </button>
         </div>
       </header>
@@ -350,7 +357,9 @@ export default function OnboardingPage() {
                 onClick={() => setWantsWhatsapp((v) => !v)}
                 className={cn(
                   "w-full border-2 border-black px-4 py-3 mb-2 flex items-center justify-between text-left transition-all",
-                  wantsWhatsapp ? "bg-[#024BAB] text-white" : "bg-white text-black",
+                  wantsWhatsapp
+                    ? "bg-[#024BAB] text-white"
+                    : "bg-white text-black",
                 )}
               >
                 <span className="font-bold text-sm">
@@ -370,15 +379,20 @@ export default function OnboardingPage() {
                 </span>
               </button>
               <p className="text-xs text-gray-400 font-medium text-center mb-4">
-                Without WhatsApp: ₹{RATE_STANDARD}/person/year. With WhatsApp:
-                ₹{RATE_WHATSAPP}/person/year.
+                Without WhatsApp: ₹{RATE_STANDARD}/person/year. With WhatsApp: ₹
+                {RATE_WHATSAPP}/person/year.
               </p>
 
               {(count > 0 || empCount > 0) && (
-                <p className="text-sm font-bold text-[#024BAB] text-center mb-6">
-                  ₹{yearlyPrice.toLocaleString("en-IN")}/year (₹
-                  {monthlyEquiv.toLocaleString("en-IN")}/mo equiv.)
-                </p>
+                <div className="text-center mb-6">
+                  <p className="text-sm font-bold text-[#024BAB]">
+                    ₹{yearlyPrice.toLocaleString("en-IN")}/year (₹
+                    {monthlyEquiv.toLocaleString("en-IN")}/mo equiv.)
+                  </p>
+                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">
+                    Inclusive of {GST_RATE}% GST
+                  </p>
+                </div>
               )}
 
               <button
@@ -444,6 +458,22 @@ export default function OnboardingPage() {
                     <span className="font-bold text-gray-500">
                       ₹{monthlyEquiv.toLocaleString("en-IN")}/mo
                     </span>
+                  </div>
+                  <div className="border-t-2 border-black pt-3 space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-bold text-gray-600">Subtotal</span>
+                      <span className="font-bold text-black">
+                        ₹{yearlySubtotal.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-bold text-gray-600">
+                        GST ({GST_RATE}%)
+                      </span>
+                      <span className="font-bold text-black">
+                        ₹{yearlyGstAmount.toLocaleString("en-IN")}
+                      </span>
+                    </div>
                   </div>
                   <div className="border-t-2 border-black pt-3 flex justify-between items-center">
                     <span className="font-bold text-sm uppercase">

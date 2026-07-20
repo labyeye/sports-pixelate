@@ -14,7 +14,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
-import { ArrowUpDown, Trash2, Plus, X, Download, Upload } from 'lucide-react-native';
+import {
+  ArrowUpDown,
+  Trash2,
+  Plus,
+  X,
+  Download,
+  Upload,
+  Tag,
+} from 'lucide-react-native';
 import { documentAPI, employeeAPI } from '../api/client';
 import {
   Row,
@@ -154,21 +162,25 @@ export default function DocumentsScreen() {
   };
 
   const onDelete = (doc: any) => {
-    Alert.alert('Delete Document', `Delete "${doc.name}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await documentAPI.delete(doc._id);
-            setDocuments(prev => prev.filter(d => d._id !== doc._id));
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not delete document');
-          }
+    Alert.alert(
+      'Delete Document',
+      `Delete "${doc.name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await documentAPI.delete(doc._id);
+              setDocuments(prev => prev.filter(d => d._id !== doc._id));
+            } catch (e: any) {
+              Alert.alert('Error', e?.message || 'Could not delete document');
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const openUpload = () => {
@@ -205,7 +217,10 @@ export default function DocumentsScreen() {
       return;
     }
     if (!isSelf && !uploadForm.employeeId) {
-      Alert.alert('Missing field', 'Select which employee this document belongs to');
+      Alert.alert(
+        'Missing field',
+        'Select which employee this document belongs to',
+      );
       return;
     }
     setUploading(true);
@@ -258,7 +273,11 @@ export default function DocumentsScreen() {
             >
               <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={openUpload} style={styles.addBtn} hitSlop={8}>
+            <TouchableOpacity
+              onPress={openUpload}
+              style={styles.addBtn}
+              hitSlop={8}
+            >
               <Plus size={14} color={colors.white} strokeWidth={2.5} />
               <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>
@@ -358,11 +377,15 @@ export default function DocumentsScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <TouchableOpacity onPress={pickFile} style={styles.pickFileBox}>
               <Upload size={20} color={colors.blue} strokeWidth={2.5} />
               <Text style={styles.pickFileText}>
-                {pickedAsset ? pickedAsset.fileName || 'File selected' : 'Choose a file to upload'}
+                {pickedAsset
+                  ? pickedAsset.fileName || 'File selected'
+                  : 'Choose a file to upload'}
               </Text>
             </TouchableOpacity>
 
@@ -378,7 +401,10 @@ export default function DocumentsScreen() {
                         onPress={() =>
                           setUploadForm(p => ({ ...p, employeeId: e._id }))
                         }
-                        style={[styles.pickRow, selected && styles.pickRowSelected]}
+                        style={[
+                          styles.pickRow,
+                          selected && styles.pickRowSelected,
+                        ]}
                       >
                         <Text
                           style={[
@@ -397,6 +423,7 @@ export default function DocumentsScreen() {
 
             <TextField
               label="Document Name"
+              icon={Tag}
               value={uploadForm.name}
               onChangeText={v => setUploadForm(p => ({ ...p, name: v }))}
               placeholder="e.g. Aadhaar Card"
@@ -404,6 +431,7 @@ export default function DocumentsScreen() {
             />
             <ChipSelect
               label="Document Type"
+              icon={Tag}
               options={DOC_TYPES}
               value={uploadForm.docType}
               onChange={v => setUploadForm(p => ({ ...p, docType: v }))}
@@ -414,7 +442,12 @@ export default function DocumentsScreen() {
               onPress={submitUpload}
               disabled={uploading}
             />
-            {uploading && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {uploading && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -430,7 +463,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -474,7 +512,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   pickFileBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -485,7 +528,12 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
   },
-  pickFileText: { fontFamily: FONT.medium, fontSize: 13, color: colors.black, flex: 1 },
+  pickFileText: {
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    color: colors.black,
+    flex: 1,
+  },
   pickList: {
     borderWidth: 2,
     borderColor: colors.black,

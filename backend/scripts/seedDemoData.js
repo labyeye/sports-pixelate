@@ -266,6 +266,7 @@ async function run() {
           name: `${s.last} Sr.`,
           phone: `+91 9${String(700000000 + i).slice(0, 9)}`,
           email: `${s.first.toLowerCase()}.parent@nestsports-demo.com`,
+          receivesWhatsapp: true,
         },
       ],
       enrollmentDate: daysAgo(180 - i * 10),

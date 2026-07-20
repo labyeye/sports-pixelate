@@ -124,31 +124,28 @@ attendanceBalanceSchema.statics.syncCurrentMonthLateAllowance = async function (
 
 // Applies an updated LeaveAllowance to the current month's already-created
 // balance docs' matching leaveUsed entry, same reasoning as above.
-attendanceBalanceSchema.statics.syncCurrentMonthLeaveAllowance = async function (
-  companyId,
-  leaveType,
-  allowance,
-) {
-  const month = currentMonthKey();
-  const balances = await this.find({ company: companyId, month });
-  await Promise.all(
-    balances.map((balance) => {
-      const entry = balance.leaveUsed.find((l) => l.leaveType === leaveType);
-      let daysAllowed = allowance.mode === "bulk" ? allowance.bulkDays : 0;
-      if (allowance.mode === "custom") {
-        const override = allowance.perEmployee?.find(
-          (p) => p.employee?.toString() === balance.employee.toString(),
-        );
-        daysAllowed = override ? override.days : 0;
-      }
-      if (entry) {
-        entry.daysAllowed = daysAllowed;
-      } else {
-        balance.leaveUsed.push({ leaveType, daysUsed: 0, daysAllowed });
-      }
-      return balance.save();
-    }),
-  );
-};
+attendanceBalanceSchema.statics.syncCurrentMonthLeaveAllowance =
+  async function (companyId, leaveType, allowance) {
+    const month = currentMonthKey();
+    const balances = await this.find({ company: companyId, month });
+    await Promise.all(
+      balances.map((balance) => {
+        const entry = balance.leaveUsed.find((l) => l.leaveType === leaveType);
+        let daysAllowed = allowance.mode === "bulk" ? allowance.bulkDays : 0;
+        if (allowance.mode === "custom") {
+          const override = allowance.perEmployee?.find(
+            (p) => p.employee?.toString() === balance.employee.toString(),
+          );
+          daysAllowed = override ? override.days : 0;
+        }
+        if (entry) {
+          entry.daysAllowed = daysAllowed;
+        } else {
+          balance.leaveUsed.push({ leaveType, daysUsed: 0, daysAllowed });
+        }
+        return balance.save();
+      }),
+    );
+  };
 
 module.exports = mongoose.model("AttendanceBalance", attendanceBalanceSchema);

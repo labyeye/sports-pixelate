@@ -13,6 +13,9 @@ const guardianSchema = new mongoose.Schema(
     phone: { type: String },
     email: { type: String },
     photo: { type: String },
+    // Only one guardian per student may have this set — the sole recipient
+    // of WhatsApp check-in/check-out notifications (see sanitizeGuardians).
+    receivesWhatsapp: { type: Boolean, default: false },
   },
   { _id: true },
 );
@@ -63,6 +66,11 @@ const studentSchema = new mongoose.Schema(
       },
       previousAcademy: { type: String, trim: true },
       yearsOfExperience: { type: Number },
+      // Highest competitive level the student has played at.
+      playingLevel: {
+        type: String,
+        enum: ["School", "District", "State", "National"],
+      },
     },
     faceDescriptor: { type: [Number], default: [] },
     biometricUserId: { type: String, default: "" },

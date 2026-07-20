@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Users, Plus, Trash2, Loader2, UserPlus, UserMinus } from "lucide-react";
+import {
+  Users,
+  Plus,
+  Trash2,
+  Loader2,
+  UserPlus,
+  UserMinus,
+} from "lucide-react";
 import { eventAPI, studentAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -30,10 +37,14 @@ function RegistrationPanel({ event, onChanged }: Props) {
   }, []);
 
   const registeredIds = new Set(
-    event.registrations.map((r) => (typeof r.student === "string" ? r.student : r.student._id)),
+    event.registrations.map((r) =>
+      typeof r.student === "string" ? r.student : r.student._id,
+    ),
   );
   const eligible =
-    event.activityCategory === "sports" ? children.filter((c) => c.sport === event.activity) : children;
+    event.activityCategory === "sports"
+      ? children.filter((c) => c.sport === event.activity)
+      : children;
 
   const toggle = async (studentId: string, isRegistered: boolean) => {
     setBusyId(studentId);
@@ -55,7 +66,8 @@ function RegistrationPanel({ event, onChanged }: Props) {
       <h3 className="font-bold text-sm mb-3">Register</h3>
       {eligible.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          None of your children are eligible ({event.activity}) to register for this event.
+          None of your children are eligible ({event.activity}) to register for
+          this event.
         </p>
       ) : (
         <div className="space-y-2">
@@ -63,7 +75,10 @@ function RegistrationPanel({ event, onChanged }: Props) {
             const isRegistered = registeredIds.has(c._id);
             const busy = busyId === c._id;
             return (
-              <div key={c._id} className="flex items-center justify-between border-2 border-black/10 px-3 py-2">
+              <div
+                key={c._id}
+                className="flex items-center justify-between border-2 border-black/10 px-3 py-2"
+              >
                 <span className="text-sm font-bold text-black">
                   {c.firstName} {c.lastName}
                 </span>
@@ -92,7 +107,9 @@ function RegistrationPanel({ event, onChanged }: Props) {
         </div>
       )}
       {!event.registrationOpen && (
-        <p className="text-xs text-muted-foreground mt-2">Registration is closed for this event.</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Registration is closed for this event.
+        </p>
       )}
     </div>
   );
@@ -133,16 +150,24 @@ function TeamsPanel({ event, onChanged }: Props) {
       </h3>
       <div className="flex flex-wrap gap-2 mb-3">
         {event.teams.map((t) => (
-          <span key={t._id} className="flex items-center gap-1.5 border-2 border-black px-2.5 py-1 text-xs font-bold">
+          <span
+            key={t._id}
+            className="flex items-center gap-1.5 border-2 border-black px-2.5 py-1 text-xs font-bold"
+          >
             {t.name}
             {!event.fixturesGenerated && (
-              <button onClick={() => removeTeam(t._id)} className="text-red-500 hover:text-red-700">
+              <button
+                onClick={() => removeTeam(t._id)}
+                className="text-red-500 hover:text-red-700"
+              >
                 <Trash2 className="w-3 h-3" />
               </button>
             )}
           </span>
         ))}
-        {event.teams.length === 0 && <p className="text-xs text-muted-foreground">No teams added yet</p>}
+        {event.teams.length === 0 && (
+          <p className="text-xs text-muted-foreground">No teams added yet</p>
+        )}
       </div>
       {!event.fixturesGenerated && (
         <div className="flex gap-2">
@@ -158,7 +183,12 @@ function TeamsPanel({ event, onChanged }: Props) {
             disabled={addingTeam || !newTeam.trim()}
             className="border-2 border-black bg-white px-3 py-2 text-sm font-bold flex items-center gap-1 disabled:opacity-50"
           >
-            {addingTeam ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add
+            {addingTeam ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}{" "}
+            Add
           </button>
         </div>
       )}
@@ -170,18 +200,28 @@ function ParticipantsList({ event }: { event: Event }) {
   return (
     <div className="border-2 border-black bg-white p-4">
       <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-        <Users className="w-4 h-4" /> Participants ({event.registrations.length})
+        <Users className="w-4 h-4" /> Participants ({event.registrations.length}
+        )
       </h3>
       {event.registrations.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No one has registered yet.</p>
+        <p className="text-xs text-muted-foreground">
+          No one has registered yet.
+        </p>
       ) : (
         <div className="space-y-2">
           {event.registrations.map((r) => {
             const s = typeof r.student === "string" ? null : r.student;
             return (
-              <div key={r._id} className="flex items-center justify-between border-2 border-black/10 px-3 py-2">
-                <span className="text-sm font-bold text-black">{s ? `${s.firstName} ${s.lastName}` : r.student}</span>
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">{r.status}</span>
+              <div
+                key={r._id}
+                className="flex items-center justify-between border-2 border-black/10 px-3 py-2"
+              >
+                <span className="text-sm font-bold text-black">
+                  {s ? `${s.firstName} ${s.lastName}` : r.student}
+                </span>
+                <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                  {r.status}
+                </span>
               </div>
             );
           })}
@@ -196,7 +236,8 @@ export function ParticipantsTeamsTab({ event, onChanged }: Props) {
   const isParent = user?.role === "parent";
   const isTeamEvent = event.participation?.type === "team";
 
-  if (isParent) return <RegistrationPanel event={event} onChanged={onChanged} />;
+  if (isParent)
+    return <RegistrationPanel event={event} onChanged={onChanged} />;
   if (isTeamEvent) return <TeamsPanel event={event} onChanged={onChanged} />;
   return <ParticipantsList event={event} />;
 }

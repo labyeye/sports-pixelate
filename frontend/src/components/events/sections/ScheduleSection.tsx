@@ -11,12 +11,28 @@ interface Props {
   onDatesChange: (patch: { startDate?: string; endDate?: string }) => void;
 }
 
-export function ScheduleSection({ value, onChange, startDate, endDate, onDatesChange }: Props) {
+export function ScheduleSection({
+  value,
+  onChange,
+  startDate,
+  endDate,
+  onDatesChange,
+}: Props) {
   return (
     <CollapsibleSection title="Schedule" icon={CalendarClock}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <DateTimePicker label="Start Date" type="date" value={startDate} onChange={(v) => onDatesChange({ startDate: v })} />
-        <DateTimePicker label="End Date" type="date" value={endDate} onChange={(v) => onDatesChange({ endDate: v })} />
+        <DateTimePicker
+          label="Start Date"
+          type="date"
+          value={startDate}
+          onChange={(v) => onDatesChange({ startDate: v })}
+        />
+        <DateTimePicker
+          label="End Date"
+          type="date"
+          value={endDate}
+          onChange={(v) => onDatesChange({ endDate: v })}
+        />
         <DateTimePicker
           label="Event Date"
           type="date"
@@ -35,8 +51,18 @@ export function ScheduleSection({ value, onChange, startDate, endDate, onDatesCh
           value={value.registrationClosesAt}
           onChange={(v) => onChange({ registrationClosesAt: v })}
         />
-        <DateTimePicker label="Start Time" type="time" value={value.startTime} onChange={(v) => onChange({ startTime: v })} />
-        <DateTimePicker label="End Time" type="time" value={value.endTime} onChange={(v) => onChange({ endTime: v })} />
+        <DateTimePicker
+          label="Start Time"
+          type="time"
+          value={value.startTime}
+          onChange={(v) => onChange({ startTime: v })}
+        />
+        <DateTimePicker
+          label="End Time"
+          type="time"
+          value={value.endTime}
+          onChange={(v) => onChange({ endTime: v })}
+        />
         <DateTimePicker
           label="Check-in Time"
           type="time"

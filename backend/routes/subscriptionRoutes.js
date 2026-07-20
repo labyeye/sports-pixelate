@@ -4,6 +4,7 @@ const {
   createOrder,
   verifyPayment,
   createQrRenewalRequest,
+  assignSubscription,
   submitInstallmentPayment,
   verifyQrPayment,
   rejectQrPayment,
@@ -29,6 +30,12 @@ router.post(
   protect,
   uploadPaymentScreenshot,
   createQrRenewalRequest,
+);
+router.post(
+  "/assign",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  assignSubscription,
 );
 router.post(
   "/:id/payments",

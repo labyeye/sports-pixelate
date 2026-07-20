@@ -19,6 +19,8 @@ import {
   CalendarClock,
   CheckCircle2,
   IndianRupee,
+  Calendar,
+  Clock,
 } from 'lucide-react-native';
 import { bookingAPI, facilityAPI, studentAPI } from '../api/client';
 import {
@@ -216,7 +218,11 @@ export default function BookingsScreen() {
             >
               <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
+            <TouchableOpacity
+              onPress={openAdd}
+              style={styles.addBtn}
+              hitSlop={8}
+            >
               <Plus size={14} color={colors.white} strokeWidth={2.5} />
               <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>
@@ -240,7 +246,8 @@ export default function BookingsScreen() {
             label="Total Revenue"
             value={`₹${bookings
               .reduce(
-                (s, b) => s + (b.paymentStatus === 'completed' ? b.fee || 0 : 0),
+                (s, b) =>
+                  s + (b.paymentStatus === 'completed' ? b.fee || 0 : 0),
                 0,
               )
               .toLocaleString('en-IN')}`}
@@ -249,7 +256,11 @@ export default function BookingsScreen() {
           />
         </View>
 
-        <FilterPills options={STATUS_OPTIONS} value={status} onChange={setStatus} />
+        <FilterPills
+          options={STATUS_OPTIONS}
+          value={status}
+          onChange={setStatus}
+        />
 
         <FlatList
           data={bookings}
@@ -328,7 +339,9 @@ export default function BookingsScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle title="Facility" />
             <ScrollView style={styles.pickList} nestedScrollEnabled>
               {facilities.length === 0 ? (
@@ -342,7 +355,10 @@ export default function BookingsScreen() {
                       onPress={() =>
                         setBookingForm(p => ({ ...p, facilityId: f._id }))
                       }
-                      style={[styles.pickRow, selected && styles.pickRowSelected]}
+                      style={[
+                        styles.pickRow,
+                        selected && styles.pickRowSelected,
+                      ]}
                     >
                       <Text
                         style={[
@@ -392,25 +408,33 @@ export default function BookingsScreen() {
               onChangeText={v => setBookingForm(p => ({ ...p, date: v }))}
               placeholder="YYYY-MM-DD"
               required
+              icon={Calendar}
             />
             <TextField
               label="Start Time"
               value={bookingForm.startTime}
               onChangeText={v => setBookingForm(p => ({ ...p, startTime: v }))}
               placeholder="09:00"
+              icon={Clock}
             />
             <TextField
               label="End Time"
               value={bookingForm.endTime}
               onChangeText={v => setBookingForm(p => ({ ...p, endTime: v }))}
               placeholder="10:00"
+              icon={Clock}
             />
             <Button
               title={creating ? 'Booking...' : 'Confirm Booking'}
               onPress={submitBooking}
               disabled={creating}
             />
-            {creating && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {creating && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -426,7 +450,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   subtitle: { color: colors.muted, marginTop: 2 },
   headerRow: {
     flexDirection: 'row',
@@ -471,7 +500,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   pickList: {
     borderWidth: 2,
     borderColor: colors.black,
@@ -497,7 +531,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  name: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   dateText: { color: colors.muted, fontSize: 12, marginTop: 4 },
   feeText: {
     fontWeight: '800',

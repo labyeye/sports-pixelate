@@ -1,4 +1,13 @@
-import { Dumbbell } from "lucide-react";
+import {
+  Dumbbell,
+  ListOrdered,
+  Users,
+  Clock,
+  UsersRound,
+  RefreshCw,
+  Scale,
+  AlertTriangle,
+} from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import type { SportFields } from "@/types/hrms";
 
@@ -9,18 +18,31 @@ interface Props {
   onFormatChange: (format: string) => void;
 }
 
-const inputClass = "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
-const labelClass = "block text-xs font-bold uppercase mb-1";
+const inputClass =
+  "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
+const labelClass = "flex items-center gap-1.5 text-xs font-bold uppercase mb-1";
 
 // format stays top-level on the Event, not duplicated into sportFields —
 // this section reads/writes event.format directly to avoid drift.
-export function SportFieldsSection({ value, onChange, format, onFormatChange }: Props) {
+export function SportFieldsSection({
+  value,
+  onChange,
+  format,
+  onFormatChange,
+}: Props) {
   return (
     <CollapsibleSection title="Sport Details" icon={Dumbbell}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Format</label>
-          <select className={inputClass} value={format} onChange={(e) => onFormatChange(e.target.value)}>
+          <label className={labelClass}>
+            <ListOrdered className="w-3.5 h-3.5 text-[#024BAB]" />
+            Format
+          </label>
+          <select
+            className={inputClass}
+            value={format}
+            onChange={(e) => onFormatChange(e.target.value)}
+          >
             <option value="knockout">Knockout</option>
             <option value="round_robin">Round Robin</option>
             <option value="single_elimination">Single Elimination</option>
@@ -37,55 +59,107 @@ export function SportFieldsSection({ value, onChange, format, onFormatChange }: 
           )}
         </div>
         <div>
-          <label className={labelClass}>Max Teams</label>
+          <label className={labelClass}>
+            <Users className="w-3.5 h-3.5 text-[#024BAB]" />
+            Max Teams
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.maxTeams ?? ""}
-            onChange={(e) => onChange({ maxTeams: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                maxTeams: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
           />
         </div>
         <div>
-          <label className={labelClass}>Match Duration (min)</label>
+          <label className={labelClass}>
+            <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
+            Match Duration (min)
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.matchDurationMinutes ?? ""}
-            onChange={(e) => onChange({ matchDurationMinutes: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                matchDurationMinutes: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <div>
-          <label className={labelClass}>Player Limit</label>
+          <label className={labelClass}>
+            <UsersRound className="w-3.5 h-3.5 text-[#024BAB]" />
+            Player Limit
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.playerLimit ?? ""}
-            onChange={(e) => onChange({ playerLimit: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                playerLimit: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <div>
-          <label className={labelClass}>Substitutes Allowed</label>
+          <label className={labelClass}>
+            <RefreshCw className="w-3.5 h-3.5 text-[#024BAB]" />
+            Substitutes Allowed
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.substitutesAllowed ?? ""}
-            onChange={(e) => onChange({ substitutesAllowed: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                substitutesAllowed: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <div className="md:col-span-2">
-          <label className={labelClass}>Tie Break Rules</label>
-          <input className={inputClass} value={value.tieBreakRules || ""} onChange={(e) => onChange({ tieBreakRules: e.target.value })} />
+          <label className={labelClass}>
+            <Scale className="w-3.5 h-3.5 text-[#024BAB]" />
+            Tie Break Rules
+          </label>
+          <input
+            className={inputClass}
+            value={value.tieBreakRules || ""}
+            onChange={(e) => onChange({ tieBreakRules: e.target.value })}
+          />
         </div>
         <div className="md:col-span-2">
-          <label className={labelClass}>Penalty Rules</label>
-          <input className={inputClass} value={value.penaltyRules || ""} onChange={(e) => onChange({ penaltyRules: e.target.value })} />
+          <label className={labelClass}>
+            <AlertTriangle className="w-3.5 h-3.5 text-[#024BAB]" />
+            Penalty Rules
+          </label>
+          <input
+            className={inputClass}
+            value={value.penaltyRules || ""}
+            onChange={(e) => onChange({ penaltyRules: e.target.value })}
+          />
         </div>
         <label className="flex items-center gap-2 text-sm font-bold">
-          <input type="checkbox" checked={!!value.groupsEnabled} onChange={(e) => onChange({ groupsEnabled: e.target.checked })} />
+          <input
+            type="checkbox"
+            checked={!!value.groupsEnabled}
+            onChange={(e) => onChange({ groupsEnabled: e.target.checked })}
+          />
           Groups Enabled
         </label>
         <label className="flex items-center gap-2 text-sm font-bold">
@@ -105,7 +179,11 @@ export function SportFieldsSection({ value, onChange, format, onFormatChange }: 
           Seeding Enabled
         </label>
         <label className="flex items-center gap-2 text-sm font-bold">
-          <input type="checkbox" checked={!!value.randomDraw} onChange={(e) => onChange({ randomDraw: e.target.checked })} />
+          <input
+            type="checkbox"
+            checked={!!value.randomDraw}
+            onChange={(e) => onChange({ randomDraw: e.target.checked })}
+          />
           Random Draw
         </label>
       </div>

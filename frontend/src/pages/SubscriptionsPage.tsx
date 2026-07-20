@@ -11,7 +11,10 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import {
+  ImportExportModal,
+  type ImportHeader,
+} from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Wallet,
@@ -89,7 +92,12 @@ interface PaymentEntry {
 
 interface Subscription {
   _id: string;
-  student: { _id: string; firstName: string; lastName: string; studentId?: string };
+  student: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    studentId?: string;
+  };
   plan: { _id: string; name: string };
   planName: string;
   billingCycle: string;
@@ -110,7 +118,10 @@ const STATUS_META: Record<string, { bg: string; text: string }> = {
   pending_renewal: { bg: "bg-yellow-50", text: "text-yellow-700" },
 };
 
-const PAYMENT_STATUS_META: Record<string, { bg: string; text: string; label: string }> = {
+const PAYMENT_STATUS_META: Record<
+  string,
+  { bg: string; text: string; label: string }
+> = {
   completed: { bg: "bg-green-50", text: "text-green-700", label: "Completed" },
   partial: { bg: "bg-purple-50", text: "text-purple-700", label: "Partial" },
   pending: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending" },
@@ -167,7 +178,9 @@ export default function SubscriptionsPage() {
 
   // At most one payment entry is ever pending at a time — the backend
   // rejects a new submission while one is awaiting review.
-  const reviewPayment = reviewSub?.payments?.find((p) => p.status === "pending");
+  const reviewPayment = reviewSub?.payments?.find(
+    (p) => p.status === "pending",
+  );
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -184,7 +197,10 @@ export default function SubscriptionsPage() {
   // scalar fields) — only renewalDate/amount get pushed server-side.
   const subParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (filterStatus) params.status = filterStatus;
       if (filterCycle) params.billingCycle = filterCycle;
       if (sortKey === "amount" || sortKey === "renewalDate") {
@@ -469,7 +485,9 @@ export default function SubscriptionsPage() {
     arr.sort((a, b) => {
       const cmp =
         sortKey === "student"
-          ? (a.student?.firstName || "").localeCompare(b.student?.firstName || "")
+          ? (a.student?.firstName || "").localeCompare(
+              b.student?.firstName || "",
+            )
           : (a.planName || "").localeCompare(b.planName || "");
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -757,21 +775,31 @@ export default function SubscriptionsPage() {
             </div>
             <div className="space-y-2 mb-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground font-medium">Student</span>
+                <span className="text-muted-foreground font-medium">
+                  Student
+                </span>
                 <span className="font-bold text-black">
                   {reviewSub.student?.firstName} {reviewSub.student?.lastName}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground font-medium">Plan</span>
-                <span className="font-bold text-black">{reviewSub.planName}</span>
+                <span className="font-bold text-black">
+                  {reviewSub.planName}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground font-medium">Amount</span>
-                <span className="font-bold text-black">₹{reviewPayment.amount}</span>
+                <span className="text-muted-foreground font-medium">
+                  Amount
+                </span>
+                <span className="font-bold text-black">
+                  ₹{reviewPayment.amount}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground font-medium">UTR Number</span>
+                <span className="text-muted-foreground font-medium">
+                  UTR Number
+                </span>
                 <span className="font-bold text-black">
                   {reviewPayment.utrNumber || "—"}
                 </span>
@@ -1011,7 +1039,9 @@ export default function SubscriptionsPage() {
                                 className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
                               >
                                 <QrCode className="w-3.5 h-3.5" />
-                                {s.amountPaid > 0 ? "Pay Remaining" : "Pay via QR"}
+                                {s.amountPaid > 0
+                                  ? "Pay Remaining"
+                                  : "Pay via QR"}
                               </button>
                             )}
                           {s.payments
@@ -1019,11 +1049,14 @@ export default function SubscriptionsPage() {
                             .map((p) => (
                               <button
                                 key={p._id}
-                                onClick={() => handleDownloadReceipt(s._id, p._id)}
+                                onClick={() =>
+                                  handleDownloadReceipt(s._id, p._id)
+                                }
                                 disabled={downloadingId === p._id}
                                 className="flex items-center gap-1 text-xs font-bold text-green-700 hover:underline disabled:opacity-60"
                               >
-                                <FileText className="w-3.5 h-3.5" /> Receipt (₹{p.amount})
+                                <FileText className="w-3.5 h-3.5" /> Receipt (₹
+                                {p.amount})
                               </button>
                             ))}
                           {s.status === "active" && (
@@ -1077,8 +1110,8 @@ export default function SubscriptionsPage() {
             </p>
             <p>
               • <strong>Billing Cycle</strong> must be <code>monthly</code> or{" "}
-              <code>yearly</code>. This creates the subscription as already
-              paid — for backfilling historical records only.
+              <code>yearly</code>. This creates the subscription as already paid
+              — for backfilling historical records only.
             </p>
             <p>
               • Maximum <strong>200 subscriptions</strong> per import.

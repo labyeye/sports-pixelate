@@ -4,7 +4,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { sportsPlanAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import {
+  ImportExportModal,
+  type ImportHeader,
+} from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Gift,
@@ -21,16 +24,72 @@ import {
   IndianRupee,
   Download,
   FileSpreadsheet,
+  Trophy,
+  Calendar,
+  Repeat,
+  Clock,
+  FileText,
 } from "lucide-react";
+
+type ScheduleType = "unlimited" | "sessions_per_week" | "custom_days";
+type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
 interface Plan {
   _id: string;
   name: string;
   sport: string;
   sessionsPerWeek: number;
+  scheduleType?: ScheduleType;
+  scheduleDays?: Weekday[];
+  startTime?: string;
+  endTime?: string;
   monthlyPrice: number;
   yearlyPrice: number;
   description?: string;
+}
+
+const WEEKDAYS: { key: Weekday; label: string }[] = [
+  { key: "mon", label: "Mon" },
+  { key: "tue", label: "Tue" },
+  { key: "wed", label: "Wed" },
+  { key: "thu", label: "Thu" },
+  { key: "fri", label: "Fri" },
+  { key: "sat", label: "Sat" },
+  { key: "sun", label: "Sun" },
+];
+
+const SCHEDULE_PRESETS: { label: string; days: Weekday[] }[] = [
+  { label: "Daily", days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+  { label: "Weekdays", days: ["mon", "tue", "wed", "thu", "fri"] },
+  { label: "Weekends", days: ["sat", "sun"] },
+  { label: "Alternate (M/W/F)", days: ["mon", "wed", "fri"] },
+  { label: "Alternate (T/T/S)", days: ["tue", "thu", "sat"] },
+];
+
+function scheduleLabel(p: Plan): string {
+  if (p.scheduleType === "custom_days") {
+    const days = p.scheduleDays || [];
+    if (!days.length) return "Custom days";
+    return WEEKDAYS.filter((w) => days.includes(w.key))
+      .map((w) => w.label)
+      .join("/");
+  }
+  return p.sessionsPerWeek === 0 ? "Unlimited" : `${p.sessionsPerWeek}x/week`;
+}
+
+function formatTime12(hhmm?: string): string {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function timingLabel(p: Plan): string {
+  if (!p.startTime) return "—";
+  return p.endTime
+    ? `${formatTime12(p.startTime)}–${formatTime12(p.endTime)}`
+    : formatTime12(p.startTime);
 }
 
 const PLAN_IMPORT_HEADERS: ImportHeader[] = [
@@ -55,6 +114,12 @@ const PLAN_IMPORT_HEADERS: ImportHeader[] = [
     example: "3",
   },
   {
+    key: "scheduleDays",
+    label: "Schedule Days (comma-separated, e.g. mon,wed,fri)",
+    required: false,
+    example: "mon,wed,fri",
+  },
+  {
     key: "description",
     label: "Description",
     required: false,
@@ -75,6 +140,10 @@ export default function PlansPage() {
     name: "",
     sport: "",
     sessionsPerWeek: "0",
+    scheduleType: "sessions_per_week" as ScheduleType,
+    scheduleDays: [] as Weekday[],
+    startTime: "",
+    endTime: "",
     monthlyPrice: "",
     yearlyPrice: "",
     description: "",
@@ -92,7 +161,10 @@ export default function PlansPage() {
 
   const planParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (search) params.search = search;
       if (filterSport) params.sport = filterSport;
       params.sortBy = sortKey;
@@ -141,6 +213,10 @@ export default function PlansPage() {
       name: "",
       sport: "",
       sessionsPerWeek: "0",
+      scheduleType: "sessions_per_week",
+      scheduleDays: [],
+      startTime: "",
+      endTime: "",
       monthlyPrice: "",
       yearlyPrice: "",
       description: "",
@@ -151,15 +227,18 @@ export default function PlansPage() {
 
   const handleSave = async () => {
     if (saving) return;
-    if (
-      !form.name.trim() ||
-      !form.sport.trim() ||
-      !form.monthlyPrice ||
-      !form.yearlyPrice
-    ) {
+    if (!form.name.trim() || !form.sport.trim() || !form.monthlyPrice) {
       toast({
         title: "Missing fields",
-        description: "Name, sport and both prices are required",
+        description: "Name, sport and monthly price are required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (form.scheduleType === "custom_days" && form.scheduleDays.length === 0) {
+      toast({
+        title: "Missing schedule",
+        description: "Select at least one day for a custom-day plan",
         variant: "destructive",
       });
       return;
@@ -169,9 +248,13 @@ export default function PlansPage() {
       const payload = {
         name: form.name,
         sport: form.sport,
+        scheduleType: form.scheduleType,
+        scheduleDays: form.scheduleDays,
+        startTime: form.startTime || undefined,
+        endTime: form.endTime || undefined,
         sessionsPerWeek: Number(form.sessionsPerWeek) || 0,
         monthlyPrice: Number(form.monthlyPrice),
-        yearlyPrice: Number(form.yearlyPrice),
+        yearlyPrice: form.yearlyPrice ? Number(form.yearlyPrice) : undefined,
         description: form.description,
       };
       if (editingId) {
@@ -208,6 +291,10 @@ export default function PlansPage() {
       name: p.name,
       sport: p.sport,
       sessionsPerWeek: String(p.sessionsPerWeek),
+      scheduleType: p.scheduleType || "sessions_per_week",
+      scheduleDays: p.scheduleDays || [],
+      startTime: p.startTime || "",
+      endTime: p.endTime || "",
       monthlyPrice: String(p.monthlyPrice),
       yearlyPrice: String(p.yearlyPrice),
       description: p.description || "",
@@ -221,7 +308,9 @@ export default function PlansPage() {
       .getAll({ limit: "200" })
       .then((r) =>
         setSportOptions(
-          Array.from(new Set((r.data as Plan[]).map((p) => p.sport).filter(Boolean))).sort(),
+          Array.from(
+            new Set((r.data as Plan[]).map((p) => p.sport).filter(Boolean)),
+          ).sort(),
         ),
       )
       .catch(() => {});
@@ -243,7 +332,10 @@ export default function PlansPage() {
           <button
             onClick={() =>
               exportRowsToExcel(
-                PLAN_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                PLAN_IMPORT_HEADERS.map((h) => ({
+                  key: h.key,
+                  label: h.label,
+                })),
                 displayed,
                 "coaching_plans_export.xlsx",
                 "Plans",
@@ -377,7 +469,8 @@ export default function PlansPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Gift className="w-3.5 h-3.5 text-[#024BAB]" />
                 Plan Name *
               </label>
               <input
@@ -390,7 +483,8 @@ export default function PlansPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
                 Sport *
               </label>
               <input
@@ -401,22 +495,141 @@ export default function PlansPage() {
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Repeat className="w-3.5 h-3.5 text-[#024BAB]" />
+                Schedule Type
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { key: "unlimited", label: "Unlimited" },
+                    { key: "sessions_per_week", label: "Sessions / Week" },
+                    { key: "custom_days", label: "Custom Days" },
+                  ] as { key: ScheduleType; label: string }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() =>
+                      setForm((p) => ({ ...p, scheduleType: opt.key }))
+                    }
+                    className={cn(
+                      "border-2 border-black px-3 py-2 text-sm font-bold transition-colors",
+                      form.scheduleType === opt.key
+                        ? "bg-[#024BAB] text-white"
+                        : "bg-white text-black hover:bg-[#024BAB]/5",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {form.scheduleType === "sessions_per_week" && (
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                  <Repeat className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Sessions / Week
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.sessionsPerWeek}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, sessionsPerWeek: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+              </div>
+            )}
+
+            {form.scheduleType === "custom_days" && (
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Attends On (e.g. alternate-day clubs pick Mon/Wed/Fri)
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {SCHEDULE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() =>
+                        setForm((p) => ({ ...p, scheduleDays: preset.days }))
+                      }
+                      className="border border-black/30 px-2 py-1 text-xs font-semibold hover:border-black hover:bg-[#024BAB]/5 transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {WEEKDAYS.map((d) => {
+                    const active = form.scheduleDays.includes(d.key);
+                    return (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() =>
+                          setForm((p) => ({
+                            ...p,
+                            scheduleDays: active
+                              ? p.scheduleDays.filter((x) => x !== d.key)
+                              : [...p.scheduleDays, d.key],
+                          }))
+                        }
+                        className={cn(
+                          "w-12 h-10 border-2 border-black text-xs font-bold transition-colors",
+                          active
+                            ? "bg-[#00C48C] text-white"
+                            : "bg-white text-black hover:bg-[#00C48C]/10",
+                        )}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.scheduleDays.length === 0 && (
+                  <p className="text-xs text-red-600 mt-1 font-semibold">
+                    Select at least one day
+                  </p>
+                )}
+              </div>
+            )}
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Sessions / Week (0 = unlimited)
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
+                Start Time
               </label>
               <input
-                type="number"
-                value={form.sessionsPerWeek}
+                type="time"
+                value={form.startTime}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, sessionsPerWeek: e.target.value }))
+                  setForm((p) => ({ ...p, startTime: e.target.value }))
                 }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
-            <div />
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
+                End Time
+              </label>
+              <input
+                type="time"
+                value={form.endTime}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, endTime: e.target.value }))
+                }
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                 Monthly Price (₹) *
               </label>
               <input
@@ -429,8 +642,9 @@ export default function PlansPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
-                Yearly Price (₹) *
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
+                Yearly Price (₹)
               </label>
               <input
                 type="number"
@@ -438,11 +652,17 @@ export default function PlansPage() {
                 onChange={(e) =>
                   setForm((p) => ({ ...p, yearlyPrice: e.target.value }))
                 }
+                placeholder={
+                  form.monthlyPrice
+                    ? `Auto: ₹${Number(form.monthlyPrice) * 12}`
+                    : "Leave blank for 12x monthly"
+                }
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
                 Description
               </label>
               <input
@@ -522,11 +742,8 @@ export default function PlansPage() {
                   </span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  ₹{p.yearlyPrice}/year ·{" "}
-                  {p.sessionsPerWeek === 0
-                    ? "Unlimited"
-                    : `${p.sessionsPerWeek}x`}
-                  /week
+                  ₹{p.yearlyPrice}/year · {scheduleLabel(p)}
+                  {p.startTime ? ` · ${timingLabel(p)}` : ""}
                 </p>
                 {p.description && (
                   <p className="text-xs text-muted-foreground mt-1">
@@ -546,6 +763,7 @@ export default function PlansPage() {
                     "Name",
                     "Sport",
                     "Sessions/Week",
+                    "Timing",
                     "Monthly",
                     "Yearly",
                     "Description",
@@ -571,10 +789,9 @@ export default function PlansPage() {
                   >
                     <td className="px-4 py-3 font-bold text-black">{p.name}</td>
                     <td className="px-4 py-3 text-black">{p.sport}</td>
-                    <td className="px-4 py-3 text-black">
-                      {p.sessionsPerWeek === 0
-                        ? "Unlimited"
-                        : `${p.sessionsPerWeek}x`}
+                    <td className="px-4 py-3 text-black">{scheduleLabel(p)}</td>
+                    <td className="px-4 py-3 text-black whitespace-nowrap">
+                      {timingLabel(p)}
                     </td>
                     <td className="px-4 py-3 font-bold text-[#024BAB]">
                       ₹{p.monthlyPrice}

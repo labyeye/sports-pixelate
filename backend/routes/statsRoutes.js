@@ -164,7 +164,7 @@ router.get("/", statsGuard, async (req, res) => {
       .populate("subscription")
       .sort({ createdAt: -1 })
       .select(
-        "name email phone industry city state status lastLogin createdAt subscription",
+        "name email phone city state status lastLogin createdAt subscription",
       )
       .lean();
 
@@ -191,7 +191,6 @@ router.get("/", statsGuard, async (req, res) => {
         name: c.name,
         email: c.email,
         phone: c.phone,
-        industry: c.industry || null,
         city: c.city || null,
         state: c.state || null,
         status: c.status,

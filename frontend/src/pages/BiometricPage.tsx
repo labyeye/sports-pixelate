@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { biometricAPI, employeeAPI, studentAPI, PersonType } from "@/services/api";
+import {
+  biometricAPI,
+  employeeAPI,
+  studentAPI,
+  PersonType,
+} from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FaceEnrollModal } from "@/components/biometric/FaceEnrollModal";
@@ -255,9 +260,7 @@ export default function BiometricPage() {
   const handleSaveLocation = async () => {
     if (!locForm.name.trim() || locSaving) return;
     const ok = window.confirm(
-      editingLoc
-        ? "Save changes to this location?"
-        : "Create this location?",
+      editingLoc ? "Save changes to this location?" : "Create this location?",
     );
     if (!ok) return;
     setLocSaving(true);
@@ -382,7 +385,9 @@ export default function BiometricPage() {
   };
 
   const handleDeleteDevice = async (id: string) => {
-    const ok = window.confirm("Delete this device? This action cannot be undone.");
+    const ok = window.confirm(
+      "Delete this device? This action cannot be undone.",
+    );
     if (!ok) return;
     try {
       await biometricAPI.deleteDevice(id);
@@ -477,7 +482,9 @@ export default function BiometricPage() {
 
   useEffect(() => {
     if (admsDevice) {
-      setAdmsSerial(admsDevice.serialNumber || admsDevice.deviceMeta?.mac || "");
+      setAdmsSerial(
+        admsDevice.serialNumber || admsDevice.deviceMeta?.mac || "",
+      );
       fetchCommands(admsDevice._id);
     }
   }, [admsDevice, fetchCommands]);
@@ -610,7 +617,8 @@ export default function BiometricPage() {
       );
       setPeople((prev) =>
         prev.map((p) =>
-          p._id === rfidModalPerson._id && p.personType === rfidModalPerson.personType
+          p._id === rfidModalPerson._id &&
+          p.personType === rfidModalPerson.personType
             ? { ...p, rfidCard: card }
             : p,
         ),
@@ -1273,29 +1281,31 @@ export default function BiometricPage() {
                                       Type *
                                     </label>
                                     <div className="flex border-2 border-black">
-                                      {(["employee", "student"] as PersonType[]).map(
-                                        (t) => (
-                                          <button
-                                            key={t}
-                                            type="button"
-                                            onClick={() =>
-                                              setNfcForm((p) => ({
-                                                ...p,
-                                                personType: t,
-                                                personId: "",
-                                              }))
-                                            }
-                                            className={cn(
-                                              "flex-1 py-2 text-xs font-bold uppercase",
-                                              nfcForm.personType === t
-                                                ? "bg-[#024BAB] text-white"
-                                                : "bg-white text-black hover:bg-gray-50",
-                                            )}
-                                          >
-                                            {t === "employee" ? "Staff" : "Student"}
-                                          </button>
-                                        ),
-                                      )}
+                                      {(
+                                        ["employee", "student"] as PersonType[]
+                                      ).map((t) => (
+                                        <button
+                                          key={t}
+                                          type="button"
+                                          onClick={() =>
+                                            setNfcForm((p) => ({
+                                              ...p,
+                                              personType: t,
+                                              personId: "",
+                                            }))
+                                          }
+                                          className={cn(
+                                            "flex-1 py-2 text-xs font-bold uppercase",
+                                            nfcForm.personType === t
+                                              ? "bg-[#024BAB] text-white"
+                                              : "bg-white text-black hover:bg-gray-50",
+                                          )}
+                                        >
+                                          {t === "employee"
+                                            ? "Staff"
+                                            : "Student"}
+                                        </button>
+                                      ))}
                                     </div>
                                   </div>
                                   <div>
@@ -1322,7 +1332,8 @@ export default function BiometricPage() {
                                         )
                                         .map((p) => (
                                           <option key={p._id} value={p._id}>
-                                            {p.firstName} {p.lastName} ({p.code})
+                                            {p.firstName} {p.lastName} ({p.code}
+                                            )
                                           </option>
                                         ))}
                                     </select>
@@ -1897,7 +1908,9 @@ export default function BiometricPage() {
                                   <div className="flex items-center gap-1.5 justify-end flex-wrap">
                                     {/* Face enroll via PC webcam */}
                                     <button
-                                      onClick={() => setFaceEnrollPerson(person)}
+                                      onClick={() =>
+                                        setFaceEnrollPerson(person)
+                                      }
                                       title="Enroll face via PC webcam"
                                       className={cn(
                                         " px-2 py-1.5 text-[10px] font-bold flex items-center gap-1 border-2",
@@ -1915,7 +1928,9 @@ export default function BiometricPage() {
                                     {/* Fingerprint enroll trigger */}
                                     {person.biometricUserId && admsDevice && (
                                       <button
-                                        onClick={() => setFpEnrollPerson(person)}
+                                        onClick={() =>
+                                          setFpEnrollPerson(person)
+                                        }
                                         title="Trigger fingerprint enrollment on device"
                                         className=" px-2 py-1.5 text-[10px] font-bold flex items-center gap-1 bg-white border-2 border-black hover:bg-gray-50"
                                       >

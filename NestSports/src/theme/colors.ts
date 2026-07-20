@@ -19,7 +19,7 @@ export const colors = {
   lime: '#A3E635',
   black: '#0A0A0A',
   white: '#FFFFFF',
-  background: '#F0F6FF',
+  background: '#FFFFFF',
   muted: '#6B7280',
   border: '#0A0A0A',
 };

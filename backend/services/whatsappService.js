@@ -607,6 +607,252 @@ async function sendSalaryPaid(
   }
 }
 
+// ─── Subscription Payment Receipts ─────────────────────────────────────────────
+
+/**
+ * ════════════════════════════════════════════════════════════════
+ *  META TEMPLATE — nestsports_payment_verified
+ *  Category : UTILITY   |  Language : English (en)
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  HEADER  → Type: DOCUMENT  (PDF receipt attached at send time)
+ *
+ *  BODY:
+ *    Hi {{1}}, payment for {{2}}'s *{{3}}* plan has been verified! ✅
+ *
+ *    💰 Amount Paid  : {{4}}
+ *    💳 Mode         : {{5}}
+ *    🗓 Paid On      : {{6}}
+ *    📊 Balance Due  : {{7}}
+ *
+ *  FOOTER:
+ *    NestSports — Pixelate Nest
+ *
+ * ════════════════════════════════════════════════════════════════
+ *  VARIABLE MAP (7 body params)
+ *    {{1}} guardianName   {{2}} studentName   {{3}} planName
+ *    {{4}} amount         {{5}} paymentMode   {{6}} paidOn (DD/MM/YYYY)
+ *    {{7}} balanceDue
+ * ════════════════════════════════════════════════════════════════
+ */
+async function sendPaymentVerified(
+  phone,
+  { guardianName, studentName, planName, amount, paymentMode, paidOn, balanceDue },
+  companyId,
+  pdfBuffer = null,
+) {
+  const fmtINR = (n) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(n || 0);
+  try {
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    if (!s) return;
+
+    const extraComponents = [];
+    if (pdfBuffer) {
+      const mediaId = await uploadMediaToMeta(
+        Buffer.from(pdfBuffer),
+        `receipt_${studentName.replace(/\s/g, "_")}.pdf`,
+      );
+      if (mediaId) {
+        extraComponents.push({
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: {
+                id: mediaId,
+                filename: `Receipt_${studentName.replace(/\s/g, "_")}.pdf`,
+              },
+            },
+          ],
+        });
+      }
+    }
+
+    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR" };
+    const modeLabel = MODE_LABELS[paymentMode] || "UPI / QR";
+    const toISTDateStr = (d) => {
+      const ist = new Date(new Date(d).getTime() + 5.5 * 60 * 60 * 1000);
+      return `${String(ist.getUTCDate()).padStart(2, "0")}/${String(ist.getUTCMonth() + 1).padStart(2, "0")}/${ist.getUTCFullYear()}`;
+    };
+    const paidOnStr = paidOn ? toISTDateStr(paidOn) : toISTDateStr(new Date());
+
+    await sendTemplate(
+      phone,
+      "nestsports_payment_verified",
+      [
+        guardianName || "there",
+        studentName,
+        planName,
+        fmtINR(amount),
+        modeLabel,
+        paidOnStr,
+        fmtINR(balanceDue),
+      ],
+      s.whatsappLang || "en",
+      extraComponents,
+    );
+    console.log(`[WA-DEBUG] ✅ Payment verified notification sent to ${phone}`);
+  } catch (err) {
+    console.error("[WhatsApp] sendPaymentVerified:", err.message);
+  }
+}
+
+/**
+ * ════════════════════════════════════════════════════════════════
+ *  META TEMPLATE — nestsports_payment_verified_admin
+ *  Category : UTILITY   |  Language : English (en)
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  HEADER  → Type: DOCUMENT  (same PDF receipt attached at send time)
+ *
+ *  BODY:
+ *    Payment Verified ✅
+ *    Student : {{1}} ({{2}})
+ *    Plan    : {{3}}
+ *    Amount  : {{4}}
+ *    Mode    : {{5}}
+ *    Verified By : {{6}}
+ *    Balance Due : {{7}}
+ *
+ *  FOOTER:
+ *    NestSports — Pixelate Nest
+ *
+ * ════════════════════════════════════════════════════════════════
+ *  VARIABLE MAP (7 body params)
+ *    {{1}} studentName   {{2}} studentId    {{3}} planName
+ *    {{4}} amount        {{5}} paymentMode  {{6}} verifiedByName
+ *    {{7}} balanceDue
+ * ════════════════════════════════════════════════════════════════
+ */
+async function sendPaymentVerifiedAdmin(
+  phone,
+  {
+    studentName,
+    studentId,
+    planName,
+    amount,
+    paymentMode,
+    verifiedByName,
+    balanceDue,
+  },
+  companyId,
+  pdfBuffer = null,
+) {
+  const fmtINR = (n) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(n || 0);
+  try {
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    if (!s) return;
+
+    const extraComponents = [];
+    if (pdfBuffer) {
+      const mediaId = await uploadMediaToMeta(
+        Buffer.from(pdfBuffer),
+        `receipt_${studentName.replace(/\s/g, "_")}.pdf`,
+      );
+      if (mediaId) {
+        extraComponents.push({
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: {
+                id: mediaId,
+                filename: `Receipt_${studentName.replace(/\s/g, "_")}.pdf`,
+              },
+            },
+          ],
+        });
+      }
+    }
+
+    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR" };
+    const modeLabel = MODE_LABELS[paymentMode] || "UPI / QR";
+
+    await sendTemplate(
+      phone,
+      "nestsports_payment_verified_admin",
+      [
+        studentName,
+        studentId || "—",
+        planName,
+        fmtINR(amount),
+        modeLabel,
+        verifiedByName || "System",
+        fmtINR(balanceDue),
+      ],
+      s.whatsappLang || "en",
+      extraComponents,
+    );
+    console.log(
+      `[WA-DEBUG] ✅ Payment verified (admin copy) sent to ${phone}`,
+    );
+  } catch (err) {
+    console.error("[WhatsApp] sendPaymentVerifiedAdmin:", err.message);
+  }
+}
+
+/**
+ * ════════════════════════════════════════════════════════════════
+ *  META TEMPLATE — nestsports_payment_rejected
+ *  Category : UTILITY   |  Language : English (en)
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  BODY:
+ *    Hi {{1}}, your payment of {{2}} for {{3}}'s *{{4}}* plan could not
+ *    be verified. Reason: {{5}}. Please resubmit with the correct UTR/
+ *    transaction details.
+ *
+ *  FOOTER:
+ *    NestSports — Pixelate Nest
+ *
+ * ════════════════════════════════════════════════════════════════
+ *  VARIABLE MAP (5 body params)
+ *    {{1}} guardianName  {{2}} amount  {{3}} studentName
+ *    {{4}} planName      {{5}} reason
+ * ════════════════════════════════════════════════════════════════
+ */
+async function sendPaymentRejected(
+  phone,
+  { guardianName, amount, studentName, planName, reason },
+  companyId,
+) {
+  const fmtINR = (n) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(n || 0);
+  try {
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    if (!s) return;
+    await sendTemplate(
+      phone,
+      "nestsports_payment_rejected",
+      [
+        guardianName || "there",
+        fmtINR(amount),
+        studentName,
+        planName,
+        reason || "Details could not be confirmed",
+      ],
+      s.whatsappLang || "en",
+    );
+    console.log(`[WA-DEBUG] ✅ Payment rejected notification sent to ${phone}`);
+  } catch (err) {
+    console.error("[WhatsApp] sendPaymentRejected:", err.message);
+  }
+}
+
 // ─── Attendance Status Notification (single template for all statuses) ────────
 
 const ATTENDANCE_STATUS_LABELS = {
@@ -885,6 +1131,9 @@ module.exports = {
   sendAttendanceStatus,
   sendSalaryPaid,
   sendSubscriptionWA,
+  sendPaymentVerified,
+  sendPaymentVerifiedAdmin,
+  sendPaymentRejected,
   sendLoanSubmitted,
   sendLoanApproved,
   sendLoanRejected,

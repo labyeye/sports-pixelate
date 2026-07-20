@@ -257,9 +257,9 @@ const bulkImportLoans = asyncHandler(async (req, res) => {
     throw new Error("Maximum 200 loans per import");
   }
 
-  const allEmployees = await Employee.find({ company: req.user.company }).select(
-    "employeeId firstName lastName",
-  );
+  const allEmployees = await Employee.find({
+    company: req.user.company,
+  }).select("employeeId firstName lastName");
 
   const results = [];
 

@@ -3,17 +3,25 @@ const EventAnnouncement = require("../models/EventAnnouncement");
 const Event = require("../models/Event");
 
 const listAnnouncements = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
   }
-  const announcements = await EventAnnouncement.find({ event: event._id }).sort({ createdAt: -1 });
+  const announcements = await EventAnnouncement.find({ event: event._id }).sort(
+    { createdAt: -1 },
+  );
   res.json({ success: true, data: announcements });
 });
 
 const createAnnouncement = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");

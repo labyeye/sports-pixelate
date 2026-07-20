@@ -26,7 +26,9 @@ async function migrate() {
   // longer declared on the Event schema (e.g. the old `sport` string) are
   // still readable off the stored document during this one-off backfill.
   const raw = Event.collection;
-  const legacyDocs = await raw.find({ eventType: { $exists: false } }).toArray();
+  const legacyDocs = await raw
+    .find({ eventType: { $exists: false } })
+    .toArray();
   console.log(`Found ${legacyDocs.length} documents to migrate.`);
 
   let migrated = 0;
@@ -36,9 +38,15 @@ async function migrate() {
       activity: doc.sport || doc.activity || "General",
       activityCategory: "sports",
       venueLegacy: doc.venueLegacy || doc.venue || "",
-      schedule: { ...(doc.schedule || {}), eventDate: doc.schedule?.eventDate || doc.startDate || null },
+      schedule: {
+        ...(doc.schedule || {}),
+        eventDate: doc.schedule?.eventDate || doc.startDate || null,
+      },
       participation: doc.participation || { type: "team" },
-      fees: { ...(doc.fees || {}), entryFee: doc.fees?.entryFee ?? doc.entryFee ?? 0 },
+      fees: {
+        ...(doc.fees || {}),
+        entryFee: doc.fees?.entryFee ?? doc.entryFee ?? 0,
+      },
       awards: doc.awards || {},
       automation: doc.automation || {},
       categories: doc.categories || {},

@@ -44,10 +44,7 @@ const canManage = authorize("super_admin", "hr_manager");
 
 // Everyone in the academy can browse events/fixtures; only the owner
 // (super_admin/hr_manager) manages them — same split as SportsPlan.
-router
-  .route("/")
-  .get(protect, getEvents)
-  .post(protect, canManage, createEvent);
+router.route("/").get(protect, getEvents).post(protect, canManage, createEvent);
 
 router
   .route("/:id")
@@ -77,7 +74,12 @@ router.delete(
 
 // Any authenticated user can register/unregister a student — the controller
 // restricts a parent to their own children.
-router.post("/:id/registrations", protect, validateMongoId("id"), registerStudent);
+router.post(
+  "/:id/registrations",
+  protect,
+  validateMongoId("id"),
+  registerStudent,
+);
 router.delete(
   "/:id/registrations/:studentId",
   protect,
@@ -101,7 +103,13 @@ router.put(
   recordResult,
 );
 
-router.post("/:id/officials", protect, canManage, validateMongoId("id"), addOfficial);
+router.post(
+  "/:id/officials",
+  protect,
+  canManage,
+  validateMongoId("id"),
+  addOfficial,
+);
 router.put(
   "/:id/officials/:officialId",
   protect,
@@ -152,8 +160,19 @@ router.delete(
   deleteGalleryItem,
 );
 
-router.get("/:id/announcements", protect, validateMongoId("id"), listAnnouncements);
-router.post("/:id/announcements", protect, canManage, validateMongoId("id"), createAnnouncement);
+router.get(
+  "/:id/announcements",
+  protect,
+  validateMongoId("id"),
+  listAnnouncements,
+);
+router.post(
+  "/:id/announcements",
+  protect,
+  canManage,
+  validateMongoId("id"),
+  createAnnouncement,
+);
 
 router.get("/:id/payments", protect, validateMongoId("id"), listPayments);
 router.get("/:id/attendance", protect, validateMongoId("id"), listAttendance);

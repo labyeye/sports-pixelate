@@ -158,22 +158,30 @@ const createOfferCode = asyncHandler(async (req, res) => {
   }
   if (!DISCOUNT_TYPES.includes(discountType)) {
     res.status(400);
-    throw new Error(`discountType must be one of: ${DISCOUNT_TYPES.join(", ")}`);
+    throw new Error(
+      `discountType must be one of: ${DISCOUNT_TYPES.join(", ")}`,
+    );
   }
   if (discountType === "bonus_months" && !(Number(bonusMonths) > 0)) {
     res.status(400);
-    throw new Error("bonusMonths must be a positive number for this discount type");
+    throw new Error(
+      "bonusMonths must be a positive number for this discount type",
+    );
   }
   if (discountType === "flat_rate" && !(Number(flatRate) > 0)) {
     res.status(400);
-    throw new Error("flatRate must be a positive number for this discount type");
+    throw new Error(
+      "flatRate must be a positive number for this discount type",
+    );
   }
   if (
     discountType === "percent_off" &&
     !(Number(percentOff) > 0 && Number(percentOff) <= 100)
   ) {
     res.status(400);
-    throw new Error("percentOff must be between 1 and 100 for this discount type");
+    throw new Error(
+      "percentOff must be between 1 and 100 for this discount type",
+    );
   }
 
   const normalizedCode = code.toUpperCase().trim();

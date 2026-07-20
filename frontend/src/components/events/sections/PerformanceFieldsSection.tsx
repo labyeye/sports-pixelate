@@ -1,4 +1,4 @@
-import { Mic2 } from "lucide-react";
+import { Mic2, ListOrdered, UserCog, Lightbulb } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { DateTimePicker } from "@/components/ui/DateTimePicker";
 import type { PerformanceFields } from "@/types/hrms";
@@ -8,15 +8,19 @@ interface Props {
   onChange: (patch: Partial<PerformanceFields>) => void;
 }
 
-const inputClass = "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
-const labelClass = "block text-xs font-bold uppercase mb-1";
+const inputClass =
+  "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
+const labelClass = "flex items-center gap-1.5 text-xs font-bold uppercase mb-1";
 
 export function PerformanceFieldsSection({ value, onChange }: Props) {
   return (
     <CollapsibleSection title="Performance Details" icon={Mic2}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Performance Order</label>
+          <label className={labelClass}>
+            <ListOrdered className="w-3.5 h-3.5 text-[#024BAB]" />
+            Performance Order
+          </label>
           <input
             className={inputClass}
             value={value.performanceOrder || ""}
@@ -24,7 +28,10 @@ export function PerformanceFieldsSection({ value, onChange }: Props) {
           />
         </div>
         <div>
-          <label className={labelClass}>Stage Manager</label>
+          <label className={labelClass}>
+            <UserCog className="w-3.5 h-3.5 text-[#024BAB]" />
+            Stage Manager
+          </label>
           <input
             className={inputClass}
             value={value.stageManager || ""}
@@ -46,7 +53,10 @@ export function PerformanceFieldsSection({ value, onChange }: Props) {
           Green Room Required
         </label>
         <div className="md:col-span-2">
-          <label className={labelClass}>Lighting Notes</label>
+          <label className={labelClass}>
+            <Lightbulb className="w-3.5 h-3.5 text-[#024BAB]" />
+            Lighting Notes
+          </label>
           <textarea
             className={inputClass}
             rows={2}

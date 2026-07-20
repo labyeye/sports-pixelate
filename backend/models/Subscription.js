@@ -12,8 +12,13 @@ const subscriptionSchema = new mongoose.Schema(
     employeeCount: { type: Number, default: 0 },
     wantsWhatsapp: { type: Boolean, default: false },
     ratePerUnit: { type: Number },
+    // GST-inclusive totals actually charged.
     monthlyPrice: { type: Number, required: true },
     yearlyPrice: { type: Number, required: true },
+    // Breakdown for the amount actually billed (matches billingCycle).
+    gstRate: { type: Number, default: 18 },
+    subtotal: { type: Number },
+    gstAmount: { type: Number },
     maxStudents: { type: Number, required: true },
     maxEmployees: { type: Number, default: 0 },
     billingCycle: {

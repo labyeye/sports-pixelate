@@ -59,7 +59,14 @@ async function findPerson(personType, id, company) {
   return Model.findOne({ _id: id, company });
 }
 
-async function notifyHR(employee, logType, locationName, time, workHours, companyId) {
+async function notifyHR(
+  employee,
+  logType,
+  locationName,
+  time,
+  workHours,
+  companyId,
+) {
   const hrUsers = await User.find({
     company: companyId,
     role: { $in: ["super_admin", "hr_manager"] },
@@ -78,7 +85,12 @@ async function notifyHR(employee, logType, locationName, time, workHours, compan
       if (hr.phone) {
         await sendCheckInHR(
           hr.phone,
-          { empName: empFullName, empId: employee.employeeId, locationName, time },
+          {
+            empName: empFullName,
+            empId: employee.employeeId,
+            locationName,
+            time,
+          },
           companyId,
         );
       }
@@ -95,7 +107,13 @@ async function notifyHR(employee, logType, locationName, time, workHours, compan
       if (hr.phone) {
         await sendCheckOutHR(
           hr.phone,
-          { empName: empFullName, empId: employee.employeeId, locationName, time, workHours },
+          {
+            empName: empFullName,
+            empId: employee.employeeId,
+            locationName,
+            time,
+            workHours,
+          },
           companyId,
         );
       }
@@ -104,16 +122,20 @@ async function notifyHR(employee, logType, locationName, time, workHours, compan
 }
 
 async function notifyGuardians(student, logType, locationName, time) {
-  const sendFn = logType === "check_in" ? sendStudentCheckIn : sendStudentCheckOut;
+  const sendFn =
+    logType === "check_in" ? sendStudentCheckIn : sendStudentCheckOut;
   const studentName = `${student.firstName} ${student.lastName}`;
-  for (const guardian of student.guardians || []) {
-    if (!guardian.phone) continue;
-    await sendFn(
-      guardian.phone,
-      { guardianName: guardian.name, studentName, locationName, time },
-      student.company,
-    );
-  }
+  // Only the one guardian opted in via receivesWhatsapp gets notified —
+  // otherwise every listed guardian (father, mother, etc.) would be messaged.
+  const guardian = (student.guardians || []).find(
+    (g) => g.receivesWhatsapp && g.phone,
+  );
+  if (!guardian) return;
+  await sendFn(
+    guardian.phone,
+    { guardianName: guardian.name, studentName, locationName, time },
+    student.company,
+  );
 }
 
 // ─── Locations ──────────────────────────────────────────────────────────────
@@ -304,7 +326,10 @@ const assignNfcCard = asyncHandler(async (req, res) => {
     label,
   });
   await device.save();
-  await device.populate("nfcCards.person", "firstName lastName employeeId studentId");
+  await device.populate(
+    "nfcCards.person",
+    "firstName lastName employeeId studentId",
+  );
   res.json({ success: true, data: device });
 });
 
@@ -481,7 +506,11 @@ const recordBiometric = asyncHandler(async (req, res) => {
 
   if (effectiveType === "employee") {
     const holiday = await isHolidayDate(device.company, today);
-    const attendanceUpdate = { employee: person._id, date: today, markedBy: null };
+    const attendanceUpdate = {
+      employee: person._id,
+      date: today,
+      markedBy: null,
+    };
 
     if (holiday) {
       attendanceUpdate.status = "holiday";
@@ -490,9 +519,16 @@ const recordBiometric = asyncHandler(async (req, res) => {
       attendanceUpdate.checkIn = now;
       attendanceUpdate.status = now.getHours() >= 10 ? "late" : "present";
     } else {
-      const existing = await Attendance.findOne({ employee: person._id, date: today });
+      const existing = await Attendance.findOne({
+        employee: person._id,
+        date: today,
+      });
       if (existing?.checkIn) {
-        const effectiveCheckOut = await getEffectiveCheckOut(device.company, person._id, now);
+        const effectiveCheckOut = await getEffectiveCheckOut(
+          device.company,
+          person._id,
+          now,
+        );
         attendanceUpdate.checkOut = effectiveCheckOut;
         workHours = (effectiveCheckOut - existing.checkIn) / 3600000;
         attendanceUpdate.workHours = workHours;
@@ -506,12 +542,22 @@ const recordBiometric = asyncHandler(async (req, res) => {
     );
 
     try {
-      await notifyHR(person, logType, device.location.name, now, workHours, device.company);
+      await notifyHR(
+        person,
+        logType,
+        device.location.name,
+        now,
+        workHours,
+        device.company,
+      );
     } catch (err) {
       console.error("[Biometric] notifyHR error:", err.message);
     }
     try {
-      const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       if (logType === "check_in") {
         await sendPushToEmployee(person._id, {
           title: "Punch In Recorded",
@@ -530,11 +576,17 @@ const recordBiometric = asyncHandler(async (req, res) => {
       }
     } catch {}
   } else {
-    const attendanceUpdate = { company: person.company, student: person._id, date: today, markedBy: null };
+    const attendanceUpdate = {
+      company: person.company,
+      student: person._id,
+      date: today,
+      markedBy: null,
+    };
     if (logType === "check_in") {
       attendanceUpdate.checkIn = now;
       attendanceUpdate.status = "present";
-      attendanceUpdate.verifyMode = method === "nfc" ? "card" : method === "face" ? "face" : "manual";
+      attendanceUpdate.verifyMode =
+        method === "nfc" ? "card" : method === "face" ? "face" : "manual";
     } else {
       attendanceUpdate.checkOut = now;
     }
@@ -562,7 +614,8 @@ const recordBiometric = asyncHandler(async (req, res) => {
     method,
     type: logType,
     nfcUid: method === "nfc" ? nfcUid : undefined,
-    attendanceModel: effectiveType === "employee" ? "Attendance" : "StudentAttendance",
+    attendanceModel:
+      effectiveType === "employee" ? "Attendance" : "StudentAttendance",
     attendance: attendance._id,
     timestamp: now,
   });
@@ -614,7 +667,8 @@ const getDeviceEmployees = asyncHandler(async (req, res) => {
       firstName: e.firstName,
       lastName: e.lastName,
       code: e.employeeId,
-      hasFace: Array.isArray(e.faceDescriptor) && e.faceDescriptor.length === 128,
+      hasFace:
+        Array.isArray(e.faceDescriptor) && e.faceDescriptor.length === 128,
     })),
     ...students.map((s) => ({
       _id: s._id,
@@ -622,7 +676,8 @@ const getDeviceEmployees = asyncHandler(async (req, res) => {
       firstName: s.firstName,
       lastName: s.lastName,
       code: s.studentId,
-      hasFace: Array.isArray(s.faceDescriptor) && s.faceDescriptor.length === 128,
+      hasFace:
+        Array.isArray(s.faceDescriptor) && s.faceDescriptor.length === 128,
     })),
   ];
 
@@ -655,7 +710,11 @@ const enrollFaceFromDevice = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: `Face enrolled for ${person.firstName} ${person.lastName}`,
-    data: { personId: person._id, personType, name: `${person.firstName} ${person.lastName}` },
+    data: {
+      personId: person._id,
+      personType,
+      name: `${person.firstName} ${person.lastName}`,
+    },
   });
 });
 
@@ -663,7 +722,8 @@ const enrollFaceFromDevice = asyncHandler(async (req, res) => {
 
 const getLogs = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query, 50, 5000);
-  const { locationId, deviceId, personType, personId, date, month, year } = req.query;
+  const { locationId, deviceId, personType, personId, date, month, year } =
+    req.query;
 
   const filter = { company: req.user.company };
   if (locationId) filter.location = locationId;
@@ -682,7 +742,10 @@ const getLogs = asyncHandler(async (req, res) => {
     const m = parseInt(month),
       y = parseInt(year);
     if (!isNaN(m) && !isNaN(y)) {
-      filter.timestamp = { $gte: new Date(y, m - 1, 1), $lt: new Date(y, m, 1) };
+      filter.timestamp = {
+        $gte: new Date(y, m - 1, 1),
+        $lt: new Date(y, m, 1),
+      };
     }
   }
 
@@ -695,7 +758,13 @@ const getLogs = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  res.json({ success: true, data: logs, total, page, pages: Math.ceil(total / limit) });
+  res.json({
+    success: true,
+    data: logs,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 // ─── Sync / enrollment ──────────────────────────────────────────────────────
@@ -912,7 +981,10 @@ const getDeviceCommands = asyncHandler(async (req, res) => {
   }
 
   const cmds = await BiometricCommand.find({ device: device._id })
-    .populate("person", "firstName lastName employeeId studentId biometricUserId")
+    .populate(
+      "person",
+      "firstName lastName employeeId studentId biometricUserId",
+    )
     .sort({ createdAt: -1 })
     .limit(50);
 
@@ -934,16 +1006,27 @@ const saveRfidCard = asyncHandler(async (req, res) => {
   }
 
   const trimmed = rfidCard.trim();
-  const conflict = await isRfidCardTaken(req.user.company, trimmed, personType, person._id);
+  const conflict = await isRfidCardTaken(
+    req.user.company,
+    trimmed,
+    personType,
+    person._id,
+  );
   if (conflict) {
     res.status(400);
-    throw new Error(`RFID card already assigned to ${conflict.firstName} ${conflict.lastName}`);
+    throw new Error(
+      `RFID card already assigned to ${conflict.firstName} ${conflict.lastName}`,
+    );
   }
 
   person.rfidCard = trimmed;
   await person.save();
 
-  res.json({ success: true, message: "RFID card saved", data: { rfidCard: person.rfidCard } });
+  res.json({
+    success: true,
+    message: "RFID card saved",
+    data: { rfidCard: person.rfidCard },
+  });
 });
 
 const saveFaceDescriptor = asyncHandler(async (req, res) => {
@@ -1007,7 +1090,9 @@ const faceAttendance = asyncHandler(async (req, res) => {
   }
 
   const device = deviceToken
-    ? await BiometricDevice.findOne({ deviceToken, isActive: true }).populate("location")
+    ? await BiometricDevice.findOne({ deviceToken, isActive: true }).populate(
+        "location",
+      )
     : null;
   if (deviceToken && !device) {
     res.status(404);
@@ -1055,7 +1140,9 @@ const faceAttendance = asyncHandler(async (req, res) => {
 
   if (!bestMatch || bestDist > THRESHOLD) {
     res.status(404);
-    throw new Error(`No matching person found (best dist: ${bestDist.toFixed(3)})`);
+    throw new Error(
+      `No matching person found (best dist: ${bestDist.toFixed(3)})`,
+    );
   }
 
   const now = new Date();
@@ -1070,14 +1157,22 @@ const faceAttendance = asyncHandler(async (req, res) => {
 
   const personLabel = {
     name: `${bestMatch.firstName} ${bestMatch.lastName}`,
-    code: bestMatch.personType === "employee" ? bestMatch.employeeId : bestMatch.studentId,
+    code:
+      bestMatch.personType === "employee"
+        ? bestMatch.employeeId
+        : bestMatch.studentId,
   };
 
   if (lastTodayLog?.type === "check_out") {
     return res.json({
       success: true,
       locked: true,
-      data: { person: personLabel, type: "check_out", message: "Already checked out for today", checkedOutAt: lastTodayLog.timestamp },
+      data: {
+        person: personLabel,
+        type: "check_out",
+        message: "Already checked out for today",
+        checkedOutAt: lastTodayLog.timestamp,
+      },
     });
   }
 
@@ -1087,7 +1182,12 @@ const faceAttendance = asyncHandler(async (req, res) => {
     return res.json({
       success: true,
       locked: true,
-      data: { person: personLabel, type: "check_in", message: "Already checked in, awaiting check-out", checkedInAt: lastTodayLog.timestamp },
+      data: {
+        person: personLabel,
+        type: "check_in",
+        message: "Already checked in, awaiting check-out",
+        checkedInAt: lastTodayLog.timestamp,
+      },
     });
   }
 
@@ -1095,14 +1195,25 @@ const faceAttendance = asyncHandler(async (req, res) => {
   let workHours;
 
   if (bestMatch.personType === "employee") {
-    const attendanceUpdate = { employee: bestMatch._id, date: today, markedBy: null };
+    const attendanceUpdate = {
+      employee: bestMatch._id,
+      date: today,
+      markedBy: null,
+    };
     if (logType === "check_in") {
       attendanceUpdate.checkIn = now;
       attendanceUpdate.status = now.getHours() >= 10 ? "late" : "present";
     } else {
-      const existing = await Attendance.findOne({ employee: bestMatch._id, date: today });
+      const existing = await Attendance.findOne({
+        employee: bestMatch._id,
+        date: today,
+      });
       if (existing?.checkIn) {
-        const effectiveCheckOut = await getEffectiveCheckOut(bestMatch.company, bestMatch._id, now);
+        const effectiveCheckOut = await getEffectiveCheckOut(
+          bestMatch.company,
+          bestMatch._id,
+          now,
+        );
         attendanceUpdate.checkOut = effectiveCheckOut;
         workHours = (effectiveCheckOut - existing.checkIn) / 3600000;
         attendanceUpdate.workHours = workHours;
@@ -1115,7 +1226,10 @@ const faceAttendance = asyncHandler(async (req, res) => {
     );
 
     try {
-      const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+      const timeStr = now.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       if (logType === "check_in") {
         await sendPushToEmployee(bestMatch._id, {
           title: "Punch In Recorded",
@@ -1132,12 +1246,25 @@ const faceAttendance = asyncHandler(async (req, res) => {
           url: "/dashboard",
         });
       }
-      await notifyHR(bestMatch, logType, device?.location?.name || "Office", now, workHours, bestMatch.company);
+      await notifyHR(
+        bestMatch,
+        logType,
+        device?.location?.name || "Office",
+        now,
+        workHours,
+        bestMatch.company,
+      );
     } catch (err) {
       console.error("[Biometric] faceAttendance notify error:", err.message);
     }
   } else {
-    const attendanceUpdate = { company: bestMatch.company, student: bestMatch._id, date: today, markedBy: null, verifyMode: "face" };
+    const attendanceUpdate = {
+      company: bestMatch.company,
+      student: bestMatch._id,
+      date: today,
+      markedBy: null,
+      verifyMode: "face",
+    };
     if (logType === "check_in") {
       attendanceUpdate.checkIn = now;
       attendanceUpdate.status = "present";
@@ -1151,9 +1278,17 @@ const faceAttendance = asyncHandler(async (req, res) => {
     );
 
     try {
-      await notifyGuardians(bestMatch, logType, device?.location?.name || "Office", now);
+      await notifyGuardians(
+        bestMatch,
+        logType,
+        device?.location?.name || "Office",
+        now,
+      );
     } catch (err) {
-      console.error("[Biometric] faceAttendance notifyGuardians error:", err.message);
+      console.error(
+        "[Biometric] faceAttendance notifyGuardians error:",
+        err.message,
+      );
     }
   }
 
@@ -1167,7 +1302,10 @@ const faceAttendance = asyncHandler(async (req, res) => {
       location: device.location,
       method: "face",
       type: logType,
-      attendanceModel: bestMatch.personType === "employee" ? "Attendance" : "StudentAttendance",
+      attendanceModel:
+        bestMatch.personType === "employee"
+          ? "Attendance"
+          : "StudentAttendance",
       attendance: attendance._id,
       timestamp: now,
     });
@@ -1202,7 +1340,9 @@ const triggerFaceEnroll = asyncHandler(async (req, res) => {
   }
   if (!device.serialNumber) {
     res.status(400);
-    throw new Error("Device serial number not registered — pair the ADMS device first");
+    throw new Error(
+      "Device serial number not registered — pair the ADMS device first",
+    );
   }
 
   const person = await findPerson(personType, personId, req.user.company);
@@ -1259,7 +1399,9 @@ const pushFaceTemplateToDevice = asyncHandler(async (req, res) => {
   }
   if (!person.deviceFaceTemplate) {
     res.status(400);
-    throw new Error("No face template stored for this person. Enroll their face on any device first.");
+    throw new Error(
+      "No face template stored for this person. Enroll their face on any device first.",
+    );
   }
 
   const cmdId = await nextCmdId(device._id);
@@ -1353,13 +1495,18 @@ const assignBiometricUserId = asyncHandler(async (req, res) => {
   );
   if (taken) {
     res.status(400);
-    throw new Error("This Biometric User ID is already assigned to someone else");
+    throw new Error(
+      "This Biometric User ID is already assigned to someone else",
+    );
   }
 
   person.biometricUserId = biometricUserId.trim();
   await person.save();
 
-  res.json({ success: true, data: { biometricUserId: person.biometricUserId } });
+  res.json({
+    success: true,
+    data: { biometricUserId: person.biometricUserId },
+  });
 });
 
 module.exports = {

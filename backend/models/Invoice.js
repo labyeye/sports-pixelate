@@ -16,6 +16,9 @@ const invoiceSchema = new mongoose.Schema(
       default: "monthly",
     },
     amount: { type: Number, required: true },
+    gstRate: { type: Number, default: 18 },
+    subtotal: { type: Number },
+    gstAmount: { type: Number },
     status: {
       type: String,
       enum: ["paid", "pending", "failed"],

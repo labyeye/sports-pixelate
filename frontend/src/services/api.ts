@@ -1,3 +1,5 @@
+import { compressImageFile } from "@/lib/imageCompress";
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const getToken = () => localStorage.getItem("hrms_token");
@@ -9,7 +11,8 @@ async function request<T = any>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getToken();
-  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -81,6 +84,21 @@ export const authAPI = {
 export const dashboardAPI = {
   getStats: () => request("/dashboard/stats"),
   getEmployeeStats: () => request("/dashboard/employee"),
+};
+
+export const parentAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/parents${q}`);
+  },
+  updateCredentials: (
+    id: string,
+    body: { email?: string; password?: string },
+  ) =>
+    request(`/parents/${id}/credentials`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
 
 export const employeeAPI = {
@@ -262,10 +280,11 @@ export const settingsAPI = {
       method: "PUT",
       body: JSON.stringify(settings),
     }),
-  uploadLogo: (file: File) => {
+  uploadLogo: async (file: File) => {
     const token = getToken();
+    const compressed = await compressImageFile(file);
     const form = new FormData();
-    form.append("logo", file);
+    form.append("logo", compressed);
     return fetch(`${BASE_URL}/settings/logo`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -276,10 +295,11 @@ export const settingsAPI = {
       return data as { success: boolean; logoUrl: string; data: any };
     });
   },
-  uploadPaymentQr: (file: File) => {
+  uploadPaymentQr: async (file: File) => {
     const token = getToken();
+    const compressed = await compressImageFile(file);
     const form = new FormData();
-    form.append("qrCode", file);
+    form.append("qrCode", compressed);
     return fetch(`${BASE_URL}/settings/payment-qr`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -308,10 +328,13 @@ export const billingAPI = {
       name: string;
       email: string;
       phone: string;
-      industry: string;
       website: string;
       gstNumber: string;
       panNumber: string;
+      address: string;
+      city: string;
+      state: string;
+      pincode: string;
     },
     offerCode?: string,
   ) =>
@@ -337,7 +360,12 @@ export const billingAPI = {
       "/billing/validate-offer",
       {
         method: "POST",
-        body: JSON.stringify({ code, studentCount, employeeCount, wantsWhatsapp }),
+        body: JSON.stringify({
+          code,
+          studentCount,
+          employeeCount,
+          wantsWhatsapp,
+        }),
       },
     ),
   verifyRazorpay: (payload: {
@@ -853,9 +881,10 @@ export const studentAPI = {
   update: (id: string, body: object) =>
     request(`/students/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/students/${id}`, { method: "DELETE" }),
-  uploadAvatar: (id: string, file: File) => {
+  uploadAvatar: async (id: string, file: File) => {
+    const compressed = await compressImageFile(file);
     const form = new FormData();
-    form.append("avatar", file);
+    form.append("avatar", compressed);
     const token = getToken();
     return fetch(`${BASE_URL}/students/${id}/avatar`, {
       method: "POST",
@@ -867,9 +896,14 @@ export const studentAPI = {
       return data;
     });
   },
-  uploadGuardianPhoto: (studentId: string, guardianId: string, file: File) => {
+  uploadGuardianPhoto: async (
+    studentId: string,
+    guardianId: string,
+    file: File,
+  ) => {
+    const compressed = await compressImageFile(file);
     const form = new FormData();
-    form.append("photo", file);
+    form.append("photo", compressed);
     const token = getToken();
     return fetch(
       `${BASE_URL}/students/${studentId}/guardians/${guardianId}/photo`,
@@ -949,10 +983,15 @@ export const eventAPI = {
     }),
   delete: (id: string) => request(`/events/${id}`, { method: "DELETE" }),
   getDashboard: (id: string) => request(`/events/${id}/dashboard`),
-  uploadImages: (id: string, files: { coverImage?: File; bannerImage?: File }) => {
+  uploadImages: async (
+    id: string,
+    files: { coverImage?: File; bannerImage?: File },
+  ) => {
     const form = new FormData();
-    if (files.coverImage) form.append("coverImage", files.coverImage);
-    if (files.bannerImage) form.append("bannerImage", files.bannerImage);
+    if (files.coverImage)
+      form.append("coverImage", await compressImageFile(files.coverImage));
+    if (files.bannerImage)
+      form.append("bannerImage", await compressImageFile(files.bannerImage));
     return request(`/events/${id}/images`, { method: "POST", body: form });
   },
   addTeam: (id: string, name: string) =>
@@ -986,10 +1025,19 @@ export const eventAPI = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
-  addOfficial: (id: string, body: { name: string; role?: string; phone?: string; email?: string }) =>
-    request(`/events/${id}/officials`, { method: "POST", body: JSON.stringify(body) }),
+  addOfficial: (
+    id: string,
+    body: { name: string; role?: string; phone?: string; email?: string },
+  ) =>
+    request(`/events/${id}/officials`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateOfficial: (id: string, officialId: string, body: object) =>
-    request(`/events/${id}/officials/${officialId}`, { method: "PUT", body: JSON.stringify(body) }),
+    request(`/events/${id}/officials/${officialId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
   removeOfficial: (id: string, officialId: string) =>
     request(`/events/${id}/officials/${officialId}`, { method: "DELETE" }),
   addDocument: (id: string, file: File, kind: string, label: string) => {
@@ -1002,9 +1050,10 @@ export const eventAPI = {
   removeDocument: (id: string, docId: string) =>
     request(`/events/${id}/documents/${docId}`, { method: "DELETE" }),
   getGallery: (id: string) => request(`/events/${id}/gallery`),
-  addGalleryItem: (id: string, photo: File, caption: string) => {
+  addGalleryItem: async (id: string, photo: File, caption: string) => {
+    const compressed = await compressImageFile(photo);
     const form = new FormData();
-    form.append("photo", photo);
+    form.append("photo", compressed);
     form.append("caption", caption);
     return request(`/events/${id}/gallery`, { method: "POST", body: form });
   },
@@ -1012,7 +1061,10 @@ export const eventAPI = {
     request(`/events/${id}/gallery/${itemId}`, { method: "DELETE" }),
   getAnnouncements: (id: string) => request(`/events/${id}/announcements`),
   createAnnouncement: (id: string, body: { title: string; message: string }) =>
-    request(`/events/${id}/announcements`, { method: "POST", body: JSON.stringify(body) }),
+    request(`/events/${id}/announcements`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   getPayments: (id: string) => request(`/events/${id}/payments`),
   getAttendance: (id: string) => request(`/events/${id}/attendance`),
 };
@@ -1062,6 +1114,17 @@ export const subscriptionAPI = {
     }),
   verifyPayment: (body: object) =>
     request("/subscriptions/verify-payment", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  // Owner/staff assigns a plan to a student (e.g. from the student form) —
+  // creates a pending subscription with no payment attached yet.
+  assign: (body: {
+    studentId: string;
+    planId: string;
+    billingCycle?: string;
+  }) =>
+    request("/subscriptions/assign", {
       method: "POST",
       body: JSON.stringify(body),
     }),

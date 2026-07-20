@@ -272,9 +272,7 @@ export default function HolidaysPage() {
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Total Holidays
               </p>
-              <p className="text-2xl font-bold text-black">
-                {holidays.length}
-              </p>
+              <p className="text-2xl font-bold text-black">{holidays.length}</p>
             </div>
           </div>
           <div className="border-2 border-black bg-white p-4 flex items-center gap-3">

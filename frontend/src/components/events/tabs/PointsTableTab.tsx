@@ -34,7 +34,15 @@ export function PointsTableTab({ event }: Props) {
   const rows = useMemo<Row[]>(() => {
     const table = new Map<string, Row>();
     event.teams.forEach((t) => {
-      table.set(t._id, { team: t._id, name: t.name, played: 0, won: 0, lost: 0, drawn: 0, points: 0 });
+      table.set(t._id, {
+        team: t._id,
+        name: t.name,
+        played: 0,
+        won: 0,
+        lost: 0,
+        drawn: 0,
+        points: 0,
+      });
     });
     fixtures
       .filter((f) => f.status === "completed" && f.teamA.team && f.teamB.team)
@@ -62,7 +70,10 @@ export function PointsTableTab({ event }: Props) {
     return Array.from(table.values()).sort((x, y) => y.points - x.points);
   }, [fixtures, event.teams]);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading points table...</p>;
+  if (loading)
+    return (
+      <p className="text-sm text-muted-foreground">Loading points table...</p>
+    );
 
   if (event.format !== "round_robin") {
     return (
@@ -77,7 +88,9 @@ export function PointsTableTab({ event }: Props) {
       <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
         <ListOrdered className="w-10 h-10 text-muted-foreground/30 mb-3" />
         <p className="font-bold text-black">No standings yet</p>
-        <p className="text-sm text-muted-foreground mt-1">Standings appear once fixture results are recorded.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Standings appear once fixture results are recorded.
+        </p>
       </div>
     );
   }
@@ -87,12 +100,24 @@ export function PointsTableTab({ event }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b-2 border-black bg-gray-50">
-            <th className="text-left px-3 py-2 text-xs font-bold uppercase">Team</th>
-            <th className="text-center px-3 py-2 text-xs font-bold uppercase">P</th>
-            <th className="text-center px-3 py-2 text-xs font-bold uppercase">W</th>
-            <th className="text-center px-3 py-2 text-xs font-bold uppercase">D</th>
-            <th className="text-center px-3 py-2 text-xs font-bold uppercase">L</th>
-            <th className="text-center px-3 py-2 text-xs font-bold uppercase">Pts</th>
+            <th className="text-left px-3 py-2 text-xs font-bold uppercase">
+              Team
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold uppercase">
+              P
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold uppercase">
+              W
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold uppercase">
+              D
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold uppercase">
+              L
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold uppercase">
+              Pts
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -103,7 +128,9 @@ export function PointsTableTab({ event }: Props) {
               <td className="text-center px-3 py-2">{r.won}</td>
               <td className="text-center px-3 py-2">{r.drawn}</td>
               <td className="text-center px-3 py-2">{r.lost}</td>
-              <td className="text-center px-3 py-2 font-bold text-[#024BAB]">{r.points}</td>
+              <td className="text-center px-3 py-2 font-bold text-[#024BAB]">
+                {r.points}
+              </td>
             </tr>
           ))}
         </tbody>

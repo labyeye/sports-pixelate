@@ -11,7 +11,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Trash2, X, CalendarDays, CalendarClock } from 'lucide-react-native';
+import {
+  Plus,
+  Trash2,
+  X,
+  CalendarDays,
+  CalendarClock,
+} from 'lucide-react-native';
 import { holidayAPI } from '../api/client';
 import {
   Card,
@@ -165,8 +171,9 @@ export default function HolidaysScreen() {
           <KpiTile
             label="Upcoming"
             value={
-              holidays.filter(h => new Date(h.date) >= new Date(new Date().toDateString()))
-                .length
+              holidays.filter(
+                h => new Date(h.date) >= new Date(new Date().toDateString()),
+              ).length
             }
             sub="From today onward"
             color={colors.orange}
@@ -214,7 +221,9 @@ export default function HolidaysScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle title="Holiday Details" />
             <TextField
               label="Name"
@@ -244,11 +253,22 @@ export default function HolidaysScreen() {
               multiline
             />
             <Button
-              title={saving ? 'Saving...' : editingHoliday ? 'Update Holiday' : 'Save Holiday'}
+              title={
+                saving
+                  ? 'Saving...'
+                  : editingHoliday
+                  ? 'Update Holiday'
+                  : 'Save Holiday'
+              }
               onPress={save}
               disabled={saving}
             />
-            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {saving && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -316,5 +336,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
 });

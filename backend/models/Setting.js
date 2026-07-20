@@ -73,6 +73,7 @@ const settingSchema = new mongoose.Schema(
     whatsappNotifyCheckIn: { type: Boolean, default: true },
     whatsappNotifyLeave: { type: Boolean, default: true },
     whatsappNotifyPayroll: { type: Boolean, default: true },
+    whatsappNotifySubscription: { type: Boolean, default: true },
     whatsappSendPunchAlert: { type: String, default: "Both" },
     whatsappSendTxnAlert: { type: String, default: "Both" },
     whatsappSendLeaveAlert: { type: String, default: "Both" },

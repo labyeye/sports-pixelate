@@ -17,6 +17,10 @@ import {
   ArrowDown,
   Pencil,
   Trash2,
+  User,
+  Calendar,
+  Hash,
+  FileText,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
 
@@ -80,46 +84,51 @@ function LeaveFormFields({
 }) {
   return (
     <>
-      {showEmployee && (
+      <div className="grid grid-cols-2 gap-3">
+        {showEmployee && (
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+              <User className="w-3.5 h-3.5 text-[#024BAB]" />
+              Employee
+            </label>
+            <select
+              value={f.employee}
+              onChange={(e) => setF({ ...f, employee: e.target.value })}
+              className="border-2 w-full px-3 py-2 text-sm"
+              required
+            >
+              <option value="">Select employee</option>
+              {employees.map((e) => (
+                <option key={e._id} value={e._id}>
+                  {e.firstName} {e.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
-          <label className="block text-xs font-bold text-black mb-1">
-            Employee
+          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+            <CalendarDays className="w-3.5 h-3.5 text-[#024BAB]" />
+            Leave Type
           </label>
           <select
-            value={f.employee}
-            onChange={(e) => setF({ ...f, employee: e.target.value })}
-            className="border-2 w-full px-3 py-2 text-sm"
             required
+            value={f.leaveType}
+            onChange={(e) => setF({ ...f, leaveType: e.target.value })}
+            className="border-2 w-full px-3 py-2 text-sm"
           >
-            <option value="">Select employee</option>
-            {employees.map((e) => (
-              <option key={e._id} value={e._id}>
-                {e.firstName} {e.lastName}
+            {Object.entries(TYPE_LABELS).map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
               </option>
             ))}
           </select>
         </div>
-      )}
-      <div>
-        <label className="block text-xs font-bold text-black mb-1">
-          Leave Type
-        </label>
-        <select
-          required
-          value={f.leaveType}
-          onChange={(e) => setF({ ...f, leaveType: e.target.value })}
-          className="border-2 w-full px-3 py-2 text-sm"
-        >
-          {Object.entries(TYPE_LABELS).map(([v, l]) => (
-            <option key={v} value={v}>
-              {l}
-            </option>
-          ))}
-        </select>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-bold text-black mb-1">
+          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+            <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
             Start Date
           </label>
           <input
@@ -131,7 +140,8 @@ function LeaveFormFields({
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-black mb-1">
+          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+            <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
             End Date
           </label>
           <input
@@ -142,24 +152,27 @@ function LeaveFormFields({
             required
           />
         </div>
+        <div>
+          <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+            <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
+            Number of Days
+          </label>
+          <input
+            type="number"
+            min="0.5"
+            max="30"
+            step="0.5"
+            value={f.days}
+            onChange={(e) => setF({ ...f, days: e.target.value })}
+            className="border-2 w-full px-3 py-2 text-sm"
+            required
+          />
+        </div>
       </div>
+
       <div>
-        <label className="block text-xs font-bold text-black mb-1">
-          Number of Days
-        </label>
-        <input
-          type="number"
-          min="0.5"
-          max="30"
-          step="0.5"
-          value={f.days}
-          onChange={(e) => setF({ ...f, days: e.target.value })}
-          className="border-2 w-full px-3 py-2 text-sm"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-bold text-black mb-1">
+        <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+          <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
           Reason
         </label>
         <textarea

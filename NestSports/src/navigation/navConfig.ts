@@ -194,6 +194,13 @@ export const navGroups: NavGroup[] = [
     label: 'For Parents',
     items: [
       {
+        title: 'Attendance',
+        screen: 'ParentAttendance',
+        icon: Clock,
+        roles: ['parent'],
+        desc: "View your child's attendance",
+      },
+      {
         title: 'Subscriptions',
         screen: 'Subscriptions',
         icon: Wallet,
@@ -206,6 +213,13 @@ export const navGroups: NavGroup[] = [
         icon: CalendarClock,
         roles: ['parent'],
         desc: 'Book facilities & courts',
+      },
+      {
+        title: 'Student Report',
+        screen: 'ParentReport',
+        icon: FileBarChart,
+        roles: ['parent'],
+        desc: "Generate your child's report card",
       },
     ],
   },

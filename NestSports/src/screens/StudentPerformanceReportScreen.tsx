@@ -1,9 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, Text, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Download, Trophy } from 'lucide-react-native';
 import { reportAPI, sportAPI, studentAPI } from '../api/client';
-import { Card, Badge, FilterPills, EmptyState, LoadingView } from '../components/ui';
+import {
+  Card,
+  Badge,
+  FilterPills,
+  EmptyState,
+  LoadingView,
+} from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
@@ -33,7 +46,9 @@ export default function StudentPerformanceReportScreen() {
         sportAPI.getAll(),
       ]);
       const all: any[] = stRes.data || [];
-      setBatches(Array.from(new Set(all.map(s => s.batch).filter(Boolean))) as string[]);
+      setBatches(
+        Array.from(new Set(all.map(s => s.batch).filter(Boolean))) as string[],
+      );
       const sportList: any[] = spRes.data || [];
       setSports(sportList.map(s => s.name || s));
     } catch {
@@ -79,7 +94,9 @@ export default function StudentPerformanceReportScreen() {
         { key: 'due', label: 'Amount Due' },
       ],
       rows.map((r: any) => ({
-        student: r.student ? `${r.student.firstName} ${r.student.lastName}` : '',
+        student: r.student
+          ? `${r.student.firstName} ${r.student.lastName}`
+          : '',
         studentId: r.student?.studentId || '',
         sport: r.student?.sport || '',
         batch: r.student?.batch || '',
@@ -104,12 +121,18 @@ export default function StudentPerformanceReportScreen() {
       </View>
 
       <FilterPills
-        options={[{ value: '', label: 'All Sports' }, ...sports.map(s => ({ value: s, label: s }))]}
+        options={[
+          { value: '', label: 'All Sports' },
+          ...sports.map(s => ({ value: s, label: s })),
+        ]}
         value={sport}
         onChange={setSport}
       />
       <FilterPills
-        options={[{ value: '', label: 'All Batches' }, ...batches.map(b => ({ value: b, label: b }))]}
+        options={[
+          { value: '', label: 'All Batches' },
+          ...batches.map(b => ({ value: b, label: b })),
+        ]}
         value={batch}
         onChange={setBatch}
       />
@@ -118,21 +141,30 @@ export default function StudentPerformanceReportScreen() {
         data={rows}
         keyExtractor={(r, i) => r.student?._id || String(i)}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No performance data" icon={TrendingUp} />}
+        ListEmptyComponent={
+          <EmptyState title="No performance data" icon={TrendingUp} />
+        }
         renderItem={({ item }) => (
           <Card>
             <View style={styles.rowTop}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>
-                  {item.student ? `${item.student.firstName} ${item.student.lastName}` : 'Unknown'}
+                  {item.student
+                    ? `${item.student.firstName} ${item.student.lastName}`
+                    : 'Unknown'}
                 </Text>
                 <Text style={styles.sub}>
                   {item.student?.sport || '—'} · {item.student?.batch || '—'}
                 </Text>
               </View>
-              <Badge label={item.feeStatus || '—'} color={feeStatusColor(item.feeStatus)} />
+              <Badge
+                label={item.feeStatus || '—'}
+                color={feeStatusColor(item.feeStatus)}
+              />
             </View>
             <View style={styles.statsRow}>
               <View style={styles.statCol}>
@@ -149,7 +181,9 @@ export default function StudentPerformanceReportScreen() {
               {item.due > 0 ? (
                 <View style={styles.statCol}>
                   <Text style={styles.statLabel}>Due</Text>
-                  <Text style={[styles.statValue, { color: colors.red }]}>₹{item.due}</Text>
+                  <Text style={[styles.statValue, { color: colors.red }]}>
+                    ₹{item.due}
+                  </Text>
                 </View>
               ) : null}
             </View>
@@ -172,7 +206,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, flex: 1 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flex: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -183,12 +223,36 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.black,
   },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, color: colors.black },
-  sub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  sub: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
   statsRow: { flexDirection: 'row', gap: 20, marginTop: 10 },
   statCol: { gap: 2 },
   statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statLabel: { fontFamily: FONT.medium, fontSize: 10, color: colors.muted, textTransform: 'uppercase' },
-  statValue: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 15, color: colors.black },
+  statLabel: {
+    fontFamily: FONT.medium,
+    fontSize: 10,
+    color: colors.muted,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 15,
+    color: colors.black,
+  },
 });

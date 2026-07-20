@@ -679,6 +679,13 @@ export const subscriptionAPI = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  // Owner/staff assigns a plan to a student (e.g. from the student form) —
+  // creates a pending subscription with no payment attached yet.
+  assign: (body: { studentId: string; planId: string; billingCycle?: string }) =>
+    request('/subscriptions/assign', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   createQrRenewalRequest: (body: {
     studentId: string;
     planId: string;

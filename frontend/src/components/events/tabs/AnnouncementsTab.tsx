@@ -14,7 +14,8 @@ interface Props {
   eventId: string;
 }
 
-const inputClass = "w-full border-2 border-black px-2 py-1.5 text-sm font-medium outline-none bg-white";
+const inputClass =
+  "w-full border-2 border-black px-2 py-1.5 text-sm font-medium outline-none bg-white";
 
 // Shell tab: list + simple create, no edit/delete/scheduling yet.
 export function AnnouncementsTab({ eventId }: Props) {
@@ -46,7 +47,10 @@ export function AnnouncementsTab({ eventId }: Props) {
     if (!title.trim() || !message.trim() || posting) return;
     setPosting(true);
     try {
-      await eventAPI.createAnnouncement(eventId, { title: title.trim(), message: message.trim() });
+      await eventAPI.createAnnouncement(eventId, {
+        title: title.trim(),
+        message: message.trim(),
+      });
       setTitle("");
       setMessage("");
       await load();
@@ -68,19 +72,34 @@ export function AnnouncementsTab({ eventId }: Props) {
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         ) : items.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">No announcements posted yet.</p>
+          <p className="text-xs text-muted-foreground text-center py-6">
+            No announcements posted yet.
+          </p>
         ) : (
           items.map((a) => (
             <div key={a._id} className="border-2 border-black/10 px-3 py-2">
               <p className="text-sm font-bold">{a.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{a.message}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {a.message}
+              </p>
             </div>
           ))
         )}
       </div>
       <div className="grid grid-cols-1 gap-2">
-        <input placeholder="Title" className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea placeholder="Message" className={inputClass} rows={2} value={message} onChange={(e) => setMessage(e.target.value)} />
+        <input
+          placeholder="Title"
+          className={inputClass}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <textarea
+          placeholder="Message"
+          className={inputClass}
+          rows={2}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
         <button
           onClick={post}
           disabled={posting || !title.trim() || !message.trim()}

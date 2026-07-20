@@ -13,7 +13,8 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  IndianRupee,
+  Hash,
+  FileText,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
 
@@ -32,17 +33,11 @@ interface DeptForm {
   name: string;
   code: string;
   description: string;
-  budget: string;
-  shiftStartTime: string;
-  shiftEndTime: string;
 }
 const EMPTY_FORM: DeptForm = {
   name: "",
   code: "",
   description: "",
-  budget: "",
-  shiftStartTime: "",
-  shiftEndTime: "",
 };
 
 export default function DepartmentsPage() {
@@ -59,9 +54,7 @@ export default function DepartmentsPage() {
     message: string;
   }>({ show: false, type: "success", title: "", message: "" });
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<"name" | "headcount" | "budget">(
-    "name",
-  );
+  const [sortKey, setSortKey] = useState<"name" | "headcount">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -73,7 +66,10 @@ export default function DepartmentsPage() {
   // it's sorted client-side over whatever page is currently loaded.
   const deptParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (search) params.search = search;
       if (sortKey !== "headcount") {
         params.sortBy = sortKey;
@@ -128,9 +124,6 @@ export default function DepartmentsPage() {
       name: d.name,
       code: d.code,
       description: d.description || "",
-      budget: String(d.budget || ""),
-      shiftStartTime: (d as any).shiftStartTime || "",
-      shiftEndTime: (d as any).shiftEndTime || "",
     });
     setShowModal(true);
   };
@@ -139,16 +132,8 @@ export default function DepartmentsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (editDept)
-        await departmentAPI.update(editDept._id, {
-          ...form,
-          budget: Number(form.budget) || 0,
-        });
-      else
-        await departmentAPI.create({
-          ...form,
-          budget: Number(form.budget) || 0,
-        });
+      if (editDept) await departmentAPI.update(editDept._id, form);
+      else await departmentAPI.create(form);
       setActionModal({
         show: true,
         type: "success",
@@ -183,7 +168,6 @@ export default function DepartmentsPage() {
     if (sortKey === "name") cmp = a.name.localeCompare(b.name);
     else if (sortKey === "headcount")
       cmp = (a.headcount ?? 0) - (b.headcount ?? 0);
-    else if (sortKey === "budget") cmp = (a.budget ?? 0) - (b.budget ?? 0);
     return sortDir === "asc" ? cmp : -cmp;
   });
 
@@ -191,7 +175,6 @@ export default function DepartmentsPage() {
     (s, d) => s + (d.headcount || 0),
     0,
   );
-  const loadedBudget = departments.reduce((s, d) => s + (d.budget || 0), 0);
 
   return (
     <AppLayout title="Departments">
@@ -208,7 +191,7 @@ export default function DepartmentsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5">
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
           <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5 text-[#024BAB]" />
@@ -229,19 +212,6 @@ export default function DepartmentsPage() {
               Total Headcount
             </p>
             <p className="text-2xl font-bold text-black">{loadedHeadcount}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#FA731C]/10 border-2 border-[#FA731C] flex items-center justify-center shrink-0">
-            <IndianRupee className="w-5 h-5 text-[#FA731C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Budget
-            </p>
-            <p className="text-2xl font-bold text-black">
-              ₹{loadedBudget.toLocaleString("en-IN")}
-            </p>
           </div>
         </div>
       </div>
@@ -270,7 +240,6 @@ export default function DepartmentsPage() {
         >
           <option value="name">Sort: Name</option>
           <option value="headcount">Sort: Headcount</option>
-          <option value="budget">Sort: Budget</option>
         </select>
         <button
           onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
@@ -321,8 +290,6 @@ export default function DepartmentsPage() {
                   "Department",
                   "Code",
                   "Description",
-                  "Shift Timings",
-                  "Budget (₹)",
                   "Headcount",
                   "Head",
                   "Actions",
@@ -367,22 +334,6 @@ export default function DepartmentsPage() {
                     <span className="line-clamp-1">
                       {dept.description || "—"}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {(dept as any).shiftStartTime &&
-                    (dept as any).shiftEndTime ? (
-                      <span className="text-xs font-bold text-[#024BAB] border-2 border-[#024BAB] bg-[#024BAB]/10 px-2 py-0.5">
-                        {(dept as any).shiftStartTime} –{" "}
-                        {(dept as any).shiftEndTime}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-bold text-black">
-                    {dept.budget
-                      ? `₹${Number(dept.budget).toLocaleString("en-IN")}`
-                      : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
@@ -482,34 +433,37 @@ export default function DepartmentsPage() {
             >
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                <label className="block text-xs font-bold text-black mb-1">
-                  Department Name
-                </label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="border-2 border-black w-full px-3 py-2 text-sm"
-                  required
-                  placeholder="e.g. Engineering"
-                />
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                    <Building2 className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Department Name
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="border-2 border-black w-full px-3 py-2 text-sm"
+                    required
+                    placeholder="e.g. Engineering"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                    <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Code
+                  </label>
+                  <input
+                    value={form.code}
+                    onChange={(e) =>
+                      setForm({ ...form, code: e.target.value.toUpperCase() })
+                    }
+                    className="border-2 border-black w-full px-3 py-2 text-sm uppercase"
+                    required
+                    placeholder="e.g. ENG"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-black mb-1">
-                  Code
-                </label>
-                <input
-                  value={form.code}
-                  onChange={(e) =>
-                    setForm({ ...form, code: e.target.value.toUpperCase() })
-                  }
-                  className="border-2 border-black w-full px-3 py-2 text-sm uppercase"
-                  required
-                  placeholder="e.g. ENG"
-                />
-              </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-black mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black mb-1">
+                  <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
                   Description
                 </label>
                 <textarea
@@ -521,48 +475,6 @@ export default function DepartmentsPage() {
                   rows={2}
                   placeholder="Optional description"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-black mb-1">
-                  Budget (₹)
-                </label>
-                <input
-                  type="number"
-                  value={form.budget}
-                  onChange={(e) => setForm({ ...form, budget: e.target.value })}
-                  className="border-2 border-black w-full px-3 py-2 text-sm"
-                  placeholder="Annual budget"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-black mb-1">
-                    Shift Start Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={form.shiftStartTime}
-                    onChange={(e) =>
-                      setForm({ ...form, shiftStartTime: e.target.value })
-                    }
-                    className="border-2 border-black w-full px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-black mb-1">
-                    Shift End Time
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={form.shiftEndTime}
-                    onChange={(e) =>
-                      setForm({ ...form, shiftEndTime: e.target.value })
-                    }
-                    className="border-2 border-black w-full px-3 py-2 text-sm"
-                  />
-                </div>
               </div>
               <div className="flex gap-3">
                 <button

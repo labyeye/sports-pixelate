@@ -31,19 +31,47 @@ import {
   LoadMoreFooter,
   SortOption,
 } from '../components/ui';
-import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import {
+  ImportExportModal,
+  ImportHeader,
+} from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 
 const EMPLOYEE_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Rahul' },
   { key: 'lastName', label: 'Last Name', required: true, example: 'Sharma' },
-  { key: 'email', label: 'Email', required: true, example: 'rahul@sportsclub.com' },
-  { key: 'designation', label: 'Designation', required: true, example: 'Software Engineer' },
-  { key: 'joinDate', label: 'Join Date', required: true, example: '2024-01-15' },
+  {
+    key: 'email',
+    label: 'Email',
+    required: true,
+    example: 'rahul@sportsclub.com',
+  },
+  {
+    key: 'designation',
+    label: 'Designation',
+    required: true,
+    example: 'Software Engineer',
+  },
+  {
+    key: 'joinDate',
+    label: 'Join Date',
+    required: true,
+    example: '2024-01-15',
+  },
   { key: 'phone', label: 'Phone', required: false, example: '9876543210' },
-  { key: 'department', label: 'Department', required: false, example: 'Engineering' },
-  { key: 'employmentType', label: 'Employment Type', required: false, example: 'full_time' },
+  {
+    key: 'department',
+    label: 'Department',
+    required: false,
+    example: 'Engineering',
+  },
+  {
+    key: 'employmentType',
+    label: 'Employment Type',
+    required: false,
+    example: 'full_time',
+  },
   { key: 'gender', label: 'Gender', required: false, example: 'male' },
   { key: 'salary', label: 'Salary', required: false, example: '35000' },
 ];
@@ -167,7 +195,10 @@ export default function EmployeesScreen({ navigation }: any) {
               await employeeAPI.delete(emp._id);
               setEmployees(prev => prev.filter(e => e._id !== emp._id));
             } catch (e: any) {
-              Alert.alert('Error', e?.message || 'Could not delete staff member');
+              Alert.alert(
+                'Error',
+                e?.message || 'Could not delete staff member',
+              );
             }
           },
         },
@@ -196,7 +227,10 @@ export default function EmployeesScreen({ navigation }: any) {
           <TouchableOpacity
             onPress={() =>
               exportRowsToExcel(
-                EMPLOYEE_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                EMPLOYEE_IMPORT_HEADERS.map(h => ({
+                  key: h.key,
+                  label: h.label,
+                })),
                 employees,
                 'employees_export.xlsx',
                 'Employees',
@@ -241,7 +275,11 @@ export default function EmployeesScreen({ navigation }: any) {
       </View>
 
       <View style={styles.pillWrap}>
-        <StatPills options={statPillOptions} value={status} onChange={setStatus} />
+        <StatPills
+          options={statPillOptions}
+          value={status}
+          onChange={setStatus}
+        />
       </View>
 
       {departments.length > 0 && (
@@ -277,7 +315,9 @@ export default function EmployeesScreen({ navigation }: any) {
             <TouchableOpacity
               style={styles.card}
               activeOpacity={0.85}
-              onPress={() => navigation.navigate('AddEmployee', { employee: e })}
+              onPress={() =>
+                navigation.navigate('AddEmployee', { employee: e })
+              }
             >
               <View style={styles.cardTop}>
                 {e.avatar ? (
@@ -302,9 +342,15 @@ export default function EmployeesScreen({ navigation }: any) {
                     {e.designation || e.department?.name || ''}
                   </Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                <View
+                  style={[styles.statusBadge, { backgroundColor: statusColor }]}
+                >
                   <Text style={styles.statusText}>
-                    {(STATUS_CONFIG[e.status]?.label || e.status || '').toUpperCase()}
+                    {(
+                      STATUS_CONFIG[e.status]?.label ||
+                      e.status ||
+                      ''
+                    ).toUpperCase()}
                   </Text>
                 </View>
               </View>
@@ -343,7 +389,10 @@ export default function EmployeesScreen({ navigation }: any) {
                   >
                     <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(e)}>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => onDelete(e)}
+                  >
                     <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
                   </TouchableOpacity>
                 </View>
@@ -378,7 +427,9 @@ export default function EmployeesScreen({ navigation }: any) {
           'Department must exactly match a department already created.',
           'Maximum 200 employees per import.',
         ]}
-        previewLine={r => `${r.firstName} ${r.lastName} — ${r.designation || '—'}`}
+        previewLine={r =>
+          `${r.firstName} ${r.lastName} — ${r.designation || '—'}`
+        }
         onImport={rows => employeeAPI.bulkImport(rows) as any}
         onImported={load}
       />
@@ -470,12 +521,37 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
   },
   avatarImg: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
-  avatarText: { color: colors.white, fontWeight: '700', fontSize: 14, fontFamily: FONT.bold },
-  empName: { fontSize: 15, fontWeight: '700', color: colors.black, fontFamily: FONT.bold },
+  avatarText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: FONT.bold,
+  },
+  empName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   empId: { fontSize: 11, color: colors.muted, fontFamily: 'monospace' },
-  empDesig: { fontSize: 12, color: colors.muted, fontWeight: '500', marginTop: 1 },
-  statusBadge: { borderWidth: 2, borderColor: colors.black, paddingHorizontal: 6, paddingVertical: 2 },
-  statusText: { fontSize: 9, fontWeight: '700', color: colors.white, fontFamily: FONT.bold },
+  empDesig: {
+    fontSize: 12,
+    color: colors.muted,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  statusBadge: {
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.white,
+    fontFamily: FONT.bold,
+  },
   cardMeta: { marginTop: 10, gap: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaText: { fontSize: 12, color: colors.muted, fontWeight: '500', flex: 1 },
@@ -495,7 +571,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  typePillText: { fontSize: 9, fontWeight: '700', color: colors.blue, fontFamily: FONT.bold },
+  typePillText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.blue,
+    fontFamily: FONT.bold,
+  },
   editBtn: {
     width: 30,
     height: 30,

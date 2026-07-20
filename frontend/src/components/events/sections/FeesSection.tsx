@@ -1,4 +1,4 @@
-import { IndianRupee } from "lucide-react";
+import { IndianRupee, Banknote, BadgePercent, Clock } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { DateTimePicker } from "@/components/ui/DateTimePicker";
 import type { EventFees } from "@/types/hrms";
@@ -8,35 +8,59 @@ interface Props {
   onChange: (patch: Partial<EventFees>) => void;
 }
 
-const inputClass = "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
-const labelClass = "block text-xs font-bold uppercase mb-1";
+const inputClass =
+  "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
+const labelClass = "flex items-center gap-1.5 text-xs font-bold uppercase mb-1";
 
 export function FeesSection({ value, onChange }: Props) {
   return (
     <CollapsibleSection title="Fees" icon={IndianRupee}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Entry Fee (₹)</label>
+          <label className={labelClass}>
+            <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
+            Entry Fee (₹)
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.entryFee ?? ""}
-            onChange={(e) => onChange({ entryFee: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                entryFee: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
           />
         </div>
         <div>
-          <label className={labelClass}>Currency</label>
-          <input className={inputClass} value={value.currency || "INR"} onChange={(e) => onChange({ currency: e.target.value })} />
+          <label className={labelClass}>
+            <Banknote className="w-3.5 h-3.5 text-[#024BAB]" />
+            Currency
+          </label>
+          <input
+            className={inputClass}
+            value={value.currency || "INR"}
+            onChange={(e) => onChange({ currency: e.target.value })}
+          />
         </div>
         <div>
-          <label className={labelClass}>Early Bird Discount (₹)</label>
+          <label className={labelClass}>
+            <BadgePercent className="w-3.5 h-3.5 text-[#024BAB]" />
+            Early Bird Discount (₹)
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.earlyBirdDiscount ?? ""}
-            onChange={(e) => onChange({ earlyBirdDiscount: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                earlyBirdDiscount: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <DateTimePicker
@@ -45,13 +69,22 @@ export function FeesSection({ value, onChange }: Props) {
           onChange={(v) => onChange({ earlyBirdDeadline: v })}
         />
         <div>
-          <label className={labelClass}>Late Registration Fee (₹)</label>
+          <label className={labelClass}>
+            <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
+            Late Registration Fee (₹)
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.lateRegistrationFee ?? ""}
-            onChange={(e) => onChange({ lateRegistrationFee: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                lateRegistrationFee: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <DateTimePicker
@@ -63,7 +96,9 @@ export function FeesSection({ value, onChange }: Props) {
           <input
             type="checkbox"
             checked={!!value.onlinePaymentEnabled}
-            onChange={(e) => onChange({ onlinePaymentEnabled: e.target.checked })}
+            onChange={(e) =>
+              onChange({ onlinePaymentEnabled: e.target.checked })
+            }
           />
           Online Payment Enabled
         </label>

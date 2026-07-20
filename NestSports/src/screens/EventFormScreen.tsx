@@ -1,31 +1,72 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Image as ImageIcon,
+  Type,
+  FileText,
+  User,
+  Phone,
+  Mail,
+  Globe,
+  Users,
+} from 'lucide-react-native';
 import {
   LoadingView,
   TextField,
   ImagePicker,
-  StickyFooter,
+  Card,
+  SectionTitle,
+  CollapsibleSection,
+  Button,
   useToast,
   type PickedImage,
 } from '../components/ui';
 import { colors } from '../theme/colors';
 import { eventAPI } from '../api/client';
-import { eventTypes, getSectionsForEventType, type EventTypeKey } from '../config/eventTypeConfig';
+import {
+  eventTypes,
+  getSectionsForEventType,
+  type EventTypeKey,
+} from '../config/eventTypeConfig';
 import EventTypePicker from '../components/events/EventTypePicker';
 import ActivityPicker from '../components/events/ActivityPicker';
-import VenueSection, { VenueData } from '../components/events/sections/VenueSection';
-import ScheduleSection, { ScheduleData } from '../components/events/sections/ScheduleSection';
-import ParticipationSection, { ParticipationData } from '../components/events/sections/ParticipationSection';
-import CategoriesSection, { CategoriesData } from '../components/events/sections/CategoriesSection';
-import FeesSection, { FeesData } from '../components/events/sections/FeesSection';
-import AwardsSection, { AwardsData } from '../components/events/sections/AwardsSection';
-import OfficialsSection, { Official } from '../components/events/sections/OfficialsSection';
-import AutomationSection, { AutomationData } from '../components/events/sections/AutomationSection';
-import SportFieldsSection, { SportFieldsData } from '../components/events/sections/SportFieldsSection';
-import DanceFieldsSection, { DanceFieldsData } from '../components/events/sections/DanceFieldsSection';
-import WorkshopFieldsSection, { WorkshopFieldsData } from '../components/events/sections/WorkshopFieldsSection';
-import PerformanceFieldsSection, { PerformanceFieldsData } from '../components/events/sections/PerformanceFieldsSection';
+import VenueSection, {
+  VenueData,
+} from '../components/events/sections/VenueSection';
+import ScheduleSection, {
+  ScheduleData,
+} from '../components/events/sections/ScheduleSection';
+import ParticipationSection, {
+  ParticipationData,
+} from '../components/events/sections/ParticipationSection';
+import CategoriesSection, {
+  CategoriesData,
+} from '../components/events/sections/CategoriesSection';
+import FeesSection, {
+  FeesData,
+} from '../components/events/sections/FeesSection';
+import AwardsSection, {
+  AwardsData,
+} from '../components/events/sections/AwardsSection';
+import OfficialsSection, {
+  Official,
+} from '../components/events/sections/OfficialsSection';
+import AutomationSection, {
+  AutomationData,
+} from '../components/events/sections/AutomationSection';
+import SportFieldsSection, {
+  SportFieldsData,
+} from '../components/events/sections/SportFieldsSection';
+import DanceFieldsSection, {
+  DanceFieldsData,
+} from '../components/events/sections/DanceFieldsSection';
+import WorkshopFieldsSection, {
+  WorkshopFieldsData,
+} from '../components/events/sections/WorkshopFieldsSection';
+import PerformanceFieldsSection, {
+  PerformanceFieldsData,
+} from '../components/events/sections/PerformanceFieldsSection';
 
 export default function EventFormScreen({ route, navigation }: any) {
   const id: string | undefined = route.params?.id;
@@ -51,7 +92,9 @@ export default function EventFormScreen({ route, navigation }: any) {
 
   const [schedule, setSchedule] = useState<ScheduleData>({});
   const [venue, setVenue] = useState<VenueData>({});
-  const [participation, setParticipation] = useState<ParticipationData>({ type: 'team' });
+  const [participation, setParticipation] = useState<ParticipationData>({
+    type: 'team',
+  });
   const [categories, setCategories] = useState<CategoriesData>({});
   const [entryFee, setEntryFee] = useState('');
   const [fees, setFees] = useState<FeesData>({ currency: 'INR' });
@@ -61,7 +104,8 @@ export default function EventFormScreen({ route, navigation }: any) {
   const [sportFields, setSportFields] = useState<SportFieldsData>({});
   const [danceFields, setDanceFields] = useState<DanceFieldsData>({});
   const [workshopFields, setWorkshopFields] = useState<WorkshopFieldsData>({});
-  const [performanceFields, setPerformanceFields] = useState<PerformanceFieldsData>({});
+  const [performanceFields, setPerformanceFields] =
+    useState<PerformanceFieldsData>({});
 
   const [coverImage, setCoverImage] = useState<PickedImage | undefined>();
   const [bannerImage, setBannerImage] = useState<PickedImage | undefined>();
@@ -140,15 +184,20 @@ export default function EventFormScreen({ route, navigation }: any) {
       };
       if (sections.includes('sportFields')) payload.sportFields = sportFields;
       if (sections.includes('danceFields')) payload.danceFields = danceFields;
-      if (sections.includes('workshopFields')) payload.workshopFields = workshopFields;
-      if (sections.includes('performanceFields')) payload.performanceFields = performanceFields;
+      if (sections.includes('workshopFields'))
+        payload.workshopFields = workshopFields;
+      if (sections.includes('performanceFields'))
+        payload.performanceFields = performanceFields;
 
       let eventId = id;
       if (isEdit) {
         await eventAPI.update(id, payload);
       } else {
         if (initialTeams.trim()) {
-          payload.teams = initialTeams.split(',').map(t => t.trim()).filter(Boolean);
+          payload.teams = initialTeams
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean);
         }
         const res: any = await eventAPI.create(payload);
         eventId = res.data._id;
@@ -171,30 +220,93 @@ export default function EventFormScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        <TextField label="Event Name" value={name} onChangeText={setName} placeholder="e.g. Summer Football Cup" required />
-        <EventTypePicker value={eventType} onChange={setEventType} />
-        <ActivityPicker
-          activityCategory={eventTypes[eventType]?.category || null}
-          value={activity}
-          onChange={setActivity}
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      >
+        <ImagePicker
+          label="Cover Image"
+          value={coverImage}
+          previewUrl={coverUrl}
+          onChange={setCoverImage}
+          icon={ImageIcon}
         />
-        <TextField label="Description" value={description} onChangeText={setDescription} multiline />
-        <TextField label="Organizer Name" value={organizerName} onChangeText={setOrganizerName} />
-        <TextField label="Contact Person" value={contactPerson} onChangeText={setContactPerson} />
-        <TextField label="Mobile Number" value={mobileNumber} onChangeText={setMobileNumber} keyboardType="phone-pad" />
-        <TextField label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        <TextField label="Website" value={website} onChangeText={setWebsite} />
-        {!isEdit && (
+        <ImagePicker
+          label="Banner Image"
+          value={bannerImage}
+          previewUrl={bannerUrl}
+          onChange={setBannerImage}
+          icon={ImageIcon}
+        />
+
+        <Card>
+          <SectionTitle title="Event Details" />
           <TextField
-            label="Initial Teams (comma-separated)"
-            value={initialTeams}
-            onChangeText={setInitialTeams}
-            placeholder="Team A, Team B"
+            label="Event Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. Summer Football Cup"
+            required
+            icon={Type}
           />
-        )}
-        <ImagePicker label="Cover Image" value={coverImage} previewUrl={coverUrl} onChange={setCoverImage} />
-        <ImagePicker label="Banner Image" value={bannerImage} previewUrl={bannerUrl} onChange={setBannerImage} />
+          <EventTypePicker value={eventType} onChange={setEventType} />
+          <ActivityPicker
+            activityCategory={eventTypes[eventType]?.category || null}
+            value={activity}
+            onChange={setActivity}
+          />
+          <TextField
+            label="Description"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            icon={FileText}
+          />
+        </Card>
+
+        <CollapsibleSection title="Organizer & Contact">
+          <TextField
+            label="Organizer Name"
+            value={organizerName}
+            onChangeText={setOrganizerName}
+            icon={User}
+          />
+          <TextField
+            label="Contact Person"
+            value={contactPerson}
+            onChangeText={setContactPerson}
+            icon={User}
+          />
+          <TextField
+            label="Mobile Number"
+            value={mobileNumber}
+            onChangeText={setMobileNumber}
+            keyboardType="phone-pad"
+            icon={Phone}
+          />
+          <TextField
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            icon={Mail}
+          />
+          <TextField
+            label="Website"
+            value={website}
+            onChangeText={setWebsite}
+            icon={Globe}
+          />
+          {!isEdit && (
+            <TextField
+              label="Initial Teams (comma-separated)"
+              value={initialTeams}
+              onChangeText={setInitialTeams}
+              placeholder="Team A, Team B"
+              icon={Users}
+            />
+          )}
+        </CollapsibleSection>
 
         <VenueSection value={venue} onChange={setVenue} />
         <ScheduleSection
@@ -205,28 +317,60 @@ export default function EventFormScreen({ route, navigation }: any) {
           onChangeStartDate={setStartDate}
           onChangeEndDate={setEndDate}
         />
-        <ParticipationSection value={participation} onChange={setParticipation} />
+        <ParticipationSection
+          value={participation}
+          onChange={setParticipation}
+        />
         <CategoriesSection value={categories} onChange={setCategories} />
-        <FeesSection entryFee={entryFee} onChangeEntryFee={setEntryFee} value={fees} onChange={setFees} />
+        <FeesSection
+          entryFee={entryFee}
+          onChangeEntryFee={setEntryFee}
+          value={fees}
+          onChange={setFees}
+        />
         <AwardsSection value={awards} onChange={setAwards} />
-        <OfficialsSection eventId={id} officials={officials} onChanged={setOfficials} />
+        <OfficialsSection
+          eventId={id}
+          officials={officials}
+          onChanged={setOfficials}
+        />
         <AutomationSection value={automation} onChange={setAutomation} />
 
         {sections.includes('sportFields') && (
-          <SportFieldsSection format={format} onChangeFormat={setFormat} value={sportFields} onChange={setSportFields} />
+          <SportFieldsSection
+            format={format}
+            onChangeFormat={setFormat}
+            value={sportFields}
+            onChange={setSportFields}
+          />
         )}
-        {sections.includes('danceFields') && <DanceFieldsSection value={danceFields} onChange={setDanceFields} />}
-        {sections.includes('workshopFields') && <WorkshopFieldsSection value={workshopFields} onChange={setWorkshopFields} />}
+        {sections.includes('danceFields') && (
+          <DanceFieldsSection value={danceFields} onChange={setDanceFields} />
+        )}
+        {sections.includes('workshopFields') && (
+          <WorkshopFieldsSection
+            value={workshopFields}
+            onChange={setWorkshopFields}
+          />
+        )}
         {sections.includes('performanceFields') && (
-          <PerformanceFieldsSection value={performanceFields} onChange={setPerformanceFields} />
+          <PerformanceFieldsSection
+            value={performanceFields}
+            onChange={setPerformanceFields}
+          />
+        )}
+
+        <Button
+          title={
+            saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Event'
+          }
+          onPress={handleSubmit}
+          disabled={saving}
+        />
+        {saving && (
+          <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />
         )}
       </ScrollView>
-      <StickyFooter
-        onSave={handleSubmit}
-        onCancel={() => navigation.goBack()}
-        saveLabel={isEdit ? 'Save Changes' : 'Create Event'}
-        saving={saving}
-      />
     </SafeAreaView>
   );
 }

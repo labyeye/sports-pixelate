@@ -88,9 +88,7 @@ const EMPTY_LOC = { name: '', address: '', description: '' };
 const EMPTY_DEV = { name: '', location: '' };
 
 export default function BiometricDeviceScreen() {
-  const [tab, setTab] = useState<'locations' | 'devices' | 'sync'>(
-    'locations',
-  );
+  const [tab, setTab] = useState<'locations' | 'devices' | 'sync'>('locations');
   const [locations, setLocations] = useState<Location[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
@@ -626,9 +624,7 @@ export default function BiometricDeviceScreen() {
                     <View style={styles.devDetail}>
                       {dev.activationCode && !dev.activated && (
                         <View style={styles.codeBox}>
-                          <Text style={styles.codeLabel}>
-                            ACTIVATION CODE
-                          </Text>
+                          <Text style={styles.codeLabel}>ACTIVATION CODE</Text>
                           <Text style={styles.codeValue}>
                             {dev.activationCode}
                           </Text>
@@ -663,9 +659,7 @@ export default function BiometricDeviceScreen() {
                         onPress={() => handleSync(dev._id)}
                       >
                         <RefreshCw size={13} color={colors.white} />
-                        <Text style={styles.syncBtnText}>
-                          Sync All People
-                        </Text>
+                        <Text style={styles.syncBtnText}>Sync All People</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -721,9 +715,7 @@ export default function BiometricDeviceScreen() {
                     <Cpu
                       size={15}
                       color={
-                        syncDevice?._id === d._id
-                          ? colors.blue
-                          : colors.black
+                        syncDevice?._id === d._id ? colors.blue : colors.black
                       }
                     />
                     <Text
@@ -827,9 +819,7 @@ export default function BiometricDeviceScreen() {
                       <View style={sync.stepBadge}>
                         <Text style={sync.stepNum}>3</Text>
                       </View>
-                      <Text style={sync.stepTitle}>
-                        Assign IDs & Sync
-                      </Text>
+                      <Text style={sync.stepTitle}>Assign IDs & Sync</Text>
                     </View>
                     <Text style={[sync.hint, { paddingHorizontal: 16 }]}>
                       Set Device User ID, assign RFID, then sync.
@@ -862,8 +852,7 @@ export default function BiometricDeviceScreen() {
                   </View>
                 ) : people.length === 0 ? (
                   <Text style={[sync.hint, { padding: 16 }]}>
-                    No {personType === 'employee' ? 'staff' : 'students'}{' '}
-                    found.
+                    No {personType === 'employee' ? 'staff' : 'students'} found.
                   </Text>
                 ) : (
                   people.map((p, i) => (
@@ -1265,7 +1254,11 @@ export default function BiometricDeviceScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Button title="Save Device" onPress={saveDevice} loading={devSaving} />
+            <Button
+              title="Save Device"
+              onPress={saveDevice}
+              loading={devSaving}
+            />
           </View>
         </View>
       </Modal>
@@ -1319,7 +1312,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  card: { backgroundColor: colors.white, borderWidth: 2, borderColor: colors.black },
+  card: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.black,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1328,8 +1325,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   rowBorder: { borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  rowTitle: { fontFamily: FONT.bold, fontSize: 14, fontWeight: '700', color: colors.black },
-  rowSub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  rowTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  rowSub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
   locIcon: {
     width: 36,
     height: 36,
@@ -1350,7 +1357,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3,
   },
-  badgeText: { fontFamily: FONT.bold, fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  badgeText: {
+    fontFamily: FONT.bold,
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
   devDetail: {
     backgroundColor: colors.background,
     borderTopWidth: 1,
@@ -1381,7 +1393,12 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   codeSub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
-  lastSeen: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginBottom: 8 },
+  lastSeen: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginBottom: 8,
+  },
   devActions: { flexDirection: 'row', gap: 8 },
   devActionBtn: {
     flexDirection: 'row',
@@ -1418,7 +1435,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { fontFamily: FONT.bold, fontSize: 14, fontWeight: '700', color: colors.muted },
+  emptyText: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.muted,
+  },
   emptySub: { fontFamily: FONT.medium, fontSize: 12, color: '#9CA3AF' },
   overlay: {
     flex: 1,
@@ -1438,7 +1460,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  modalTitle: { fontFamily: FONT.bold, fontSize: 18, fontWeight: '700', color: colors.black },
+  modalTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.black,
+  },
   field: { marginBottom: 14 },
   fieldLabel: {
     fontFamily: FONT.bold,
@@ -1469,7 +1496,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   locOptionSelected: { borderColor: colors.blue, backgroundColor: '#EFF6FF' },
-  locOptionText: { fontFamily: FONT.medium, fontSize: 14, fontWeight: '600', color: colors.black },
+  locOptionText: {
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.black,
+  },
 });
 
 const sync = StyleSheet.create({
@@ -1493,7 +1525,12 @@ const sync = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepNum: { color: colors.white, fontFamily: FONT.bold, fontSize: 11, fontWeight: '700' },
+  stepNum: {
+    color: colors.white,
+    fontFamily: FONT.bold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
   stepTitle: {
     fontFamily: FONT.bold,
     fontSize: 13,
@@ -1501,7 +1538,12 @@ const sync = StyleSheet.create({
     color: colors.black,
     textTransform: 'uppercase',
   },
-  hint: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, lineHeight: 16 },
+  hint: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    lineHeight: 16,
+  },
   deviceCard: {
     borderWidth: 2,
     borderColor: colors.black,
@@ -1510,8 +1552,18 @@ const sync = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   deviceCardActive: { borderColor: colors.blue, backgroundColor: '#EFF6FF' },
-  deviceName: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '800', color: colors.black },
-  deviceSub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  deviceName: {
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.black,
+  },
+  deviceSub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
   snBadge: {
     marginLeft: 'auto',
     borderWidth: 2,
@@ -1520,7 +1572,12 @@ const sync = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  snBadgeText: { fontFamily: FONT.bold, fontSize: 9, fontWeight: '700', color: colors.green },
+  snBadgeText: {
+    fontFamily: FONT.bold,
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.green,
+  },
   saveSerialBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1588,7 +1645,12 @@ const sync = StyleSheet.create({
     flexWrap: 'wrap',
   },
   personRowBorder: { borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  personName: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', color: colors.black },
+  personName: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.black,
+  },
   personId: {
     fontSize: 12,
     color: colors.muted,
@@ -1628,7 +1690,12 @@ const sync = StyleSheet.create({
     paddingVertical: 5,
     backgroundColor: colors.white,
   },
-  actionBtnText: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '700', color: colors.black },
+  actionBtnText: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.black,
+  },
   cmdHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1647,7 +1714,12 @@ const sync = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  refreshBtnText: { fontFamily: FONT.bold, fontSize: 11, fontWeight: '700', color: colors.black },
+  refreshBtnText: {
+    fontFamily: FONT.bold,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.black,
+  },
   cmdRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1663,7 +1735,12 @@ const sync = StyleSheet.create({
     color: colors.black,
     textTransform: 'uppercase',
   },
-  cmdTime: { fontFamily: FONT.medium, fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  cmdTime: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
   cmdStatus: {
     borderWidth: 2,
     paddingHorizontal: 7,
@@ -1686,6 +1763,16 @@ const sync = StyleSheet.create({
     padding: 12,
     marginBottom: 14,
   },
-  rfidPersonName: { fontFamily: FONT.bold, fontSize: 14, fontWeight: '700', color: colors.black },
-  rfidPersonId: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  rfidPersonName: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  rfidPersonId: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
 });

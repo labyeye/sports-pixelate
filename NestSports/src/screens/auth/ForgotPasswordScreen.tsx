@@ -103,42 +103,57 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           >
             <View>
               <TouchableOpacity
-              style={{
-                alignSelf: 'center',
-                marginBottom: 16,
-                width: 50,
-                height: 50,
-                borderRadius: 25,
-                backgroundColor: colors.blue,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: 8,
-              }}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Mail color={colors.white} size={26} />
-            </TouchableOpacity>
-            <Text style={{ color: colors.muted, marginTop: 0 , textAlign: 'center' }}>Email</Text>
+                style={{
+                  alignSelf: 'center',
+                  marginBottom: 16,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: colors.blue,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 8,
+                }}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Mail color={colors.white} size={26} />
+              </TouchableOpacity>
+              <Text
+                style={{
+                  color: colors.muted,
+                  marginTop: 0,
+                  textAlign: 'center',
+                }}
+              >
+                Email
+              </Text>
             </View>
             <View>
               <TouchableOpacity
-              style={{
-                alignSelf: 'center',
-                marginBottom: 16,
-                width: 50,
-                height: 50,
-                borderRadius: 25,
-                backgroundColor: colors.blue,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: 8,
-              }}
-              onPress={() => navigation.navigate('PhoneOtpLogin')}
-            >
-              <Smartphone color={colors.white} size={26} />
-            </TouchableOpacity>
-                        <Text style={{ color: colors.muted, marginTop: 0 , textAlign: 'center' }}>Phone</Text>
-
+                style={{
+                  alignSelf: 'center',
+                  marginBottom: 16,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: colors.blue,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 8,
+                }}
+                onPress={() => navigation.navigate('PhoneOtpLogin')}
+              >
+                <Smartphone color={colors.white} size={26} />
+              </TouchableOpacity>
+              <Text
+                style={{
+                  color: colors.muted,
+                  marginTop: 0,
+                  textAlign: 'center',
+                }}
+              >
+                Phone
+              </Text>
             </View>
           </View>
         </ScrollView>

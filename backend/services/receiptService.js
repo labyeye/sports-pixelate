@@ -26,7 +26,13 @@ async function generateReceiptPdf({ subscription, payment }) {
   let y = 510;
   const left = 32;
 
-  page.drawText("Payment Receipt", { x: left, y, size: 20, font: bold, color: black });
+  page.drawText("Payment Receipt", {
+    x: left,
+    y,
+    size: 20,
+    font: bold,
+    color: black,
+  });
   y -= 20;
   page.drawText("NestSports", { x: left, y, size: 11, font, color: gray });
   y -= 30;
@@ -43,16 +49,23 @@ async function generateReceiptPdf({ subscription, payment }) {
     y -= 22;
   };
 
-  row("Receipt No.", `${subscription._id}-${payment._id}`.slice(-18).toUpperCase());
+  row(
+    "Receipt No.",
+    `${subscription._id}-${payment._id}`.slice(-18).toUpperCase(),
+  );
   row(
     "Student",
     `${subscription.student?.firstName || ""} ${subscription.student?.lastName || ""}`.trim(),
   );
   row("Plan", subscription.planName);
   row("Billing Cycle", subscription.billingCycle);
-  row("Payment Method", payment.method === "razorpay" ? "Online (Razorpay)" : "UPI / QR");
+  row(
+    "Payment Method",
+    payment.method === "razorpay" ? "Online (Razorpay)" : "UPI / QR",
+  );
   if (payment.utrNumber) row("UTR Number", payment.utrNumber);
-  if (payment.transactionNumber) row("Transaction No.", payment.transactionNumber);
+  if (payment.transactionNumber)
+    row("Transaction No.", payment.transactionNumber);
   row("Submitted On", formatDate(payment.submittedAt));
   row("Verified On", formatDate(payment.verifiedAt));
 
@@ -65,7 +78,13 @@ async function generateReceiptPdf({ subscription, payment }) {
   });
   y -= 30;
 
-  page.drawText("Amount Paid", { x: left, y, size: 12, font: bold, color: black });
+  page.drawText("Amount Paid", {
+    x: left,
+    y,
+    size: 12,
+    font: bold,
+    color: black,
+  });
   page.drawText(formatCurrency(payment.amount), {
     x: left + 160,
     y,

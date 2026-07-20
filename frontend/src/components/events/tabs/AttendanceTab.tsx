@@ -27,7 +27,11 @@ export function AttendanceTab({ eventId }: Props) {
         const res = await eventAPI.getAttendance(eventId);
         setItems(res.data || []);
       } catch (e: any) {
-        toast({ title: "Error", description: e.message, variant: "destructive" });
+        toast({
+          title: "Error",
+          description: e.message,
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -46,16 +50,24 @@ export function AttendanceTab({ eventId }: Props) {
         </div>
       ) : items.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-6">
-          No attendance recorded yet. Enable QR Check-in / Attendance Tracking in Settings to start.
+          No attendance recorded yet. Enable QR Check-in / Attendance Tracking
+          in Settings to start.
         </p>
       ) : (
         <div className="space-y-2">
           {items.map((r) => (
-            <div key={r._id} className="flex items-center justify-between border-2 border-black/10 px-3 py-2">
+            <div
+              key={r._id}
+              className="flex items-center justify-between border-2 border-black/10 px-3 py-2"
+            >
               <span className="text-sm font-bold">
-                {typeof r.student === "object" ? `${r.student.firstName} ${r.student.lastName}` : "Participant"}
+                {typeof r.student === "object"
+                  ? `${r.student.firstName} ${r.student.lastName}`
+                  : "Participant"}
               </span>
-              <span className={`text-xs font-bold uppercase ${r.status === "present" ? "text-[#00C48C]" : "text-red-500"}`}>
+              <span
+                className={`text-xs font-bold uppercase ${r.status === "present" ? "text-[#00C48C]" : "text-red-500"}`}
+              >
                 {r.status}
               </span>
             </div>

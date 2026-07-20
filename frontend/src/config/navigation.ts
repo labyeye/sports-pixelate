@@ -168,6 +168,12 @@ const allGroups: NavGroup[] = [
         roles: ["parent"],
       },
       {
+        title: "Attendance",
+        href: "/parent-attendance",
+        icon: Clock,
+        roles: ["parent"],
+      },
+      {
         title: "Subscriptions",
         href: "/subscriptions",
         icon: Wallet,
@@ -177,6 +183,12 @@ const allGroups: NavGroup[] = [
         title: "Bookings",
         href: "/bookings",
         icon: CalendarClock,
+        roles: ["parent"],
+      },
+      {
+        title: "Student Report",
+        href: "/parent-report",
+        icon: FileText,
         roles: ["parent"],
       },
     ],

@@ -127,7 +127,10 @@ export default function EmployeeCredentialsScreen() {
     setSaving(true);
     try {
       await employeeAPI.resetPassword(resetFor._id, newPassword);
-      Alert.alert('Success', `Password reset for ${resetFor.firstName} ${resetFor.lastName}`);
+      Alert.alert(
+        'Success',
+        `Password reset for ${resetFor.firstName} ${resetFor.lastName}`,
+      );
       setResetFor(null);
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Could not reset password');
@@ -213,9 +216,13 @@ export default function EmployeeCredentialsScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <SectionTitle
-              title={resetFor ? `${resetFor.firstName} ${resetFor.lastName}` : ''}
+              title={
+                resetFor ? `${resetFor.firstName} ${resetFor.lastName}` : ''
+              }
               sub={resetFor?.email}
             />
             <TextField
@@ -231,7 +238,12 @@ export default function EmployeeCredentialsScreen() {
               onPress={submitReset}
               disabled={saving}
             />
-            {saving && <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />}
+            {saving && (
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -247,7 +259,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -273,5 +290,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.black,
     backgroundColor: colors.white,
   },
-  formTitle: { fontSize: 17, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  formTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
 });

@@ -9,7 +9,9 @@ function Row({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex items-center justify-between border-2 border-black/10 px-3 py-2">
-      <span className="text-xs font-bold uppercase text-muted-foreground">{label}</span>
+      <span className="text-xs font-bold uppercase text-muted-foreground">
+        {label}
+      </span>
       <span className="text-sm font-bold text-black">{value}</span>
     </div>
   );
@@ -35,7 +37,9 @@ export function ScheduleTab({ event }: Props) {
       <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
         <CalendarClock className="w-10 h-10 text-muted-foreground/30 mb-3" />
         <p className="font-bold text-black">No schedule set</p>
-        <p className="text-sm text-muted-foreground mt-1">Add schedule details from Settings.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Add schedule details from Settings.
+        </p>
       </div>
     );
   }

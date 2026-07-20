@@ -209,8 +209,7 @@ export function FaceEnrollModal({ person, onClose, onSaved }: Props) {
                 Enrollment complete!
               </p>
               <p className="text-sm text-green-600 mt-1">
-                {person.firstName} can now mark attendance using the PC
-                camera.
+                {person.firstName} can now mark attendance using the PC camera.
               </p>
             </div>
           )}
@@ -231,9 +230,7 @@ export function FaceEnrollModal({ person, onClose, onSaved }: Props) {
                 <li>
                   Click <strong>Start Camera</strong> — grant browser permission
                 </li>
-                <li>
-                  Person looks directly at camera, face centered in frame
-                </li>
+                <li>Person looks directly at camera, face centered in frame</li>
                 <li>Green box appears when face is detected</li>
                 <li>
                   Click <strong>Capture Face</strong>

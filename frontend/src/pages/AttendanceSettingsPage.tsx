@@ -13,6 +13,7 @@ import {
   X,
   Users,
   CalendarDays,
+  Percent,
 } from "lucide-react";
 
 interface AttendanceSettings {
@@ -86,7 +87,8 @@ function NumField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold uppercase mb-1 text-gray-600">
+      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
+        <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
         {label}
       </label>
       <div className="relative">
@@ -147,7 +149,13 @@ function fmt(h: number, m: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-function Avatar({ avatar, firstName }: { avatar?: string; firstName?: string }) {
+function Avatar({
+  avatar,
+  firstName,
+}: {
+  avatar?: string;
+  firstName?: string;
+}) {
   return avatar ? (
     <img
       src={avatar}
@@ -206,14 +214,19 @@ function CustomAllowanceModal({
         </div>
         <div className="overflow-auto flex-1 divide-y divide-black/10">
           {filtered.map((e) => (
-            <div key={e._id} className="flex items-center justify-between px-4 py-2">
+            <div
+              key={e._id}
+              className="flex items-center justify-between px-4 py-2"
+            >
               <div className="flex items-center gap-2">
                 <Avatar avatar={e.avatar} firstName={e.firstName} />
                 <div>
                   <p className="text-sm font-bold">
                     {e.firstName} {e.lastName}
                   </p>
-                  <p className="text-xs text-muted-foreground">{e.employeeId}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {e.employeeId}
+                  </p>
                 </div>
               </div>
               <input
@@ -275,7 +288,8 @@ interface BalanceRow {
 
 export default function AttendanceSettingsPage() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<AttendanceSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] =
+    useState<AttendanceSettings>(DEFAULT_SETTINGS);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -364,7 +378,11 @@ export default function AttendanceSettingsPage() {
         mode: "bulk",
         bulkCount: lateBulkCount,
       });
-      toast({ title: "Saved", description: "Late allowance updated", variant: "success" });
+      toast({
+        title: "Saved",
+        description: "Late allowance updated",
+        variant: "success",
+      });
       fetchBalances();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -385,7 +403,11 @@ export default function AttendanceSettingsPage() {
           count: p.value,
         })),
       });
-      toast({ title: "Saved", description: "Late allowance updated", variant: "success" });
+      toast({
+        title: "Saved",
+        description: "Late allowance updated",
+        variant: "success",
+      });
       setShowLateModal(false);
       fetchBalances();
     } catch (e: any) {
@@ -468,7 +490,9 @@ export default function AttendanceSettingsPage() {
                 <div className="flex items-center gap-3">
                   <ShieldAlert className="w-5 h-5 text-[#024BAB]" />
                   <div>
-                    <h2 className="font-bold text-base">Attendance Deduction Rules</h2>
+                    <h2 className="font-bold text-base">
+                      Attendance Deduction Rules
+                    </h2>
                     <p className="text-xs text-gray-500">
                       Shift timing, grace period, and late / early-checkout
                       deductions. Per-employee shift assignments override these
@@ -479,7 +503,9 @@ export default function AttendanceSettingsPage() {
               </div>
               <div className="p-5 space-y-6">
                 <div>
-                  <p className="text-xs font-bold uppercase mb-3">Late Arrival</p>
+                  <p className="text-xs font-bold uppercase mb-3">
+                    Late Arrival
+                  </p>
                   <div className="grid grid-cols-3 gap-4">
                     <NumField
                       label="Grace Period (min)"
@@ -488,13 +514,17 @@ export default function AttendanceSettingsPage() {
                       hint={`On time if in by ${fmt(settings.shiftStartHour, settings.shiftStartMinute + settings.lateThresholdMinutes)}`}
                     />
                     <div>
-                      <label className="block text-xs font-bold uppercase mb-1 text-gray-600">
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
+                        <Percent className="w-3.5 h-3.5 text-[#024BAB]" />
                         Deduction Type
                       </label>
                       <select
                         value={settings.lateDeductionType}
                         onChange={(e) =>
-                          set({ lateDeductionType: e.target.value as "fixed" | "percent" })
+                          set({
+                            lateDeductionType: e.target.value as
+                              "fixed" | "percent",
+                          })
                         }
                         className="w-full border-2 border-black px-3 py-2 text-sm bg-white focus:outline-none"
                       >
@@ -510,13 +540,19 @@ export default function AttendanceSettingsPage() {
                       }
                       value={settings.lateDeductionAmount}
                       onChange={(v) => set({ lateDeductionAmount: v })}
-                      suffix={settings.lateDeductionType === "percent" ? "%" : undefined}
+                      suffix={
+                        settings.lateDeductionType === "percent"
+                          ? "%"
+                          : undefined
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="border-t pt-5">
-                  <p className="text-xs font-bold uppercase mb-3">Half-Day Rule</p>
+                  <p className="text-xs font-bold uppercase mb-3">
+                    Half-Day Rule
+                  </p>
                   <NumField
                     label="Late by more than (min) = Half Day (50% pay)"
                     value={settings.halfDayThresholdMinutes}
@@ -528,7 +564,9 @@ export default function AttendanceSettingsPage() {
                 <div className="border-t pt-5">
                   <div className="flex items-center gap-2 mb-3">
                     <LogOut className="w-4 h-4 text-[#024BAB]" />
-                    <p className="text-xs font-bold uppercase">Early Checkout</p>
+                    <p className="text-xs font-bold uppercase">
+                      Early Checkout
+                    </p>
                   </div>
                   <Toggle
                     label="Enable Early Checkout Deduction"
@@ -541,7 +579,9 @@ export default function AttendanceSettingsPage() {
                       <NumField
                         label="Grace Period Before Shift End (min)"
                         value={settings.earlyCheckoutThresholdMinutes}
-                        onChange={(v) => set({ earlyCheckoutThresholdMinutes: v })}
+                        onChange={(v) =>
+                          set({ earlyCheckoutThresholdMinutes: v })
+                        }
                         hint="No deduction if leaving within this many minutes of shift end"
                       />
                     </div>
@@ -571,7 +611,8 @@ export default function AttendanceSettingsPage() {
                   <div>
                     <h2 className="font-bold text-base">Late Allowance</h2>
                     <p className="text-xs text-gray-500">
-                      Max late arrivals per month with no deduction/approval needed.
+                      Max late arrivals per month with no deduction/approval
+                      needed.
                     </p>
                   </div>
                 </div>
@@ -627,14 +668,16 @@ export default function AttendanceSettingsPage() {
                   <div>
                     <h2 className="font-bold text-base">Leave Allowance</h2>
                     <p className="text-xs text-gray-500">
-                      Max no-deduction leave days per month, configured per leave type.
+                      Max no-deduction leave days per month, configured per
+                      leave type.
                     </p>
                   </div>
                 </div>
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase mb-1 text-gray-600">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
+                    <CalendarDays className="w-3.5 h-3.5 text-[#024BAB]" />
                     Leave Type
                   </label>
                   <select
@@ -695,7 +738,9 @@ export default function AttendanceSettingsPage() {
             {/* Balance Summary */}
             <div className="bg-white border-2 border-black">
               <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
-                <h2 className="font-bold text-base">Balance Summary (This Month)</h2>
+                <h2 className="font-bold text-base">
+                  Balance Summary (This Month)
+                </h2>
               </div>
               {loadingBalances ? (
                 <div className="flex justify-center py-10">
@@ -723,10 +768,16 @@ export default function AttendanceSettingsPage() {
                     </thead>
                     <tbody>
                       {balances.map((b, i) => (
-                        <tr key={b.employee._id} className={i % 2 ? "bg-[#F8FAFF]" : ""}>
+                        <tr
+                          key={b.employee._id}
+                          className={i % 2 ? "bg-[#F8FAFF]" : ""}
+                        >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Avatar avatar={b.employee.avatar} firstName={b.employee.firstName} />
+                              <Avatar
+                                avatar={b.employee.avatar}
+                                firstName={b.employee.firstName}
+                              />
                               <div>
                                 <p className="font-bold text-xs">
                                   {b.employee.firstName} {b.employee.lastName}

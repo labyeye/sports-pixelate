@@ -69,7 +69,19 @@ app.use(
 app.use(timeout("30s"));
 app.use(morgan("dev"));
 app.use(express.json({ limit: "5mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Uploaded images (avatars, guardian photos, etc.) are embedded via absolute
+// URL from the frontend, which runs on a different origin/port than this API.
+// Helmet's default same-origin Cross-Origin-Resource-Policy blocks that
+// cross-origin <img> load entirely, so relax it just for static uploads —
+// everything else (the JSON API) keeps the stricter default.
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
+  express.static(path.join(__dirname, "uploads")),
+);
 
 app.use("/iclock", require("./routes/admsRoutes"));
 app.use("/internal/stats", require("./routes/statsRoutes"));
@@ -130,6 +142,7 @@ app.use(
 
 // NestSports domain routes
 app.use("/api/students", require("./routes/studentRoutes"));
+app.use("/api/parents", require("./routes/parentRoutes"));
 app.use("/api/sports", require("./routes/sportRoutes"));
 app.use("/api/student-attendance", require("./routes/studentAttendanceRoutes"));
 app.use("/api/plans", require("./routes/sportsPlanRoutes"));

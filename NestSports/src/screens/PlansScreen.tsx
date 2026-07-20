@@ -33,7 +33,10 @@ import {
   SortOption,
   KpiTile,
 } from '../components/ui';
-import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import {
+  ImportExportModal,
+  ImportHeader,
+} from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
@@ -41,11 +44,66 @@ import { colors, FONT } from '../theme/colors';
 const PLAN_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'name', label: 'Plan Name', required: true, example: 'Elite Tennis' },
   { key: 'sport', label: 'Sport', required: true, example: 'Tennis' },
-  { key: 'monthlyPrice', label: 'Monthly Price', required: true, example: '2500' },
-  { key: 'yearlyPrice', label: 'Yearly Price', required: true, example: '25000' },
-  { key: 'sessionsPerWeek', label: 'Sessions Per Week', required: false, example: '3' },
+  {
+    key: 'monthlyPrice',
+    label: 'Monthly Price',
+    required: true,
+    example: '2500',
+  },
+  {
+    key: 'yearlyPrice',
+    label: 'Yearly Price',
+    required: true,
+    example: '25000',
+  },
+  {
+    key: 'sessionsPerWeek',
+    label: 'Sessions Per Week',
+    required: false,
+    example: '3',
+  },
+  {
+    key: 'scheduleDays',
+    label: 'Schedule Days (comma-separated, e.g. mon,wed,fri)',
+    required: false,
+    example: 'mon,wed,fri',
+  },
   { key: 'description', label: 'Description', required: false, example: '' },
 ];
+
+const WEEKDAY_LABELS: Record<string, string> = {
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
+};
+
+function scheduleLabel(p: any): string {
+  if (p.scheduleType === 'custom_days') {
+    const days: string[] = p.scheduleDays || [];
+    if (!days.length) return 'Custom days';
+    return days.map(d => WEEKDAY_LABELS[d] || d).join('/');
+  }
+  return p.sessionsPerWeek === 0 ? 'Unlimited' : `${p.sessionsPerWeek}x/week`;
+}
+
+function formatTime12(hhmm?: string): string {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+function timingLabel(p: any): string {
+  if (!p.startTime) return '';
+  return p.endTime
+    ? `${formatTime12(p.startTime)}–${formatTime12(p.endTime)}`
+    : formatTime12(p.startTime);
+}
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
@@ -180,7 +238,10 @@ export default function PlansScreen({ navigation }: any) {
             <TouchableOpacity
               onPress={() =>
                 exportRowsToExcel(
-                  PLAN_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                  PLAN_IMPORT_HEADERS.map(h => ({
+                    key: h.key,
+                    label: h.label,
+                  })),
                   plans,
                   'coaching_plans_export.xlsx',
                   'Plans',
@@ -197,7 +258,11 @@ export default function PlansScreen({ navigation }: any) {
                 style={styles.sortBtn}
                 hitSlop={8}
               >
-                <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+                <FileSpreadsheet
+                  size={18}
+                  color={colors.black}
+                  strokeWidth={2.5}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -276,7 +341,10 @@ export default function PlansScreen({ navigation }: any) {
                 <Text style={styles.name}>{p.name}</Text>
                 <Badge label={p.sport} color={colors.blue} />
               </View>
-              <Text style={styles.sub}>{p.sessionsPerWeek} sessions/week</Text>
+              <Text style={styles.sub}>
+                {scheduleLabel(p)}
+                {p.startTime ? ` · ${timingLabel(p)}` : ''}
+              </Text>
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>MONTHLY</Text>

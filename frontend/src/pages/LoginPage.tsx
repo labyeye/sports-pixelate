@@ -12,6 +12,8 @@ import {
   BarChart2,
   ShieldCheck,
   Smartphone,
+  Baby,
+  Wallet,
 } from "lucide-react";
 import nesthrlogo from "../../assets/logo.png";
 import { authAPI } from "@/services/api";
@@ -105,9 +107,11 @@ export default function LoginPage() {
   };
 
   const features = [
+    { icon: Baby, label: "Student Management" },
     { icon: Users, label: "Employee Management" },
     { icon: Clock, label: "Attendance Tracking" },
     { icon: IndianRupee, label: "Payroll Processing" },
+    { icon: Wallet, label: "Coaching Plan Management" },
     { icon: BarChart2, label: "Reports & Analytics" },
   ];
 
@@ -395,7 +399,7 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       setError("");
                     }}
-                    placeholder="you@sportsclub.com"
+                    placeholder="Enter your Email address"
                     className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
                     required
                     autoComplete="email"
@@ -416,7 +420,7 @@ export default function LoginPage() {
                         setPassword(e.target.value);
                         setError("");
                       }}
-                      placeholder="Your password"
+                      placeholder="Enter your Password"
                       className="flex-1 px-4 py-3 bg-white text-sm font-medium outline-none"
                       required
                       autoComplete="current-password"

@@ -15,6 +15,8 @@ import {
   Scroll,
   Briefcase,
   ChevronDown,
+  User,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,8 +63,14 @@ export default function DocumentVaultPage() {
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const docParams = (pageNum: number, empId?: string): Record<string, string> => {
-    const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+  const docParams = (
+    pageNum: number,
+    empId?: string,
+  ): Record<string, string> => {
+    const params: Record<string, string> = {
+      page: String(pageNum),
+      limit: "20",
+    };
     const targetEmp = empId !== undefined ? empId : selectedEmployee;
     if (targetEmp) params.employeeId = targetEmp;
     if (filterType) params.docType = filterType;
@@ -386,7 +394,8 @@ export default function DocumentVaultPage() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
+                  <User className="w-3.5 h-3.5 text-[#024BAB]" />
                   Employee *
                 </label>
                 <select
@@ -405,7 +414,8 @@ export default function DocumentVaultPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
+                  <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
                   Document Type *
                 </label>
                 <select
@@ -423,7 +433,8 @@ export default function DocumentVaultPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
+                  <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
                   Document Name *
                 </label>
                 <input
@@ -437,7 +448,8 @@ export default function DocumentVaultPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
+                  <Upload className="w-3.5 h-3.5 text-[#024BAB]" />
                   File * (max 4 MB)
                 </label>
                 <input

@@ -114,8 +114,8 @@ export function ImportExportModal({
           {step === "guide" && (
             <>
               <div className="bg-[#F0F6FF] border-2 border-[#024BAB] p-4 text-sm text-[#024BAB] font-medium">
-                Prepare your Excel file with the columns listed below.
-                Download the template to get started instantly.
+                Prepare your Excel file with the columns listed below. Download
+                the template to get started instantly.
               </div>
 
               <div className="border-2 border-black overflow-hidden">
@@ -250,7 +250,9 @@ export function ImportExportModal({
           {step === "guide" && (
             <>
               <button
-                onClick={() => downloadImportTemplate(headers, templateFilename)}
+                onClick={() =>
+                  downloadImportTemplate(headers, templateFilename)
+                }
                 className="border-2 border-black px-4 py-2 text-sm font-bold flex items-center gap-1.5 hover:bg-gray-50"
               >
                 <Download className="w-4 h-4" /> Download Template

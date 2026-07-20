@@ -63,6 +63,10 @@ export const validators = {
     return ifscRegex.test(ifsc);
   },
 
+  pincode: (pincode: string): boolean => {
+    return /^[1-9][0-9]{5}$/.test(pincode.trim());
+  },
+
   accountNumber: (accountNumber: string): boolean => {
     const digitsOnly = accountNumber.replace(/\D/g, "");
     return digitsOnly.length >= 9 && digitsOnly.length <= 18;

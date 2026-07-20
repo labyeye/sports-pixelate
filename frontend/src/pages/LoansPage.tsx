@@ -4,7 +4,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { loanAPI, employeeAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ImportExportModal, type ImportHeader } from "@/components/ImportExportModal";
+import {
+  ImportExportModal,
+  type ImportHeader,
+} from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
 import {
   Banknote,
@@ -19,6 +22,9 @@ import {
   Clock,
   Download,
   FileSpreadsheet,
+  User,
+  Calendar,
+  FileText,
 } from "lucide-react";
 import { Employee } from "@/types/hrms";
 
@@ -343,7 +349,10 @@ export default function LoansPage() {
           <button
             onClick={() =>
               exportRowsToExcel(
-                LOAN_IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
+                LOAN_IMPORT_HEADERS.map((h) => ({
+                  key: h.key,
+                  label: h.label,
+                })),
                 displayedLoans.map((l) => ({
                   employeeId: l.employee?.employeeId || "",
                   type: l.type,
@@ -600,7 +609,10 @@ export default function LoansPage() {
             </div>
             <form onSubmit={handleSave} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold mb-1">Employee</label>
+                <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                  <User className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Employee
+                </label>
                 <select
                   value={form.employee}
                   onChange={(e) =>
@@ -621,7 +633,10 @@ export default function LoansPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold mb-1">Type</label>
+                  <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                    <Banknote className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Type
+                  </label>
                   <select
                     value={form.type}
                     onChange={(e) =>
@@ -634,7 +649,10 @@ export default function LoansPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">Status</label>
+                  <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Status
+                  </label>
                   <select
                     value={form.status}
                     onChange={(e) =>
@@ -651,7 +669,8 @@ export default function LoansPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold mb-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                    <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                     Amount (₹)
                   </label>
                   <input
@@ -667,7 +686,8 @@ export default function LoansPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                    <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                     Monthly EMI (₹)
                   </label>
                   <input
@@ -685,7 +705,8 @@ export default function LoansPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
                   Disbursed On
                 </label>
                 <input
@@ -700,7 +721,10 @@ export default function LoansPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-1">Reason</label>
+                <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                  <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Reason
+                </label>
                 <input
                   type="text"
                   value={form.reason}
@@ -711,7 +735,10 @@ export default function LoansPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-1">Remarks</label>
+                <label className="flex items-center gap-1.5 text-xs font-bold mb-1">
+                  <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Remarks
+                </label>
                 <textarea
                   value={form.remarks}
                   onChange={(e) =>
@@ -778,8 +805,8 @@ export default function LoansPage() {
         notes={
           <>
             <p>
-              • <strong>Employee ID</strong> must exactly match an employee's
-              ID (e.g. <code>EMP0001</code>).
+              • <strong>Employee ID</strong> must exactly match an employee's ID
+              (e.g. <code>EMP0001</code>).
             </p>
             <p>
               • <strong>Type</strong> must be <code>loan</code> or{" "}

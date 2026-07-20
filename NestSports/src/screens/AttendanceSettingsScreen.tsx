@@ -12,9 +12,20 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BarChart2 } from 'lucide-react-native';
+import {
+  BarChart2,
+  Percent,
+  CalendarDays,
+  Users,
+} from 'lucide-react-native';
 import { attendanceSettingsAPI, employeeAPI } from '../api/client';
-import { Card, SectionTitle, Button, ChipSelect, LoadingView } from '../components/ui';
+import {
+  Card,
+  SectionTitle,
+  Button,
+  ChipSelect,
+  LoadingView,
+} from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
 interface AttendanceSettings {
@@ -107,7 +118,8 @@ export default function AttendanceSettingsScreen() {
   const [latePerEmp, setLatePerEmp] = useState<Record<string, string>>({});
   const [savingLate, setSavingLate] = useState(false);
 
-  const [leaveType, setLeaveType] = useState<(typeof LEAVE_TYPES)[number]>('casual');
+  const [leaveType, setLeaveType] =
+    useState<(typeof LEAVE_TYPES)[number]>('casual');
   const [leaveMode, setLeaveMode] = useState<'bulk' | 'custom'>('bulk');
   const [leaveBulk, setLeaveBulk] = useState('0');
   const [leavePerEmp, setLeavePerEmp] = useState<Record<string, string>>({});
@@ -162,10 +174,12 @@ export default function AttendanceSettingsScreen() {
           ? { mode: 'bulk', bulkCount: Number(lateBulk) || 0 }
           : {
               mode: 'custom',
-              perEmployee: Object.entries(latePerEmp).map(([employee, count]) => ({
-                employee,
-                count: Number(count) || 0,
-              })),
+              perEmployee: Object.entries(latePerEmp).map(
+                ([employee, count]) => ({
+                  employee,
+                  count: Number(count) || 0,
+                }),
+              ),
             },
       );
       Alert.alert('Saved', 'Late allowance updated');
@@ -185,10 +199,12 @@ export default function AttendanceSettingsScreen() {
           : {
               leaveType,
               mode: 'custom',
-              perEmployee: Object.entries(leavePerEmp).map(([employee, days]) => ({
-                employee,
-                days: Number(days) || 0,
-              })),
+              perEmployee: Object.entries(leavePerEmp).map(
+                ([employee, days]) => ({
+                  employee,
+                  days: Number(days) || 0,
+                }),
+              ),
             },
       );
       Alert.alert('Saved', `Leave allowance updated for ${leaveType}`);
@@ -235,7 +251,10 @@ export default function AttendanceSettingsScreen() {
                   style={[styles.fieldInput, styles.timeInput]}
                   value={pad(rules.shiftStartHour)}
                   onChangeText={v =>
-                    set('shiftStartHour', Math.min(23, Math.max(0, Number(v) || 0)))
+                    set(
+                      'shiftStartHour',
+                      Math.min(23, Math.max(0, Number(v) || 0)),
+                    )
                   }
                   keyboardType="numeric"
                   maxLength={2}
@@ -247,7 +266,10 @@ export default function AttendanceSettingsScreen() {
                   style={[styles.fieldInput, styles.timeInput]}
                   value={pad(rules.shiftStartMinute)}
                   onChangeText={v =>
-                    set('shiftStartMinute', Math.min(59, Math.max(0, Number(v) || 0)))
+                    set(
+                      'shiftStartMinute',
+                      Math.min(59, Math.max(0, Number(v) || 0)),
+                    )
                   }
                   keyboardType="numeric"
                   maxLength={2}
@@ -263,7 +285,10 @@ export default function AttendanceSettingsScreen() {
                   style={[styles.fieldInput, styles.timeInput]}
                   value={pad(rules.shiftEndHour)}
                   onChangeText={v =>
-                    set('shiftEndHour', Math.min(23, Math.max(0, Number(v) || 0)))
+                    set(
+                      'shiftEndHour',
+                      Math.min(23, Math.max(0, Number(v) || 0)),
+                    )
                   }
                   keyboardType="numeric"
                   maxLength={2}
@@ -275,7 +300,10 @@ export default function AttendanceSettingsScreen() {
                   style={[styles.fieldInput, styles.timeInput]}
                   value={pad(rules.shiftEndMinute)}
                   onChangeText={v =>
-                    set('shiftEndMinute', Math.min(59, Math.max(0, Number(v) || 0)))
+                    set(
+                      'shiftEndMinute',
+                      Math.min(59, Math.max(0, Number(v) || 0)),
+                    )
                   }
                   keyboardType="numeric"
                   maxLength={2}
@@ -298,6 +326,7 @@ export default function AttendanceSettingsScreen() {
           />
           <ChipSelect
             label="Deduction Type"
+            icon={Percent}
             options={['fixed', 'percent'] as const}
             value={rules.lateDeductionType}
             onChange={v => set('lateDeductionType', v)}
@@ -331,7 +360,9 @@ export default function AttendanceSettingsScreen() {
           <SectionTitle title="Early Checkout" />
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Enable Early Checkout Deduction</Text>
+              <Text style={styles.toggleLabel}>
+                Enable Early Checkout Deduction
+              </Text>
               <Text style={styles.toggleDesc}>
                 Deduct salary for employees who leave early
               </Text>
@@ -354,7 +385,11 @@ export default function AttendanceSettingsScreen() {
           ) : null}
         </Card>
 
-        <Button title="Save Attendance Settings" onPress={handleSave} loading={saving} />
+        <Button
+          title="Save Attendance Settings"
+          onPress={handleSave}
+          loading={saving}
+        />
 
         <View style={{ height: 20 }} />
 
@@ -362,14 +397,20 @@ export default function AttendanceSettingsScreen() {
           <SectionTitle title="Late Allowance / Month" />
           <ChipSelect
             label="Mode"
+            icon={Users}
             options={['bulk', 'custom'] as const}
             value={lateMode}
             onChange={setLateMode}
-            labels={{ bulk: 'Bulk (all employees)', custom: 'Custom (per employee)' }}
+            labels={{
+              bulk: 'Bulk (all employees)',
+              custom: 'Custom (per employee)',
+            }}
           />
           {lateMode === 'bulk' ? (
             <View style={{ marginBottom: 14 }}>
-              <Text style={styles.fieldLabel}>Max lates/month (no deduction)</Text>
+              <Text style={styles.fieldLabel}>
+                Max lates/month (no deduction)
+              </Text>
               <TextInput
                 style={styles.fieldInput}
                 value={lateBulk}
@@ -406,16 +447,21 @@ export default function AttendanceSettingsScreen() {
           <SectionTitle title="Leave Allowance / Month" />
           <ChipSelect
             label="Leave Type"
+            icon={CalendarDays}
             options={LEAVE_TYPES}
             value={leaveType}
             onChange={setLeaveType}
           />
           <ChipSelect
             label="Mode"
+            icon={Users}
             options={['bulk', 'custom'] as const}
             value={leaveMode}
             onChange={setLeaveMode}
-            labels={{ bulk: 'Bulk (all employees)', custom: 'Custom (per employee)' }}
+            labels={{
+              bulk: 'Bulk (all employees)',
+              custom: 'Custom (per employee)',
+            }}
           />
           {leaveMode === 'bulk' ? (
             <View style={{ marginBottom: 14 }}>
@@ -439,7 +485,9 @@ export default function AttendanceSettingsScreen() {
                 <TextInput
                   style={styles.perEmpInput}
                   value={leavePerEmp[e._id] ?? ''}
-                  onChangeText={v => setLeavePerEmp(p => ({ ...p, [e._id]: v }))}
+                  onChangeText={v =>
+                    setLeavePerEmp(p => ({ ...p, [e._id]: v }))
+                  }
                   keyboardType="numeric"
                   placeholder="0"
                   placeholderTextColor={colors.muted}
@@ -473,11 +521,20 @@ export default function AttendanceSettingsScreen() {
               summary.map((row, i) => (
                 <View
                   key={row.employee?._id || i}
-                  style={[styles.perEmpRow, { flexDirection: 'column', alignItems: 'flex-start', marginTop: 10 }]}
+                  style={[
+                    styles.perEmpRow,
+                    {
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      marginTop: 10,
+                    },
+                  ]}
                 >
                   <Text style={styles.perEmpName}>
                     {row.employee?.firstName} {row.employee?.lastName}
-                    {row.employee?.employeeId ? ` (${row.employee.employeeId})` : ''}
+                    {row.employee?.employeeId
+                      ? ` (${row.employee.employeeId})`
+                      : ''}
                   </Text>
                   <Text style={styles.hint}>
                     Late: {row.lateUsed}/{row.lateAllowed}
@@ -506,8 +563,18 @@ export default function AttendanceSettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontFamily: FONT.bold, fontSize: 24, fontWeight: '800', color: colors.black },
-  subtitle: { fontFamily: FONT.medium, color: colors.muted, marginTop: 2, marginBottom: 16 },
+  title: {
+    fontFamily: FONT.bold,
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+  },
+  subtitle: {
+    fontFamily: FONT.medium,
+    color: colors.muted,
+    marginTop: 2,
+    marginBottom: 16,
+  },
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
@@ -540,14 +607,44 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingVertical: 10,
   },
-  suffixText: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '700', color: colors.muted },
-  hint: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 4 },
+  suffixText: {
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.muted,
+  },
+  hint: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 4,
+  },
   timeInputs: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   timeInput: { width: 56, textAlign: 'center', borderWidth: 2 },
-  timeSep: { fontFamily: FONT.bold, fontSize: 18, fontWeight: '700', color: colors.black },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  toggleLabel: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '700', color: colors.black },
-  toggleDesc: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  timeSep: {
+    fontFamily: FONT.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  toggleLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  toggleDesc: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
   perEmpRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -555,7 +652,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     gap: 8,
   },
-  perEmpName: { flex: 1, fontFamily: FONT.bold, fontSize: 13, fontWeight: '600', color: colors.black },
+  perEmpName: {
+    flex: 1,
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.black,
+  },
   perEmpInput: {
     width: 60,
     borderWidth: 2,
@@ -568,7 +671,12 @@ const styles = StyleSheet.create({
     color: colors.black,
     textAlign: 'center',
   },
-  sectionTitleInline: { fontFamily: FONT.bold, fontSize: 16, fontWeight: '700', color: colors.black },
+  sectionTitleInline: {
+    fontFamily: FONT.bold,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.black,
+  },
   infoBox: {
     backgroundColor: '#EFF6FF',
     borderWidth: 2,

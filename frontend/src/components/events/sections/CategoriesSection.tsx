@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tags, Plus, X } from "lucide-react";
+import { Tags, Tag, Plus, X } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import type { EventCategories } from "@/types/hrms";
 
@@ -28,12 +28,22 @@ function TagList({
   };
   return (
     <div>
-      <label className="block text-xs font-bold uppercase mb-1">{label}</label>
+      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+        <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
+        {label}
+      </label>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {items.map((it) => (
-          <span key={it} className="flex items-center gap-1 border-2 border-black px-2 py-1 text-xs font-bold">
+          <span
+            key={it}
+            className="flex items-center gap-1 border-2 border-black px-2 py-1 text-xs font-bold"
+          >
             {it}
-            <button type="button" onClick={() => onRemove(it)} className="text-red-500 hover:text-red-700">
+            <button
+              type="button"
+              onClick={() => onRemove(it)}
+              className="text-red-500 hover:text-red-700"
+            >
               <X className="w-3 h-3" />
             </button>
           </span>
@@ -47,7 +57,11 @@ function TagList({
           placeholder={`Add ${label.toLowerCase()}`}
           className="flex-1 border-2 border-black px-3 py-1.5 text-sm font-medium outline-none max-w-xs"
         />
-        <button type="button" onClick={add} className="border-2 border-black px-2 py-1.5">
+        <button
+          type="button"
+          onClick={add}
+          className="border-2 border-black px-2 py-1.5"
+        >
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -58,9 +72,14 @@ function TagList({
 export function CategoriesSection({ value, onChange }: Props) {
   const make = (key: keyof EventCategories) => ({
     items: value[key] || [],
-    onAdd: (v: string) => onChange({ [key]: [...(value[key] || []), v] } as Partial<EventCategories>),
+    onAdd: (v: string) =>
+      onChange({
+        [key]: [...(value[key] || []), v],
+      } as Partial<EventCategories>),
     onRemove: (v: string) =>
-      onChange({ [key]: (value[key] || []).filter((x) => x !== v) } as Partial<EventCategories>),
+      onChange({
+        [key]: (value[key] || []).filter((x) => x !== v),
+      } as Partial<EventCategories>),
   });
 
   return (

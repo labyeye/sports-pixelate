@@ -7,7 +7,7 @@ const {
   safeSort,
 } = require("../middleware/validate");
 
-const DEPARTMENT_SORT_FIELDS = ["name", "code", "budget", "createdAt"];
+const DEPARTMENT_SORT_FIELDS = ["name", "code", "createdAt"];
 
 // Default limit is high because several screens (Employees form, Manage page)
 // call getAll() with no params expecting the full department list, not just
@@ -73,7 +73,7 @@ const getDepartment = asyncHandler(async (req, res) => {
 });
 
 const createDepartment = asyncHandler(async (req, res) => {
-  const { name, code, head, description, budget } = req.body;
+  const { name, code, head, description } = req.body;
 
   if (
     !name ||
@@ -103,16 +103,12 @@ const createDepartment = asyncHandler(async (req, res) => {
     throw new Error("A department with this code already exists");
   }
 
-  const { shiftStartTime, shiftEndTime } = req.body;
   const dept = await Department.create({
     company: req.user.company,
     name: name.trim(),
     code: code.trim().toUpperCase(),
     head: head || undefined,
     description: description ? String(description).slice(0, 500) : undefined,
-    budget: budget ? Number(budget) : 0,
-    shiftStartTime: shiftStartTime || undefined,
-    shiftEndTime: shiftEndTime || undefined,
   });
 
   res.status(201).json({ success: true, data: dept });
@@ -128,15 +124,7 @@ const updateDepartment = asyncHandler(async (req, res) => {
     throw new Error("Department not found");
   }
 
-  const allowed = [
-    "name",
-    "head",
-    "description",
-    "budget",
-    "status",
-    "shiftStartTime",
-    "shiftEndTime",
-  ];
+  const allowed = ["name", "head", "description", "status"];
   for (const key of allowed) {
     if (req.body[key] !== undefined) dept[key] = req.body[key];
   }

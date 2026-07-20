@@ -20,7 +20,19 @@ import {
   UserCog,
   LogIn,
   LogOut,
+  CalendarClock,
+  CalendarX,
+  Pencil,
 } from "lucide-react";
+
+interface ActivePlan {
+  _id: string;
+  name: string;
+  scheduleType: "unlimited" | "sessions_per_week" | "custom_days";
+  scheduleDays: string[];
+  startTime?: string;
+  endTime?: string;
+}
 
 interface Student {
   _id: string;
@@ -30,6 +42,35 @@ interface Student {
   sport: string;
   batch: string;
   avatar?: string;
+  activePlan?: ActivePlan | null;
+}
+
+const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const WEEKDAY_LABEL: Record<string, string> = {
+  mon: "Mon",
+  tue: "Tue",
+  wed: "Wed",
+  thu: "Thu",
+  fri: "Fri",
+  sat: "Sat",
+  sun: "Sun",
+};
+
+// A student is "expected" on a date if their plan doesn't restrict days
+// (unlimited/sessions-per-week) or the date's weekday is in scheduleDays.
+function isSessionDay(student: Student, dateStr: string): boolean {
+  const plan = student.activePlan;
+  if (!plan || plan.scheduleType !== "custom_days") return true;
+  const weekday = WEEKDAY_KEYS[new Date(`${dateStr}T00:00:00`).getDay()];
+  return plan.scheduleDays.includes(weekday);
+}
+
+function formatTime12(hhmm?: string): string {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
 interface AttendanceRecord {
@@ -84,6 +125,14 @@ export default function StudentAttendancePage() {
   const [punchingId, setPunchingId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<Status | null>(null);
   const [showHistory, setShowHistory] = useState(true);
+  const [editModal, setEditModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [editForm, setEditForm] = useState<{
+    status: Status;
+    checkIn: string;
+    checkOut: string;
+  }>({ status: "present", checkIn: "", checkOut: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -154,6 +203,64 @@ export default function StudentAttendancePage() {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setPunchingId(null);
+    }
+  };
+
+  // Use LOCAL date/time so IST midnight stored as UTC doesn't shift the day
+  const toLocalInput = (iso?: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+      d.getHours(),
+    )}:${pad(d.getMinutes())}`;
+  };
+
+  // "2024-06-10T09:00" from datetime-local has no timezone.
+  // new Date() in the browser parses it as local (IST), so .toISOString() gives
+  // the correct UTC equivalent before it's sent to the server.
+  const localToISO = (s: string) => (s ? new Date(s).toISOString() : undefined);
+
+  const openEdit = (s: Student) => {
+    setEditingStudent(s);
+    setEditForm({
+      status: (marks[s._id] as Status) || "present",
+      checkIn: toLocalInput(times[s._id]?.checkIn),
+      checkOut: toLocalInput(times[s._id]?.checkOut),
+    });
+    setEditModal(true);
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+    setSavingEdit(true);
+    try {
+      const body: Record<string, any> = {
+        student: editingStudent._id,
+        date,
+        status: editForm.status,
+      };
+      if (editForm.checkIn) body.checkIn = localToISO(editForm.checkIn);
+      if (editForm.checkOut) body.checkOut = localToISO(editForm.checkOut);
+      const res = await studentAttendanceAPI.mark(body);
+      const rec = res.data;
+      setTimes((p) => ({
+        ...p,
+        [editingStudent._id]: { checkIn: rec.checkIn, checkOut: rec.checkOut },
+      }));
+      setMarks((p) => ({ ...p, [editingStudent._id]: rec.status }));
+      toast({ title: "Attendance updated" });
+      setEditModal(false);
+      setEditingStudent(null);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -228,7 +335,7 @@ export default function StudentAttendancePage() {
           Save Attendance
         </button>
       </div>
-      
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         {[
           {
@@ -342,7 +449,13 @@ export default function StudentAttendancePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                {["Student", "Sport / Batch", "Check In / Out", "Status"].map((h) => (
+                {[
+                  "Student",
+                  "Sport / Batch",
+                  "Check In / Out",
+                  "Status",
+                  "",
+                ].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
@@ -355,12 +468,17 @@ export default function StudentAttendancePage() {
             <tbody>
               {displayedStudents.map((s, i) => {
                 const current = marks[s._id];
+                const sessionDay = isSessionDay(s, date);
                 return (
                   <tr
                     key={s._id}
                     className={cn(
                       "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
-                      i % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                      !sessionDay
+                        ? "bg-yellow-50/60"
+                        : i % 2 === 0
+                          ? ""
+                          : "bg-[#F8FAFF]",
                     )}
                   >
                     <td className="px-4 py-3">
@@ -382,7 +500,42 @@ export default function StudentAttendancePage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-black text-xs">
-                      {s.sport} {s.batch ? `· ${s.batch}` : ""}
+                      <div>
+                        {s.sport} {s.batch ? `· ${s.batch}` : ""}
+                      </div>
+                      {s.activePlan ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          {sessionDay ? (
+                            <CalendarClock className="w-3 h-3 text-[#00C48C] shrink-0" />
+                          ) : (
+                            <CalendarX className="w-3 h-3 text-[#FA731C] shrink-0" />
+                          )}
+                          <span
+                            className={cn(
+                              "text-[10px] font-semibold",
+                              sessionDay
+                                ? "text-muted-foreground"
+                                : "text-[#FA731C]",
+                            )}
+                            title={
+                              s.activePlan.scheduleType === "custom_days"
+                                ? s.activePlan.scheduleDays
+                                    .map((d) => WEEKDAY_LABEL[d])
+                                    .join(", ")
+                                : "Any day"
+                            }
+                          >
+                            {s.activePlan.name}
+                            {s.activePlan.startTime &&
+                              ` · ${formatTime12(s.activePlan.startTime)}${
+                                s.activePlan.endTime
+                                  ? `–${formatTime12(s.activePlan.endTime)}`
+                                  : ""
+                              }`}
+                            {!sessionDay && " · not scheduled today"}
+                          </span>
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -394,10 +547,12 @@ export default function StudentAttendancePage() {
                         >
                           <LogIn className="w-3 h-3" />
                           {times[s._id]?.checkIn
-                            ? new Date(times[s._id].checkIn!).toLocaleTimeString(
-                                "en-IN",
-                                { hour: "2-digit", minute: "2-digit" },
-                              )
+                            ? new Date(
+                                times[s._id].checkIn!,
+                              ).toLocaleTimeString("en-IN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                             : "Check In"}
                         </button>
                         <button
@@ -441,11 +596,115 @@ export default function StudentAttendancePage() {
                         })}
                       </div>
                     </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => openEdit(s)}
+                        title="Edit attendance"
+                        className="p-1.5 border-2 border-black hover:bg-[#024BAB] hover:text-white transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {editModal && editingStudent && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="border-2 bg-white w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b-2 border-black">
+              <h3 className="font-display font-bold text-lg">
+                Edit Attendance — {editingStudent.firstName}{" "}
+                {editingStudent.lastName}
+              </h3>
+              <button
+                onClick={() => {
+                  setEditModal(false);
+                  setEditingStudent(null);
+                }}
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEditSave} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-black mb-1">
+                  Status
+                </label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      status: e.target.value as Status,
+                    })
+                  }
+                  className="border-2 w-full px-3 py-2 text-sm"
+                  required
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt} className="capitalize">
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-black mb-1">
+                  Check In
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editForm.checkIn}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, checkIn: e.target.value })
+                  }
+                  className="border-2 w-full px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-black mb-1">
+                  Check Out
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editForm.checkOut}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, checkOut: e.target.value })
+                  }
+                  className="border-2 w-full px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditModal(false);
+                    setEditingStudent(null);
+                  }}
+                  className="border-2 border-black px-4 py-2 text-sm font-bold bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-2 disabled:opacity-60"
+                >
+                  {savingEdit ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </AppLayout>

@@ -26,6 +26,20 @@ import {
   Camera,
   X,
   Upload,
+  Mail,
+  Phone,
+  Hash,
+  Globe,
+  MapPin,
+  CreditCard,
+  IndianRupee,
+  Calendar,
+  Fingerprint,
+  Timer,
+  Image,
+  QrCode,
+  FileImage,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
@@ -211,6 +225,7 @@ const INITIAL_PERMISSIONS: ResourcePermissions[] = [
 
 function InputField({
   label,
+  icon: Icon,
   name,
   value,
   placeholder = "",
@@ -223,6 +238,7 @@ function InputField({
   onChange,
 }: {
   label: string;
+  icon?: React.ElementType;
   name: string;
   value: string;
   placeholder?: string;
@@ -236,7 +252,8 @@ function InputField({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+        {Icon && <Icon className="w-3.5 h-3.5 text-[#024BAB]" />}
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -259,6 +276,7 @@ function InputField({
 
 function TextAreaField({
   label,
+  icon: Icon,
   name,
   value,
   placeholder = "",
@@ -267,6 +285,7 @@ function TextAreaField({
   onChange,
 }: {
   label: string;
+  icon?: React.ElementType;
   name: string;
   value: string;
   placeholder?: string;
@@ -276,7 +295,8 @@ function TextAreaField({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+        {Icon && <Icon className="w-3.5 h-3.5 text-[#024BAB]" />}
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -1191,6 +1211,7 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
                       label="Club Name"
+                      icon={Building2}
                       name="companyName"
                       value={settings?.companyName || ""}
                       required
@@ -1198,6 +1219,7 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="Club Email"
+                      icon={Mail}
                       name="companyEmail"
                       value={settings?.companyEmail || ""}
                       type="email"
@@ -1205,6 +1227,7 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="Club Phone"
+                      icon={Phone}
                       name="companyPhone"
                       value={settings?.companyPhone || ""}
                       maxLength={10}
@@ -1228,6 +1251,7 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="GST Number"
+                      icon={Hash}
                       name="companyGST"
                       value={settings?.companyGST || ""}
                       maxLength={15}
@@ -1245,6 +1269,7 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="Website"
+                      icon={Globe}
                       name="companyWebsite"
                       value={settings?.companyWebsite || ""}
                       type="url"
@@ -1254,7 +1279,8 @@ export default function SettingsPage() {
 
                   {}
                   <div className="border-t-2 border-black pt-4 mt-4">
-                    <label className="block text-xs font-bold text-black uppercase tracking-wider mb-3">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-3">
+                      <Image className="w-3.5 h-3.5 text-[#024BAB]" />
                       Club Logo
                     </label>
                     <div className="flex gap-4 items-start">
@@ -1319,7 +1345,8 @@ export default function SettingsPage() {
 
                   {/* Payment QR code — shown to parents for coaching-fee renewals */}
                   <div className="border-t-2 border-black pt-4 mt-4">
-                    <label className="block text-xs font-bold text-black uppercase tracking-wider mb-3">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-3">
+                      <QrCode className="w-3.5 h-3.5 text-[#024BAB]" />
                       Payment QR Code
                     </label>
                     <div className="flex gap-4 items-start">
@@ -1367,7 +1394,8 @@ export default function SettingsPage() {
 
                   {/* Payroll Cheque Template */}
                   <div className="border-t-2 border-black pt-4 mt-4">
-                    <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
+                      <FileImage className="w-3.5 h-3.5 text-[#024BAB]" />
                       Payroll Cheque Template
                     </label>
                     <p className="text-xs text-muted-foreground mb-3">
@@ -1426,6 +1454,7 @@ export default function SettingsPage() {
 
                   <TextAreaField
                     label="Club Address"
+                    icon={MapPin}
                     name="companyAddress"
                     value={settings?.companyAddress || ""}
                     placeholder="Enter full Club address"
@@ -1442,6 +1471,7 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
                       label="Bank Name"
+                      icon={Landmark}
                       name="bankName"
                       value={settings?.bankName || ""}
                       required
@@ -1449,12 +1479,14 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="Bank Branch"
+                      icon={MapPin}
                       name="bankBranch"
                       value={settings?.bankBranch || ""}
                       onChange={handleChange}
                     />
                     <InputField
                       label="Account Holder Name"
+                      icon={UserCircle}
                       name="bankAccountName"
                       value={settings?.bankAccountName || ""}
                       required
@@ -1462,6 +1494,7 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="Account Number"
+                      icon={CreditCard}
                       name="bankAccountNumber"
                       value={settings?.bankAccountNumber || ""}
                       required
@@ -1486,6 +1519,7 @@ export default function SettingsPage() {
                     />
                     <InputField
                       label="IFSC Code"
+                      icon={Hash}
                       name="bankIFSC"
                       value={settings?.bankIFSC || ""}
                       required
@@ -1574,6 +1608,11 @@ export default function SettingsPage() {
                         key: "whatsappNotifyPayroll",
                         label: "Salary Credited",
                         desc: "Notify employee when their payroll is marked as paid",
+                      },
+                      {
+                        key: "whatsappNotifySubscription",
+                        label: "Subscription Payment Verified / Rejected",
+                        desc: "Notify parent (with PDF receipt) and the club owner when a subscription payment is verified, and the parent when it's rejected",
                       },
                       {
                         key: "whatsappNotifyCheckIn",
@@ -1798,7 +1837,8 @@ export default function SettingsPage() {
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                        <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                         Salary Mode
                       </label>
                       <select
@@ -1817,7 +1857,8 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                        <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
                         Salary Pay Day
                       </label>
                       <select
@@ -1904,7 +1945,8 @@ export default function SettingsPage() {
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                        <Fingerprint className="w-3.5 h-3.5 text-[#024BAB]" />
                         Single Punch Action
                       </label>
                       <select
@@ -1923,7 +1965,8 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                        <Timer className="w-3.5 h-3.5 text-[#024BAB]" />
                         Double Punch Interval (minutes)
                       </label>
                       <input
@@ -2132,21 +2175,25 @@ export default function SettingsPage() {
                       {
                         key: "dashboardType",
                         label: "Dashboard Type",
+                        icon: LayoutDashboard,
                         options: ["Normal", "Advanced", "Compact"],
                       },
                       {
                         key: "timeFormat",
                         label: "Time Format",
+                        icon: Clock,
                         options: ["12", "24"],
                       },
                       {
                         key: "currency",
                         label: "Currency",
+                        icon: IndianRupee,
                         options: ["INR", "USD", "EUR", "GBP", "AED"],
                       },
                       {
                         key: "state",
                         label: "State (for PT slab)",
+                        icon: MapPin,
                         options: [
                           "Maharashtra",
                           "Karnataka",
@@ -2160,9 +2207,10 @@ export default function SettingsPage() {
                           "Rajasthan",
                         ],
                       },
-                    ].map(({ key, label, options }) => (
+                    ].map(({ key, label, icon: FieldIcon, options }) => (
                       <div key={key} className="space-y-2">
-                        <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                          <FieldIcon className="w-3.5 h-3.5 text-[#024BAB]" />
                           {label}
                         </label>
                         <select
@@ -2188,7 +2236,8 @@ export default function SettingsPage() {
                       </div>
                     ))}
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                        <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
                         Employee Code Prefix
                       </label>
                       <input
@@ -2205,7 +2254,8 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider">
+                        <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
                         Employee Code Suffix
                       </label>
                       <input
@@ -2336,7 +2386,8 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-5 space-y-4">
                       <div>
-                        <label className="block text-xs font-bold uppercase mb-1.5">
+                        <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1.5">
+                          <UserCircle className="w-3.5 h-3.5 text-[#024BAB]" />
                           Display Name
                         </label>
                         <input
@@ -2347,7 +2398,8 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold uppercase mb-1.5">
+                        <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1.5">
+                          <Phone className="w-3.5 h-3.5 text-[#024BAB]" />
                           Phone Number
                         </label>
                         <input
@@ -2358,7 +2410,8 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold uppercase mb-1.5">
+                        <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1.5">
+                          <Mail className="w-3.5 h-3.5 text-[#024BAB]" />
                           Email
                         </label>
                         <input
@@ -2400,7 +2453,8 @@ export default function SettingsPage() {
                         { key: "confirm", label: "Confirm New Password" },
                       ].map(({ key, label }) => (
                         <div key={key}>
-                          <label className="block text-xs font-bold uppercase mb-1.5">
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1.5">
+                            <Lock className="w-3.5 h-3.5 text-[#024BAB]" />
                             {label}
                           </label>
                           <div className="relative">

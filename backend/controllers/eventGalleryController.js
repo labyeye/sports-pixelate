@@ -3,17 +3,25 @@ const EventGalleryItem = require("../models/EventGalleryItem");
 const Event = require("../models/Event");
 
 const listGalleryItems = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");
   }
-  const items = await EventGalleryItem.find({ event: event._id }).sort({ createdAt: -1 });
+  const items = await EventGalleryItem.find({ event: event._id }).sort({
+    createdAt: -1,
+  });
   res.json({ success: true, data: items });
 });
 
 const addGalleryItem = asyncHandler(async (req, res) => {
-  const event = await Event.findOne({ _id: req.params.id, company: req.user.company });
+  const event = await Event.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!event) {
     res.status(404);
     throw new Error("Event not found");

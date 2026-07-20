@@ -73,12 +73,18 @@ async function attendanceSummaryByStudent(companyId, studentIds, from, to) {
   }
   const rows = await StudentAttendance.aggregate([
     { $match: match },
-    { $group: { _id: { student: "$student", status: "$status" }, count: { $sum: 1 } } },
+    {
+      $group: {
+        _id: { student: "$student", status: "$status" },
+        count: { $sum: 1 },
+      },
+    },
   ]);
   const map = {};
   for (const r of rows) {
     const sid = String(r._id.student);
-    if (!map[sid]) map[sid] = { present: 0, late: 0, absent: 0, excused: 0, total: 0 };
+    if (!map[sid])
+      map[sid] = { present: 0, late: 0, absent: 0, excused: 0, total: 0 };
     map[sid][r._id.status] = (map[sid][r._id.status] || 0) + r.count;
     map[sid].total += r.count;
   }
@@ -201,11 +207,13 @@ const getStudentEnrollment = asyncHandler(async (req, res) => {
       student: s,
       date: s.enrollmentDate,
     })),
-    ...exited.filter((s) => s.exitDate).map((s) => ({
-      type: "exited",
-      student: s,
-      date: s.exitDate,
-    })),
+    ...exited
+      .filter((s) => s.exitDate)
+      .map((s) => ({
+        type: "exited",
+        student: s,
+        date: s.exitDate,
+      })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   res.json({
@@ -232,7 +240,9 @@ const getBatchSummary = asyncHandler(async (req, res) => {
           _id: "$batch",
           total: { $sum: 1 },
           active: { $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] } },
-          inactive: { $sum: { $cond: [{ $eq: ["$status", "inactive"] }, 1, 0] } },
+          inactive: {
+            $sum: { $cond: [{ $eq: ["$status", "inactive"] }, 1, 0] },
+          },
           on_hold: { $sum: { $cond: [{ $eq: ["$status", "on_hold"] }, 1, 0] } },
         },
       },
@@ -287,7 +297,10 @@ const getSportSummary = asyncHandler(async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
     const ids = groups.map((g) => g._id);
-    const students = await Student.find({ company: companyId, sport: { $in: ids } }).select("_id sport");
+    const students = await Student.find({
+      company: companyId,
+      sport: { $in: ids },
+    }).select("_id sport");
     const bySport = {};
     for (const s of students) {
       (bySport[s.sport] = bySport[s.sport] || []).push(s._id);
@@ -342,8 +355,20 @@ const getStudentProfile = asyncHandler(async (req, res) => {
   const { studentId } = req.params;
   const companyId = req.user.company;
 
-  const student = await Student.findOne({ _id: studentId, company: companyId })
-    .populate("coach", "firstName lastName");
+  if (req.user.role === "parent") {
+    const isOwnChild = (req.user.children || []).some(
+      (c) => String(c) === String(studentId),
+    );
+    if (!isOwnChild) {
+      res.status(403);
+      throw new Error("Not authorized to view this student's report");
+    }
+  }
+
+  const student = await Student.findOne({
+    _id: studentId,
+    company: companyId,
+  }).populate("coach", "firstName lastName");
   if (!student) {
     res.status(404);
     throw new Error("Student not found");

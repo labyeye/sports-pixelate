@@ -11,7 +11,13 @@ const createSchema = {
   name: { required: true, type: "string", minLength: 1, maxLength: 100 },
 };
 
-const FACILITY_SORT_FIELDS = ["name", "type", "capacity", "hourlyFee", "createdAt"];
+const FACILITY_SORT_FIELDS = [
+  "name",
+  "type",
+  "capacity",
+  "hourlyFee",
+  "createdAt",
+];
 
 const getFacilities = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);

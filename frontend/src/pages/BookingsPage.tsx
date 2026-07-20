@@ -15,6 +15,10 @@ import {
   ArrowDown,
   IndianRupee,
   CheckCircle2,
+  Building2,
+  User,
+  Calendar,
+  Clock,
 } from "lucide-react";
 
 declare global {
@@ -92,7 +96,10 @@ export default function BookingsPage() {
   // "facility" sort isn't backend-sortable (populated ref); date/fee are.
   const bookingParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (filterFacility) params.facility = filterFacility;
       if (filterStatus) params.status = filterStatus;
       if (sortKey === "date" || sortKey === "fee") {
@@ -240,7 +247,9 @@ export default function BookingsPage() {
     if (sortKey !== "facility") return filtered;
     const arr = [...filtered];
     arr.sort((a, b) => {
-      const cmp = (a.facility?.name || "").localeCompare(b.facility?.name || "");
+      const cmp = (a.facility?.name || "").localeCompare(
+        b.facility?.name || "",
+      );
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -381,7 +390,8 @@ export default function BookingsPage() {
           <h3 className="font-bold text-base mb-4">New Booking</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Building2 className="w-3.5 h-3.5 text-[#024BAB]" />
                 Facility *
               </label>
               <select
@@ -402,7 +412,8 @@ export default function BookingsPage() {
             </div>
             {isParent && (
               <div>
-                <label className="block text-xs font-bold uppercase mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                  <User className="w-3.5 h-3.5 text-[#024BAB]" />
                   For Child
                 </label>
                 <select
@@ -422,7 +433,8 @@ export default function BookingsPage() {
               </div>
             )}
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
                 Date
               </label>
               <input
@@ -436,7 +448,8 @@ export default function BookingsPage() {
             </div>
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="block text-xs font-bold uppercase mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                  <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
                   Start
                 </label>
                 <input
@@ -449,7 +462,8 @@ export default function BookingsPage() {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-bold uppercase mb-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                  <Clock className="w-3.5 h-3.5 text-[#024BAB]" />
                   End
                 </label>
                 <input

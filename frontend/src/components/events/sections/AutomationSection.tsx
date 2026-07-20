@@ -22,11 +22,18 @@ export function AutomationSection({ value, onChange }: Props) {
     <CollapsibleSection title="Automation" icon={Zap}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {FIELDS.map((f) => (
-          <label key={f.key} className="flex items-center gap-2 text-sm font-bold">
+          <label
+            key={f.key}
+            className="flex items-center gap-2 text-sm font-bold"
+          >
             <input
               type="checkbox"
               checked={!!value[f.key]}
-              onChange={(e) => onChange({ [f.key]: e.target.checked } as Partial<EventAutomation>)}
+              onChange={(e) =>
+                onChange({
+                  [f.key]: e.target.checked,
+                } as Partial<EventAutomation>)
+              }
             />
             {f.label}
           </label>

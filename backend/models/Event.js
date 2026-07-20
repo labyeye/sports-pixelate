@@ -241,7 +241,12 @@ const eventSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     // Free string keyed into config/eventTypeConfig.js — not a hard Mongoose
     // enum, so new event types (incl. "custom") never need a migration.
-    eventType: { type: String, required: true, trim: true, default: "tournament" },
+    eventType: {
+      type: String,
+      required: true,
+      trim: true,
+      default: "tournament",
+    },
     activity: { type: String, required: true, trim: true }, // was `sport`, generalized
     // Denormalized cache of the eventTypeConfig category lookup, set
     // server-side on save so queries/UI don't need to re-derive it.

@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, View, Text, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone, Download } from 'lucide-react-native';
 import { studentAPI } from '../api/client';
@@ -14,7 +21,9 @@ import { colors, FONT } from '../theme/colors';
 function slotGuardians(guardians: any[] = []) {
   const father = guardians.find(g => g.relation === 'father') || null;
   const mother = guardians.find(g => g.relation === 'mother') || null;
-  const rest = guardians.filter(g => g.relation !== 'father' && g.relation !== 'mother');
+  const rest = guardians.filter(
+    g => g.relation !== 'father' && g.relation !== 'mother',
+  );
   return {
     father,
     mother,
@@ -46,7 +55,10 @@ export default function GuardianContactListScreen() {
 
   useEffect(() => {
     clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => setSearch(searchInput.trim().toLowerCase()), 300);
+    searchDebounce = setTimeout(
+      () => setSearch(searchInput.trim().toLowerCase()),
+      300,
+    );
     return () => clearTimeout(searchDebounce);
   }, [searchInput]);
 
@@ -59,7 +71,10 @@ export default function GuardianContactListScreen() {
   const filtered = students.filter(s => {
     if (!search) return true;
     const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
-    return name.includes(search) || (s.studentId || '').toLowerCase().includes(search);
+    return (
+      name.includes(search) ||
+      (s.studentId || '').toLowerCase().includes(search)
+    );
   });
 
   const onExport = () =>
@@ -77,7 +92,9 @@ export default function GuardianContactListScreen() {
         { key: 'guardian2Phone', label: 'Guardian 2 Phone' },
       ],
       filtered.map(s => {
-        const { father, mother, guardian1, guardian2 } = slotGuardians(s.guardians);
+        const { father, mother, guardian1, guardian2 } = slotGuardians(
+          s.guardians,
+        );
         return {
           student: `${s.firstName} ${s.lastName}`,
           studentId: s.studentId,
@@ -107,18 +124,28 @@ export default function GuardianContactListScreen() {
       </View>
 
       <View style={styles.searchWrap}>
-        <SearchBar value={searchInput} onChangeText={setSearchInput} placeholder="Search by student name..." />
+        <SearchBar
+          value={searchInput}
+          onChangeText={setSearchInput}
+          placeholder="Search by student name..."
+        />
       </View>
 
       <FlatList
         data={filtered}
         keyExtractor={s => s._id}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No students found" icon={Phone} />}
+        ListEmptyComponent={
+          <EmptyState title="No students found" icon={Phone} />
+        }
         renderItem={({ item: s }) => {
-          const { father, mother, guardian1, guardian2 } = slotGuardians(s.guardians);
+          const { father, mother, guardian1, guardian2 } = slotGuardians(
+            s.guardians,
+          );
           return (
             <Card>
               <Text style={styles.name}>
@@ -127,16 +154,24 @@ export default function GuardianContactListScreen() {
               <Text style={styles.sub}>{s.studentId}</Text>
               <View style={styles.guardianList}>
                 {father ? (
-                  <Text style={styles.guardianLine}>Father: {father.name} — {father.phone}</Text>
+                  <Text style={styles.guardianLine}>
+                    Father: {father.name} — {father.phone}
+                  </Text>
                 ) : null}
                 {mother ? (
-                  <Text style={styles.guardianLine}>Mother: {mother.name} — {mother.phone}</Text>
+                  <Text style={styles.guardianLine}>
+                    Mother: {mother.name} — {mother.phone}
+                  </Text>
                 ) : null}
                 {guardian1 ? (
-                  <Text style={styles.guardianLine}>Guardian 1: {guardian1.name} — {guardian1.phone}</Text>
+                  <Text style={styles.guardianLine}>
+                    Guardian 1: {guardian1.name} — {guardian1.phone}
+                  </Text>
                 ) : null}
                 {guardian2 ? (
-                  <Text style={styles.guardianLine}>Guardian 2: {guardian2.name} — {guardian2.phone}</Text>
+                  <Text style={styles.guardianLine}>
+                    Guardian 2: {guardian2.name} — {guardian2.phone}
+                  </Text>
                 ) : null}
                 {!father && !mother && !guardian1 && !guardian2 ? (
                   <Text style={styles.guardianLine}>No guardians on file</Text>
@@ -162,7 +197,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.black, fontFamily: FONT.bold, flex: 1 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flex: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -180,8 +221,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14, color: colors.black },
-  sub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.black,
+  },
+  sub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
   guardianList: { marginTop: 8, gap: 3 },
   guardianLine: { fontFamily: FONT.medium, fontSize: 12, color: colors.black },
 });

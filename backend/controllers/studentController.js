@@ -3,6 +3,7 @@ const asyncHandler = require("express-async-handler");
 const Student = require("../models/Student");
 const User = require("../models/User");
 const Employee = require("../models/Employee");
+const StudentSubscription = require("../models/StudentSubscription");
 const {
   escapeRegex,
   safePagination,
@@ -40,10 +41,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function sanitizeGuardians(input) {
   if (input === undefined) return undefined;
   if (!Array.isArray(input)) throw new Error("guardians must be an array");
-  return input.map((g, i) => {
+  const sanitized = input.map((g, i) => {
     if (!g || typeof g !== "object")
       throw new Error(`guardians[${i}] must be an object`);
-    const { relation, name, phone, email, photo } = g;
+    const { relation, name, phone, email, photo, receivesWhatsapp, password } =
+      g;
     if (!GUARDIAN_RELATIONS.includes(relation))
       throw new Error(
         `guardians[${i}].relation must be one of: ${GUARDIAN_RELATIONS.join(", ")}`,
@@ -52,6 +54,14 @@ function sanitizeGuardians(input) {
       throw new Error(`guardians[${i}].name is required`);
     if (email && !EMAIL_RE.test(email))
       throw new Error(`guardians[${i}].email must be a valid email`);
+    if (password !== undefined && password !== "") {
+      if (typeof password !== "string" || password.length < 6)
+        throw new Error(
+          `guardians[${i}].password must be at least 6 characters`,
+        );
+      if (password.length > 128)
+        throw new Error(`guardians[${i}].password is too long`);
+    }
     return {
       relation,
       name: name.trim(),
@@ -59,8 +69,28 @@ function sanitizeGuardians(input) {
       email: email ? String(email).trim() : undefined,
       // Round-tripped from a prior GET/photo-upload response, not user-uploaded here.
       photo: typeof photo === "string" ? photo : undefined,
+      receivesWhatsapp: !!receivesWhatsapp,
+      // Not stored on the guardian subdocument — only used by
+      // ensureParentAccounts to set login credentials, then discarded.
+      password: password || undefined,
     };
   });
+  // Only one guardian per student should get WhatsApp notifications —
+  // enforce it here rather than silently picking one, so the UI's choice
+  // is never overridden without the caller knowing.
+  const whatsappCount = sanitized.filter((g) => g.receivesWhatsapp).length;
+  if (whatsappCount > 1)
+    throw new Error(
+      "Only one guardian can be selected to receive WhatsApp notifications",
+    );
+  return sanitized;
+}
+
+// Guardian `password` only exists to seed the linked parent account
+// (ensureParentAccounts) and must never land on the Student document itself.
+function stripGuardianPasswords(guardians) {
+  if (!Array.isArray(guardians)) return guardians;
+  return guardians.map(({ password, ...g }) => g);
 }
 
 function normalizePhone(phone) {
@@ -84,10 +114,18 @@ async function ensureParentAccounts(guardians, companyId) {
       company: companyId,
     });
     if (!user) {
+      // Prefer the email/password entered on the student form (lets the
+      // admin set real login credentials up front); fall back to a
+      // placeholder that only supports phone-OTP login.
+      let email = `parent.${normalized}.${companyId}@parents.nestsports.local`;
+      if (g.email) {
+        const exists = await User.findOne({ email: g.email });
+        if (!exists) email = g.email;
+      }
       user = await User.create({
         name: g.name,
-        email: `parent.${normalized}.${companyId}@parents.nestsports.local`,
-        password: crypto.randomBytes(8).toString("hex") + "A1",
+        email,
+        password: g.password || crypto.randomBytes(8).toString("hex") + "A1",
         role: "parent",
         phone: normalized,
         company: companyId,
@@ -96,6 +134,38 @@ async function ensureParentAccounts(guardians, companyId) {
     parentIds.push(user._id);
   }
   return parentIds;
+}
+
+// Attaches each student's currently active (or awaiting-first-payment) coaching
+// plan schedule, so attendance screens can tell which weekdays/timing a
+// student is actually expected on without a separate round trip.
+async function attachActivePlans(students) {
+  const list = Array.isArray(students) ? students : [students];
+  const studentIds = list.map((s) => s._id);
+  const activeSubs = await StudentSubscription.find({
+    student: { $in: studentIds },
+    status: { $in: ["active", "pending_renewal"] },
+  }).populate(
+    "plan",
+    "name scheduleType scheduleDays sessionsPerWeek startTime endTime",
+  );
+
+  const planByStudent = {};
+  for (const sub of activeSubs) {
+    // Prefer an "active" (already paid) subscription over a merely
+    // "pending_renewal" one if a student somehow has both.
+    const key = String(sub.student);
+    if (!planByStudent[key] || sub.status === "active") {
+      planByStudent[key] = sub.plan;
+    }
+  }
+
+  const data = list.map((s) => {
+    const obj = s.toObject ? s.toObject() : s;
+    obj.activePlan = planByStudent[String(s._id)] || null;
+    return obj;
+  });
+  return Array.isArray(students) ? data : data[0];
 }
 
 // A coach only sees students assigned to them; other logged-in employees
@@ -154,9 +224,11 @@ const getStudents = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
+  const data = await attachActivePlans(students);
+
   res.json({
     success: true,
-    data: students,
+    data,
     total,
     page,
     pages: Math.ceil(total / limit),
@@ -177,7 +249,8 @@ const getStudent = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Student not found");
   }
-  res.json({ success: true, data: student });
+  const data = await attachActivePlans(student);
+  res.json({ success: true, data });
 });
 
 const createStudent = [
@@ -236,7 +309,7 @@ const createStudent = [
       batch,
       coach: coach || undefined,
       parents: parentIds,
-      guardians: sanitizedGuardians || [],
+      guardians: stripGuardianPasswords(sanitizedGuardians) || [],
       emergencyContact,
       medicalNotes,
       enrollmentDate: enrollmentDate || Date.now(),
@@ -273,6 +346,7 @@ const updateStudent = [
         update.guardians,
         req.user.company,
       );
+      update.guardians = stripGuardianPasswords(update.guardians);
     }
 
     const student = await Student.findOneAndUpdate(
@@ -345,6 +419,24 @@ const uploadGuardianPhotoHandler = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Student or guardian not found");
   }
+
+  // Mirror onto the guardian's linked parent login so their app avatar
+  // (matched by phone, same as ensureParentAccounts) shows this photo too.
+  const guardian = student.guardians.id(req.params.guardianId);
+  if (guardian?.phone) {
+    const normalized = normalizePhone(guardian.phone);
+    if (normalized.length === 10) {
+      await User.updateOne(
+        {
+          phone: { $in: [normalized, `+91${normalized}`, `91${normalized}`] },
+          company: req.user.company,
+          role: "parent",
+        },
+        { $set: { avatar: photoUrl } },
+      );
+    }
+  }
+
   res.json({ success: true, photo: photoUrl });
 });
 
@@ -391,9 +483,9 @@ const bulkImportStudents = asyncHandler(async (req, res) => {
     throw new Error("Maximum 200 students per import");
   }
 
-  const allEmployees = await Employee.find({ company: req.user.company }).select(
-    "firstName lastName",
-  );
+  const allEmployees = await Employee.find({
+    company: req.user.company,
+  }).select("firstName lastName");
 
   let count = await Student.countDocuments({ company: req.user.company });
   const results = [];
@@ -431,8 +523,15 @@ const bulkImportStudents = asyncHandler(async (req, res) => {
             ? row.guardianRelation
             : "guardian",
           name: String(row.guardianName).trim(),
-          phone: row.guardianPhone ? String(row.guardianPhone).trim() : undefined,
-          email: row.guardianEmail ? String(row.guardianEmail).trim() : undefined,
+          phone: row.guardianPhone
+            ? String(row.guardianPhone).trim()
+            : undefined,
+          email: row.guardianEmail
+            ? String(row.guardianEmail).trim()
+            : undefined,
+          // Bulk import only ever creates one guardian per student, so
+          // there's no ambiguity — make them the WhatsApp recipient.
+          receivesWhatsapp: true,
         });
       }
 

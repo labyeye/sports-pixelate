@@ -71,7 +71,11 @@ export default function LateApprovalsScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.blue} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.blue}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -94,7 +98,8 @@ export default function LateApprovalsScreen() {
             <KpiTile
               label="Avg Minutes Late"
               value={Math.round(
-                items.reduce((sum, i) => sum + (i.minutesLate || 0), 0) / items.length,
+                items.reduce((sum, i) => sum + (i.minutesLate || 0), 0) /
+                  items.length,
               )}
               sub="Per request"
               color={colors.blue}
@@ -112,9 +117,15 @@ export default function LateApprovalsScreen() {
           items.map(item => {
             const emp = item.employee as any;
             return (
-              <Card key={item._id} style={styles.card} accentColor={colors.orange}>
+              <Card
+                key={item._id}
+                style={styles.card}
+                accentColor={colors.orange}
+              >
                 <Text style={styles.empName}>
-                  {emp ? `${emp.firstName} ${emp.lastName}` : 'Unknown employee'}
+                  {emp
+                    ? `${emp.firstName} ${emp.lastName}`
+                    : 'Unknown employee'}
                 </Text>
                 <Text style={styles.empSub}>
                   {emp?.employeeId || ''}
@@ -126,14 +137,18 @@ export default function LateApprovalsScreen() {
                   <Text style={styles.metaText}>
                     {item.minutesLate} min late
                     {item.checkInTime
-                      ? ` · checked in ${new Date(item.checkInTime).toLocaleTimeString([], {
+                      ? ` · checked in ${new Date(
+                          item.checkInTime,
+                        ).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}`
                       : ''}
                   </Text>
                 </View>
-                {!!item.reason && <Text style={styles.reason}>"{item.reason}"</Text>}
+                {!!item.reason && (
+                  <Text style={styles.reason}>"{item.reason}"</Text>
+                )}
 
                 <View style={styles.actionRow}>
                   {RESOLUTIONS.map(r => (
@@ -171,11 +186,32 @@ const styles = StyleSheet.create({
     marginBottom: -4,
   },
   card: { padding: 14 },
-  empName: { fontFamily: FONT.bold, fontWeight: '800', fontSize: 15, color: colors.black },
-  empSub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 2 },
+  empName: {
+    fontFamily: FONT.bold,
+    fontWeight: '800',
+    fontSize: 15,
+    color: colors.black,
+  },
+  empSub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-  metaText: { fontFamily: FONT.medium, fontSize: 12, fontWeight: '600', color: colors.orange },
-  reason: { fontFamily: FONT.regular, fontSize: 12, color: colors.muted, fontStyle: 'italic', marginTop: 6 },
+  metaText: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.orange,
+  },
+  reason: {
+    fontFamily: FONT.regular,
+    fontSize: 12,
+    color: colors.muted,
+    fontStyle: 'italic',
+    marginTop: 6,
+  },
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

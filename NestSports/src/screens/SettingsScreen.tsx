@@ -26,6 +26,18 @@ import {
   SlidersHorizontal,
   Sliders,
   LucideIcon,
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  UserCircle,
+  CreditCard,
+  Hash,
+  IndianRupee,
+  Calendar,
+  Fingerprint,
+  Clock,
+  LayoutDashboard,
 } from 'lucide-react-native';
 import { settingsAPI, RNFile } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -304,35 +316,41 @@ export default function SettingsScreen() {
             </View>
             <TextField
               label="SportsClub Name"
+              icon={Building2}
               required
               value={settings?.companyName || ''}
               onChangeText={v => set({ companyName: v })}
             />
             <TextField
               label="Email"
+              icon={Mail}
               value={settings?.companyEmail || ''}
               onChangeText={v => set({ companyEmail: v })}
               keyboardType="email-address"
             />
             <TextField
               label="Phone"
+              icon={Phone}
               value={settings?.companyPhone || ''}
               onChangeText={v => set({ companyPhone: v })}
               keyboardType="phone-pad"
             />
             <TextField
               label="GST Number"
+              icon={Hash}
               value={settings?.companyGST || ''}
               onChangeText={v => set({ companyGST: v.toUpperCase() })}
               placeholder="22AAAAA0000A1Z5"
             />
             <TextField
               label="Website"
+              icon={Globe}
               value={settings?.companyWebsite || ''}
               onChangeText={v => set({ companyWebsite: v })}
             />
             <TextField
               label="SportsClub Address"
+              icon={MapPin}
               required
               multiline
               value={settings?.companyAddress || ''}
@@ -367,23 +385,27 @@ export default function SettingsScreen() {
             <SectionTitle title="Bank Details" />
             <TextField
               label="Bank Name"
+              icon={Landmark}
               required
               value={settings?.bankName || ''}
               onChangeText={v => set({ bankName: v })}
             />
             <TextField
               label="Bank Branch"
+              icon={MapPin}
               value={settings?.bankBranch || ''}
               onChangeText={v => set({ bankBranch: v })}
             />
             <TextField
               label="Account Holder Name"
+              icon={UserCircle}
               required
               value={settings?.bankAccountName || ''}
               onChangeText={v => set({ bankAccountName: v })}
             />
             <TextField
               label="Account Number"
+              icon={CreditCard}
               required
               value={settings?.bankAccountNumber || ''}
               onChangeText={v => set({ bankAccountNumber: v })}
@@ -391,6 +413,7 @@ export default function SettingsScreen() {
             />
             <TextField
               label="IFSC Code"
+              icon={Hash}
               required
               value={settings?.bankIFSC || ''}
               onChangeText={v => set({ bankIFSC: v.toUpperCase() })}
@@ -421,6 +444,11 @@ export default function SettingsScreen() {
               onChange={v => set({ whatsappNotifyPayroll: v })}
             />
             <ToggleRow
+              label="Notify on Subscription Payment"
+              value={settings?.whatsappNotifySubscription ?? true}
+              onChange={v => set({ whatsappNotifySubscription: v })}
+            />
+            <ToggleRow
               label="Notify on Check-In"
               value={settings?.whatsappNotifyCheckIn ?? true}
               onChange={v => set({ whatsappNotifyCheckIn: v })}
@@ -433,12 +461,14 @@ export default function SettingsScreen() {
             <SectionTitle title="Salary Mode" />
             <ChipSelect
               label="Payout Frequency"
+              icon={IndianRupee}
               options={SALARY_MODES}
               value={settings?.salaryMode || 'monthly'}
               onChange={v => set({ salaryMode: v })}
             />
             <TextField
               label="Salary Pay Day"
+              icon={Calendar}
               value={settings?.salaryPayDay || ''}
               onChangeText={v => set({ salaryPayDay: v })}
               placeholder="e.g. 1st, Last day"
@@ -456,6 +486,7 @@ export default function SettingsScreen() {
             <SectionTitle title="Punch Settings" />
             <ChipSelect
               label="Single Punch Action"
+              icon={Fingerprint}
               options={SINGLE_PUNCH_ACTIONS}
               value={settings?.singlePunchAction || 'half_day'}
               onChange={v => set({ singlePunchAction: v })}
@@ -467,6 +498,7 @@ export default function SettingsScreen() {
             />
             <TextField
               label="Double Punch Interval (minutes)"
+              icon={Clock}
               value={String(settings?.doublePunchInterval ?? '')}
               onChangeText={v =>
                 set({ doublePunchInterval: Number(v.replace(/\D/g, '')) || 0 })
@@ -563,12 +595,14 @@ export default function SettingsScreen() {
             <SectionTitle title="Preferences" />
             <ChipSelect
               label="Dashboard Type"
+              icon={LayoutDashboard}
               options={DASHBOARD_TYPES}
               value={settings?.dashboardType || 'Normal'}
               onChange={v => set({ dashboardType: v })}
             />
             <ChipSelect
               label="Time Format"
+              icon={Clock}
               options={TIME_FORMATS}
               value={settings?.timeFormat || '12'}
               onChange={v => set({ timeFormat: v })}
@@ -576,22 +610,26 @@ export default function SettingsScreen() {
             />
             <ChipSelect
               label="Currency"
+              icon={IndianRupee}
               options={CURRENCIES}
               value={settings?.currency || 'INR'}
               onChange={v => set({ currency: v })}
             />
             <TextField
               label="State (for PT slab)"
+              icon={MapPin}
               value={settings?.state || ''}
               onChangeText={v => set({ state: v })}
             />
             <TextField
               label="Employee Code Prefix"
+              icon={Hash}
               value={settings?.empCodePrefix || ''}
               onChangeText={v => set({ empCodePrefix: v })}
             />
             <TextField
               label="Employee Code Suffix"
+              icon={Hash}
               value={settings?.empCodeSuffix || ''}
               onChangeText={v => set({ empCodeSuffix: v })}
             />

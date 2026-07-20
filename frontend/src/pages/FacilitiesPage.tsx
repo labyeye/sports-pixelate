@@ -17,6 +17,10 @@ import {
   ArrowDown,
   Building2,
   Users2,
+  Tag,
+  Layers,
+  Trophy,
+  IndianRupee,
 } from "lucide-react";
 
 interface Facility {
@@ -57,7 +61,10 @@ export default function FacilitiesPage() {
 
   const facilityParams = useCallback(
     (pageNum: number): Record<string, string> => {
-      const params: Record<string, string> = { page: String(pageNum), limit: "20" };
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        limit: "20",
+      };
       if (search) params.search = search;
       if (filterType) params.type = filterType;
       if (filterSport) params.sport = filterSport;
@@ -318,7 +325,8 @@ export default function FacilitiesPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
                 Name *
               </label>
               <input
@@ -331,7 +339,8 @@ export default function FacilitiesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Layers className="w-3.5 h-3.5 text-[#024BAB]" />
                 Type
               </label>
               <select
@@ -351,7 +360,8 @@ export default function FacilitiesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
                 Sport
               </label>
               <input
@@ -363,7 +373,8 @@ export default function FacilitiesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <Users2 className="w-3.5 h-3.5 text-[#024BAB]" />
                 Capacity
               </label>
               <input
@@ -376,7 +387,8 @@ export default function FacilitiesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
                 Hourly Fee (₹, 0 = free)
               </label>
               <input

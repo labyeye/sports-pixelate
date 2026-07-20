@@ -1,4 +1,10 @@
-import { Users } from "lucide-react";
+import {
+  Users,
+  ListChecks,
+  ClipboardList,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import type { EventParticipation } from "@/types/hrms";
 
@@ -7,19 +13,25 @@ interface Props {
   onChange: (patch: Partial<EventParticipation>) => void;
 }
 
-const inputClass = "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
-const labelClass = "block text-xs font-bold uppercase mb-1";
+const inputClass =
+  "w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none bg-white";
+const labelClass = "flex items-center gap-1.5 text-xs font-bold uppercase mb-1";
 
 export function ParticipationSection({ value, onChange }: Props) {
   return (
     <CollapsibleSection title="Participation" icon={Users}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Type</label>
+          <label className={labelClass}>
+            <ListChecks className="w-3.5 h-3.5 text-[#024BAB]" />
+            Type
+          </label>
           <select
             className={inputClass}
             value={value.type}
-            onChange={(e) => onChange({ type: e.target.value as EventParticipation["type"] })}
+            onChange={(e) =>
+              onChange({ type: e.target.value as EventParticipation["type"] })
+            }
           >
             <option value="individual">Individual</option>
             <option value="team">Team</option>
@@ -27,33 +39,60 @@ export function ParticipationSection({ value, onChange }: Props) {
           </select>
         </div>
         <div>
-          <label className={labelClass}>Max Registrations</label>
+          <label className={labelClass}>
+            <ClipboardList className="w-3.5 h-3.5 text-[#024BAB]" />
+            Max Registrations
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.maxRegistrations ?? ""}
-            onChange={(e) => onChange({ maxRegistrations: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                maxRegistrations: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <div>
-          <label className={labelClass}>Min Participants</label>
+          <label className={labelClass}>
+            <UserMinus className="w-3.5 h-3.5 text-[#024BAB]" />
+            Min Participants
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.minParticipants ?? ""}
-            onChange={(e) => onChange({ minParticipants: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                minParticipants: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <div>
-          <label className={labelClass}>Max Participants</label>
+          <label className={labelClass}>
+            <UserPlus className="w-3.5 h-3.5 text-[#024BAB]" />
+            Max Participants
+          </label>
           <input
             type="number"
             min={0}
             className={inputClass}
             value={value.maxParticipants ?? ""}
-            onChange={(e) => onChange({ maxParticipants: e.target.value ? Number(e.target.value) : undefined })}
+            onChange={(e) =>
+              onChange({
+                maxParticipants: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
           />
         </div>
         <label className="flex items-center gap-2 text-sm font-bold">

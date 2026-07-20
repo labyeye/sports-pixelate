@@ -158,25 +158,34 @@ async function notifyEmployeeCheckOut(
 async function notifyGuardians(student, sendFn, locationName, time) {
   try {
     const studentName = `${student.firstName} ${student.lastName}`;
-    for (const guardian of student.guardians || []) {
-      if (!guardian.phone) continue;
-      await sendFn(
-        guardian.phone,
-        {
-          guardianName: guardian.name,
-          studentName,
-          locationName,
-          time,
-        },
-        student.company,
-      );
-    }
+    // Only the one guardian opted in via receivesWhatsapp gets notified —
+    // otherwise every listed guardian (father, mother, etc.) would be messaged.
+    const guardian = (student.guardians || []).find(
+      (g) => g.receivesWhatsapp && g.phone,
+    );
+    if (!guardian) return;
+    await sendFn(
+      guardian.phone,
+      {
+        guardianName: guardian.name,
+        studentName,
+        locationName,
+        time,
+      },
+      student.company,
+    );
   } catch (err) {
     console.error("[ADMS] notifyGuardians error:", err.message);
   }
 }
 
-async function processEmployeePunch(employee, punchTime, verifyMode, loc, companyId) {
+async function processEmployeePunch(
+  employee,
+  punchTime,
+  verifyMode,
+  loc,
+  companyId,
+) {
   const dayStart = new Date(
     Date.UTC(
       punchTime.getUTCFullYear(),
@@ -239,7 +248,11 @@ async function processEmployeePunch(employee, punchTime, verifyMode, loc, compan
     }
     logType = "check_in";
   } else if (punchTime > existing.checkIn) {
-    upd.checkOut = await getEffectiveCheckOut(companyId, employee._id, punchTime);
+    upd.checkOut = await getEffectiveCheckOut(
+      companyId,
+      employee._id,
+      punchTime,
+    );
     logType = "check_out";
   }
 
@@ -254,7 +267,13 @@ async function processEmployeePunch(employee, punchTime, verifyMode, loc, compan
     if (logType === "check_in") {
       await notifyEmployeeCheckIn(employee, loc, upd.checkIn, companyId);
     } else if (logType === "check_out") {
-      await notifyEmployeeCheckOut(employee, loc, upd.checkOut, upd.workHours, companyId);
+      await notifyEmployeeCheckOut(
+        employee,
+        loc,
+        upd.checkOut,
+        upd.workHours,
+        companyId,
+      );
     }
   }
 }
@@ -310,7 +329,11 @@ async function processStudentPunch(student, punchTime, verifyMode, loc) {
   }
 }
 
-async function processLog({ userId, datetime, verifyType }, companyId, locationName) {
+async function processLog(
+  { userId, datetime, verifyType },
+  companyId,
+  locationName,
+) {
   const punchTime = new Date(datetime.replace(" ", "T") + "+05:30");
   if (isNaN(punchTime.getTime())) {
     console.log(`[ADMS] Invalid datetime for userId=${userId}: "${datetime}"`);
@@ -412,7 +435,9 @@ router.post(
     if (table === "BIODATA") {
       try {
         const device = await resolveDevice(SN);
-        console.log(`[ADMS] BIODATA from SN=${SN} body="${body.slice(0, 200)}"`);
+        console.log(
+          `[ADMS] BIODATA from SN=${SN} body="${body.slice(0, 200)}"`,
+        );
 
         if (device) {
           const pinMatch = body.match(/\bPIN=(\S+)/);
@@ -468,7 +493,9 @@ router.post(
       let devLocationName = "Office";
       if (device?.location) {
         const BiometricLocation = require("../models/BiometricLocation");
-        const loc = await BiometricLocation.findById(device.location).select("name");
+        const loc = await BiometricLocation.findById(device.location).select(
+          "name",
+        );
         if (loc?.name) devLocationName = loc.name;
       }
 
@@ -536,7 +563,9 @@ router.post(
       const bodyIdMatch = body.match(/\bID=(\d+)/);
       const cmdId = ID || (bodyIdMatch ? bodyIdMatch[1] : null);
 
-      console.log(`[ADMS] devicecmd SN=${SN} ID=${cmdId} body="${body.trim()}"`);
+      console.log(
+        `[ADMS] devicecmd SN=${SN} ID=${cmdId} body="${body.trim()}"`,
+      );
 
       if (cmdId) {
         const device = await resolveDevice(SN);

@@ -35,6 +35,13 @@ import {
   AlertTriangle,
   Download,
   FileSpreadsheet,
+  Tag,
+  Layers,
+  Trophy,
+  Hash,
+  IndianRupee,
+  User,
+  FileText,
 } from 'lucide-react-native';
 import { inventoryAPI, studentAPI, employeeAPI, RNFile } from '../api/client';
 import {
@@ -53,7 +60,10 @@ import {
   SortOption,
   KpiTile,
 } from '../components/ui';
-import { ImportExportModal, ImportHeader } from '../components/ImportExportModal';
+import {
+  ImportExportModal,
+  ImportHeader,
+} from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -62,12 +72,37 @@ const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'name', label: 'Item Name', required: true, example: 'Tennis Racket' },
   { key: 'category', label: 'Category', required: true, example: 'equipment' },
   { key: 'sport', label: 'Sport', required: false, example: 'Tennis' },
-  { key: 'trackQuantity', label: 'Track Quantity', required: false, example: 'true' },
-  { key: 'totalQuantity', label: 'Total Quantity', required: false, example: '20' },
-  { key: 'availableQuantity', label: 'Available Quantity', required: false, example: '20' },
-  { key: 'onOrderQuantity', label: 'On Order Quantity', required: false, example: '0' },
+  {
+    key: 'trackQuantity',
+    label: 'Track Quantity',
+    required: false,
+    example: 'true',
+  },
+  {
+    key: 'totalQuantity',
+    label: 'Total Quantity',
+    required: false,
+    example: '20',
+  },
+  {
+    key: 'availableQuantity',
+    label: 'Available Quantity',
+    required: false,
+    example: '20',
+  },
+  {
+    key: 'onOrderQuantity',
+    label: 'On Order Quantity',
+    required: false,
+    example: '0',
+  },
   { key: 'unitCost', label: 'Unit Cost', required: false, example: '1500' },
-  { key: 'reorderThreshold', label: 'Reorder Threshold', required: false, example: '5' },
+  {
+    key: 'reorderThreshold',
+    label: 'Reorder Threshold',
+    required: false,
+    example: '5',
+  },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -429,13 +464,18 @@ export default function InventoryScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.title}>Inventory</Text>
-            <Text style={styles.subtitle}>Sports equipment and stock levels</Text>
+            <Text style={styles.subtitle}>
+              Sports equipment and stock levels
+            </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <TouchableOpacity
               onPress={() =>
                 exportRowsToExcel(
-                  INVENTORY_IMPORT_HEADERS.map(h => ({ key: h.key, label: h.label })),
+                  INVENTORY_IMPORT_HEADERS.map(h => ({
+                    key: h.key,
+                    label: h.label,
+                  })),
                   items,
                   'inventory_export.xlsx',
                   'Inventory',
@@ -452,7 +492,11 @@ export default function InventoryScreen() {
                 style={styles.addBtn}
                 hitSlop={8}
               >
-                <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+                <FileSpreadsheet
+                  size={18}
+                  color={colors.black}
+                  strokeWidth={2.5}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -463,7 +507,11 @@ export default function InventoryScreen() {
               <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
             </TouchableOpacity>
             {isOwner && (
-              <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
+              <TouchableOpacity
+                onPress={openAdd}
+                style={styles.addBtn}
+                hitSlop={8}
+              >
                 <Plus size={20} color={colors.blue} strokeWidth={2.5} />
               </TouchableOpacity>
             )}
@@ -513,7 +561,10 @@ export default function InventoryScreen() {
         />
         <TouchableOpacity
           onPress={() => setLowStockOnly(v => !v)}
-          style={[styles.lowStockToggle, lowStockOnly && styles.lowStockToggleActive]}
+          style={[
+            styles.lowStockToggle,
+            lowStockOnly && styles.lowStockToggleActive,
+          ]}
         >
           <Text
             style={[
@@ -566,7 +617,11 @@ export default function InventoryScreen() {
                     </Text>
                     {!!i.onOrderQuantity && (
                       <View style={styles.onOrderRow}>
-                        <Truck size={12} color={colors.purple} strokeWidth={2.5} />
+                        <Truck
+                          size={12}
+                          color={colors.purple}
+                          strokeWidth={2.5}
+                        />
                         <Text style={styles.onOrderText}>
                           {i.onOrderQuantity} on order
                         </Text>
@@ -581,8 +636,14 @@ export default function InventoryScreen() {
                       style={styles.actionBtn}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Truck size={14} color={colors.purple} strokeWidth={2.5} />
-                      <Text style={[styles.actionText, { color: colors.purple }]}>
+                      <Truck
+                        size={14}
+                        color={colors.purple}
+                        strokeWidth={2.5}
+                      />
+                      <Text
+                        style={[styles.actionText, { color: colors.purple }]}
+                      >
                         Stock
                       </Text>
                     </TouchableOpacity>
@@ -592,7 +653,11 @@ export default function InventoryScreen() {
                     style={styles.actionBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <UserCheck size={14} color={colors.blue} strokeWidth={2.5} />
+                    <UserCheck
+                      size={14}
+                      color={colors.blue}
+                      strokeWidth={2.5}
+                    />
                     <Text style={[styles.actionText, { color: colors.blue }]}>
                       Check Out
                     </Text>
@@ -604,8 +669,14 @@ export default function InventoryScreen() {
                         style={styles.actionBtn}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
-                        <Text style={[styles.actionText, { color: colors.blue }]}>
+                        <Pencil
+                          size={14}
+                          color={colors.blue}
+                          strokeWidth={2.5}
+                        />
+                        <Text
+                          style={[styles.actionText, { color: colors.blue }]}
+                        >
                           Edit
                         </Text>
                       </TouchableOpacity>
@@ -614,8 +685,14 @@ export default function InventoryScreen() {
                         style={styles.actionBtn}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                        <Text style={[styles.actionText, { color: colors.red }]}>
+                        <Trash2
+                          size={14}
+                          color={colors.red}
+                          strokeWidth={2.5}
+                        />
+                        <Text
+                          style={[styles.actionText, { color: colors.red }]}
+                        >
                           Delete
                         </Text>
                       </TouchableOpacity>
@@ -672,14 +749,19 @@ export default function InventoryScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <View style={styles.photoPickRow}>
               <TouchableOpacity
                 onPress={() => pickPhoto(setPhotoFile)}
                 style={styles.photoPickBox}
               >
                 {previewUri ? (
-                  <Image source={{ uri: previewUri }} style={styles.photoPickImg} />
+                  <Image
+                    source={{ uri: previewUri }}
+                    style={styles.photoPickImg}
+                  />
                 ) : (
                   <Package size={28} color={colors.muted} strokeWidth={2} />
                 )}
@@ -694,6 +776,7 @@ export default function InventoryScreen() {
               <SectionTitle title="Item Details" />
               <TextField
                 label="Name"
+                icon={Tag}
                 value={form.name}
                 onChangeText={v => setForm(p => ({ ...p, name: v }))}
                 placeholder="e.g. Tennis Racket"
@@ -701,18 +784,21 @@ export default function InventoryScreen() {
               />
               <ChipSelect
                 label="Category"
+                icon={Layers}
                 options={CATEGORIES}
                 value={form.category}
                 onChange={v => setForm(p => ({ ...p, category: v }))}
               />
               <TextField
                 label="Sport"
+                icon={Trophy}
                 value={form.sport}
                 onChangeText={v => setForm(p => ({ ...p, sport: v }))}
                 placeholder="e.g. Tennis"
               />
               <TextField
                 label="Total Quantity"
+                icon={Hash}
                 value={form.totalQuantity}
                 onChangeText={v => setForm(p => ({ ...p, totalQuantity: v }))}
                 keyboardType="numeric"
@@ -720,13 +806,17 @@ export default function InventoryScreen() {
               />
               <TextField
                 label="Reorder Threshold"
+                icon={AlertTriangle}
                 value={form.reorderThreshold}
-                onChangeText={v => setForm(p => ({ ...p, reorderThreshold: v }))}
+                onChangeText={v =>
+                  setForm(p => ({ ...p, reorderThreshold: v }))
+                }
                 keyboardType="numeric"
                 placeholder="0"
               />
               <TextField
                 label="Unit Cost (₹)"
+                icon={IndianRupee}
                 value={form.unitCost}
                 onChangeText={v => setForm(p => ({ ...p, unitCost: v }))}
                 keyboardType="numeric"
@@ -735,12 +825,17 @@ export default function InventoryScreen() {
             </Card>
 
             <Button
-              title={saving ? 'Saving...' : editingId ? 'Update Item' : 'Save Item'}
+              title={
+                saving ? 'Saving...' : editingId ? 'Update Item' : 'Save Item'
+              }
               onPress={save}
               disabled={saving}
             />
             {saving && (
-              <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
             )}
           </ScrollView>
         </SafeAreaView>
@@ -761,7 +856,9 @@ export default function InventoryScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <Card>
               <SectionTitle
                 title="Record who's taking this"
@@ -769,6 +866,7 @@ export default function InventoryScreen() {
               />
               <ChipSelect
                 label="Taken by"
+                icon={User}
                 options={['Student', 'Employee'] as const}
                 value={assignModel}
                 onChange={v => {
@@ -782,7 +880,9 @@ export default function InventoryScreen() {
               </Text>
               <ScrollView style={styles.personList} nestedScrollEnabled>
                 {assignPeople.length === 0 && !assignPeopleLoading ? (
-                  <Text style={styles.emptyPeopleText}>No {assignModel.toLowerCase()}s found</Text>
+                  <Text style={styles.emptyPeopleText}>
+                    No {assignModel.toLowerCase()}s found
+                  </Text>
                 ) : (
                   assignPeople.map(p => {
                     const selected = assignPersonId === p._id;
@@ -790,7 +890,10 @@ export default function InventoryScreen() {
                       <TouchableOpacity
                         key={p._id}
                         onPress={() => setAssignPersonId(p._id)}
-                        style={[styles.personRow, selected && styles.personRowSelected]}
+                        style={[
+                          styles.personRow,
+                          selected && styles.personRowSelected,
+                        ]}
                       >
                         <Text
                           style={[
@@ -807,6 +910,7 @@ export default function InventoryScreen() {
               </ScrollView>
               <TextField
                 label="Quantity"
+                icon={Hash}
                 value={assignQty}
                 onChangeText={setAssignQty}
                 keyboardType="numeric"
@@ -814,6 +918,7 @@ export default function InventoryScreen() {
               />
               <TextField
                 label="Notes (optional)"
+                icon={FileText}
                 value={assignNotes}
                 onChangeText={setAssignNotes}
                 placeholder="e.g. for weekend tournament"
@@ -826,7 +931,10 @@ export default function InventoryScreen() {
               disabled={assigning}
             />
             {assigning && (
-              <ActivityIndicator style={{ marginTop: 12 }} color={colors.blue} />
+              <ActivityIndicator
+                style={{ marginTop: 12 }}
+                color={colors.blue}
+              />
             )}
 
             {!!assignItem?.assignments?.filter((a: any) => !a.returnedAt)
@@ -838,7 +946,10 @@ export default function InventoryScreen() {
                   .map((a: any) => (
                     <View key={a._id} style={styles.activeAssignmentRow}>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={styles.activeAssignmentName} numberOfLines={1}>
+                        <Text
+                          style={styles.activeAssignmentName}
+                          numberOfLines={1}
+                        >
                           {typeof a.assignedTo === 'object'
                             ? `${a.assignedTo.firstName} ${a.assignedTo.lastName}`
                             : 'Unknown'}
@@ -852,7 +963,11 @@ export default function InventoryScreen() {
                         style={styles.returnBtn}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Undo2 size={13} color={colors.blue} strokeWidth={2.5} />
+                        <Undo2
+                          size={13}
+                          color={colors.blue}
+                          strokeWidth={2.5}
+                        />
                         <Text style={styles.returnBtnText}>Returned</Text>
                       </TouchableOpacity>
                     </View>
@@ -878,7 +993,9 @@ export default function InventoryScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             {!!txnItem?.onOrderQuantity && (
               <Text style={[styles.onOrderText, { marginBottom: 8 }]}>
                 {txnItem.onOrderQuantity} unit
@@ -889,6 +1006,7 @@ export default function InventoryScreen() {
             <Card>
               <TextField
                 label="Quantity"
+                icon={Hash}
                 value={txnQty}
                 onChangeText={setTxnQty}
                 keyboardType="numeric"
@@ -905,7 +1023,9 @@ export default function InventoryScreen() {
               <Text style={[styles.txnRowText, { color: colors.purple }]}>
                 Order Placed (with supplier)
               </Text>
-              {txnSaving === 'order' && <ActivityIndicator color={colors.purple} />}
+              {txnSaving === 'order' && (
+                <ActivityIndicator color={colors.purple} />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -913,7 +1033,11 @@ export default function InventoryScreen() {
               onPress={() => handleTxn('purchase')}
               disabled={!!txnSaving}
             >
-              <ArrowDownCircle size={16} color={colors.green} strokeWidth={2.5} />
+              <ArrowDownCircle
+                size={16}
+                color={colors.green}
+                strokeWidth={2.5}
+              />
               <Text style={[styles.txnRowText, { color: colors.green }]}>
                 Received
               </Text>
@@ -927,11 +1051,17 @@ export default function InventoryScreen() {
               onPress={() => handleTxn('return')}
               disabled={!!txnSaving}
             >
-              <ArrowDownCircle size={16} color={colors.blue} strokeWidth={2.5} />
+              <ArrowDownCircle
+                size={16}
+                color={colors.blue}
+                strokeWidth={2.5}
+              />
               <Text style={[styles.txnRowText, { color: colors.blue }]}>
                 Return to Stock
               </Text>
-              {txnSaving === 'return' && <ActivityIndicator color={colors.blue} />}
+              {txnSaving === 'return' && (
+                <ActivityIndicator color={colors.blue} />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -939,7 +1069,11 @@ export default function InventoryScreen() {
               onPress={() => handleTxn('consume')}
               disabled={!!txnSaving}
             >
-              <ArrowUpCircle size={16} color={colors.orange} strokeWidth={2.5} />
+              <ArrowUpCircle
+                size={16}
+                color={colors.orange}
+                strokeWidth={2.5}
+              />
               <Text style={[styles.txnRowText, { color: colors.orange }]}>
                 Consume
               </Text>
@@ -957,7 +1091,9 @@ export default function InventoryScreen() {
               <Text style={[styles.txnRowText, { color: colors.red }]}>
                 Damaged / Lost
               </Text>
-              {txnSaving === 'damage' && <ActivityIndicator color={colors.red} />}
+              {txnSaving === 'damage' && (
+                <ActivityIndicator color={colors.red} />
+              )}
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -980,7 +1116,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   subtitle: { color: colors.muted, marginTop: 2, fontFamily: FONT.medium },
   addBtn: {
     width: 36,
@@ -1023,7 +1164,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   name: { fontSize: 16, fontWeight: '800', color: colors.black, flexShrink: 1 },
-  sub: { color: colors.muted, fontSize: 12, marginTop: 2, fontFamily: FONT.medium },
+  sub: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2,
+    fontFamily: FONT.medium,
+  },
   qty: { fontWeight: '800', color: colors.black, fontSize: 15, marginTop: 8 },
   actionsRow: {
     flexDirection: 'row',

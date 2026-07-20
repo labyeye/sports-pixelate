@@ -3064,7 +3064,10 @@ function StudentAttendanceReportGen({
       .catch(() => {});
     sportAPI
       .getAll()
-      .then((r) => r.success && setSportOptions(r.data.map((s: any) => s.name || s)))
+      .then(
+        (r) =>
+          r.success && setSportOptions(r.data.map((s: any) => s.name || s)),
+      )
       .catch(() => {});
   }, []);
 
@@ -3230,10 +3233,7 @@ function StudentSubscriptionReportGen({
     const guardians: any[] = sub.student?.guardians || [];
     const byRelation = (rel: string) =>
       guardians.find((g) => g.relation === rel);
-    const g =
-      byRelation("father") ||
-      byRelation("mother") ||
-      guardians[0];
+    const g = byRelation("father") || byRelation("mother") || guardians[0];
     return g?.name || "—";
   }
 
@@ -3318,7 +3318,12 @@ function StudentSubscriptionReportGen({
   );
 }
 
-function StudentFeeReportGen({ company }: { departments?: any[]; company: ReportCompany }) {
+function StudentFeeReportGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
   const [status, setStatus] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -3380,8 +3385,18 @@ function StudentFeeReportGen({ company }: { departments?: any[]; company: Report
           <option value="inactive">Inactive</option>
           <option value="cancelled">Cancelled</option>
         </NbSelect>
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border-2 border-black px-2 py-2" />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border-2 border-black px-2 py-2" />
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className="border-2 border-black px-2 py-2"
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className="border-2 border-black px-2 py-2"
+        />
         <div className="ml-auto flex gap-2">
           <button
             onClick={load}
@@ -3422,7 +3437,12 @@ function StudentFeeReportGen({ company }: { departments?: any[]; company: Report
   );
 }
 
-function StudentOutstandingDuesGen({ company }: { departments?: any[]; company: ReportCompany }) {
+function StudentOutstandingDuesGen({
+  company,
+}: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
   const [minAmount, setMinAmount] = useState(0);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -3467,14 +3487,55 @@ function StudentOutstandingDuesGen({ company }: { departments?: any[]; company: 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input type="number" value={minAmount} onChange={(e) => setMinAmount(Number(e.target.value))} className="border-2 border-black px-2 py-2 w-36" placeholder="Min due amount" />
+        <input
+          type="number"
+          value={minAmount}
+          onChange={(e) => setMinAmount(Number(e.target.value))}
+          className="border-2 border-black px-2 py-2 w-36"
+          placeholder="Min due amount"
+        />
         <div className="ml-auto flex gap-2">
-          <button onClick={load} className="border-2 border-black px-3 py-2 bg-[#024BAB] text-white font-bold">Load</button>
-          <button onClick={() => printReport("Outstanding Dues", new Date().toLocaleDateString("en-IN"), headers, rows, { company, reportCategory: "Student" })} className="border-2 border-black px-3 py-2 bg-white font-bold">Print</button>
-          <button onClick={() => exportCSV([headers, ...rows], `student_outstanding.csv`)} className="border-2 border-black px-3 py-2 bg-[#00C48C] text-white font-bold">CSV</button>
+          <button
+            onClick={load}
+            className="border-2 border-black px-3 py-2 bg-[#024BAB] text-white font-bold"
+          >
+            Load
+          </button>
+          <button
+            onClick={() =>
+              printReport(
+                "Outstanding Dues",
+                new Date().toLocaleDateString("en-IN"),
+                headers,
+                rows,
+                { company, reportCategory: "Student" },
+              )
+            }
+            className="border-2 border-black px-3 py-2 bg-white font-bold"
+          >
+            Print
+          </button>
+          <button
+            onClick={() =>
+              exportCSV([headers, ...rows], `student_outstanding.csv`)
+            }
+            className="border-2 border-black px-3 py-2 bg-[#00C48C] text-white font-bold"
+          >
+            CSV
+          </button>
         </div>
       </div>
-      {loading ? <LoadingState /> : rows.length === 0 ? <EmptyState msg="No outstanding dues found" /> : <ReportTable id="student-outstanding-tbl" headers={headers} rows={rows} />}
+      {loading ? (
+        <LoadingState />
+      ) : rows.length === 0 ? (
+        <EmptyState msg="No outstanding dues found" />
+      ) : (
+        <ReportTable
+          id="student-outstanding-tbl"
+          headers={headers}
+          rows={rows}
+        />
+      )}
     </div>
   );
 }
@@ -3617,8 +3678,7 @@ function useSportBatchOptions() {
       .getAll()
       .then(
         (r) =>
-          r.success &&
-          setSportOptions(r.data.map((s: any) => s.name || s)),
+          r.success && setSportOptions(r.data.map((s: any) => s.name || s)),
       )
       .catch(() => {});
   }, []);
@@ -3711,10 +3771,16 @@ function StudentDirectoryGen({
       ["Batch", s.batch || "—"],
       ["Coach", s.coach ? `${s.coach.firstName} ${s.coach.lastName}` : "—"],
       ["Status", (s.status || "").toUpperCase()],
-      ["Enrollment Date", s.enrollmentDate ? formatDate(s.enrollmentDate) : "—"],
+      [
+        "Enrollment Date",
+        s.enrollmentDate ? formatDate(s.enrollmentDate) : "—",
+      ],
     ];
     (s.guardians || []).forEach((g: any) => {
-      out.push([`Guardian (${g.relation})`, `${g.name || "—"} — ${g.phone || "—"}`]);
+      out.push([
+        `Guardian (${g.relation})`,
+        `${g.name || "—"} — ${g.phone || "—"}`,
+      ]);
     });
     const att = profile.attendance || {};
     out.push(["Attendance — Present", String(att.present ?? 0)]);
@@ -3794,7 +3860,9 @@ function StudentDirectoryGen({
             <Printer className="w-4 h-4" /> Print
           </button>
           <button
-            onClick={() => exportCSV([headers, ...rows], `student_directory.csv`)}
+            onClick={() =>
+              exportCSV([headers, ...rows], `student_directory.csv`)
+            }
             className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
           >
             <Download className="w-4 h-4" /> Export CSV
@@ -3814,7 +3882,11 @@ function StudentDirectoryGen({
           Generate Report Card
         </p>
         <div className="flex flex-wrap gap-3 items-center">
-          <NbSelect value={selectedId} onChange={setSelectedId} className="w-64">
+          <NbSelect
+            value={selectedId}
+            onChange={setSelectedId}
+            className="w-64"
+          >
             <option value="">Select a student…</option>
             {data.map((s) => (
               <option key={s._id} value={s._id}>
@@ -3843,7 +3915,11 @@ function StudentDirectoryGen({
                     new Date().toLocaleDateString("en-IN"),
                     pHeaders,
                     pRows,
-                    { company, reportCategory: "Student", generatedFor: selectedName },
+                    {
+                      company,
+                      reportCategory: "Student",
+                      generatedFor: selectedName,
+                    },
                   )
                 }
                 className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-white"
@@ -3868,7 +3944,11 @@ function StudentDirectoryGen({
           (pRows.length === 0 ? (
             <EmptyState msg="No profile data found for this student" />
           ) : (
-            <ReportTable id="student-report-card-tbl" headers={pHeaders} rows={pRows} />
+            <ReportTable
+              id="student-report-card-tbl"
+              headers={pHeaders}
+              rows={pRows}
+            />
           ))}
       </div>
     </div>
@@ -4067,8 +4147,8 @@ function StudentEnrollmentGen({
         </div>
       </div>
       <p className="text-sm font-bold text-black">
-        New: {summary.newEnrollments} &nbsp; Exits: {summary.exits} &nbsp;
-        Net: {summary.netChange}
+        New: {summary.newEnrollments} &nbsp; Exits: {summary.exits} &nbsp; Net:{" "}
+        {summary.netChange}
       </p>
       {loading ? (
         <LoadingState />
@@ -4471,7 +4551,11 @@ function StudentPaymentHistoryGen({
       ) : rows.length === 0 ? (
         <EmptyState msg="No payment history found" />
       ) : (
-        <ReportTable id="student-payment-history-tbl" headers={headers} rows={rows} />
+        <ReportTable
+          id="student-payment-history-tbl"
+          headers={headers}
+          rows={rows}
+        />
       )}
     </div>
   );
