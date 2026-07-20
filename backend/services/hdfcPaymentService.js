@@ -69,7 +69,7 @@ function httpsPost(hostname, path, body, headers) {
 async function createOrder({ orderId, amount, currency = "INR", customer }) {
   const { merchantId, accessKey } = getMerchantCredentials();
   const frontendUrl =
-    process.env.FRONTEND_URL || "https://hrms.pixelatenest.com";
+    process.env.FRONTEND_URL || "https://sports.pixelatenest.com";
 
   const response = await httpsPost(
     BASE_URL,

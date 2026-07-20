@@ -53,7 +53,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://hrms.pixelatenest.com",
+      "https://sports.pixelatenest.com",
     ];
 
 app.use(

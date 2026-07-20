@@ -652,7 +652,7 @@ async function _createCompanyAndActivate({
 
   const dashboardUrl = process.env.FRONTEND_URL
     ? `${process.env.FRONTEND_URL}/`
-    : "https://hrms.pixelatenest.com/";
+    : "https://sports.pixelatenest.com/";
 
   sendPaymentConfirmations({
     toEmail: req.user.email || company.email,
@@ -781,7 +781,7 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
   const user = await User.findById(company.createdBy);
   const dashboardUrl = process.env.FRONTEND_URL
     ? `${process.env.FRONTEND_URL}/`
-    : "https://hrms.pixelatenest.com/";
+    : "https://sports.pixelatenest.com/";
 
   sendPaymentConfirmations({
     toEmail: user?.email || company.email,

@@ -452,7 +452,7 @@ exports.createCrmCompany = async (req, res) => {
 
     const dashboardUrl = process.env.FRONTEND_URL
       ? `${process.env.FRONTEND_URL}/`
-      : "https://hrms.pixelatenest.com/";
+      : "https://sports.pixelatenest.com/";
 
     sendCrmAccountCreatedEmail({
       toEmail: user.email,
