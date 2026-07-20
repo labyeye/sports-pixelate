@@ -5,15 +5,34 @@ const SportsPlan = require("../models/SportsPlan");
 const Student = require("../models/Student");
 const User = require("../models/User");
 const Company = require("../models/Company");
+const Setting = require("../models/Setting");
 const razorpayService = require("../services/razorpayService");
 const { validateMagicBytes } = require("../middleware/upload");
 const { safePagination, safeSort } = require("../middleware/validate");
-const { generateReceiptPdf } = require("../services/receiptService");
+const { generatePaymentReceiptPdf } = require("../services/pdfService");
 const {
   sendPaymentVerified,
   sendPaymentVerifiedAdmin,
   sendPaymentRejected,
 } = require("../services/whatsappService");
+
+// Loads the company branding fields used to render the cheque-style PDF
+// (same template/positions as the payroll payslip cheque).
+async function getChequeCompanyInfo(companyId) {
+  const setting = await Setting.findOne({ company: companyId })
+    .select(
+      "companyName companyAddress logoUrl chequeLogoX chequeLogoY chequeLogoW",
+    )
+    .lean();
+  return {
+    name: setting?.companyName || "",
+    address: setting?.companyAddress || "",
+    logo: setting?.logoUrl || "",
+    chequeLogoX: setting?.chequeLogoX ?? 10,
+    chequeLogoY: setting?.chequeLogoY ?? 20,
+    chequeLogoW: setting?.chequeLogoW ?? 60,
+  };
+}
 
 // Fire-and-forget: emails/PDFs the parent's opted-in guardian and every
 // owner/staff user a receipt for a just-verified payment. Never throws —
@@ -25,9 +44,11 @@ async function notifyPaymentVerified(subscription, payment, companyId, verifiedB
     );
     if (!student) return;
 
-    const pdfBuffer = await generateReceiptPdf({
+    const company = await getChequeCompanyInfo(companyId);
+    const pdfBuffer = await generatePaymentReceiptPdf({
       subscription: { ...subscription.toObject(), student },
       payment,
+      company,
     });
     const studentName = `${student.firstName} ${student.lastName}`.trim();
     const balanceDue = Math.max(subscription.amount - subscription.amountPaid, 0);
@@ -52,14 +73,14 @@ async function notifyPaymentVerified(subscription, payment, companyId, verifiedB
       );
     }
 
-    const company = await Company.findById(companyId).select("phone");
+    const companyDoc = await Company.findById(companyId).select("phone");
     const admins = await User.find({
       company: companyId,
       role: { $in: ["super_admin", "hr_manager"] },
     }).select("phone role");
     for (const admin of admins) {
       const phone =
-        admin.phone || (admin.role === "super_admin" ? company?.phone : null);
+        admin.phone || (admin.role === "super_admin" ? companyDoc?.phone : null);
       if (phone) {
         await sendPaymentVerifiedAdmin(
           phone,
@@ -658,7 +679,12 @@ const getPaymentReceipt = asyncHandler(async (req, res) => {
     throw new Error("No verified payment found with that id");
   }
 
-  const pdfBytes = await generateReceiptPdf({ subscription, payment });
+  const company = await getChequeCompanyInfo(req.user.company);
+  const pdfBytes = await generatePaymentReceiptPdf({
+    subscription,
+    payment,
+    company,
+  });
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",

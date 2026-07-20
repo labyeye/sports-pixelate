@@ -21,6 +21,7 @@ const {
 } = require("../services/whatsappService");
 const { sendPushToEmployee } = require("../services/pushNotificationService");
 const { getEffectiveCheckOut } = require("../utils/shiftUtils");
+const { toDateOnly } = require("../utils/dateOnly");
 const {
   personModelFor,
   personModelName,
@@ -576,10 +577,16 @@ const recordBiometric = asyncHandler(async (req, res) => {
       }
     } catch {}
   } else {
+    // StudentAttendance.date is bucketed with toDateOnly (UTC-normalized),
+    // same convention studentAttendanceController.js uses for manual marks
+    // and reads — using the server-local-timezone `today` here instead
+    // would misfile early-morning check-ins under the wrong calendar day
+    // and make them invisible to the "today" filters on web/mobile.
+    const studentDate = toDateOnly(now);
     const attendanceUpdate = {
       company: person.company,
       student: person._id,
-      date: today,
+      date: studentDate,
       markedBy: null,
     };
     if (logType === "check_in") {
@@ -592,7 +599,7 @@ const recordBiometric = asyncHandler(async (req, res) => {
     }
 
     attendance = await StudentAttendance.findOneAndUpdate(
-      { student: person._id, date: today },
+      { student: person._id, date: studentDate },
       { $set: attendanceUpdate },
       { upsert: true, new: true },
     );
@@ -1258,10 +1265,11 @@ const faceAttendance = asyncHandler(async (req, res) => {
       console.error("[Biometric] faceAttendance notify error:", err.message);
     }
   } else {
+    const studentDate = toDateOnly(now);
     const attendanceUpdate = {
       company: bestMatch.company,
       student: bestMatch._id,
-      date: today,
+      date: studentDate,
       markedBy: null,
       verifyMode: "face",
     };
@@ -1272,7 +1280,7 @@ const faceAttendance = asyncHandler(async (req, res) => {
       attendanceUpdate.checkOut = now;
     }
     attendance = await StudentAttendance.findOneAndUpdate(
-      { student: bestMatch._id, date: today },
+      { student: bestMatch._id, date: studentDate },
       { $set: attendanceUpdate },
       { upsert: true, new: true },
     );

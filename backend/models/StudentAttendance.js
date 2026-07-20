@@ -25,7 +25,15 @@ const studentAttendanceSchema = new mongoose.Schema(
     checkOut: { type: Date },
     verifyMode: {
       type: String,
-      enum: ["fingerprint", "card", "face", "password", "manual", "auto"],
+      enum: [
+        "fingerprint",
+        "card",
+        "face",
+        "password",
+        "manual",
+        "auto",
+        "geo_camera",
+      ],
       default: "manual",
     },
   },

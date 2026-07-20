@@ -114,7 +114,16 @@ export default function QrRenewalScreen({ route, navigation }: any) {
         });
       }
       Alert.alert('Submitted', 'Waiting for the club to verify your payment.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        {
+          text: 'OK',
+          onPress: () =>
+            isTopUp
+              ? navigation.goBack()
+              : navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Subscriptions' }],
+                }),
+        },
       ]);
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Failed to submit renewal request');

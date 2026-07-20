@@ -241,4 +241,129 @@ async function generatePayslipPdf(payroll, employee, company) {
   return await pdfDoc.save();
 }
 
-module.exports = { generatePayslipPdf };
+// Renders a verified subscription payment as the same cheque template used
+// for payroll payslips, so parents get a visually consistent "cheque" receipt
+// on both mobile and web instead of the old plain document-style receipt.
+async function generatePaymentReceiptPdf({ subscription, payment, company }) {
+  const amount = Math.round(payment.amount || 0);
+  const verifiedOn = payment.verifiedAt ? new Date(payment.verifiedAt) : new Date();
+  const dd = String(verifiedOn.getDate()).padStart(2, "0");
+  const mm = String(verifiedOn.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(verifiedOn.getFullYear());
+  const fromDate = subscription.startDate
+    ? new Date(subscription.startDate).toLocaleDateString("en-GB")
+    : "—";
+  const toDate = subscription.renewalDate
+    ? new Date(subscription.renewalDate).toLocaleDateString("en-GB")
+    : "—";
+  const studentName = `${subscription.student?.firstName || ""} ${
+    subscription.student?.lastName || ""
+  }`.trim();
+
+  let pdfDoc;
+  if (fs.existsSync(CHEQUE_PATH)) {
+    const templateBytes = fs.readFileSync(CHEQUE_PATH);
+    pdfDoc = await PDFDocument.load(templateBytes);
+  } else {
+    pdfDoc = await PDFDocument.create();
+    pdfDoc.addPage([576, 263.25]);
+  }
+
+  const [chequePage] = pdfDoc.getPages();
+  const mediaBox = chequePage.getMediaBox();
+  const pageTop = mediaBox.y + mediaBox.height;
+
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const dt = (text, x, cssY, size = 11, bold = false) => {
+    chequePage.drawText(String(text).replace(/[\r\n]+/g, " "), {
+      x,
+      y: pageTop - cssY,
+      size,
+      font: bold ? boldFont : font,
+      color: rgb(0, 0, 0),
+    });
+  };
+
+  const dtWrap = (text, x, cssY, size, maxWidth, lineHeight) => {
+    const words = String(text)
+      .replace(/[\r\n]+/g, " ")
+      .split(" ");
+    let line = "";
+    let y = cssY;
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+      if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
+        dt(line, x, y, size, false);
+        line = word;
+        y += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    if (line) dt(line, x, y, size, false);
+  };
+
+  dt(company.name || "", 75, 30, 13, true);
+  dtWrap(company.address || "", 75, 48, 11, 300, 14);
+
+  const dateStr = dd + mm + yyyy;
+  const dateCharX = [430, 445, 460, 475, 491, 507, 523, 538];
+  dateCharX.forEach((x, i) => dt(dateStr[i] ?? "", x, 36, 11, false));
+
+  dt(studentName || "—", 100, 120, 11, false);
+  dt(subscription.student?.studentId || "—", 320, 120, 11, false);
+  dt(subscription.planName || "—", 435, 120, 11, false);
+  dt(toIndianWords(amount), 115, 145, 11, false);
+  dt(amount.toLocaleString("en-IN"), 440, 150, 13, true);
+  dt(fromDate, 250, 174, 11, false);
+  dt(toDate, 340, 174, 11, false);
+
+  if (company.logo) {
+    try {
+      let logoBytes;
+      if (
+        company.logo.startsWith("http://") ||
+        company.logo.startsWith("https://")
+      ) {
+        logoBytes = await fetchBuffer(company.logo);
+      } else if (company.logo.startsWith("/uploads/")) {
+        const absPath = path.join(__dirname, "..", company.logo);
+        if (fs.existsSync(absPath)) {
+          logoBytes = fs.readFileSync(absPath);
+        }
+      } else if (company.logo.startsWith("data:")) {
+        const base64 = company.logo.split(",")[1];
+        logoBytes = Buffer.from(base64, "base64");
+      }
+      if (logoBytes) {
+        const logoX = company.chequeLogoX ?? 10;
+        const logoY = company.chequeLogoY ?? 20;
+        const logoW = company.chequeLogoW ?? 60;
+        let embeddedLogo;
+        const sig = logoBytes.slice(0, 4);
+        if (sig[0] === 0x89 && sig[1] === 0x50) {
+          embeddedLogo = await pdfDoc.embedPng(logoBytes);
+        } else {
+          embeddedLogo = await pdfDoc.embedJpg(logoBytes);
+        }
+        const { width: iw, height: ih } = embeddedLogo.scale(1);
+        const drawW = logoW;
+        const drawH = iw > 0 ? (ih / iw) * drawW : drawW;
+        chequePage.drawImage(embeddedLogo, {
+          x: logoX,
+          y: pageTop - logoY - drawH,
+          width: drawW,
+          height: drawH,
+        });
+      }
+    } catch (logoErr) {
+      console.warn("[pdfService] Logo embed failed:", logoErr.message);
+    }
+  }
+
+  return await pdfDoc.save();
+}
+
+module.exports = { generatePayslipPdf, generatePaymentReceiptPdf };

@@ -7,24 +7,7 @@ const BiometricLog = require("../models/BiometricLog");
 const { safePagination } = require("../middleware/validate");
 const { verifyFace } = require("../services/faceService");
 const { validateMagicBytes } = require("../middleware/upload");
-
-// Builds a UTC midnight Date for a given calendar day, independent of the
-// server process's local timezone. A plain "YYYY-MM-DD" string parses as
-// UTC midnight per spec, but the previous `setHours(0,0,0,0)` re-zeroed it
-// using the server's LOCAL timezone — on a server east of UTC that rolled
-// the stored date back to the previous day, so attendance marked "today"
-// from an IST device could be stored (and later read back) as yesterday.
-function toDateOnly(d) {
-  const match = typeof d === "string" && d.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
-    const [, y, m, day] = match;
-    return new Date(Date.UTC(Number(y), Number(m) - 1, Number(day)));
-  }
-  const date = new Date(d);
-  return new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-  );
-}
+const { toDateOnly } = require("../utils/dateOnly");
 
 // Mirrors studentController's coachStudentFilter: a coach only ever sees
 // attendance for students assigned to them, never the whole company roster.
@@ -261,6 +244,8 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
       student,
       date: d,
       status: "present",
+      checkIn: new Date(),
+      verifyMode: "face",
       batch: batch ?? studentDoc.batch,
       notes,
       markedBy: req.user._id,
