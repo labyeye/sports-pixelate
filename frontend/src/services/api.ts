@@ -1143,19 +1143,23 @@ export const subscriptionAPI = {
     studentId: string;
     planId: string;
     billingCycle?: string;
-    referenceNumber: string;
-    transactionNumber: string;
+    method?: "qr" | "cash";
+    referenceNumber?: string;
+    transactionNumber?: string;
     amount?: number;
-    screenshot: File;
+    screenshot?: File;
   }) => {
     const form = new FormData();
     form.append("studentId", body.studentId);
     form.append("planId", body.planId);
     form.append("billingCycle", body.billingCycle || "monthly");
-    form.append("referenceNumber", body.referenceNumber);
-    form.append("transactionNumber", body.transactionNumber);
+    form.append("method", body.method || "qr");
+    if (body.referenceNumber)
+      form.append("referenceNumber", body.referenceNumber);
+    if (body.transactionNumber)
+      form.append("transactionNumber", body.transactionNumber);
     if (body.amount !== undefined) form.append("amount", String(body.amount));
-    form.append("screenshot", body.screenshot);
+    if (body.screenshot) form.append("screenshot", body.screenshot);
     const token = getToken();
     return fetch(`${BASE_URL}/subscriptions/qr-renewal`, {
       method: "POST",
@@ -1171,17 +1175,21 @@ export const subscriptionAPI = {
   submitPayment: (
     id: string,
     body: {
-      referenceNumber: string;
-      transactionNumber: string;
+      method?: "qr" | "cash";
+      referenceNumber?: string;
+      transactionNumber?: string;
       amount: number;
-      screenshot: File;
+      screenshot?: File;
     },
   ) => {
     const form = new FormData();
-    form.append("referenceNumber", body.referenceNumber);
-    form.append("transactionNumber", body.transactionNumber);
+    form.append("method", body.method || "qr");
+    if (body.referenceNumber)
+      form.append("referenceNumber", body.referenceNumber);
+    if (body.transactionNumber)
+      form.append("transactionNumber", body.transactionNumber);
     form.append("amount", String(body.amount));
-    form.append("screenshot", body.screenshot);
+    if (body.screenshot) form.append("screenshot", body.screenshot);
     const token = getToken();
     return fetch(`${BASE_URL}/subscriptions/${id}/payments`, {
       method: "POST",
@@ -1195,6 +1203,23 @@ export const subscriptionAPI = {
   },
   receiptUrl: (id: string, paymentId: string) =>
     `${BASE_URL}/subscriptions/${id}/payments/${paymentId}/receipt`,
+  // Owner/staff records a payment received in cash — verified immediately,
+  // no UTR/screenshot/pending-review step.
+  recordCashSubscription: (body: {
+    studentId: string;
+    planId: string;
+    billingCycle?: string;
+    amount?: number;
+  }) =>
+    request("/subscriptions/cash", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  recordCashTopUp: (id: string, amount?: number) =>
+    request(`/subscriptions/${id}/cash-payment`, {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
   bulkImport: (subscriptions: object[]) =>
     request("/subscriptions/bulk-import", {
       method: "POST",

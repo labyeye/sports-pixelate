@@ -690,10 +690,11 @@ export const subscriptionAPI = {
     studentId: string;
     planId: string;
     billingCycle?: string;
-    referenceNumber: string;
-    transactionNumber: string;
+    method?: 'qr' | 'cash';
+    referenceNumber?: string;
+    transactionNumber?: string;
     amount?: number;
-    screenshot: RNFile;
+    screenshot?: RNFile;
   }) =>
     upload(
       '/subscriptions/qr-renewal',
@@ -702,6 +703,7 @@ export const subscriptionAPI = {
           studentId: body.studentId,
           planId: body.planId,
           billingCycle: body.billingCycle || 'monthly',
+          method: body.method || 'qr',
           referenceNumber: body.referenceNumber,
           transactionNumber: body.transactionNumber,
           amount: body.amount !== undefined ? String(body.amount) : undefined,
@@ -709,21 +711,24 @@ export const subscriptionAPI = {
         { screenshot: body.screenshot },
       ),
     ),
-  // Top up the remaining balance on an existing subscription with another
-  // UTR/transaction/screenshot submission (installment payment).
+  // Top up the remaining balance on an existing subscription — either
+  // another UTR/transaction/screenshot submission (UPI) or a self-declared
+  // cash payment (installment payment either way).
   submitPayment: (
     subscriptionId: string,
     body: {
-      referenceNumber: string;
-      transactionNumber: string;
+      method?: 'qr' | 'cash';
+      referenceNumber?: string;
+      transactionNumber?: string;
       amount: number;
-      screenshot: RNFile;
+      screenshot?: RNFile;
     },
   ) =>
     upload(
       `/subscriptions/${subscriptionId}/payments`,
       toFormDataWithFields(
         {
+          method: body.method || 'qr',
           referenceNumber: body.referenceNumber,
           transactionNumber: body.transactionNumber,
           amount: String(body.amount),
@@ -742,6 +747,23 @@ export const subscriptionAPI = {
     }),
   receiptUrl: (subscriptionId: string, paymentId: string) =>
     `${API_BASE_URL}/subscriptions/${subscriptionId}/payments/${paymentId}/receipt`,
+  // Owner/staff records a payment received in cash — verified immediately,
+  // no UTR/screenshot/pending-review step.
+  recordCashSubscription: (body: {
+    studentId: string;
+    planId: string;
+    billingCycle?: string;
+    amount?: number;
+  }) =>
+    request('/subscriptions/cash', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  recordCashTopUp: (subscriptionId: string, amount?: number) =>
+    request(`/subscriptions/${subscriptionId}/cash-payment`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
   cancel: (id: string) =>
     request(`/subscriptions/${id}/cancel`, { method: 'POST' }),
   bulkImport: (subscriptions: object[]) =>

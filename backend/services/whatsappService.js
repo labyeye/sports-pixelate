@@ -673,7 +673,7 @@ async function sendPaymentVerified(
       }
     }
 
-    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR" };
+    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR", cash: "Cash" };
     const modeLabel = MODE_LABELS[paymentMode] || "UPI / QR";
     const toISTDateStr = (d) => {
       const ist = new Date(new Date(d).getTime() + 5.5 * 60 * 60 * 1000);
@@ -775,7 +775,7 @@ async function sendPaymentVerifiedAdmin(
       }
     }
 
-    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR" };
+    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR", cash: "Cash" };
     const modeLabel = MODE_LABELS[paymentMode] || "UPI / QR";
 
     await sendTemplate(

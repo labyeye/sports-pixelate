@@ -362,11 +362,16 @@ const verifyPayment = asyncHandler(async (req, res) => {
   });
 });
 
-// Shared by the parent's first QR payment and any later top-up of the
-// remaining balance — validates the mandatory UTR/transaction/screenshot,
-// resolves the student+plan, and appends a pending entry to payments[].
+// Shared by the parent's first payment and any later top-up of the
+// remaining balance — validates the amount, and for "qr" (UPI) payments the
+// mandatory UTR/transaction/screenshot proof; for "cash" self-declared
+// payments there's no digital proof to check, so those fields are skipped.
+// Either way this appends a *pending* entry to payments[] for the club to
+// verify — a parent self-declaring "I paid cash" is not auto-verified like
+// the staff-recorded cash flow (handleCashPayment) is.
 async function handlePaymentSubmission(req, res, { subscription }) {
   const { referenceNumber, transactionNumber, amount } = req.body;
+  const method = req.body.method === "cash" ? "cash" : "qr";
 
   const fail = (status, message) => {
     if (req.file) fs.unlinkSync(req.file.path);
@@ -374,18 +379,26 @@ async function handlePaymentSubmission(req, res, { subscription }) {
     throw new Error(message);
   };
 
-  if (!req.file) fail(400, "A screenshot of the payment is required");
-  try {
-    await validateMagicBytes(req.file.path);
-  } catch (err) {
-    res.status(400);
-    throw err;
-  }
-  if (!referenceNumber || !referenceNumber.trim()) {
-    fail(400, "UTR number is required");
-  }
-  if (!transactionNumber || !transactionNumber.trim()) {
-    fail(400, "Transaction number is required");
+  let screenshot;
+  if (method === "qr") {
+    if (!req.file) fail(400, "A screenshot of the payment is required");
+    try {
+      await validateMagicBytes(req.file.path);
+    } catch (err) {
+      res.status(400);
+      throw err;
+    }
+    if (!referenceNumber || !referenceNumber.trim()) {
+      fail(400, "UTR number is required");
+    }
+    if (!transactionNumber || !transactionNumber.trim()) {
+      fail(400, "Transaction number is required");
+    }
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    screenshot = `${baseUrl}/uploads/payment-screenshots/${req.file.filename}`;
+  } else if (req.file) {
+    // Cash submissions don't need a screenshot — discard any file sent anyway.
+    fs.unlinkSync(req.file.path);
   }
 
   const remaining = subscription.amount - subscription.amountPaid;
@@ -403,15 +416,12 @@ async function handlePaymentSubmission(req, res, { subscription }) {
     );
   }
 
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const screenshot = `${baseUrl}/uploads/payment-screenshots/${req.file.filename}`;
-
   await submitPayment(subscription, {
     amount: payAmount,
-    utrNumber: referenceNumber.trim(),
-    transactionNumber: transactionNumber.trim(),
+    utrNumber: method === "qr" ? referenceNumber.trim() : undefined,
+    transactionNumber: method === "qr" ? transactionNumber.trim() : undefined,
     screenshot,
-    method: "qr",
+    method,
   });
 
   res.json({
@@ -475,7 +485,7 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
       renewalDate: new Date(),
       status: "pending_renewal",
       paymentStatus: "pending",
-      paymentMethod: "qr",
+      paymentMethod: req.body.method === "cash" ? "cash" : "qr",
       amountPaid: 0,
       payments: [],
     });
@@ -566,6 +576,146 @@ const assignSubscription = asyncHandler(async (req, res) => {
   await subscription.save();
   await subscription.populate("plan", "name sport");
   res.status(201).json({ success: true, data: subscription });
+});
+
+// Shared by the two cash-payment routes below — owner/staff record a
+// payment received in person as already verified. No UTR/screenshot and no
+// pending-review step, since there's nothing to check against a bank app.
+async function handleCashPayment(req, res, { subscription }) {
+  const { amount } = req.body;
+  const remaining = subscription.amount - subscription.amountPaid;
+  const payAmount = amount !== undefined ? Number(amount) : remaining;
+  if (!Number.isFinite(payAmount) || payAmount <= 0) {
+    res.status(400);
+    throw new Error("Enter a valid amount to pay");
+  }
+  if (payAmount > remaining + 0.01) {
+    res.status(400);
+    throw new Error(`Amount cannot exceed the remaining balance of ₹${remaining}`);
+  }
+
+  subscription.payments.push({
+    amount: payAmount,
+    method: "cash",
+    status: "verified",
+    submittedAt: new Date(),
+    verifiedBy: req.user._id,
+    verifiedAt: new Date(),
+  });
+  subscription.paymentMethod = "cash";
+  const updated = await recalcSubscriptionTotals(subscription);
+  await updated.populate("student", "firstName lastName");
+
+  const payment = updated.payments[updated.payments.length - 1];
+  notifyPaymentVerified(updated, payment, req.user.company, req.user.name);
+
+  res.json({ success: true, message: "Cash payment recorded", data: updated });
+}
+
+// Owner/staff records a cash payment for a student who has no subscription
+// on this plan yet — creates the subscription and marks it paid in one step,
+// for walk-ins/parents who pay in person instead of via the app.
+const recordCashSubscription = asyncHandler(async (req, res) => {
+  if (req.user.role === "parent") {
+    res.status(403);
+    throw new Error("Only the club owner or staff can record a cash payment");
+  }
+  const { studentId, planId, billingCycle = "monthly" } = req.body;
+
+  if (!["monthly", "yearly"].includes(billingCycle)) {
+    res.status(400);
+    throw new Error("Invalid billing cycle");
+  }
+
+  const student = await Student.findOne({
+    _id: studentId,
+    company: req.user.company,
+  });
+  if (!student) {
+    res.status(404);
+    throw new Error("Student not found");
+  }
+
+  const plan = await SportsPlan.findOne({
+    _id: planId,
+    company: req.user.company,
+    active: true,
+  });
+  if (!plan) {
+    res.status(404);
+    throw new Error("Plan not found");
+  }
+
+  const amount =
+    billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+
+  let subscription = await StudentSubscription.findOne({
+    student: student._id,
+    plan: plan._id,
+  });
+  if (!subscription) {
+    subscription = new StudentSubscription({
+      company: req.user.company,
+      student: student._id,
+      plan: plan._id,
+      planName: plan.name,
+      billingCycle,
+      amount,
+      startDate: new Date(),
+      renewalDate: new Date(),
+      status: "pending_renewal",
+      paymentStatus: "pending",
+      paymentMethod: "cash",
+      amountPaid: 0,
+      payments: [],
+    });
+  } else if (
+    subscription.status === "cancelled" ||
+    subscription.status === "inactive"
+  ) {
+    subscription.billingCycle = billingCycle;
+    subscription.amount = amount;
+    subscription.status = "pending_renewal";
+    subscription.paymentStatus = "pending";
+    subscription.amountPaid = 0;
+    subscription.payments = [];
+  } else if (subscription.payments.some((p) => p.status === "pending")) {
+    res.status(400);
+    throw new Error(
+      "A payment is already awaiting verification for this subscription",
+    );
+  }
+
+  await handleCashPayment(req, res, { subscription });
+});
+
+// Owner/staff records a cash top-up of the remaining balance on an
+// already-existing subscription.
+const recordCashTopUp = asyncHandler(async (req, res) => {
+  if (req.user.role === "parent") {
+    res.status(403);
+    throw new Error("Only the club owner or staff can record a cash payment");
+  }
+  const subscription = await StudentSubscription.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!subscription) {
+    res.status(404);
+    throw new Error("Subscription not found");
+  }
+  if (subscription.amountPaid >= subscription.amount) {
+    res.status(400);
+    throw new Error("This subscription is already fully paid");
+  }
+  if (subscription.payments.some((p) => p.status === "pending")) {
+    res.status(400);
+    throw new Error(
+      "A payment is already awaiting verification for this subscription",
+    );
+  }
+
+  await handleCashPayment(req, res, { subscription });
 });
 
 // Parent tops up the remaining balance on an existing subscription with
@@ -813,6 +963,8 @@ module.exports = {
   verifyPayment,
   createQrRenewalRequest,
   assignSubscription,
+  recordCashSubscription,
+  recordCashTopUp,
   submitInstallmentPayment,
   verifyQrPayment,
   rejectQrPayment,

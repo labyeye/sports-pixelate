@@ -33,6 +33,8 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  Banknote,
+  Check,
 } from "lucide-react";
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
@@ -80,7 +82,7 @@ declare global {
 interface PaymentEntry {
   _id: string;
   amount: number;
-  method: "qr" | "razorpay";
+  method: "qr" | "razorpay" | "cash";
   utrNumber?: string;
   transactionNumber?: string;
   screenshot?: string;
@@ -167,6 +169,7 @@ export default function SubscriptionsPage() {
   // the first-payment (qr-renewal) one.
   const [qrTopUpSub, setQrTopUpSub] = useState<Subscription | null>(null);
   const [qrAmount, setQrAmount] = useState("");
+  const [qrMethod, setQrMethod] = useState<"qr" | "cash">("qr");
   const [qrReferenceNumber, setQrReferenceNumber] = useState("");
   const [qrTransactionNumber, setQrTransactionNumber] = useState("");
   const [qrScreenshot, setQrScreenshot] = useState<File | null>(null);
@@ -175,6 +178,21 @@ export default function SubscriptionsPage() {
   const [reviewSub, setReviewSub] = useState<Subscription | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Owner/staff recording a payment received in cash — no pending-review
+  // step, verified immediately. cashTopUpSub set = topping up an existing
+  // subscription; null = recording a brand-new one for a walk-in.
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashTopUpSub, setCashTopUpSub] = useState<Subscription | null>(null);
+  const [cashStudentSearch, setCashStudentSearch] = useState("");
+  const [cashStudentResults, setCashStudentResults] = useState<any[]>([]);
+  const [cashStudent, setCashStudent] = useState<any | null>(null);
+  const [cashPlanId, setCashPlanId] = useState("");
+  const [cashBillingCycle, setCashBillingCycle] = useState<
+    "monthly" | "yearly"
+  >("monthly");
+  const [cashAmount, setCashAmount] = useState("");
+  const [submittingCash, setSubmittingCash] = useState(false);
 
   // At most one payment entry is ever pending at a time — the backend
   // rejects a new submission while one is awaiting review.
@@ -336,45 +354,49 @@ export default function SubscriptionsPage() {
       toast({ title: "Enter a valid amount to pay", variant: "destructive" });
       return;
     }
-    if (!qrReferenceNumber.trim()) {
-      toast({
-        title: "Enter the UTR number",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!qrTransactionNumber.trim()) {
-      toast({
-        title: "Enter the transaction number",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!qrScreenshot) {
-      toast({
-        title: "Upload a screenshot of the payment",
-        variant: "destructive",
-      });
-      return;
+    if (qrMethod === "qr") {
+      if (!qrReferenceNumber.trim()) {
+        toast({
+          title: "Enter the UTR number",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!qrTransactionNumber.trim()) {
+        toast({
+          title: "Enter the transaction number",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!qrScreenshot) {
+        toast({
+          title: "Upload a screenshot of the payment",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     setSubmittingQr(true);
     try {
       if (isTopUp) {
         await subscriptionAPI.submitPayment(qrTopUpSub!._id, {
-          referenceNumber: qrReferenceNumber.trim(),
-          transactionNumber: qrTransactionNumber.trim(),
+          method: qrMethod,
+          referenceNumber: qrReferenceNumber.trim() || undefined,
+          transactionNumber: qrTransactionNumber.trim() || undefined,
           amount,
-          screenshot: qrScreenshot,
+          screenshot: qrScreenshot || undefined,
         });
       } else {
         await subscriptionAPI.qrRenewal({
           studentId: selectedChild,
           planId: selectedPlan,
           billingCycle,
-          referenceNumber: qrReferenceNumber.trim(),
-          transactionNumber: qrTransactionNumber.trim(),
+          method: qrMethod,
+          referenceNumber: qrReferenceNumber.trim() || undefined,
+          transactionNumber: qrTransactionNumber.trim() || undefined,
           amount,
-          screenshot: qrScreenshot,
+          screenshot: qrScreenshot || undefined,
         });
       }
       toast({
@@ -384,6 +406,7 @@ export default function SubscriptionsPage() {
       setShowQrModal(false);
       setQrTopUpSub(null);
       setQrAmount("");
+      setQrMethod("qr");
       setQrReferenceNumber("");
       setQrTransactionNumber("");
       setQrScreenshot(null);
@@ -398,6 +421,7 @@ export default function SubscriptionsPage() {
   const openPayRemaining = (sub: Subscription) => {
     setQrTopUpSub(sub);
     setQrAmount(String(sub.amount - (sub.amountPaid || 0)));
+    setQrMethod("qr");
     setShowQrModal(true);
   };
 
@@ -453,6 +477,76 @@ export default function SubscriptionsPage() {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const openCashModalNew = () => {
+    setCashTopUpSub(null);
+    setCashStudentSearch("");
+    setCashStudentResults([]);
+    setCashStudent(null);
+    setCashPlanId("");
+    setCashBillingCycle("monthly");
+    setCashAmount("");
+    setShowCashModal(true);
+  };
+
+  const openCashModalTopUp = (sub: Subscription) => {
+    setCashTopUpSub(sub);
+    setCashAmount(String(sub.amount - (sub.amountPaid || 0)));
+    setShowCashModal(true);
+  };
+
+  const searchCashStudents = async (q: string) => {
+    setCashStudentSearch(q);
+    setCashStudent(null);
+    if (!q.trim()) {
+      setCashStudentResults([]);
+      return;
+    }
+    try {
+      const r = await studentAPI.getAll({ search: q, limit: "10" });
+      setCashStudentResults(r.data || []);
+    } catch {
+      // ignore — user can retry by typing again
+    }
+  };
+
+  const handleSubmitCash = async () => {
+    const isTopUp = !!cashTopUpSub;
+    if (!isTopUp && !cashStudent) {
+      toast({ title: "Select a student", variant: "destructive" });
+      return;
+    }
+    if (!isTopUp && !cashPlanId) {
+      toast({ title: "Select a plan", variant: "destructive" });
+      return;
+    }
+    const amount = Number(cashAmount);
+    if (!amount || amount <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    setSubmittingCash(true);
+    try {
+      if (isTopUp) {
+        await subscriptionAPI.recordCashTopUp(cashTopUpSub!._id, amount);
+      } else {
+        await subscriptionAPI.recordCashSubscription({
+          studentId: cashStudent._id,
+          planId: cashPlanId,
+          billingCycle: cashBillingCycle,
+          amount,
+        });
+      }
+      toast({ title: "Cash payment recorded" });
+      setShowCashModal(false);
+      setCashTopUpSub(null);
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSubmittingCash(false);
     }
   };
 
@@ -514,6 +608,12 @@ export default function SubscriptionsPage() {
         </div>
         {!isParent && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={openCashModalNew}
+              className="border-2 border-black bg-[#00C48C] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:opacity-90 transition-opacity"
+            >
+              <Banknote className="w-4 h-4" /> Record Cash Payment
+            </button>
             <button
               onClick={() =>
                 exportRowsToExcel(
@@ -664,6 +764,7 @@ export default function SubscriptionsPage() {
                       : plan.monthlyPrice
                     : 0;
                   setQrAmount(amount ? String(amount) : "");
+                  setQrMethod("qr");
                   setShowQrModal(true);
                 }}
                 className="flex items-center gap-2 bg-white text-black border-2 border-black px-4 py-2 font-bold text-sm uppercase"
@@ -692,15 +793,50 @@ export default function SubscriptionsPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-sm text-muted-foreground mb-3">
-              Scan the QR code below, complete the payment, then submit the UPI
-              reference number along with a screenshot of the payment.
-            </p>
-            <img
-              src={paymentQrUrl}
-              alt="Payment QR"
-              className="w-48 h-48 object-contain border-2 border-black mx-auto mb-4"
-            />
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setQrMethod("qr")}
+                className={cn(
+                  "border-2 border-black px-3 py-2 text-xs font-bold uppercase",
+                  qrMethod === "qr"
+                    ? "bg-[#024BAB] text-white"
+                    : "bg-white text-black",
+                )}
+              >
+                UPI
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrMethod("cash")}
+                className={cn(
+                  "border-2 border-black px-3 py-2 text-xs font-bold uppercase",
+                  qrMethod === "cash"
+                    ? "bg-[#024BAB] text-white"
+                    : "bg-white text-black",
+                )}
+              >
+                Cash
+              </button>
+            </div>
+            {qrMethod === "qr" ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Scan the QR code below, complete the payment, then submit the
+                  UPI reference number along with a screenshot of the payment.
+                </p>
+                <img
+                  src={paymentQrUrl}
+                  alt="Payment QR"
+                  className="w-48 h-48 object-contain border-2 border-black mx-auto mb-4"
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-3">
+                Paid the club in cash? Enter the amount below — the club will
+                verify it once they've received the cash.
+              </p>
+            )}
             <div className="mb-3">
               <label className="block text-xs font-bold uppercase mb-1">
                 Amount to Pay
@@ -713,41 +849,47 @@ export default function SubscriptionsPage() {
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               />
             </div>
-            <div className="mb-3">
-              <label className="block text-xs font-bold uppercase mb-1">
-                UTR Number
-              </label>
-              <input
-                type="text"
-                value={qrReferenceNumber}
-                onChange={(e) => setQrReferenceNumber(e.target.value)}
-                placeholder="e.g. 123456789012"
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block text-xs font-bold uppercase mb-1">
-                Transaction Number
-              </label>
-              <input
-                type="text"
-                value={qrTransactionNumber}
-                onChange={(e) => setQrTransactionNumber(e.target.value)}
-                placeholder="e.g. TXN20250117001"
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-xs font-bold uppercase mb-1">
-                Payment Screenshot
-              </label>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setQrScreenshot(e.target.files?.[0] || null)}
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
-              />
-            </div>
+            {qrMethod === "qr" && (
+              <>
+                <div className="mb-3">
+                  <label className="block text-xs font-bold uppercase mb-1">
+                    UTR Number
+                  </label>
+                  <input
+                    type="text"
+                    value={qrReferenceNumber}
+                    onChange={(e) => setQrReferenceNumber(e.target.value)}
+                    placeholder="e.g. 123456789012"
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-bold uppercase mb-1">
+                    Transaction Number
+                  </label>
+                  <input
+                    type="text"
+                    value={qrTransactionNumber}
+                    onChange={(e) => setQrTransactionNumber(e.target.value)}
+                    placeholder="e.g. TXN20250117001"
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-xs font-bold uppercase mb-1">
+                    Payment Screenshot
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) =>
+                      setQrScreenshot(e.target.files?.[0] || null)
+                    }
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                  />
+                </div>
+              </>
+            )}
             <button
               onClick={handleSubmitQrPayment}
               disabled={submittingQr}
@@ -759,6 +901,154 @@ export default function SubscriptionsPage() {
                 <Upload className="w-4 h-4" />
               )}
               Submit Payment
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showCashModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-2 border-black w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-base">Record Cash Payment</h3>
+              <button
+                onClick={() => {
+                  setShowCashModal(false);
+                  setCashTopUpSub(null);
+                }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {cashTopUpSub ? (
+              <p className="text-sm text-muted-foreground mb-3">
+                For {cashTopUpSub.student?.firstName}{" "}
+                {cashTopUpSub.student?.lastName} — {cashTopUpSub.planName}
+              </p>
+            ) : (
+              <>
+                <div className="mb-3 relative">
+                  <label className="block text-xs font-bold uppercase mb-1">
+                    Student
+                  </label>
+                  {cashStudent ? (
+                    <div className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-[#F8FAFF] flex items-center justify-between">
+                      <span>
+                        {cashStudent.firstName} {cashStudent.lastName}
+                      </span>
+                      <button onClick={() => setCashStudent(null)}>
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={cashStudentSearch}
+                        onChange={(e) => searchCashStudents(e.target.value)}
+                        placeholder="Search by name or student ID..."
+                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                      />
+                      {cashStudentResults.length > 0 && (
+                        <div className="absolute z-10 left-0 right-0 border-2 border-t-0 border-black bg-white max-h-40 overflow-y-auto">
+                          {cashStudentResults.map((s) => (
+                            <button
+                              key={s._id}
+                              onClick={() => {
+                                setCashStudent(s);
+                                setCashStudentResults([]);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-[#024BAB]/5 border-b border-black/10 last:border-b-0"
+                            >
+                              {s.firstName} {s.lastName}
+                              {s.studentId ? ` (${s.studentId})` : ""}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-bold uppercase mb-1">
+                    Plan
+                  </label>
+                  <select
+                    value={cashPlanId}
+                    onChange={(e) => {
+                      setCashPlanId(e.target.value);
+                      const plan = plans.find((p) => p._id === e.target.value);
+                      if (plan) {
+                        setCashAmount(
+                          String(
+                            cashBillingCycle === "yearly"
+                              ? plan.yearlyPrice
+                              : plan.monthlyPrice,
+                          ),
+                        );
+                      }
+                    }}
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                  >
+                    <option value="">Choose a plan</option>
+                    {plans.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name} — ₹{p.monthlyPrice}/mo
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-bold uppercase mb-1">
+                    Billing Cycle
+                  </label>
+                  <select
+                    value={cashBillingCycle}
+                    onChange={(e) => {
+                      const cycle = e.target.value as "monthly" | "yearly";
+                      setCashBillingCycle(cycle);
+                      const plan = plans.find((p) => p._id === cashPlanId);
+                      if (plan) {
+                        setCashAmount(
+                          String(
+                            cycle === "yearly"
+                              ? plan.yearlyPrice
+                              : plan.monthlyPrice,
+                          ),
+                        );
+                      }
+                    }}
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+              </>
+            )}
+            <div className="mb-4">
+              <label className="block text-xs font-bold uppercase mb-1">
+                Amount Received
+              </label>
+              <input
+                type="number"
+                value={cashAmount}
+                onChange={(e) => setCashAmount(e.target.value)}
+                placeholder="e.g. 2000"
+                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+              />
+            </div>
+            <button
+              onClick={handleSubmitCash}
+              disabled={submittingCash}
+              className="w-full flex items-center justify-center gap-2 bg-[#00C48C] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
+            >
+              {submittingCash ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Banknote className="w-4 h-4" />
+              )}
+              Record Payment
             </button>
           </div>
         </div>
@@ -798,22 +1088,36 @@ export default function SubscriptionsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground font-medium">
-                  UTR Number
+                  Method
                 </span>
                 <span className="font-bold text-black">
-                  {reviewPayment.utrNumber || "—"}
+                  {reviewPayment.method === "cash"
+                    ? "Cash (self-declared)"
+                    : "UPI"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground font-medium">
-                  Transaction Number
-                </span>
-                <span className="font-bold text-black">
-                  {reviewPayment.transactionNumber || "—"}
-                </span>
-              </div>
+              {reviewPayment.method !== "cash" && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground font-medium">
+                      UTR Number
+                    </span>
+                    <span className="font-bold text-black">
+                      {reviewPayment.utrNumber || "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground font-medium">
+                      Transaction Number
+                    </span>
+                    <span className="font-bold text-black">
+                      {reviewPayment.transactionNumber || "—"}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
-            {reviewPayment.screenshot ? (
+            {reviewPayment.method !== "cash" && reviewPayment.screenshot ? (
               <a
                 href={reviewPayment.screenshot}
                 target="_blank"
@@ -827,7 +1131,9 @@ export default function SubscriptionsPage() {
               </a>
             ) : (
               <p className="text-xs text-muted-foreground mb-4">
-                No screenshot uploaded.
+                {reviewPayment.method === "cash"
+                  ? "Self-declared cash payment — confirm you've received the cash before verifying."
+                  : "No screenshot uploaded."}
               </p>
             )}
             <div className="flex gap-3">
@@ -1029,6 +1335,20 @@ export default function SubscriptionsPage() {
                                 <Eye className="w-3.5 h-3.5" /> Review
                               </button>
                             )}
+                          {!isParent &&
+                            s.status !== "cancelled" &&
+                            (s.amountPaid || 0) < s.amount &&
+                            !s.payments?.some(
+                              (p) => p.status === "pending",
+                            ) && (
+                              <button
+                                onClick={() => openCashModalTopUp(s)}
+                                className="flex items-center gap-1 text-xs font-bold text-[#00C48C] hover:underline"
+                              >
+                                <Banknote className="w-3.5 h-3.5" /> Record Cash
+                                Payment
+                              </button>
+                            )}
                           {isParent &&
                             s.status !== "active" &&
                             s.status !== "cancelled" &&
@@ -1047,17 +1367,35 @@ export default function SubscriptionsPage() {
                           {s.payments
                             ?.filter((p) => p.status === "verified")
                             .map((p) => (
-                              <button
+                              <div
                                 key={p._id}
-                                onClick={() =>
-                                  handleDownloadReceipt(s._id, p._id)
-                                }
-                                disabled={downloadingId === p._id}
-                                className="flex items-center gap-1 text-xs font-bold text-green-700 hover:underline disabled:opacity-60"
+                                className="flex items-center gap-2"
                               >
-                                <FileText className="w-3.5 h-3.5" /> Receipt (₹
-                                {p.amount})
-                              </button>
+                                <button
+                                  onClick={() =>
+                                    handleDownloadReceipt(s._id, p._id)
+                                  }
+                                  disabled={downloadingId === p._id}
+                                  className="flex items-center gap-1 text-xs font-bold text-green-700 hover:underline disabled:opacity-60"
+                                >
+                                  <FileText className="w-3.5 h-3.5" /> Receipt
+                                  (₹{p.amount})
+                                </button>
+                                <span className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
+                                  <span className="flex items-center gap-0.5">
+                                    {p.method === "cash" && (
+                                      <Check className="w-3 h-3 text-[#00C48C]" />
+                                    )}
+                                    Cash
+                                  </span>
+                                  <span className="flex items-center gap-0.5">
+                                    {p.method !== "cash" && (
+                                      <Check className="w-3 h-3 text-[#024BAB]" />
+                                    )}
+                                    UPI
+                                  </span>
+                                </span>
+                              </div>
                             ))}
                           {s.status === "active" && (
                             <button

@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 const paymentAttemptSchema = new mongoose.Schema(
   {
     amount: { type: Number, required: true },
-    method: { type: String, enum: ["qr", "razorpay"], default: "qr" },
+    method: { type: String, enum: ["qr", "razorpay", "cash"], default: "qr" },
     utrNumber: { type: String },
     transactionNumber: { type: String },
     screenshot: { type: String },
@@ -72,7 +72,7 @@ const studentSubscriptionSchema = new mongoose.Schema(
     amountPaid: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
-      enum: ["razorpay", "qr"],
+      enum: ["razorpay", "qr", "cash"],
       default: "razorpay",
     },
     payments: [paymentAttemptSchema],

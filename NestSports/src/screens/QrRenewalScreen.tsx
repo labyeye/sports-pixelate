@@ -36,6 +36,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
 
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [method, setMethod] = useState<'qr' | 'cash'>('qr');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [transactionNumber, setTransactionNumber] = useState('');
   const [amountToPay, setAmountToPay] = useState(String(remaining));
@@ -61,17 +62,6 @@ export default function QrRenewalScreen({ route, navigation }: any) {
   }, [load]);
 
   const handleSubmit = async () => {
-    if (!referenceNumber.trim()) {
-      Alert.alert('UTR required', 'Enter the UTR number from your payment.');
-      return;
-    }
-    if (!transactionNumber.trim()) {
-      Alert.alert(
-        'Transaction number required',
-        'Enter the transaction number from your payment.',
-      );
-      return;
-    }
     const amount = Number(amountToPay);
     if (!amount || amount <= 0) {
       Alert.alert('Amount required', 'Enter a valid amount to pay.');
@@ -84,21 +74,43 @@ export default function QrRenewalScreen({ route, navigation }: any) {
       );
       return;
     }
-    if (!screenshot?.uri) {
-      Alert.alert('Screenshot required', 'Upload a screenshot of the payment.');
-      return;
+    if (method === 'qr') {
+      if (!referenceNumber.trim()) {
+        Alert.alert('UTR required', 'Enter the UTR number from your payment.');
+        return;
+      }
+      if (!transactionNumber.trim()) {
+        Alert.alert(
+          'Transaction number required',
+          'Enter the transaction number from your payment.',
+        );
+        return;
+      }
+      if (!screenshot?.uri) {
+        Alert.alert(
+          'Screenshot required',
+          'Upload a screenshot of the payment.',
+        );
+        return;
+      }
     }
     setSubmitting(true);
     try {
-      const screenshotFile = {
-        uri: screenshot.uri,
-        name: screenshot.fileName || 'payment-screenshot.jpg',
-        type: screenshot.type || 'image/jpeg',
-      };
+      const screenshotFile =
+        method === 'qr' && screenshot?.uri
+          ? {
+              uri: screenshot.uri,
+              name: screenshot.fileName || 'payment-screenshot.jpg',
+              type: screenshot.type || 'image/jpeg',
+            }
+          : undefined;
       if (isTopUp) {
         await subscriptionAPI.submitPayment(subscription._id, {
-          referenceNumber: referenceNumber.trim(),
-          transactionNumber: transactionNumber.trim(),
+          method,
+          referenceNumber:
+            method === 'qr' ? referenceNumber.trim() : undefined,
+          transactionNumber:
+            method === 'qr' ? transactionNumber.trim() : undefined,
           amount,
           screenshot: screenshotFile,
         });
@@ -107,8 +119,11 @@ export default function QrRenewalScreen({ route, navigation }: any) {
           studentId: subscription.student._id,
           planId: subscription.plan._id,
           billingCycle: subscription.billingCycle,
-          referenceNumber: referenceNumber.trim(),
-          transactionNumber: transactionNumber.trim(),
+          method,
+          referenceNumber:
+            method === 'qr' ? referenceNumber.trim() : undefined,
+          transactionNumber:
+            method === 'qr' ? transactionNumber.trim() : undefined,
           amount,
           screenshot: screenshotFile,
         });
@@ -156,74 +171,118 @@ export default function QrRenewalScreen({ route, navigation }: any) {
             </Text>
           )}
 
-          {qrUrl ? (
-            <>
-              <Image
-                source={{ uri: `${ASSET_BASE_URL}${qrUrl}` }}
-                style={styles.qrImage}
-                resizeMode="contain"
+          {method === 'qr' &&
+            (qrUrl ? (
+              <>
+                <Image
+                  source={{ uri: `${ASSET_BASE_URL}${qrUrl}` }}
+                  style={styles.qrImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.instructions}>
+                  Scan this QR with any UPI app, pay any amount up to{' '}
+                  {formatCurrency(remaining)}, then enter your UTR and
+                  transaction number and upload a screenshot below.
+                </Text>
+              </>
+            ) : (
+              <EmptyState
+                title="No payment QR set up yet"
+                sub="Ask the club to upload their payment QR in Settings, or switch to Cash below."
               />
-              <Text style={styles.instructions}>
-                Scan this QR with any UPI app, pay any amount up to{' '}
-                {formatCurrency(remaining)}, then enter your UTR and transaction
-                number and upload a screenshot below.
-              </Text>
-            </>
-          ) : (
-            <EmptyState
-              title="No payment QR set up yet"
-              sub="Ask the club to upload their payment QR in Settings before you can renew here."
-            />
-          )}
+            ))}
         </Card>
 
-        {qrUrl && (
-          <Card>
-            <TextField
-              label="Amount to Pay"
-              value={amountToPay}
-              onChangeText={setAmountToPay}
-              placeholder={`Up to ${remaining}`}
-              keyboardType="numeric"
-              required
-            />
-            <TextField
-              label="UTR Number"
-              value={referenceNumber}
-              onChangeText={setReferenceNumber}
-              placeholder="e.g. 402312345678"
-              required
-            />
-            <TextField
-              label="Transaction Number"
-              value={transactionNumber}
-              onChangeText={setTransactionNumber}
-              placeholder="e.g. TXN20250117001"
-              required
-            />
-            <Text style={styles.fieldLabel}>Payment Screenshot *</Text>
-            <TouchableOpacity style={styles.uploadBtn} onPress={pickScreenshot}>
-              {screenshot?.uri ? (
-                <Image
-                  source={{ uri: screenshot.uri }}
-                  style={styles.screenshotPreview}
-                  resizeMode="cover"
-                />
-              ) : (
-                <>
-                  <Upload size={18} color={colors.muted} />
-                  <Text style={styles.uploadBtnText}>Choose Screenshot</Text>
-                </>
-              )}
+        <Card>
+          <View style={styles.methodRow}>
+            <TouchableOpacity
+              style={[
+                styles.methodBtn,
+                method === 'qr' && styles.methodBtnActive,
+              ]}
+              onPress={() => setMethod('qr')}
+            >
+              <Text
+                style={[
+                  styles.methodBtnText,
+                  method === 'qr' && styles.methodBtnTextActive,
+                ]}
+              >
+                UPI
+              </Text>
             </TouchableOpacity>
-            <View style={{ height: 14 }} />
-            <Button
-              title="Submit"
-              onPress={handleSubmit}
-              loading={submitting}
-            />
-          </Card>
-        )}
+            <TouchableOpacity
+              style={[
+                styles.methodBtn,
+                method === 'cash' && styles.methodBtnActive,
+              ]}
+              onPress={() => setMethod('cash')}
+            >
+              <Text
+                style={[
+                  styles.methodBtnText,
+                  method === 'cash' && styles.methodBtnTextActive,
+                ]}
+              >
+                Cash
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {method === 'cash' && (
+            <Text style={styles.instructions}>
+              Paid the club in cash? Enter the amount below — the club will
+              verify it once they've received the cash.
+            </Text>
+          )}
+          <TextField
+            label="Amount to Pay"
+            value={amountToPay}
+            onChangeText={setAmountToPay}
+            placeholder={`Up to ${remaining}`}
+            keyboardType="numeric"
+            required
+          />
+          {method === 'qr' && (
+            <>
+              <TextField
+                label="UTR Number"
+                value={referenceNumber}
+                onChangeText={setReferenceNumber}
+                placeholder="e.g. 402312345678"
+                required
+              />
+              <TextField
+                label="Transaction Number"
+                value={transactionNumber}
+                onChangeText={setTransactionNumber}
+                placeholder="e.g. TXN20250117001"
+                required
+              />
+              <Text style={styles.fieldLabel}>Payment Screenshot *</Text>
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={pickScreenshot}
+              >
+                {screenshot?.uri ? (
+                  <Image
+                    source={{ uri: screenshot.uri }}
+                    style={styles.screenshotPreview}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <>
+                    <Upload size={18} color={colors.muted} />
+                    <Text style={styles.uploadBtnText}>
+                      Choose Screenshot
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+          <View style={{ height: 14 }} />
+          <Button title="Submit" onPress={handleSubmit} loading={submitting} />
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -242,6 +301,23 @@ const styles = StyleSheet.create({
   amountLabel: { fontSize: 12, fontWeight: '700', color: colors.muted },
   amountValue: { fontSize: 18, fontWeight: '800', color: colors.black },
   qrImage: { width: '100%', height: 260, marginBottom: 12 },
+  methodRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  methodBtn: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  methodBtnActive: { backgroundColor: colors.black },
+  methodBtnText: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.black,
+    textTransform: 'uppercase',
+  },
+  methodBtnTextActive: { color: colors.white },
   instructions: { color: colors.muted, fontSize: 12, textAlign: 'center' },
   fieldLabel: {
     fontFamily: FONT.bold,

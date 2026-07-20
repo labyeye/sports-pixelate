@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -23,8 +24,10 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  Banknote,
+  Check,
 } from 'lucide-react-native';
-import { subscriptionAPI } from '../api/client';
+import { subscriptionAPI, studentAPI, sportsPlanAPI } from '../api/client';
 import { downloadReceipt } from '../utils/receipt';
 import {
   Card,
@@ -37,6 +40,9 @@ import {
   LoadMoreFooter,
   SortOption,
   KpiTile,
+  PickerField,
+  TextField,
+  ChipSelect,
 } from '../components/ui';
 import {
   ImportExportModal,
@@ -130,6 +136,20 @@ export default function SubscriptionsScreen({ navigation }: any) {
   const [reviewSub, setReviewSub] = useState<any | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Owner/staff recording a payment received in cash — verified immediately,
+  // no pending-review step. cashTopUpSub set = topping up an existing
+  // subscription; null = recording a brand-new one for a walk-in.
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashTopUpSub, setCashTopUpSub] = useState<any | null>(null);
+  const [cashStudents, setCashStudents] = useState<any[]>([]);
+  const [cashPlans, setCashPlans] = useState<any[]>([]);
+  const [cashStudentId, setCashStudentId] = useState('');
+  const [cashPlanId, setCashPlanId] = useState('');
+  const [cashBillingCycle, setCashBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [cashAmount, setCashAmount] = useState('');
+  const [submittingCash, setSubmittingCash] = useState(false);
+  const [loadingCashOptions, setLoadingCashOptions] = useState(false);
 
   // At most one payment entry is ever pending at a time — the backend
   // rejects a new submission while one is awaiting review.
@@ -245,6 +265,80 @@ export default function SubscriptionsScreen({ navigation }: any) {
       Alert.alert('Error', e.message || 'Failed to reject payment');
     } finally {
       setReviewing(false);
+    }
+  };
+
+  const openCashModalNew = async () => {
+    setCashTopUpSub(null);
+    setCashStudentId('');
+    setCashPlanId('');
+    setCashBillingCycle('monthly');
+    setCashAmount('');
+    setShowCashModal(true);
+    setLoadingCashOptions(true);
+    try {
+      const [studRes, planRes] = await Promise.all([
+        studentAPI.getAll({ limit: '500' } as any),
+        sportsPlanAPI.getAll({ limit: '200' }),
+      ]);
+      setCashStudents((studRes as any).data || []);
+      setCashPlans((planRes as any).data || []);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to load students/plans');
+    } finally {
+      setLoadingCashOptions(false);
+    }
+  };
+
+  const openCashModalTopUp = (sub: any) => {
+    setCashTopUpSub(sub);
+    setCashAmount(String(sub.amount - (sub.amountPaid || 0)));
+    setShowCashModal(true);
+  };
+
+  const cashStudentLabel = (s: any) =>
+    `${s.firstName} ${s.lastName}${s.studentId ? ` (${s.studentId})` : ''}`;
+  const cashPlanLabel = (p: any) =>
+    `${p.name} — ${formatCurrency(p.monthlyPrice)}/mo`;
+  const cashStudentOptions = cashStudents.map(cashStudentLabel);
+  const cashPlanOptions = cashPlans.map(cashPlanLabel);
+  const selectedCashStudent = cashStudents.find(s => s._id === cashStudentId);
+  const selectedCashPlan = cashPlans.find(p => p._id === cashPlanId);
+
+  const handleSubmitCash = async () => {
+    const isTopUp = !!cashTopUpSub;
+    if (!isTopUp && !cashStudentId) {
+      Alert.alert('Select a student', 'Choose the student who paid.');
+      return;
+    }
+    if (!isTopUp && !cashPlanId) {
+      Alert.alert('Select a plan', 'Choose a coaching plan.');
+      return;
+    }
+    const amount = Number(cashAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Amount required', 'Enter a valid amount received.');
+      return;
+    }
+    setSubmittingCash(true);
+    try {
+      if (isTopUp) {
+        await subscriptionAPI.recordCashTopUp(cashTopUpSub._id, amount);
+      } else {
+        await subscriptionAPI.recordCashSubscription({
+          studentId: cashStudentId,
+          planId: cashPlanId,
+          billingCycle: cashBillingCycle,
+          amount,
+        });
+      }
+      setShowCashModal(false);
+      setCashTopUpSub(null);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to record cash payment');
+    } finally {
+      setSubmittingCash(false);
     }
   };
 
@@ -375,6 +469,15 @@ export default function SubscriptionsScreen({ navigation }: any) {
             <Text style={styles.choosePlanBtnText}>+ Subscribe a Child to a Plan</Text>
           </TouchableOpacity>
         )}
+        {!isParent && (
+          <TouchableOpacity
+            style={styles.cashBtn}
+            onPress={openCashModalNew}
+          >
+            <Banknote size={16} color={colors.white} strokeWidth={2.5} />
+            <Text style={styles.choosePlanBtnText}>Record Cash Payment</Text>
+          </TouchableOpacity>
+        )}
 
         <FlatList
           data={subscriptions}
@@ -452,6 +555,22 @@ export default function SubscriptionsScreen({ navigation }: any) {
                         color={PAYMENT_ENTRY_COLORS[p.status] || colors.muted}
                       />
                       {p.status === 'verified' && (
+                        <View style={styles.methodTicks}>
+                          <View style={styles.methodTickItem}>
+                            {p.method === 'cash' && (
+                              <Check size={10} color={colors.green} strokeWidth={3} />
+                            )}
+                            <Text style={styles.methodTickText}>Cash</Text>
+                          </View>
+                          <View style={styles.methodTickItem}>
+                            {p.method !== 'cash' && (
+                              <Check size={10} color={colors.blue} strokeWidth={3} />
+                            )}
+                            <Text style={styles.methodTickText}>UPI</Text>
+                          </View>
+                        </View>
+                      )}
+                      {p.status === 'verified' && (
                         <TouchableOpacity
                           style={styles.receiptBtn}
                           onPress={() => handleDownloadReceipt(s._id, p._id)}
@@ -516,6 +635,17 @@ export default function SubscriptionsScreen({ navigation }: any) {
                       <Text style={styles.reviewBtnText}>Review</Text>
                     </TouchableOpacity>
                   )}
+                  {s.status !== 'cancelled' &&
+                    (s.amountPaid || 0) < s.amount &&
+                    !s.payments?.some((p: any) => p.status === 'pending') && (
+                      <TouchableOpacity
+                        style={styles.cashRowBtn}
+                        onPress={() => openCashModalTopUp(s)}
+                      >
+                        <Banknote size={14} color={colors.green} strokeWidth={2.5} />
+                        <Text style={styles.cashRowBtnText}>Record Cash</Text>
+                      </TouchableOpacity>
+                    )}
                 </View>
               )}
             </Card>
@@ -588,18 +718,30 @@ export default function SubscriptionsScreen({ navigation }: any) {
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>UTR Number</Text>
+                  <Text style={styles.detailLabel}>Method</Text>
                   <Text style={styles.detailValue}>
-                    {reviewPayment.utrNumber || '—'}
+                    {reviewPayment.method === 'cash'
+                      ? 'Cash (self-declared)'
+                      : 'UPI'}
                   </Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Transaction No.</Text>
-                  <Text style={styles.detailValue}>
-                    {reviewPayment.transactionNumber || '—'}
-                  </Text>
-                </View>
-                {reviewPayment.screenshot ? (
+                {reviewPayment.method !== 'cash' && (
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>UTR Number</Text>
+                      <Text style={styles.detailValue}>
+                        {reviewPayment.utrNumber || '—'}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Transaction No.</Text>
+                      <Text style={styles.detailValue}>
+                        {reviewPayment.transactionNumber || '—'}
+                      </Text>
+                    </View>
+                  </>
+                )}
+                {reviewPayment.method !== 'cash' && reviewPayment.screenshot ? (
                   <Image
                     source={{ uri: reviewPayment.screenshot }}
                     style={styles.screenshot}
@@ -607,7 +749,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
                   />
                 ) : (
                   <Text style={styles.detailValue}>
-                    No screenshot uploaded.
+                    {reviewPayment.method === 'cash'
+                      ? "Self-declared cash payment — confirm you've received the cash before verifying."
+                      : 'No screenshot uploaded.'}
                   </Text>
                 )}
                 <View style={styles.modalActions}>
@@ -626,6 +770,107 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showCashModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCashModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Record Cash Payment</Text>
+              <TouchableOpacity
+                onPress={() => setShowCashModal(false)}
+                hitSlop={8}
+              >
+                <X size={20} color={colors.black} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {cashTopUpSub ? (
+                <Text style={styles.detailValue}>
+                  For {cashTopUpSub.student?.firstName}{' '}
+                  {cashTopUpSub.student?.lastName} — {cashTopUpSub.planName}
+                </Text>
+              ) : (
+                <>
+                  <PickerField
+                    label="Student"
+                    value={
+                      selectedCashStudent ? cashStudentLabel(selectedCashStudent) : ''
+                    }
+                    options={cashStudentOptions}
+                    onChange={label => {
+                      const match = cashStudents.find(
+                        s => cashStudentLabel(s) === label,
+                      );
+                      setCashStudentId(match?._id || '');
+                    }}
+                    placeholder={loadingCashOptions ? 'Loading...' : 'Select student'}
+                    disabled={loadingCashOptions}
+                    required
+                  />
+                  <PickerField
+                    label="Plan"
+                    value={selectedCashPlan ? cashPlanLabel(selectedCashPlan) : ''}
+                    options={cashPlanOptions}
+                    onChange={label => {
+                      const match = cashPlans.find(p => cashPlanLabel(p) === label);
+                      setCashPlanId(match?._id || '');
+                      if (match) {
+                        setCashAmount(
+                          String(
+                            cashBillingCycle === 'yearly'
+                              ? match.yearlyPrice
+                              : match.monthlyPrice,
+                          ),
+                        );
+                      }
+                    }}
+                    placeholder={loadingCashOptions ? 'Loading...' : 'Select plan'}
+                    disabled={loadingCashOptions}
+                    required
+                  />
+                  <ChipSelect<'monthly' | 'yearly'>
+                    label="Billing Cycle"
+                    options={['monthly', 'yearly']}
+                    value={cashBillingCycle}
+                    onChange={cycle => {
+                      setCashBillingCycle(cycle);
+                      if (selectedCashPlan) {
+                        setCashAmount(
+                          String(
+                            cycle === 'yearly'
+                              ? selectedCashPlan.yearlyPrice
+                              : selectedCashPlan.monthlyPrice,
+                          ),
+                        );
+                      }
+                    }}
+                    labels={{ monthly: 'Monthly', yearly: 'Yearly' }}
+                  />
+                </>
+              )}
+              <TextField
+                label="Amount Received"
+                value={cashAmount}
+                onChangeText={setCashAmount}
+                placeholder="e.g. 2000"
+                keyboardType="numeric"
+                required
+              />
+              <Button
+                title="Record Payment"
+                onPress={handleSubmitCash}
+                color={colors.green}
+                loading={submittingCash}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -669,6 +914,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
+  },
+  cashBtn: {
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: colors.green,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   sortBtn: {
     width: 36,
@@ -731,6 +987,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   reviewBtn: {
     flexDirection: 'row',
@@ -746,6 +1004,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.blue,
+  },
+  cashRowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  cashRowBtnText: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.green,
+  },
+  methodTicks: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  methodTickItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  methodTickText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.muted,
   },
   modalBackdrop: {
     flex: 1,

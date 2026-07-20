@@ -8,6 +8,10 @@ const CHEQUE_PATH = path.join(
   __dirname,
   "../../frontend/assets/payrollcheque.pdf",
 );
+const FEE_RECEIPT_PATH = path.join(
+  __dirname,
+  "../../frontend/assets/feereceipt.pdf",
+);
 
 const MONTHS = [
   "Jan",
@@ -241,9 +245,9 @@ async function generatePayslipPdf(payroll, employee, company) {
   return await pdfDoc.save();
 }
 
-// Renders a verified subscription payment as the same cheque template used
-// for payroll payslips, so parents get a visually consistent "cheque" receipt
-// on both mobile and web instead of the old plain document-style receipt.
+// Renders a verified subscription (fee) payment onto the dedicated fee
+// receipt template, so parents get a proper fee receipt instead of the
+// payroll cheque template used for employee payslips.
 async function generatePaymentReceiptPdf({ subscription, payment, company }) {
   const amount = Math.round(payment.amount || 0);
   const verifiedOn = payment.verifiedAt ? new Date(payment.verifiedAt) : new Date();
@@ -261,8 +265,8 @@ async function generatePaymentReceiptPdf({ subscription, payment, company }) {
   }`.trim();
 
   let pdfDoc;
-  if (fs.existsSync(CHEQUE_PATH)) {
-    const templateBytes = fs.readFileSync(CHEQUE_PATH);
+  if (fs.existsSync(FEE_RECEIPT_PATH)) {
+    const templateBytes = fs.readFileSync(FEE_RECEIPT_PATH);
     pdfDoc = await PDFDocument.load(templateBytes);
   } else {
     pdfDoc = await PDFDocument.create();
@@ -312,7 +316,7 @@ async function generatePaymentReceiptPdf({ subscription, payment, company }) {
   const dateCharX = [430, 445, 460, 475, 491, 507, 523, 538];
   dateCharX.forEach((x, i) => dt(dateStr[i] ?? "", x, 36, 11, false));
 
-  dt(studentName || "—", 100, 120, 11, false);
+  dt(studentName || "—", 132, 120, 11, false);
   dt(subscription.student?.studentId || "—", 320, 120, 11, false);
   dt(subscription.planName || "—", 435, 120, 11, false);
   dt(toIndianWords(amount), 115, 145, 11, false);

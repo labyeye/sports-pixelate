@@ -5,6 +5,8 @@ const {
   verifyPayment,
   createQrRenewalRequest,
   assignSubscription,
+  recordCashSubscription,
+  recordCashTopUp,
   submitInstallmentPayment,
   verifyQrPayment,
   rejectQrPayment,
@@ -36,6 +38,18 @@ router.post(
   protect,
   authorize("super_admin", "hr_manager"),
   assignSubscription,
+);
+router.post(
+  "/cash",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  recordCashSubscription,
+);
+router.post(
+  "/:id/cash-payment",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  recordCashTopUp,
 );
 router.post(
   "/:id/payments",
