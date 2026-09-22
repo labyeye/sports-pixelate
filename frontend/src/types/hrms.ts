@@ -1,5 +1,5 @@
 // Internal role strings kept identical to the HRMS this was forked from, so
-// every existing authorize(...) check keeps working. In the NestSports UI
+// every existing authorize(...) check keeps working. In the NestPlay UI
 // these are labeled: super_admin/hr_manager -> "Owner", employee -> "Staff",
 // parent -> "Parent" (the one genuinely new role).
 export type UserRole =

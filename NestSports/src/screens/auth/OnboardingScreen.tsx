@@ -27,7 +27,7 @@ export default function OnboardingScreen() {
           <Text style={styles.heading}>Finish setting up your academy</Text>
           <Text style={styles.body}>
             Your account isn't linked to an academy yet. Academy setup (choosing
-            a plan and completing payment) currently happens on the NestSports
+            a plan and completing payment) currently happens on the NestPlay
             web dashboard — once that's done, come back here and your account
             will pick it up automatically.
           </Text>

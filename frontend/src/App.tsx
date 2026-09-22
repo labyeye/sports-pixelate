@@ -35,6 +35,7 @@ import ParentAttendancePage from "./pages/ParentAttendancePage";
 import ParentReportPage from "./pages/ParentReportPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import PaymentFailedPage from "./pages/PaymentFailedPage";
+import PaymentReturnPage from "./pages/PaymentReturnPage";
 import WelcomePage from "./pages/WelcomePage";
 import ManagePage from "./pages/ManagePage";
 import EmployeePayrollPage from "./pages/EmployeePayrollPage";
@@ -59,9 +60,9 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen bg-[#F0F6FF] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+        <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         <p className="text-sm font-medium text-muted-foreground">
-          Loading NestSports...
+          Loading NestPlay...
         </p>
       </div>
     </div>
@@ -152,6 +153,16 @@ function AppRoutes() {
           element={
             isAuthenticated ? (
               <PaymentFailedPage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/payment-return"
+          element={
+            isAuthenticated ? (
+              <PaymentReturnPage />
             ) : (
               <Navigate to="/login" replace />
             )

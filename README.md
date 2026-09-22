@@ -1,8 +1,8 @@
-# NestSports
+# NestPlay
 
 **The all-in-one management platform for sports academies.**
 
-NestSports brings together staff/HR management, coaching operations, student enrollment, facility bookings, billing, and payments into a single system — built for sports academies, coaching centers, and training institutes that currently juggle spreadsheets, WhatsApp groups, and paper registers.
+NestPlay brings together staff/HR management, coaching operations, student enrollment, facility bookings, billing, and payments into a single system — built for sports academies, coaching centers, and training institutes that currently juggle spreadsheets, WhatsApp groups, and paper registers.
 
 ---
 

@@ -133,6 +133,42 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ phone, otp }),
     }),
+  // Password reset by WhatsApp code / authenticator app
+  forgotPasswordMethods: (email: string) =>
+    request(`/auth/forgot-password/methods?email=${encodeURIComponent(email)}`),
+  forgotPasswordWhatsapp: (email: string) =>
+    request('/auth/forgot-password/whatsapp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPasswordWithOtp: (email: string, otp: string, password: string) =>
+    request('/auth/reset-password/otp/whatsapp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, password }),
+    }),
+  resetPasswordWithTotp: (email: string, token: string, password: string) =>
+    request('/auth/reset-password/otp/totp', {
+      method: 'POST',
+      body: JSON.stringify({ email, token, password }),
+    }),
+  // Prove ownership of the profile phone (separate from the login OTP)
+  sendPhoneVerifyOtp: () =>
+    request('/auth/phone/send-otp', { method: 'POST', body: JSON.stringify({}) }),
+  verifyPhoneVerifyOtp: (otp: string) =>
+    request('/auth/phone/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    }),
+  passkeyLoginOptions: (email?: string) =>
+    request('/auth/passkey/login-options', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  biometricLogin: (credential: any) =>
+    request('/auth/passkey/login', {
+      method: 'POST',
+      body: JSON.stringify(credential),
+    }),
 };
 
 export const dashboardAPI = {
@@ -396,6 +432,14 @@ export const loanAPI = {
       method: 'POST',
       body: JSON.stringify({ loans }),
     }),
+  // Employee self-service: files a pending loan/advance request.
+  request: (body: {
+    type: 'loan' | 'advance';
+    amount: number;
+    tenureMonths?: number;
+    reason: string;
+  }) =>
+    request('/loans/request', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export const designationAPI = {
@@ -452,6 +496,9 @@ export const documentAPI = {
 
 export const announcementAPI = {
   getAll: () => request('/announcements'),
+  create: (body: { title: string; content: string }) =>
+    request('/announcements', { method: 'POST', body: JSON.stringify(body) }),
+  delete: (id: string) => request(`/announcements/${id}`, { method: 'DELETE' }),
 };
 
 export const attendanceCorrectionAPI = {
@@ -481,7 +528,7 @@ export const attendanceCorrectionAPI = {
     }),
 };
 
-// ── NestSports domain APIs ──────────────────────────────────────────────
+// ── NestPlay domain APIs ──────────────────────────────────────────────
 
 export const studentAPI = {
   getAll: (params?: Record<string, string>) => {
@@ -512,6 +559,69 @@ export const studentAPI = {
 
 export const sportAPI = {
   getAll: () => request('/sports'),
+  create: (body: object) =>
+    request('/sports', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/sports/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (id: string) => request(`/sports/${id}`, { method: 'DELETE' }),
+};
+
+// ── Staff / HR configuration & self-service (parity with web) ────────────
+
+export const shiftAPI = {
+  getAll: () => request('/shifts'),
+  create: (body: object) =>
+    request('/shifts', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/shifts/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (id: string) => request(`/shifts/${id}`, { method: 'DELETE' }),
+};
+
+export const salaryHeadAPI = {
+  getAll: () => request('/salary-heads'),
+  create: (body: object) =>
+    request('/salary-heads', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/salary-heads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/salary-heads/${id}`, { method: 'DELETE' }),
+};
+
+export const parentAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/parents${q}`);
+  },
+  updateCredentials: (
+    id: string,
+    body: { email?: string; password?: string },
+  ) =>
+    request(`/parents/${id}/credentials`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+};
+
+export const payrollPreviewAPI = {
+  preview: (body: { month: number; year: number; employeeIds?: string[] }) =>
+    request('/payroll/preview', { method: 'POST', body: JSON.stringify(body) }),
+};
+
+export const transactionAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/transactions${q}`);
+  },
+  create: (body: object) =>
+    request('/transactions', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/transactions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/transactions/${id}`, { method: 'DELETE' }),
 };
 
 export const studentAttendanceAPI = {
@@ -793,6 +903,10 @@ export const reportAPI = {
   sportSummary: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : '';
     return request(`/reports/sport-summary${q}`);
+  },
+  studentOutstanding: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/reports/student-outstanding${q}`);
   },
   studentProfile: (studentId: string) =>
     request(`/reports/student-profile/${studentId}`),

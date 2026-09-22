@@ -140,7 +140,7 @@ app.use(
   require("./routes/attendanceCorrectionRoutes"),
 );
 
-// NestSports domain routes
+// NestPlay domain routes
 app.use("/api/students", require("./routes/studentRoutes"));
 app.use("/api/parents", require("./routes/parentRoutes"));
 app.use("/api/sports", require("./routes/sportRoutes"));
@@ -156,12 +156,12 @@ app.use("/api/events", require("./routes/eventRoutes"));
 app.use("/api/reports", require("./routes/reportsRoutes"));
 
 app.get("/api/health", (req, res) =>
-  res.json({ status: "ok", service: "NestSports API" }),
+  res.json({ status: "ok", service: "NestPlay API" }),
 );
 
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () =>
-  console.log(`NestSports server running on port ${PORT}`),
+  console.log(`NestPlay server running on port ${PORT}`),
 );

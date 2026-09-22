@@ -6,6 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
+  loadRazorpayScript,
+  loadCashfreeScript,
+  redirectToGatewayCheckout,
+} from "@/lib/paymentGateway";
+import {
   CalendarClock,
   Plus,
   Loader2,
@@ -38,17 +43,6 @@ interface Booking {
   fee: number;
   status: string;
   paymentStatus: string;
-}
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
 }
 
 function toDateStr(d: Date) {
@@ -174,34 +168,71 @@ export default function BookingsPage() {
     try {
       const res = await bookingAPI.create(form);
       if (res.payment) {
-        const loaded = await loadRazorpayScript();
-        if (!loaded) throw new Error("Failed to load Razorpay checkout.");
-        await new Promise<void>((resolve, reject) => {
-          const rzp = new window.Razorpay({
-            key: res.payment.keyId,
-            order_id: res.payment.orderId,
-            amount: res.payment.amount * 100,
-            currency: res.payment.currency,
-            name: "NestSports",
-            description: "Facility booking",
-            theme: { color: "#024BAB" },
-            handler: async (response: any) => {
-              try {
-                await bookingAPI.verifyPayment({
-                  bookingId: res.data._id,
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                });
-                resolve();
-              } catch (err: any) {
-                reject(err);
-              }
-            },
-            modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+        const payment = res.payment;
+
+        if (payment.checkoutMode === "redirect") {
+          redirectToGatewayCheckout(payment);
+          return;
+        }
+
+        if (payment.gateway === "cashfree") {
+          const loaded = await loadCashfreeScript();
+          if (!loaded) throw new Error("Failed to load Cashfree checkout.");
+          const cashfree = await (window as any).Cashfree({
+            mode: import.meta.env.PROD ? "production" : "sandbox",
           });
-          rzp.open();
-        });
+          await new Promise<void>((resolve, reject) => {
+            cashfree
+              .checkout({
+                paymentSessionId: payment.paymentSessionId,
+                redirectTarget: "_modal",
+              })
+              .then(async (result: any) => {
+                if (result.error) {
+                  reject(new Error("Payment cancelled"));
+                  return;
+                }
+                try {
+                  await bookingAPI.verifyPayment({
+                    bookingId: res.data._id,
+                    orderId: payment.orderId,
+                  });
+                  resolve();
+                } catch (err: any) {
+                  reject(err);
+                }
+              });
+          });
+        } else {
+          const loaded = await loadRazorpayScript();
+          if (!loaded) throw new Error("Failed to load Razorpay checkout.");
+          await new Promise<void>((resolve, reject) => {
+            const rzp = new window.Razorpay({
+              key: payment.keyId,
+              order_id: payment.orderId,
+              amount: payment.amount * 100,
+              currency: payment.currency,
+              name: "NestPlay",
+              description: "Facility booking",
+              theme: { color: "#024BAB" },
+              handler: async (response: any) => {
+                try {
+                  await bookingAPI.verifyPayment({
+                    bookingId: res.data._id,
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature,
+                  });
+                  resolve();
+                } catch (err: any) {
+                  reject(err);
+                }
+              },
+              modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+            });
+            rzp.open();
+          });
+        }
       }
       toast({ title: "Booking confirmed" });
       resetForm();
@@ -502,7 +533,7 @@ export default function BookingsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : displayed.length === 0 ? (
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">

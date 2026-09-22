@@ -198,7 +198,7 @@ export default function MyLoansPage() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+            <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
           </div>
         ) : loans.length === 0 ? (
           <div className="border-2 border-black bg-white p-12 text-center">

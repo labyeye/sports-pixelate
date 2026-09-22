@@ -173,7 +173,7 @@ async function getCompanySetting(eventKey, companyId) {
 // ─── Attendance ───────────────────────────────────────────────────────────────
 
 /**
- * Template: nestsports_checkin
+ * Template: nestplay_checkin
  * Body:  Hi {{1}}, your Check-In at {{2}} was recorded at {{3}}. Have a productive day!
  */
 async function sendCheckIn(
@@ -191,7 +191,7 @@ async function sendCheckIn(
     });
     await sendTemplate(
       phone,
-      "nestsports_checkin",
+      "nestplay_checkin",
       [firstName, locationName, t],
       s.whatsappLang || "en",
     );
@@ -205,7 +205,7 @@ async function sendCheckIn(
 }
 
 /**
- * Template: nestsports_checkout
+ * Template: nestplay_checkout
  * Body:  Hi {{1}}, your Check-Out at {{2}} was recorded at {{3}}. Total hours: {{4}}.
  */
 async function sendCheckOut(
@@ -224,7 +224,7 @@ async function sendCheckOut(
     const hrs = workHours ? `${Number(workHours).toFixed(1)}h` : "-";
     await sendTemplate(
       phone,
-      "nestsports_checkout",
+      "nestplay_checkout",
       [firstName, locationName, t, hrs],
       s.whatsappLang || "en",
     );
@@ -236,7 +236,7 @@ async function sendCheckOut(
 // ─── Leave ────────────────────────────────────────────────────────────────────
 
 /**
- * Template: nestsports_leave_submitted
+ * Template: nestplay_leave_submitted
  * Body:  Hi {{1}}, your {{2}} leave request from {{3}} to {{4}} for {{5}} day(s) has been submitted and is awaiting approval from your manager.
  */
 async function sendLeaveSubmitted(
@@ -252,7 +252,7 @@ async function sendLeaveSubmitted(
     const to = new Date(endDate).toLocaleDateString("en-IN");
     await sendTemplate(
       phone,
-      "nestsports_leave_submitted",
+      "nestplay_leave_submitted",
       [firstName, type, from, to, String(days)],
       s.whatsappLang || "en",
     );
@@ -262,7 +262,7 @@ async function sendLeaveSubmitted(
 }
 
 /**
- * Template: nestsports_leave_approved
+ * Template: nestplay_leave_approved
  * Body:  Hi {{1}}, your {{2}} Leave ({{3}} to {{4}}, {{5}} day(s)) has been APPROVED.
  */
 async function sendLeaveApproved(
@@ -278,7 +278,7 @@ async function sendLeaveApproved(
     const to = new Date(endDate).toLocaleDateString("en-IN");
     await sendTemplate(
       phone,
-      "nestsports_leave_approved",
+      "nestplay_leave_approved",
       [firstName, type, from, to, String(days)],
       s.whatsappLang || "en",
     );
@@ -288,7 +288,7 @@ async function sendLeaveApproved(
 }
 
 /**
- * Template: nestsports_leave_rejected
+ * Template: nestplay_leave_rejected
  * Body:  Hi {{1}}, your {{2}} Leave request has been REJECTED. Reason: {{3}}.
  */
 async function sendLeaveRejected(
@@ -302,7 +302,7 @@ async function sendLeaveRejected(
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     await sendTemplate(
       phone,
-      "nestsports_leave_rejected",
+      "nestplay_leave_rejected",
       [firstName, type, reason || "Not specified"],
       s.whatsappLang || "en",
     );
@@ -312,7 +312,7 @@ async function sendLeaveRejected(
 }
 
 /**
- * Template: nestsports_leave_request_hr
+ * Template: nestplay_leave_request_hr
  * Body:  New Leave Request — Employee: {{1}} ({{2}}), Type: {{3}}, Dates: {{4}} to {{5}} ({{6}} day(s)), Reason: {{7}}.
  */
 async function sendLeaveAppliedHR(
@@ -328,7 +328,7 @@ async function sendLeaveAppliedHR(
     const to = new Date(endDate).toLocaleDateString("en-IN");
     await sendTemplate(
       phone,
-      "nestsports_leave_request_hr",
+      "nestplay_leave_request_hr",
       [empName, empId, type, from, to, String(days), reason || "-"],
       s.whatsappLang || "en",
     );
@@ -340,7 +340,7 @@ async function sendLeaveAppliedHR(
 // ─── Attendance (HR copy) ─────────────────────────────────────────────────────
 
 /**
- * Template: nestsports_checkin_hr
+ * Template: nestplay_checkin_hr
  * Body:  Employee {{1}} (ID: {{2}}) checked in at {{3}} at {{4}}.
  */
 async function sendCheckInHR(
@@ -358,7 +358,7 @@ async function sendCheckInHR(
     });
     await sendTemplate(
       phone,
-      "nestsports_checkin_hr",
+      "nestplay_checkin_hr",
       [empName, empId, locationName, t],
       s.whatsappLang || "en",
     );
@@ -368,7 +368,7 @@ async function sendCheckInHR(
 }
 
 /**
- * Template: nestsports_checkout_hr
+ * Template: nestplay_checkout_hr
  * Body:  Employee {{1}} (ID: {{2}}) checked out at {{3}} at {{4}}. Total hours: {{5}}.
  */
 async function sendCheckOutHR(
@@ -387,7 +387,7 @@ async function sendCheckOutHR(
     const hrs = workHours ? `${Number(workHours).toFixed(1)}h` : "-";
     await sendTemplate(
       phone,
-      "nestsports_checkout_hr",
+      "nestplay_checkout_hr",
       [empName, empId, locationName, t, hrs],
       s.whatsappLang || "en",
     );
@@ -397,12 +397,12 @@ async function sendCheckOutHR(
 }
 
 // ─── Attendance (student / guardian) ──────────────────────────────────────────
-// NOTE: these templates ("nestsports_student_checkin"/"nestsports_student_checkout")
+// NOTE: these templates ("nestplay_student_checkin"/"nestplay_student_checkout")
 // must be submitted and approved in Meta Business Manager before delivery will work —
-// they are new, distinct from the nestsports_* templates reused above.
+// they are new, distinct from the nestplay_* templates reused above.
 
 /**
- * Template: nestsports_student_checkin
+ * Template: nestplay_student_checkin
  * Body:  Hi {{1}}, {{2}} checked in at {{3}} at {{4}}.
  */
 async function sendStudentCheckIn(
@@ -420,7 +420,7 @@ async function sendStudentCheckIn(
     });
     await sendTemplate(
       phone,
-      "nestsports_student_checkin",
+      "nestplay_student_checkin",
       [guardianName || "there", studentName, locationName, t],
       s.whatsappLang || "en",
     );
@@ -430,7 +430,7 @@ async function sendStudentCheckIn(
 }
 
 /**
- * Template: nestsports_student_checkout
+ * Template: nestplay_student_checkout
  * Body:  Hi {{1}}, {{2}} checked out at {{3}} at {{4}}.
  */
 async function sendStudentCheckOut(
@@ -448,7 +448,7 @@ async function sendStudentCheckOut(
     });
     await sendTemplate(
       phone,
-      "nestsports_student_checkout",
+      "nestplay_student_checkout",
       [guardianName || "there", studentName, locationName, t],
       s.whatsappLang || "en",
     );
@@ -461,7 +461,7 @@ async function sendStudentCheckOut(
 
 /**
  * ════════════════════════════════════════════════════════════════
- *  META TEMPLATE — nestsports_salary_paid
+ *  META TEMPLATE — nestplay_salary_paid
  *  Category : UTILITY   |  Language : English (en)
  * ════════════════════════════════════════════════════════════════
  *
@@ -485,7 +485,7 @@ async function sendStudentCheckOut(
  *    🗓 Paid On : {{12}}
  *
  *  FOOTER:
- *    NestSports — Pixelate Nest
+ *    NestPlay — Pixelate Nest
  *
  *  BUTTONS (2 Quick Reply):
  *    [0] Quick Reply → "✅ Received"
@@ -583,7 +583,7 @@ async function sendSalaryPaid(
 
     await sendTemplate(
       phone,
-      "nestsports_salary_paid",
+      "nestplay_salary_paid",
       [
         firstName,
         period,
@@ -611,7 +611,7 @@ async function sendSalaryPaid(
 
 /**
  * ════════════════════════════════════════════════════════════════
- *  META TEMPLATE — nestsports_payment_verified
+ *  META TEMPLATE — nestplay_payment_verified
  *  Category : UTILITY   |  Language : English (en)
  * ════════════════════════════════════════════════════════════════
  *
@@ -626,7 +626,7 @@ async function sendSalaryPaid(
  *    📊 Balance Due  : {{7}}
  *
  *  FOOTER:
- *    NestSports — Pixelate Nest
+ *    NestPlay — Pixelate Nest
  *
  * ════════════════════════════════════════════════════════════════
  *  VARIABLE MAP (7 body params)
@@ -683,7 +683,7 @@ async function sendPaymentVerified(
 
     await sendTemplate(
       phone,
-      "nestsports_payment_verified",
+      "nestplay_payment_verified",
       [
         guardianName || "there",
         studentName,
@@ -704,7 +704,7 @@ async function sendPaymentVerified(
 
 /**
  * ════════════════════════════════════════════════════════════════
- *  META TEMPLATE — nestsports_payment_verified_admin
+ *  META TEMPLATE — nestplay_payment_verified_admin
  *  Category : UTILITY   |  Language : English (en)
  * ════════════════════════════════════════════════════════════════
  *
@@ -720,7 +720,7 @@ async function sendPaymentVerified(
  *    Balance Due : {{7}}
  *
  *  FOOTER:
- *    NestSports — Pixelate Nest
+ *    NestPlay — Pixelate Nest
  *
  * ════════════════════════════════════════════════════════════════
  *  VARIABLE MAP (7 body params)
@@ -780,7 +780,7 @@ async function sendPaymentVerifiedAdmin(
 
     await sendTemplate(
       phone,
-      "nestsports_payment_verified_admin",
+      "nestplay_payment_verified_admin",
       [
         studentName,
         studentId || "—",
@@ -803,7 +803,7 @@ async function sendPaymentVerifiedAdmin(
 
 /**
  * ════════════════════════════════════════════════════════════════
- *  META TEMPLATE — nestsports_payment_rejected
+ *  META TEMPLATE — nestplay_payment_rejected
  *  Category : UTILITY   |  Language : English (en)
  * ════════════════════════════════════════════════════════════════
  *
@@ -813,7 +813,7 @@ async function sendPaymentVerifiedAdmin(
  *    transaction details.
  *
  *  FOOTER:
- *    NestSports — Pixelate Nest
+ *    NestPlay — Pixelate Nest
  *
  * ════════════════════════════════════════════════════════════════
  *  VARIABLE MAP (5 body params)
@@ -837,7 +837,7 @@ async function sendPaymentRejected(
     if (!s) return;
     await sendTemplate(
       phone,
-      "nestsports_payment_rejected",
+      "nestplay_payment_rejected",
       [
         guardianName || "there",
         fmtINR(amount),
@@ -863,7 +863,7 @@ const ATTENDANCE_STATUS_LABELS = {
 };
 
 /**
- * Template: nestsports_attendance_status  (ONE template handles all 4 statuses)
+ * Template: nestplay_attendance_status  (ONE template handles all 4 statuses)
  * Body:  Hi {{1}}, your attendance for {{2}} has been marked as *{{3}}*.
  *
  * Params: [firstName, date (DD/MM/YYYY), statusLabel]
@@ -886,7 +886,7 @@ async function sendAttendanceStatus(
     const d = new Date(date).toLocaleDateString("en-IN");
     await sendTemplate(
       phone,
-      "nestsports_attendance_status",
+      "nestplay_attendance_status",
       [firstName, d, statusLabel],
       s.whatsappLang || "en",
     );
@@ -901,7 +901,7 @@ async function sendAttendanceStatus(
 // ─── Loans / Advances ───────────────────────────────────────────────────────
 
 /**
- * Template: nestsports_loan_submitted
+ * Template: nestplay_loan_submitted
  * Body:  Hi {{1}}, your {{2}} request of ₹{{3}} ({{4}} month(s) tenure) has been submitted and is awaiting approval.
  */
 async function sendLoanSubmitted(
@@ -915,7 +915,7 @@ async function sendLoanSubmitted(
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
       phone,
-      "nestsports_loan_submitted",
+      "nestplay_loan_submitted",
       [firstName, label, String(amount), String(tenureMonths || 0)],
       s.whatsappLang || "en",
     );
@@ -925,7 +925,7 @@ async function sendLoanSubmitted(
 }
 
 /**
- * Template: nestsports_loan_approved
+ * Template: nestplay_loan_approved
  * Body:  Hi {{1}}, your {{2}} request of ₹{{3}} has been APPROVED. Monthly EMI: ₹{{4}}.
  */
 async function sendLoanApproved(
@@ -939,7 +939,7 @@ async function sendLoanApproved(
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
       phone,
-      "nestsports_loan_approved",
+      "nestplay_loan_approved",
       [firstName, label, String(amount), String(monthlyEmi || 0)],
       s.whatsappLang || "en",
     );
@@ -949,7 +949,7 @@ async function sendLoanApproved(
 }
 
 /**
- * Template: nestsports_loan_rejected
+ * Template: nestplay_loan_rejected
  * Body:  Hi {{1}}, your {{2}} request of ₹{{3}} has been REJECTED. Reason: {{4}}.
  */
 async function sendLoanRejected(
@@ -963,7 +963,7 @@ async function sendLoanRejected(
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
       phone,
-      "nestsports_loan_rejected",
+      "nestplay_loan_rejected",
       [firstName, label, String(amount), reason || "Not specified"],
       s.whatsappLang || "en",
     );
@@ -973,7 +973,7 @@ async function sendLoanRejected(
 }
 
 /**
- * Template: nestsports_loan_request_hr
+ * Template: nestplay_loan_request_hr
  * Body:  New {{1}} Request — Employee: {{2}} ({{3}}), Amount: ₹{{4}}, Tenure: {{5}} month(s), Reason: {{6}}.
  */
 async function sendLoanAppliedHR(
@@ -987,7 +987,7 @@ async function sendLoanAppliedHR(
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
       phone,
-      "nestsports_loan_request_hr",
+      "nestplay_loan_request_hr",
       [
         label,
         empName,
@@ -1006,8 +1006,8 @@ async function sendLoanAppliedHR(
 // ─── Phone OTP Login (no per-company gate) ───────────────────────────────────
 
 /**
- * Template: nestsports_otp
- * Body:  {{1}} is your NestSports login OTP. It expires in 10 minutes. Do not share this code.
+ * Template: nestplay_otp
+ * Body:  {{1}} is your NestPlay login OTP. It expires in 10 minutes. Do not share this code.
  */
 async function sendPhoneOtp(phone, { otp }) {
   const accessToken = process.env.META_WA_TOKEN;
@@ -1029,7 +1029,7 @@ async function sendPhoneOtp(phone, { otp }) {
     to: toNumber,
     type: "template",
     template: {
-      name: "nestsports_otp",
+      name: "nestplay_otp",
       language: { code: "en" },
       components: [
         {
@@ -1083,10 +1083,10 @@ async function sendPhoneOtp(phone, { otp }) {
   }
 }
 
-// ─── NestSports Billing (no per-company gate) ────────────────────────────────
+// ─── NestPlay Billing (no per-company gate) ────────────────────────────────
 
 /**
- * Template: nestsports_subscription
+ * Template: nestplay_subscription
  * Body:  Welcome {{1}}! Your {{2}} plan for {{3}} is active. Amount: {{4}}, Renewal: {{5}}. Login: {{6}}
  */
 async function sendSubscriptionWA(
@@ -1103,7 +1103,7 @@ async function sendSubscriptionWA(
           }).format(amount)
         : String(amount);
     const renewal = new Date(renewalDate).toLocaleDateString("en-IN");
-    await sendTemplate(phone, "nestsports_subscription", [
+    await sendTemplate(phone, "nestplay_subscription", [
       toName,
       planName,
       companyName,

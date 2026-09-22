@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
         <div className="flex justify-center mb-8">
           <img
             src={nesthrlogo}
-            alt="NestSports"
+            alt="NestPlay"
             className="h-12 w-auto object-contain"
           />
         </div>

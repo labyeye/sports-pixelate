@@ -43,9 +43,22 @@ const getSettings = asyncHandler(async (req, res) => {
 
 const updateSettings = asyncHandler(async (req, res) => {
   const company = req.user.company;
+  const body = { ...req.body };
+  // These are select:false and never sent back to the frontend, so a
+  // blank/missing value here means "leave it as is", not "clear it".
+  const SECRET_FIELDS = [
+    "razorpayKeySecret",
+    "cashfreeSecretKey",
+    "phonepeSaltKey",
+    "paytmMerchantKey",
+  ];
+  for (const field of SECRET_FIELDS) {
+    if (!body[field]) delete body[field];
+  }
+
   const setting = await Setting.findOneAndUpdate(
     { company },
-    { $set: { ...req.body, company } },
+    { $set: { ...body, company } },
     { new: true, upsert: true, runValidators: true },
   );
 

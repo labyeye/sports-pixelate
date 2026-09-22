@@ -155,7 +155,7 @@ export default function LateApprovalsPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : items.length === 0 ? (
         <div className="border-2 bg-white p-12 flex flex-col items-center justify-center">

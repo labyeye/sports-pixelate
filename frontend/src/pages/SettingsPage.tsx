@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { settingsAPI, authAPI } from "@/services/api";
 import { compressImageFile } from "@/lib/imageCompress";
+import { INDIAN_BANKS } from "@/lib/indianBanks";
 import { useToast } from "@/hooks/use-toast";
 import {
   Building2,
@@ -38,7 +39,6 @@ import {
   Fingerprint,
   Timer,
   Image,
-  QrCode,
   FileImage,
   Clock,
 } from "lucide-react";
@@ -310,6 +310,123 @@ function TextAreaField({
         required={required}
         className="w-full px-3 py-2 border-2 border-black text-sm focus:outline-none focus:ring-2 focus:ring-[#024BAB] focus:ring-offset-0 bg-white resize-none"
       />
+    </div>
+  );
+}
+
+// Proves the user owns their profile phone via a WhatsApp code. Once verified,
+// "WhatsApp code" becomes an option on the forgot-password screen.
+function PhoneVerifyPanel() {
+  const { toast } = useToast();
+  const [phone, setPhone] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Phone is edited under My Profile; this panel only reads the saved one.
+  useEffect(() => {
+    authAPI
+      .getMe()
+      .then((r: any) => {
+        setPhone(r.data?.phone || "");
+        setVerified(!!r.data?.phoneVerified);
+      })
+      .catch(() => setPhone(""));
+  }, []);
+
+  const handleSend = async () => {
+    setLoading(true);
+    try {
+      await authAPI.sendPhoneVerifyOtp();
+      setSent(true);
+      toast({ title: "Code sent via WhatsApp" });
+    } catch (err: any) {
+      toast({
+        title: err.message || "Failed to send code",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authAPI.verifyPhoneVerifyOtp(otp);
+      setVerified(true);
+      setSent(false);
+      setOtp("");
+      toast({ title: "Phone number verified" });
+    } catch (err: any) {
+      toast({ title: err.message || "Invalid code", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (phone === null)
+    return <div className="p-6 text-sm text-gray-400">Loading...</div>;
+
+  return (
+    <div className="p-6 space-y-6 max-w-lg">
+      <div>
+        <h3 className="text-lg font-bold text-black flex items-center gap-2">
+          <MessageCircle className="w-5 h-5" /> WhatsApp Verification
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Verify your WhatsApp number to be able to reset your password with a
+          WhatsApp code.
+        </p>
+      </div>
+
+      <div
+        className={`flex items-center gap-3 px-4 py-3 border-2 font-bold text-sm ${verified ? "border-green-400 bg-green-50 text-green-800" : "border-gray-300 bg-gray-50 text-gray-500"}`}
+      >
+        <CheckCircle className="w-4 h-4 shrink-0" />
+        {verified ? `${phone} is verified` : "Phone number not verified"}
+      </div>
+
+      {!phone && (
+        <p className="text-sm text-gray-500">
+          Add your phone number under <strong>My Profile</strong> first.
+        </p>
+      )}
+
+      {phone && !verified && !sent && (
+        <button
+          onClick={handleSend}
+          disabled={loading}
+          className="bg-[#024BAB] text-white px-5 py-2.5 text-sm font-bold border-2 border-black hover:shadow-[4px_4px_0px_#0a0a0a] transition-all disabled:opacity-50"
+        >
+          {loading ? "Sending..." : `Send code to ${phone}`}
+        </button>
+      )}
+
+      {phone && !verified && sent && (
+        <form onSubmit={handleVerify} className="flex gap-2">
+          <input
+            type="text"
+            inputMode="numeric"
+            value={otp}
+            onChange={(e) =>
+              setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            placeholder="000000"
+            maxLength={6}
+            className="flex-1 px-3 py-2.5 border-2 border-black text-lg font-bold tracking-[0.4em] text-center focus:outline-none focus:border-[#024BAB]"
+          />
+          <button
+            type="submit"
+            disabled={loading || otp.length < 6}
+            className="bg-[#024BAB] text-white px-5 py-2.5 text-sm font-bold border-2 border-black disabled:opacity-50 hover:shadow-[4px_4px_0px_#0a0a0a] transition-all"
+          >
+            {loading ? "..." : "Verify"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
@@ -720,8 +837,6 @@ export default function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [qrUploading, setQrUploading] = useState(false);
-  const qrInputRef = useRef<HTMLInputElement>(null);
   const [chequeTemplatePreview, setChequeTemplatePreview] = useState<
     string | null
   >(null);
@@ -968,47 +1083,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handlePaymentQrUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (qrInputRef.current) qrInputRef.current.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please upload a valid image file",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "File size must be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    setQrUploading(true);
-    try {
-      const res = await settingsAPI.uploadPaymentQr(file);
-      setSettings((prev: any) => ({ ...prev, paymentQrUrl: res.paymentQrUrl }));
-      toast({
-        title: "Payment QR uploaded",
-        description: "Parents will see this QR to pay coaching-fee renewals.",
-      });
-    } catch (err: any) {
-      toast({
-        title: "Upload failed",
-        description: err.message,
-        variant: "destructive",
-      });
-    } finally {
-      setQrUploading(false);
-    }
-  };
-
   const handleSave = async () => {
     if (activeTab === "general") {
       if (!settings?.companyName?.trim()) {
@@ -1093,7 +1167,7 @@ export default function SettingsPage() {
     return (
       <AppLayout title="Settings">
         <div className="flex h-[80vh] items-center justify-center">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       </AppLayout>
     );
@@ -1132,6 +1206,11 @@ export default function SettingsPage() {
       items: [
         { id: "my_profile", label: "My Profile", icon: UserCircle },
         { id: "two_factor", label: "2FA Security", icon: ShieldCheck },
+        {
+          id: "phone_verify",
+          label: "WhatsApp Verification",
+          icon: MessageCircle,
+        },
       ],
     },
   ];
@@ -1190,7 +1269,7 @@ export default function SettingsPage() {
               {}
               {activeTab === "general" && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <InputField
                       label="Club Name"
                       icon={Building2}
@@ -1343,55 +1422,6 @@ export default function SettingsPage() {
                     />
                   )}
 
-                  {/* Payment QR code — shown to parents for coaching-fee renewals */}
-                  <div className="border-t-2 border-black pt-4 mt-4">
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-3">
-                      <QrCode className="w-3.5 h-3.5 text-[#024BAB]" />
-                      Payment QR Code
-                    </label>
-                    <div className="flex gap-4 items-start">
-                      <div className="flex-1">
-                        <input
-                          ref={qrInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePaymentQrUpload}
-                          className="hidden"
-                          id="payment-qr-upload"
-                          disabled={qrUploading}
-                        />
-                        <label
-                          htmlFor="payment-qr-upload"
-                          className={`block w-full px-4 py-3 border-2 border-dashed border-black hover:bg-[#024BAB]/5 transition-colors cursor-pointer text-center ${qrUploading ? "opacity-50 cursor-not-allowed" : ""}`}
-                        >
-                          <div className="text-xs font-bold text-black">
-                            {qrUploading
-                              ? "Uploading…"
-                              : "Click to upload your UPI QR code"}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            PNG, JPG up to 5MB
-                          </div>
-                        </label>
-                      </div>
-                      {settings?.paymentQrUrl && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={`${import.meta.env.VITE_API_URL?.replace(/\/api$/, "")}${settings.paymentQrUrl}`}
-                            alt="Payment QR code"
-                            className="w-24 h-24 object-contain border-2 border-black bg-white p-2"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Parents will see this QR in the app when a coaching plan
-                      is due for renewal. Payments happen outside the app (any
-                      UPI app); you confirm them from the Subscriptions page
-                      once you see the money land.
-                    </p>
-                  </div>
-
                   {/* Payroll Cheque Template */}
                   <div className="border-t-2 border-black pt-4 mt-4">
                     <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
@@ -1469,14 +1499,53 @@ export default function SettingsPage() {
               {activeTab === "bank" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField
-                      label="Bank Name"
-                      icon={Landmark}
-                      name="bankName"
-                      value={settings?.bankName || ""}
-                      required
-                      onChange={handleChange}
-                    />
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
+                        <Landmark className="w-3.5 h-3.5 text-[#024BAB]" />
+                        Bank Name <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={
+                          settings?.bankName &&
+                          !(INDIAN_BANKS as readonly string[]).includes(
+                            settings.bankName,
+                          )
+                            ? "Other"
+                            : settings?.bankName || ""
+                        }
+                        onChange={(e) =>
+                          handleChange({
+                            target: {
+                              name: "bankName",
+                              value: e.target.value === "Other" ? "" : e.target.value,
+                            },
+                          } as any)
+                        }
+                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                      >
+                        <option value="" disabled>
+                          Select your bank
+                        </option>
+                        {INDIAN_BANKS.map((b) => (
+                          <option key={b} value={b}>
+                            {b}
+                          </option>
+                        ))}
+                      </select>
+                      {settings?.bankName &&
+                        !(INDIAN_BANKS as readonly string[]).includes(
+                          settings.bankName,
+                        ) && (
+                          <input
+                            type="text"
+                            name="bankName"
+                            value={settings.bankName}
+                            onChange={handleChange}
+                            placeholder="Enter your bank's name"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none mt-2"
+                          />
+                        )}
+                    </div>
                     <InputField
                       label="Bank Branch"
                       icon={MapPin}
@@ -1537,6 +1606,223 @@ export default function SettingsPage() {
                       }}
                     />
                   </div>
+
+                  <div className="pt-4 mt-2 border-t-2 border-black">
+                    <h3 className="text-sm font-bold uppercase mb-1">
+                      Payment Gateway (Auto-verify Payments)
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Connect your own gateway account so student and booking
+                      payments land directly in your bank account and get
+                      verified automatically — no manual UTR review needed.
+                      Pick whichever gateway you already have (or can sign up
+                      for fastest) and fill in its keys below.
+                    </p>
+
+                    <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {(
+                        [
+                          { key: "razorpay", label: "Razorpay" },
+                          { key: "cashfree", label: "Cashfree" },
+                          { key: "phonepe", label: "PhonePe" },
+                          { key: "paytm", label: "Paytm" },
+                        ] as const
+                      ).map((g) => (
+                        <button
+                          key={g.key}
+                          type="button"
+                          onClick={() =>
+                            handleChange({
+                              target: { name: "paymentGateway", value: g.key },
+                            } as any)
+                          }
+                          className={cn(
+                            "border-2 border-black px-3 py-2 text-xs font-bold uppercase",
+                            (settings?.paymentGateway || "razorpay") === g.key
+                              ? "bg-[#024BAB] text-white"
+                              : "bg-white text-black",
+                          )}
+                        >
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {(settings?.paymentGateway || "razorpay") ===
+                      "razorpay" && (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Create a free account at{" "}
+                          <a
+                            href="https://dashboard.razorpay.com/signup"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline font-medium"
+                          >
+                            dashboard.razorpay.com
+                          </a>{" "}
+                          (KYC takes a few minutes), then copy the Key ID and
+                          Key Secret from Settings → API Keys.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField
+                            label="Razorpay Key ID"
+                            icon={Hash}
+                            name="razorpayKeyId"
+                            value={settings?.razorpayKeyId || ""}
+                            placeholder="rzp_live_xxxxxxxxxxxx"
+                            onChange={handleChange}
+                          />
+                          <InputField
+                            label="Razorpay Key Secret"
+                            icon={CreditCard}
+                            type="password"
+                            name="razorpayKeySecret"
+                            value={settings?.razorpayKeySecret || ""}
+                            placeholder={
+                              settings?.razorpayKeyId
+                                ? "Connected — leave blank to keep unchanged"
+                                : "Paste your Key Secret"
+                            }
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {settings?.paymentGateway === "cashfree" && (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Create a free account at{" "}
+                          <a
+                            href="https://merchant.cashfree.com/merchants/signup"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline font-medium"
+                          >
+                            merchant.cashfree.com
+                          </a>
+                          , then copy the App ID and Secret Key from
+                          Developers → API Keys.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField
+                            label="Cashfree App ID"
+                            icon={Hash}
+                            name="cashfreeAppId"
+                            value={settings?.cashfreeAppId || ""}
+                            placeholder="e.g. TEST12345abcdef"
+                            onChange={handleChange}
+                          />
+                          <InputField
+                            label="Cashfree Secret Key"
+                            icon={CreditCard}
+                            type="password"
+                            name="cashfreeSecretKey"
+                            value={settings?.cashfreeSecretKey || ""}
+                            placeholder={
+                              settings?.cashfreeAppId
+                                ? "Connected — leave blank to keep unchanged"
+                                : "Paste your Secret Key"
+                            }
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {settings?.paymentGateway === "phonepe" && (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Apply for a PhonePe Payment Gateway merchant account
+                          at{" "}
+                          <a
+                            href="https://business.phonepe.com/payment-gateway"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline font-medium"
+                          >
+                            business.phonepe.com
+                          </a>{" "}
+                          — approval isn't instant like the others. Copy the
+                          Merchant ID and Salt Key from your dashboard.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField
+                            label="PhonePe Merchant ID"
+                            icon={Hash}
+                            name="phonepeMerchantId"
+                            value={settings?.phonepeMerchantId || ""}
+                            placeholder="e.g. PGTESTPAYUAT"
+                            onChange={handleChange}
+                          />
+                          <InputField
+                            label="PhonePe Salt Key"
+                            icon={CreditCard}
+                            type="password"
+                            name="phonepeSaltKey"
+                            value={settings?.phonepeSaltKey || ""}
+                            placeholder={
+                              settings?.phonepeMerchantId
+                                ? "Connected — leave blank to keep unchanged"
+                                : "Paste your Salt Key"
+                            }
+                            onChange={handleChange}
+                          />
+                          <InputField
+                            label="Salt Index"
+                            icon={Hash}
+                            name="phonepeSaltIndex"
+                            value={settings?.phonepeSaltIndex || "1"}
+                            placeholder="1"
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {settings?.paymentGateway === "paytm" && (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Apply for a Paytm Payment Gateway merchant account
+                          at{" "}
+                          <a
+                            href="https://business.paytm.com/payment-gateway"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline font-medium"
+                          >
+                            business.paytm.com
+                          </a>
+                          . Copy the Merchant ID (MID) and Merchant Key from
+                          your dashboard.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField
+                            label="Paytm Merchant ID (MID)"
+                            icon={Hash}
+                            name="paytmMerchantId"
+                            value={settings?.paytmMerchantId || ""}
+                            placeholder="e.g. abcDEF12345"
+                            onChange={handleChange}
+                          />
+                          <InputField
+                            label="Paytm Merchant Key"
+                            icon={CreditCard}
+                            type="password"
+                            name="paytmMerchantKey"
+                            value={settings?.paytmMerchantKey || ""}
+                            placeholder={
+                              settings?.paytmMerchantId
+                                ? "Connected — leave blank to keep unchanged"
+                                : "Paste your Merchant Key"
+                            }
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1552,7 +1838,7 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-500 mt-0.5">
                         Send automated WhatsApp messages to employees for
                         attendance, leave, and salary events — powered by
-                        NestSports
+                        NestPlay
                       </p>
                     </div>
                     <button
@@ -1580,10 +1866,10 @@ export default function SettingsPage() {
 
                   <div className="p-4 bg-[#F0F7FF] border-2 border-[#024BAB]/30 text-xs text-gray-700 space-y-1">
                     <p className="font-bold text-[#024BAB] text-sm">
-                      Powered by NestSports WhatsApp Service
+                      Powered by NestPlay WhatsApp Service
                     </p>
                     <p>
-                      Messages are sent via NestSports's verified WhatsApp
+                      Messages are sent via NestPlay's verified WhatsApp
                       Business number — no setup required on your end. Just
                       enable the notifications you need below.
                     </p>
@@ -2518,7 +2804,7 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {activeTab !== "my_profile" && (
+            {!["my_profile", "two_factor", "phone_verify"].includes(activeTab) && (
               <div className="border-t-2 border-black p-4 flex justify-end bg-gray-50/50">
                 <button
                   onClick={handleSave}
@@ -2546,6 +2832,7 @@ export default function SettingsPage() {
             )}
 
             {activeTab === "two_factor" && <TwoFactorPanel />}
+            {activeTab === "phone_verify" && <PhoneVerifyPanel />}
           </div>
           {}
         </div>

@@ -6,7 +6,7 @@ const Student = require("../models/Student");
 const User = require("../models/User");
 const Company = require("../models/Company");
 const Setting = require("../models/Setting");
-const razorpayService = require("../services/razorpayService");
+const paymentGatewayService = require("../services/paymentGatewayService");
 const { validateMagicBytes } = require("../middleware/upload");
 const { safePagination, safeSort } = require("../middleware/validate");
 const { generatePaymentReceiptPdf } = require("../services/pdfService");
@@ -15,6 +15,31 @@ const {
   sendPaymentVerifiedAdmin,
   sendPaymentRejected,
 } = require("../services/whatsappService");
+
+// Which gateway the club has connected in Settings, and that gateway's
+// credentials — so payments land in the club's own account instead of the
+// platform's. Falls back to Razorpay with no creds (platform env vars).
+async function getCompanyPaymentCreds(company) {
+  const setting = await Setting.findOne({ company }).select(
+    "+razorpayKeySecret +cashfreeSecretKey +phonepeSaltKey +paytmMerchantKey",
+  );
+  const gateway = setting?.paymentGateway || "razorpay";
+  let creds;
+  if (gateway === "razorpay" && setting?.razorpayKeyId && setting?.razorpayKeySecret) {
+    creds = { keyId: setting.razorpayKeyId, keySecret: setting.razorpayKeySecret };
+  } else if (gateway === "cashfree" && setting?.cashfreeAppId && setting?.cashfreeSecretKey) {
+    creds = { appId: setting.cashfreeAppId, secretKey: setting.cashfreeSecretKey };
+  } else if (gateway === "phonepe" && setting?.phonepeMerchantId && setting?.phonepeSaltKey) {
+    creds = {
+      merchantId: setting.phonepeMerchantId,
+      saltKey: setting.phonepeSaltKey,
+      saltIndex: setting.phonepeSaltIndex,
+    };
+  } else if (gateway === "paytm" && setting?.paytmMerchantId && setting?.paytmMerchantKey) {
+    creds = { merchantId: setting.paytmMerchantId, merchantKey: setting.paytmMerchantKey };
+  }
+  return { gateway, creds };
+}
 
 // Loads the company branding fields used to render the cheque-style PDF
 // (same template/positions as the payroll payslip cheque).
@@ -133,8 +158,14 @@ async function notifyPaymentRejected(subscription, payment, companyId) {
 // subscription crosses fully-paid, activates it and extends the renewal date.
 // Returns the updated document.
 async function recalcSubscriptionTotals(subscription) {
+  // payments[] accumulates every cycle's rows for history — only count
+  // this cycle's (submitted since startDate) toward the current balance,
+  // or a past cycle's already-verified payments would carry over and mark
+  // every new cycle "completed" before anything was paid on it.
   const verifiedTotal = subscription.payments
-    .filter((p) => p.status === "verified")
+    .filter(
+      (p) => p.status === "verified" && p.submittedAt >= subscription.startDate,
+    )
     .reduce((sum, p) => sum + p.amount, 0);
 
   const wasCompleted = subscription.paymentStatus === "completed";
@@ -264,15 +295,24 @@ const createOrder = asyncHandler(async (req, res) => {
   const amount =
     billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
 
-  const result = await razorpayService.createOrder({
+  const { gateway, creds } = await getCompanyPaymentCreds(req.user.company);
+  if (!creds) {
+    res.status(400);
+    throw new Error(
+      "This club hasn't set up online payments yet. Ask them to connect a payment gateway in Settings, or pay via QR/cash instead.",
+    );
+  }
+  const orderId = `sub_${Date.now()}_${student._id.toString().slice(-6)}`;
+  const result = await paymentGatewayService.createOrder(gateway, creds, {
     amount,
-    receipt: `sub_${Date.now()}`,
-    notes: {
-      studentId: student._id.toString(),
-      planId: plan._id.toString(),
-      billingCycle,
-      companyId: req.user.company.toString(),
+    orderId,
+    customer: {
+      id: req.user._id.toString(),
+      name: `${student.firstName} ${student.lastName}`,
+      phone: req.user.phone,
+      email: req.user.email,
     },
+    returnUrl: `${process.env.FRONTEND_URL || "https://sports.pixelatenest.com"}/payment-return?type=subscription&orderId=${orderId}`,
   });
 
   const startDate = new Date();
@@ -295,6 +335,7 @@ const createOrder = asyncHandler(async (req, res) => {
       status: "inactive",
       paymentStatus: "pending",
       razorpayOrderId: result.orderId,
+      paymentGateway: gateway,
       amountPaid: 0,
     },
     { upsert: true, new: true },
@@ -303,8 +344,15 @@ const createOrder = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
+      gateway: result.gateway,
+      checkoutMode: result.checkoutMode,
       orderId: result.orderId,
       keyId: result.keyId,
+      appId: result.appId,
+      paymentSessionId: result.paymentSessionId,
+      checkoutUrl: result.checkoutUrl,
+      redirectUrl: result.redirectUrl,
+      redirectFields: result.redirectFields,
       amount,
       currency: "INR",
       planName: plan.name,
@@ -314,37 +362,60 @@ const createOrder = asyncHandler(async (req, res) => {
   });
 });
 
+// Called right after a modal gateway's SDK reports success (razorpay,
+// cashfree), and also polled by the /payment-return page for redirect
+// gateways (phonepe, paytm) — in both cases we re-check with the gateway
+// itself rather than trusting the client, and this is idempotent so a
+// reload or repeat poll can't double-count the payment.
 const verifyPayment = asyncHandler(async (req, res) => {
-  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
-  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+  const orderId = req.body.orderId || req.body.razorpayOrderId;
+  const { razorpayPaymentId, razorpaySignature } = req.body;
+  if (!orderId) {
     res.status(400);
-    throw new Error(
-      "razorpayOrderId, razorpayPaymentId and razorpaySignature are required",
-    );
+    throw new Error("orderId is required");
   }
 
-  const isValid = razorpayService.verifySignature({
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
+  const subscription = await StudentSubscription.findOne({
+    razorpayOrderId: orderId,
   });
-  if (!isValid) {
-    res.status(400);
-    throw new Error("Payment verification failed. Invalid signature.");
-  }
-
-  const subscription = await StudentSubscription.findOne({ razorpayOrderId });
   if (!subscription) {
     res.status(404);
     throw new Error("Order not found");
   }
 
-  subscription.razorpayPaymentId = razorpayPaymentId;
+  const alreadyVerified = subscription.payments.some(
+    (p) => p.razorpayOrderId === orderId && p.status === "verified",
+  );
+  if (alreadyVerified) {
+    await subscription.populate("student", "firstName lastName");
+    res.json({
+      success: true,
+      message: "Subscription activated successfully",
+      data: subscription,
+    });
+    return;
+  }
+
+  const gateway = subscription.paymentGateway || "razorpay";
+  const { creds } = await getCompanyPaymentCreds(subscription.company);
+  const result = await paymentGatewayService.confirmPayment(
+    gateway,
+    creds,
+    orderId,
+    { razorpayOrderId: orderId, razorpayPaymentId, razorpaySignature },
+  );
+  if (!result.isSuccess) {
+    res.status(400);
+    throw new Error("Payment verification failed.");
+  }
+
+  const paymentId = razorpayPaymentId || orderId;
+  subscription.razorpayPaymentId = paymentId;
   subscription.payments.push({
     amount: subscription.amount,
-    method: "razorpay",
-    razorpayOrderId,
-    razorpayPaymentId,
+    method: gateway,
+    razorpayOrderId: orderId,
+    razorpayPaymentId: paymentId,
     status: "verified",
     submittedAt: new Date(),
     verifiedAt: new Date(),
@@ -353,7 +424,12 @@ const verifyPayment = asyncHandler(async (req, res) => {
   await updated.populate("student", "firstName lastName");
 
   const payment = updated.payments[updated.payments.length - 1];
-  notifyPaymentVerified(updated, payment, req.user.company, "Razorpay (auto)");
+  notifyPaymentVerified(
+    updated,
+    payment,
+    req.user.company,
+    `${gateway[0].toUpperCase()}${gateway.slice(1)} (auto)`,
+  );
 
   res.json({
     success: true,
@@ -493,13 +569,14 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
     subscription.status === "cancelled" ||
     subscription.status === "inactive"
   ) {
-    // Re-subscribing after cancellation/expiry starts a fresh payment cycle.
+    // Re-subscribing after cancellation/expiry starts a fresh payment cycle
+    // — keep payments[] (history), just mark where this cycle starts.
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
     subscription.status = "pending_renewal";
     subscription.paymentStatus = "pending";
     subscription.amountPaid = 0;
-    subscription.payments = [];
+    subscription.startDate = new Date();
   }
 
   await handlePaymentSubmission(req, res, { subscription });
@@ -561,12 +638,13 @@ const assignSubscription = asyncHandler(async (req, res) => {
     subscription.status === "cancelled" ||
     subscription.status === "inactive"
   ) {
+    // Keep payments[] (history) — just mark where this cycle starts.
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
     subscription.status = "pending_renewal";
     subscription.paymentStatus = "pending";
     subscription.amountPaid = 0;
-    subscription.payments = [];
+    subscription.startDate = new Date();
   } else {
     // Already active/pending on this plan — just sync the billing cycle.
     subscription.billingCycle = billingCycle;
@@ -673,12 +751,16 @@ const recordCashSubscription = asyncHandler(async (req, res) => {
     subscription.status === "cancelled" ||
     subscription.status === "inactive"
   ) {
+    // Starting a new billing cycle — reset the running balance, but keep
+    // payments[] so past cycles' rows aren't lost (every payment gets its
+    // own row; a new cycle never erases old ones). startDate marks where
+    // this cycle's balance starts counting from (see recalcSubscriptionTotals).
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
     subscription.status = "pending_renewal";
     subscription.paymentStatus = "pending";
     subscription.amountPaid = 0;
-    subscription.payments = [];
+    subscription.startDate = new Date();
   } else if (subscription.payments.some((p) => p.status === "pending")) {
     res.status(400);
     throw new Error(

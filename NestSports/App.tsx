@@ -1,5 +1,5 @@
 /**
- * NestSports mobile app
+ * NestPlay mobile app
  * @format
  */
 

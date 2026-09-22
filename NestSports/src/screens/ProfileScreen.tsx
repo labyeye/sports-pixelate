@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -21,6 +21,7 @@ import {
   TextField,
   Button,
   Avatar,
+  Badge,
 } from '../components/ui';
 import { colors } from '../theme/colors';
 
@@ -67,6 +68,78 @@ function pickAvatar(onPicked: (uri: string) => void) {
     },
     { text: 'Cancel', style: 'cancel' },
   ]);
+}
+
+// Proves the user owns their saved phone via a WhatsApp code; unlocks WhatsApp
+// password reset on the forgot-password screen.
+function PhoneVerifyCard({ phone }: { phone: string }) {
+  const [verified, setVerified] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setSent(false);
+    authAPI
+      .getMe()
+      .then((r: any) => setVerified(!!r?.data?.phoneVerified))
+      .catch(() => {});
+  }, [phone]);
+
+  if (!phone) return null;
+
+  const send = async () => {
+    setBusy(true);
+    try {
+      await authAPI.sendPhoneVerifyOtp();
+      setSent(true);
+      Alert.alert('Code sent', 'Check WhatsApp for your 6-digit code');
+    } catch (e: any) {
+      Alert.alert('Failed', e?.message || 'Could not send code');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async () => {
+    setBusy(true);
+    try {
+      await authAPI.verifyPhoneVerifyOtp(otp.trim());
+      setVerified(true);
+      setSent(false);
+      setOtp('');
+      Alert.alert('Verified', 'WhatsApp number verified');
+    } catch (e: any) {
+      Alert.alert('Verification failed', e?.message || 'Invalid code');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <SectionTitle
+        title="WhatsApp Verification"
+        sub="Verify your number to reset your password with a WhatsApp code"
+      />
+      {verified ? (
+        <Badge label="Verified" color={colors.green} />
+      ) : sent ? (
+        <>
+          <TextField
+            label="6-Digit Code"
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+            placeholder="123456"
+          />
+          <Button title="Verify" onPress={verify} loading={busy} />
+        </>
+      ) : (
+        <Button title="Send Verification Code" onPress={send} loading={busy} />
+      )}
+    </Card>
+  );
 }
 
 export default function ProfileScreen({ navigation }: any) {
@@ -186,6 +259,8 @@ export default function ProfileScreen({ navigation }: any) {
             loading={savingProfile}
           />
         </Card>
+
+        <PhoneVerifyCard phone={user?.phone || ''} />
 
         <Card>
           <SectionTitle title="Change Password" />

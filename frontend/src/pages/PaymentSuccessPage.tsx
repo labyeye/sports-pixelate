@@ -75,7 +75,7 @@ export default function PaymentSuccessPage() {
             <Zap className="w-5 h-5 text-white" />
           </div>
           <span className="font-display font-bold text-xl text-black">
-            NestSports
+            NestPlay
           </span>
         </div>
       </header>
@@ -105,7 +105,7 @@ export default function PaymentSuccessPage() {
                   Payment Successful!
                 </h1>
                 <p className="text-green-100 font-medium text-sm mt-1">
-                  Your NestSports subscription is now active
+                  Your NestPlay subscription is now active
                 </p>
               </div>
 

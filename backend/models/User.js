@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 6 },
     // NOTE: internal role strings kept identical to the HRMS this was forked from
     // (super_admin/hr_manager/employee) so every existing authorize(...) check
-    // across the codebase keeps working unchanged. In the NestSports product
+    // across the codebase keeps working unchanged. In the NestPlay product
     // these map conceptually to: super_admin/hr_manager -> "Owner", employee ->
     // "Staff/Coach". "parent" is the one genuinely new role, for guardians who
     // log in to see their child's attendance/subscription/bookings.
@@ -33,16 +33,24 @@ const userSchema = new mongoose.Schema(
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     employeeId: { type: String },
     lastLogin: { type: Date },
-    resetPasswordToken: { type: String },
-    resetPasswordExpire: { type: Date },
-    twoFactorSecret: { type: String },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpire: { type: Date, select: false },
+    twoFactorSecret: { type: String, select: false },
     twoFactorEnabled: { type: Boolean, default: false },
-    twoFactorBackupCodes: [{ type: String }],
+    twoFactorBackupCodes: { type: [String], select: false },
     pendingTwoFactor: { type: Boolean, default: false },
-    phoneOtp: { type: String },
-    phoneOtpExpire: { type: Date },
+    phoneOtp: { type: String, select: false },
+    phoneOtpExpire: { type: Date, select: false },
     twoFactorFailedAttempts: { type: Number, default: 0 },
     twoFactorLockUntil: { type: Date },
+    // Set once the user proves they own `phone` via a WhatsApp code; reset
+    // whenever the phone changes. Gates WhatsApp password reset.
+    phoneVerified: { type: Boolean, default: false },
+    // Separate from phoneOtp (login) so the two code purposes can't be crossed.
+    phoneVerifyOtp: { type: String, select: false },
+    phoneVerifyOtpExpire: { type: Date, select: false },
+    resetOtp: { type: String, select: false },
+    resetOtpExpire: { type: Date, select: false },
   },
   { timestamps: true },
 );

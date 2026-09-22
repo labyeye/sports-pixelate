@@ -39,7 +39,7 @@ export default function TwoFactorScreen() {
     setSettingUp(true);
     try {
       const res: any = await authAPI.setup2FA();
-      setQrCode(res?.data?.qrCode || null);
+      setQrCode(res?.data?.qr || null);
       setSecret(res?.data?.secret || null);
     } catch (e: any) {
       Alert.alert('Setup failed', e?.message || 'Could not start 2FA setup');

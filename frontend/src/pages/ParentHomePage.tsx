@@ -282,9 +282,13 @@ export default function ParentHomePage() {
             ).length;
             const total = records.length;
             const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+            // Any non-cancelled subscription counts — a plan the owner just
+            // assigned (status "pending_renewal"/"inactive", payment not
+            // in yet) should show as "Due", not "Not subscribed".
             const sub = subscriptions.find(
-              (s) => s.student?._id === child._id && s.status === "active",
+              (s) => s.student?._id === child._id && s.status !== "cancelled",
             );
+            const subDue = sub && sub.status !== "active";
 
             return (
               <div
@@ -330,7 +334,7 @@ export default function ParentHomePage() {
                     <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 mb-1">
                       <Wallet className="w-3.5 h-3.5" /> Subscription
                     </div>
-                    {sub ? (
+                    {sub && !subDue ? (
                       <>
                         <p className="text-sm font-bold text-black flex items-center gap-1">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />{" "}
@@ -341,6 +345,18 @@ export default function ParentHomePage() {
                           {new Date(sub.renewalDate).toLocaleDateString(
                             "en-IN",
                           )}
+                        </p>
+                      </>
+                    ) : sub && subDue ? (
+                      <>
+                        <p className="text-sm font-bold text-orange-500 flex items-center gap-1">
+                          <XCircle className="w-4 h-4" /> Due — {sub.planName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          ₹{(sub.amount - (sub.amountPaid || 0)).toLocaleString(
+                            "en-IN",
+                          )}{" "}
+                          pending
                         </p>
                       </>
                     ) : (
@@ -363,11 +379,11 @@ export default function ParentHomePage() {
                     onClick={() => navigate("/subscriptions")}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 border-2 border-black px-3 py-2 text-xs font-bold uppercase",
-                      sub ? "bg-white" : "bg-[#024BAB] text-white",
+                      sub && !subDue ? "bg-white" : "bg-[#024BAB] text-white",
                     )}
                   >
                     <Wallet className="w-3.5 h-3.5" />{" "}
-                    {sub ? "Manage Plan" : "Subscribe"}
+                    {sub && !subDue ? "Manage Plan" : subDue ? "Pay Now" : "Subscribe"}
                   </button>
                   <button
                     onClick={() => navigate("/bookings")}

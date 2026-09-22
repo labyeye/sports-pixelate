@@ -99,7 +99,7 @@ export default function MenuScreen({ navigation }: any) {
           </View>
         ))}
 
-        <Text style={styles.versionText}>NestSports v1.0.0</Text>
+        <Text style={styles.versionText}>NestPlay v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

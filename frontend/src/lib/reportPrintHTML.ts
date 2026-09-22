@@ -135,7 +135,7 @@ export function buildReportHTML(
   });
 
   const companyLogo = company?.logo || NESTHR_LOGO_B64;
-  const companyName = company?.name || "NestSports";
+  const companyName = company?.name || "NestPlay";
 
   const categoryBadge = reportCategory
     ? `<span style="display:inline-block;background:#EFF6FF;color:#024BAB;border:1px solid #BFDBFE;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 7px;margin-bottom:4px;">${reportCategory}</span>`

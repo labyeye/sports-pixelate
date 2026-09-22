@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
+import RazorpayCheckout from 'react-native-razorpay';
 import { Upload } from 'lucide-react-native';
 import { settingsAPI, subscriptionAPI } from '../api/client';
 import { API_BASE_URL } from '../config';
@@ -36,7 +37,8 @@ export default function QrRenewalScreen({ route, navigation }: any) {
 
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [method, setMethod] = useState<'qr' | 'cash'>('qr');
+  const [method, setMethod] = useState<'online' | 'qr' | 'cash'>('online');
+  const [payingOnline, setPayingOnline] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [transactionNumber, setTransactionNumber] = useState('');
   const [amountToPay, setAmountToPay] = useState(String(remaining));
@@ -61,7 +63,59 @@ export default function QrRenewalScreen({ route, navigation }: any) {
       .finally(() => setLoading(false));
   }, [load]);
 
+  const goToNextScreen = () =>
+    isTopUp
+      ? navigation.goBack()
+      : navigation.reset({ index: 0, routes: [{ name: 'Subscriptions' }] });
+
+  const handlePayOnline = async () => {
+    setPayingOnline(true);
+    try {
+      const order: any = await subscriptionAPI.createOrder({
+        studentId: subscription.student._id,
+        planId: subscription.plan._id,
+        billingCycle: subscription.billingCycle,
+      });
+      const data = order.data || order;
+
+      // Cashfree (hosted checkout page) and PhonePe/Paytm (redirect-based)
+      // have no first-party RN SDK wired into this app — a WebView hosts
+      // their checkout page and verifies once it lands back on our
+      // /payment-return URL. Only Razorpay uses its native modal SDK here.
+      if (data.checkoutMode === 'redirect' || data.gateway === 'cashfree') {
+        navigation.navigate('PaymentWebView', { order: data });
+        return;
+      }
+
+      const result = await RazorpayCheckout.open({
+        key: data.keyId,
+        order_id: data.orderId,
+        amount: data.amount * 100,
+        currency: data.currency || 'INR',
+        name: 'NestPlay',
+        description: `${data.planName} — ${data.studentName}`,
+        theme: { color: colors.black },
+      });
+      await subscriptionAPI.verifyPayment({
+        razorpayOrderId: result.razorpay_order_id,
+        razorpayPaymentId: result.razorpay_payment_id,
+        razorpaySignature: result.razorpay_signature,
+      });
+      Alert.alert('Payment successful', 'Your subscription is now active.', [
+        { text: 'OK', onPress: goToNextScreen },
+      ]);
+    } catch (e: any) {
+      if (e?.code !== 0) {
+        // code 0 = user cancelled the Razorpay sheet, nothing to report
+        Alert.alert('Payment failed', e?.description || e?.message || 'Please try again.');
+      }
+    } finally {
+      setPayingOnline(false);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (method === 'online') return;
     const amount = Number(amountToPay);
     if (!amount || amount <= 0) {
       Alert.alert('Amount required', 'Enter a valid amount to pay.');
@@ -171,6 +225,14 @@ export default function QrRenewalScreen({ route, navigation }: any) {
             </Text>
           )}
 
+          {method === 'online' && (
+            <Text style={styles.instructions}>
+              Pay {formatCurrency(remaining)} securely via UPI, card, or
+              netbanking. Your subscription activates instantly — no waiting
+              for the club to verify.
+            </Text>
+          )}
+
           {method === 'qr' &&
             (qrUrl ? (
               <>
@@ -198,6 +260,22 @@ export default function QrRenewalScreen({ route, navigation }: any) {
             <TouchableOpacity
               style={[
                 styles.methodBtn,
+                method === 'online' && styles.methodBtnActive,
+              ]}
+              onPress={() => setMethod('online')}
+            >
+              <Text
+                style={[
+                  styles.methodBtnText,
+                  method === 'online' && styles.methodBtnTextActive,
+                ]}
+              >
+                Pay Online
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.methodBtn,
                 method === 'qr' && styles.methodBtnActive,
               ]}
               onPress={() => setMethod('qr')}
@@ -208,7 +286,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
                   method === 'qr' && styles.methodBtnTextActive,
                 ]}
               >
-                UPI
+                UPI (Manual)
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -234,14 +312,16 @@ export default function QrRenewalScreen({ route, navigation }: any) {
               verify it once they've received the cash.
             </Text>
           )}
-          <TextField
-            label="Amount to Pay"
-            value={amountToPay}
-            onChangeText={setAmountToPay}
-            placeholder={`Up to ${remaining}`}
-            keyboardType="numeric"
-            required
-          />
+          {method !== 'online' && (
+            <TextField
+              label="Amount to Pay"
+              value={amountToPay}
+              onChangeText={setAmountToPay}
+              placeholder={`Up to ${remaining}`}
+              keyboardType="numeric"
+              required
+            />
+          )}
           {method === 'qr' && (
             <>
               <TextField
@@ -281,7 +361,15 @@ export default function QrRenewalScreen({ route, navigation }: any) {
             </>
           )}
           <View style={{ height: 14 }} />
-          <Button title="Submit" onPress={handleSubmit} loading={submitting} />
+          {method === 'online' ? (
+            <Button
+              title={`Pay ${formatCurrency(remaining)} Now`}
+              onPress={handlePayOnline}
+              loading={payingOnline}
+            />
+          ) : (
+            <Button title="Submit" onPress={handleSubmit} loading={submitting} />
+          )}
         </Card>
       </ScrollView>
     </SafeAreaView>

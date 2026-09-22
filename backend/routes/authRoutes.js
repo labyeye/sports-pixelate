@@ -13,6 +13,12 @@ const {
   verify2FA,
   sendOtp,
   verifyOtp,
+  forgotPasswordMethods,
+  forgotPasswordWhatsapp,
+  resetPasswordWithOtp,
+  resetPasswordWithTotp,
+  sendPhoneVerifyOtp,
+  verifyPhoneVerifyOtp,
 } = require("../controllers/authController");
 const { protect, requirePlanFeature } = require("../middleware/auth");
 const router = express.Router();
@@ -29,6 +35,19 @@ const sensitiveLimit = rateLimit({
   legacyHeaders: false,
 });
 
+// Looser limiter for the methods lookup and the authenticated phone-verify
+// endpoints (stops OTP spam / guessing without eating the strict 5/15min budget).
+const authLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    success: false,
+    message: "Too many attempts, please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post("/register", register);
 router.post("/login", login);
 router.get("/me", protect, getMe);
@@ -36,6 +55,14 @@ router.put("/profile", protect, updateProfile);
 
 router.post("/forgot-password", sensitiveLimit, forgotPassword);
 router.post("/reset-password/:token", sensitiveLimit, resetPassword);
+
+router.get("/forgot-password/methods", authLimit, forgotPasswordMethods);
+router.post("/forgot-password/whatsapp", sensitiveLimit, forgotPasswordWhatsapp);
+router.post("/reset-password/otp/whatsapp", sensitiveLimit, resetPasswordWithOtp);
+router.post("/reset-password/otp/totp", sensitiveLimit, resetPasswordWithTotp);
+
+router.post("/phone/send-otp", protect, authLimit, sendPhoneVerifyOtp);
+router.post("/phone/verify-otp", protect, authLimit, verifyPhoneVerifyOtp);
 
 router.post("/otp/send", sensitiveLimit, sendOtp);
 router.post("/otp/verify", sensitiveLimit, verifyOtp);

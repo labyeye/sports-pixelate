@@ -1,10 +1,36 @@
 const asyncHandler = require("express-async-handler");
 const Booking = require("../models/Booking");
 const Facility = require("../models/Facility");
-const razorpayService = require("../services/razorpayService");
+const Setting = require("../models/Setting");
+const paymentGatewayService = require("../services/paymentGatewayService");
 const { safePagination, safeSort } = require("../middleware/validate");
 
 const BOOKING_SORT_FIELDS = ["date", "fee", "createdAt"];
+
+// Which gateway the club has connected in Settings, and that gateway's
+// credentials — so payments land in the club's own account instead of the
+// platform's. Falls back to Razorpay with no creds (platform env vars).
+async function getCompanyPaymentCreds(company) {
+  const setting = await Setting.findOne({ company }).select(
+    "+razorpayKeySecret +cashfreeSecretKey +phonepeSaltKey +paytmMerchantKey",
+  );
+  const gateway = setting?.paymentGateway || "razorpay";
+  let creds;
+  if (gateway === "razorpay" && setting?.razorpayKeyId && setting?.razorpayKeySecret) {
+    creds = { keyId: setting.razorpayKeyId, keySecret: setting.razorpayKeySecret };
+  } else if (gateway === "cashfree" && setting?.cashfreeAppId && setting?.cashfreeSecretKey) {
+    creds = { appId: setting.cashfreeAppId, secretKey: setting.cashfreeSecretKey };
+  } else if (gateway === "phonepe" && setting?.phonepeMerchantId && setting?.phonepeSaltKey) {
+    creds = {
+      merchantId: setting.phonepeMerchantId,
+      saltKey: setting.phonepeSaltKey,
+      saltIndex: setting.phonepeSaltIndex,
+    };
+  } else if (gateway === "paytm" && setting?.paytmMerchantId && setting?.paytmMerchantKey) {
+    creds = { merchantId: setting.paytmMerchantId, merchantKey: setting.paytmMerchantKey };
+  }
+  return { gateway, creds };
+}
 
 function toDateOnly(d) {
   const date = new Date(d);
@@ -97,6 +123,17 @@ const createBooking = asyncHandler(async (req, res) => {
   const hours = (endH * 60 + endM - (startH * 60 + startM)) / 60;
   const fee = Math.max(0, Math.round(facility.hourlyFee * hours));
 
+  const { gateway, creds } =
+    fee > 0
+      ? await getCompanyPaymentCreds(req.user.company)
+      : { gateway: null, creds: null };
+  if (fee > 0 && !creds) {
+    res.status(400);
+    throw new Error(
+      "This club hasn't set up online payments yet. Ask them to connect a payment gateway in Settings.",
+    );
+  }
+
   const booking = await Booking.create({
     company: req.user.company,
     facility: facilityId,
@@ -114,54 +151,88 @@ const createBooking = asyncHandler(async (req, res) => {
     return res.status(201).json({ success: true, data: booking });
   }
 
-  const order = await razorpayService.createOrder({
+  const orderId = `book_${Date.now()}_${booking._id.toString().slice(-6)}`;
+  const order = await paymentGatewayService.createOrder(gateway, creds, {
     amount: fee,
-    receipt: `book_${Date.now()}`,
-    notes: { bookingId: booking._id.toString() },
+    orderId,
+    customer: {
+      id: req.user._id.toString(),
+      name: req.user.name || "Guest",
+      phone: req.user.phone,
+      email: req.user.email,
+    },
+    returnUrl: `${process.env.FRONTEND_URL || "https://sports.pixelatenest.com"}/payment-return?type=booking&bookingId=${booking._id}&orderId=${orderId}`,
   });
   booking.razorpayOrderId = order.orderId;
+  booking.paymentGateway = gateway;
   await booking.save();
 
   res.status(201).json({
     success: true,
     data: booking,
     payment: {
+      gateway: order.gateway,
+      checkoutMode: order.checkoutMode,
       orderId: order.orderId,
       keyId: order.keyId,
+      appId: order.appId,
+      paymentSessionId: order.paymentSessionId,
+      checkoutUrl: order.checkoutUrl,
+      redirectUrl: order.redirectUrl,
+      redirectFields: order.redirectFields,
       amount: fee,
       currency: "INR",
     },
   });
 });
 
+// See subscriptionController.verifyPayment for why this re-checks with the
+// gateway itself (modal callback or redirect-return poll) instead of
+// trusting the client, and why it's idempotent.
 const verifyBookingPayment = asyncHandler(async (req, res) => {
-  const { bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature } =
-    req.body;
-  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+  const bookingId = req.body.bookingId;
+  const orderId = req.body.orderId || req.body.razorpayOrderId;
+  const { razorpayPaymentId, razorpaySignature } = req.body;
+  if (!bookingId || !orderId) {
     res.status(400);
-    throw new Error(
-      "razorpayOrderId, razorpayPaymentId and razorpaySignature are required",
-    );
-  }
-  const isValid = razorpayService.verifySignature({
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
-  });
-  if (!isValid) {
-    res.status(400);
-    throw new Error("Payment verification failed. Invalid signature.");
+    throw new Error("bookingId and orderId are required");
   }
 
-  const booking = await Booking.findOneAndUpdate(
-    { _id: bookingId, razorpayOrderId, company: req.user.company },
-    { paymentStatus: "completed", razorpayPaymentId },
-    { new: true },
-  );
-  if (!booking) {
+  const existing = await Booking.findOne({
+    _id: bookingId,
+    razorpayOrderId: orderId,
+    company: req.user.company,
+  });
+  if (!existing) {
     res.status(404);
     throw new Error("Booking not found");
   }
+  if (existing.paymentStatus === "completed") {
+    res.json({ success: true, data: existing });
+    return;
+  }
+
+  const gateway = existing.paymentGateway || "razorpay";
+  const { creds } = await getCompanyPaymentCreds(req.user.company);
+  const result = await paymentGatewayService.confirmPayment(
+    gateway,
+    creds,
+    orderId,
+    { razorpayOrderId: orderId, razorpayPaymentId, razorpaySignature },
+  );
+  if (!result.isSuccess) {
+    res.status(400);
+    throw new Error("Payment verification failed.");
+  }
+
+  const booking = await Booking.findOneAndUpdate(
+    { _id: bookingId, razorpayOrderId: orderId, company: req.user.company },
+    {
+      paymentStatus: "completed",
+      razorpayPaymentId: razorpayPaymentId || orderId,
+    },
+    { new: true },
+  );
   res.json({ success: true, data: booking });
 });
 

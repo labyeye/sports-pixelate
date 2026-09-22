@@ -40,7 +40,7 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
         >
           <img
             src={nesthrlogo}
-            alt="NestSports"
+            alt="NestPlay"
             className={cn(
               "h-14 w-auto object-contain shrink-0",
               collapsed && "lg:hidden",
@@ -48,7 +48,7 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
           />
           <img
             src={nesthrlogosmall}
-            alt="NestSports"
+            alt="NestPlay"
             className={cn(
               "hidden items-center justify-center w-10 h-10 shrink-0",
               collapsed && "lg:flex",

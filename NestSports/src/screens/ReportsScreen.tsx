@@ -18,14 +18,15 @@ import {
   Building2,
 } from 'lucide-react-native';
 import { dashboardAPI, payrollAPI } from '../api/client';
-import { KpiTile, LoadingView, EmptyState } from '../components/ui';
+import { Card, KpiTile, LoadingView, Row, SectionTitle } from '../components/ui';
+import { CATEGORY_LABELS, REPORTS, ReportCategory } from '../reports/catalog';
 import { colors } from '../theme/colors';
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 }
 
-export default function ReportsScreen() {
+export default function ReportsScreen({ navigation }: any) {
   const [stats, setStats] = useState<any>(null);
   const [paidCount, setPaidCount] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
@@ -60,7 +61,6 @@ export default function ReportsScreen() {
   };
 
   if (loading) return <LoadingView />;
-  if (!stats) return <EmptyState title="Couldn't load reports summary" />;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -72,8 +72,9 @@ export default function ReportsScreen() {
         }
       >
         <Text style={styles.title}>Reports</Text>
-        <Text style={styles.subtitle}>Quick summary across the academy</Text>
+        <Text style={styles.subtitle}>Summary and downloadable reports</Text>
 
+        {stats ? (
         <View style={styles.kpiGrid}>
           <KpiTile
             label="Total Employees"
@@ -132,6 +133,28 @@ export default function ReportsScreen() {
             icon={Building2}
           />
         </View>
+        ) : null}
+
+        {(Object.keys(CATEGORY_LABELS) as ReportCategory[]).map(cat => (
+          <Card key={cat}>
+            <SectionTitle title={CATEGORY_LABELS[cat]} />
+            {REPORTS.filter(r => r.category === cat).map(r => (
+              <Row
+                key={r.id}
+                title={r.name}
+                subtitle={r.desc}
+                onPress={() => navigation?.navigate?.('ReportViewer', { reportId: r.id })}
+              />
+            ))}
+            {cat === 'student' ? (
+              <Row
+                title="More student reports"
+                subtitle="Attendance, subscriptions, directory, enrollment & more"
+                onPress={() => navigation?.navigate?.('StudentReports')}
+              />
+            ) : null}
+          </Card>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

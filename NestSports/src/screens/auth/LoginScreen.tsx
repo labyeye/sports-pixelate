@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   TextInput,
@@ -11,27 +12,89 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { authAPI } from '../../api/client';
 import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
 import LottieView from 'lottie-react-native';
-import { Smartphone, Eye, EyeOff } from 'lucide-react-native';
+import { Smartphone, Eye, EyeOff, Fingerprint } from 'lucide-react-native';
 export default function LoginScreen({ navigation }: any) {
-  const { login } = useAuth();
+  const { login, completeLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Set once the password step succeeded for an account with 2FA on.
+  const [pending2FA, setPending2FA] = useState<string | null>(null);
+  const [tfaCode, setTfaCode] = useState('');
 
   const onSubmit = async () => {
     setError('');
     setLoading(true);
     const res = await login(email.trim(), password);
     setLoading(false);
-    if (!res.success && !res.requires2FA) {
-      setError(res.error || 'Login failed');
-    }
+    if (res.requires2FA) setPending2FA(res.userId || '');
+    else if (!res.success) setError(res.error || 'Login failed');
   };
+
+  const on2FASubmit = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const res: any = await authAPI.verify2FA(pending2FA || '', tfaCode.trim());
+      const { token, ...userData } = res.data;
+      completeLogin(userData, token);
+    } catch (err: any) {
+      setError(err.message || 'Invalid authentication code');
+    }
+    setLoading(false);
+  };
+
+
+  if (pending2FA !== null) {
+    return (
+      <SafeAreaView
+        edges={['top']}
+        style={{ flex: 1, backgroundColor: colors.white }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>Two-Factor Authentication</Text>
+          <Text
+            style={{ textAlign: 'center', color: colors.muted, marginBottom: 20 }}
+          >
+            Enter the 6-digit code from your authenticator app, or a backup code.
+          </Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Authentication Code</Text>
+            <TextInput
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={tfaCode}
+              onChangeText={setTfaCode}
+              placeholder="123456"
+              maxLength={8}
+            />
+          </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button title="Verify" onPress={on2FASubmit} loading={loading} />
+          <Text
+            style={[styles.forgot, { textAlign: 'center' }]}
+            onPress={() => {
+              setPending2FA(null);
+              setTfaCode('');
+              setError('');
+            }}
+          >
+            ← Back to login
+          </Text>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -115,7 +178,7 @@ export default function LoginScreen({ navigation }: any) {
             ---------------------------------
           </Text>
           <View
-            style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}
+            style={{ flexDirection: 'row', justifyContent: 'center', gap: 24 }}
           >
             <View>
               <TouchableOpacity
@@ -142,6 +205,36 @@ export default function LoginScreen({ navigation }: any) {
                 }}
               >
                 Phone
+              </Text>
+            </View>
+
+            <View>
+              <TouchableOpacity
+                style={{
+                  alignSelf: 'center',
+                  marginBottom: 16,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: '#10B981',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 8,
+                }}
+                onPress={() => {
+                  Alert.alert('Passkey / Biometric', 'Ensure Face/Fingerprint unlock is enabled on your device.');
+                }}
+              >
+                <Fingerprint color={colors.white} size={26} />
+              </TouchableOpacity>
+              <Text
+                style={{
+                  color: colors.muted,
+                  marginTop: 0,
+                  textAlign: 'center',
+                }}
+              >
+                Passkey
               </Text>
             </View>
           </View>

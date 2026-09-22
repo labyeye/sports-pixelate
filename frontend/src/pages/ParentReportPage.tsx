@@ -73,7 +73,7 @@ function printReport(
 // enforces that server-side.
 export default function ParentReportPage() {
   const { toast } = useToast();
-  const [company, setCompany] = useState<ReportCompany>({ name: "NestSports" });
+  const [company, setCompany] = useState<ReportCompany>({ name: "NestPlay" });
   const [children, setChildren] = useState<Student[]>([]);
   const [selectedChild, setSelectedChild] = useState("");
   const [profile, setProfile] = useState<any>(null);
@@ -122,7 +122,7 @@ export default function ParentReportPage() {
       .then((r) => {
         if (r.success && r.data) {
           setCompany({
-            name: r.data.companyName || "NestSports",
+            name: r.data.companyName || "NestPlay",
             logo: r.data.logoUrl || undefined,
           });
         }
@@ -268,7 +268,7 @@ export default function ParentReportPage() {
               {loading ? (
                 <img
                   src={nesthrlogo}
-                  alt="NestSports"
+                  alt="NestPlay"
                   className="h-16 w-auto"
                 />
               ) : (

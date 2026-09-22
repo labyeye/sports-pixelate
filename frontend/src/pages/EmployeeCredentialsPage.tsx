@@ -457,7 +457,7 @@ export default function EmployeeCredentialsPage() {
       {}
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : tab === "staff" ? (
         employees.length === 0 ? (
@@ -591,7 +591,7 @@ export default function EmployeeCredentialsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-black font-medium">
-                    {par.email?.endsWith(".nestsports.local") ? (
+                    {par.email?.endsWith(".nestplay.local") ? (
                       <span className="text-muted-foreground italic">
                         Not set
                       </span>
@@ -612,7 +612,7 @@ export default function EmployeeCredentialsPage() {
                       onClick={() => {
                         setSelectedParent(par);
                         setParentEmail(
-                          par.email?.endsWith(".nestsports.local")
+                          par.email?.endsWith(".nestplay.local")
                             ? ""
                             : par.email,
                         );

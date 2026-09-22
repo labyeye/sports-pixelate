@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>NestSports</string>
+	<string>NestPlay</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -36,9 +36,9 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string/>
 	<key>NSCameraUsageDescription</key>
-	<string>NestSports needs camera access to update student and guardian photos</string>
+	<string>NestPlay needs camera access to update student and guardian photos</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>NestSports needs photo library access to update student and guardian photos</string>
+	<string>NestPlay needs photo library access to update student and guardian photos</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

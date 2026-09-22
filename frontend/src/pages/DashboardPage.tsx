@@ -137,7 +137,7 @@ export default function DashboardPage() {
     return (
       <AppLayout title="Dashboard">
         <div className="flex h-[80vh] items-center justify-center">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       </AppLayout>
     );

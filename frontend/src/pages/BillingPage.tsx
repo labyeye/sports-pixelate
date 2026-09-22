@@ -74,7 +74,7 @@ export default function BillingPage() {
   }, []);
 
   const sub = subscription || user?.company?.subscription;
-  const currentPlanId = sub?.plan || "NestSports";
+  const currentPlanId = sub?.plan || "NestPlay";
 
   const currentPlan = {
     name: currentPlanId,
@@ -213,8 +213,8 @@ export default function BillingPage() {
             order_id: order.orderId,
             amount: order.amount * 100,
             currency: order.currency || "INR",
-            name: "NestSports",
-            description: `NestSports — ${count} students — ${order.plan}`,
+            name: "NestPlay",
+            description: `NestPlay — ${count} students — ${order.plan}`,
             prefill: {
               name: order.userName,
               email: order.userEmail,
@@ -265,7 +265,7 @@ export default function BillingPage() {
     return (
       <AppLayout title="Billing">
         <div className="flex items-center justify-center h-[60vh]">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       </AppLayout>
     );
@@ -304,7 +304,7 @@ export default function BillingPage() {
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Your account is not yet activated. Choose a plan below to start
-                using NestSports.
+                using NestPlay.
               </p>
             </div>
           </div>

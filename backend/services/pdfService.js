@@ -324,6 +324,29 @@ async function generatePaymentReceiptPdf({ subscription, payment, company }) {
   dt(fromDate, 250, 174, 11, false);
   dt(toDate, 340, 174, 11, false);
 
+  // Tick the CASH or UPI/BANK box — coordinates read directly off the
+  // template (frontend/assets/feereceipt.pdf) via pdfjs-dist's text
+  // content extraction, so this lines up with that exact file. If the
+  // template image is ever replaced, re-run that extraction and update
+  // these two x/y pairs.
+  const tickBoxX = payment.method === "cash" ? 115.3 : 159.3;
+  const tickBoxY = 94.6;
+  const drawTick = (x, y, size = 7) => {
+    chequePage.drawLine({
+      start: { x, y: y + size * 0.35 },
+      end: { x: x + size * 0.35, y },
+      thickness: 1.4,
+      color: rgb(0, 0, 0),
+    });
+    chequePage.drawLine({
+      start: { x: x + size * 0.35, y },
+      end: { x: x + size, y: y + size * 0.75 },
+      thickness: 1.4,
+      color: rgb(0, 0, 0),
+    });
+  };
+  drawTick(tickBoxX, tickBoxY);
+
   if (company.logo) {
     try {
       let logoBytes;

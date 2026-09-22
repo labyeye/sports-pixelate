@@ -18,8 +18,8 @@ export const colors = {
   yellow: '#FFD60A',
   lime: '#A3E635',
   black: '#0A0A0A',
-  white: '#FFFFFF',
-  background: '#FFFFFF',
+  white: '#ffffff',
+  background: '#ffffff',
   muted: '#6B7280',
   border: '#0A0A0A',
 };

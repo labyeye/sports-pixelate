@@ -32,8 +32,16 @@ const bookingSchema = new mongoose.Schema(
       enum: ["not_required", "pending", "completed"],
       default: "not_required",
     },
+    // Generic online-order fields — the name predates multi-gateway support
+    // but holds whichever gateway's order/payment id; `paymentGateway` says
+    // which.
     razorpayOrderId: { type: String, index: true },
     razorpayPaymentId: { type: String },
+    paymentGateway: {
+      type: String,
+      enum: ["razorpay", "cashfree", "phonepe", "paytm"],
+      default: "razorpay",
+    },
     notes: { type: String },
   },
   { timestamps: true },

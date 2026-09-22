@@ -1,5 +1,5 @@
 {
-  "name": "NestSports",
+  "name": "NestPlay",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -25,10 +25,12 @@
     "react-native-gesture-handler": "^3.0.2",
     "react-native-image-picker": "^8.2.1",
     "react-native-print": "^0.11.0",
+    "react-native-razorpay": "^2.3.1",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.25.2",
     "react-native-share": "^12.3.1",
     "react-native-svg": "^15.15.5",
+    "react-native-webview": "^13.17.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

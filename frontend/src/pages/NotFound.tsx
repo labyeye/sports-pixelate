@@ -11,7 +11,7 @@ export default function NotFound() {
         <h1 className="font-display font-bold text-6xl text-black mb-2">404</h1>
         <p className="text-lg font-bold text-black mb-1">Page not found</p>
         <p className="text-sm text-muted-foreground mb-6">
-          This page doesn't exist in NestSports.
+          This page doesn't exist in NestPlay.
         </p>
         <Link to="/">
           <button className="border-2 bg-[#024BAB] text-white px-6 py-3 text-sm font-bold">

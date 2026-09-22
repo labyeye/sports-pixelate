@@ -17,7 +17,7 @@ const {
 } = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 
-const PLAN_NAME = "NestSports";
+const PLAN_NAME = "NestPlay";
 
 const getPlans = asyncHandler(async (req, res) => {
   res.json({

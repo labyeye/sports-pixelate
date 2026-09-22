@@ -50,7 +50,7 @@ export default function RegisterPage() {
         <div className="relative z-10">
           <img
             src={nesthrlogo}
-            alt="NestSports"
+            alt="NestPlay"
             className="h-14 w-auto object-contain bg-white"
           />
         </div>
@@ -91,7 +91,7 @@ export default function RegisterPage() {
           <div className="lg:hidden flex justify-center mb-8">
             <img
               src={nesthrlogo}
-              alt="NestSports"
+              alt="NestPlay"
               className="h-12 w-auto object-contain"
             />
           </div>

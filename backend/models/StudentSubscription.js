@@ -7,7 +7,11 @@ const mongoose = require("mongoose");
 const paymentAttemptSchema = new mongoose.Schema(
   {
     amount: { type: Number, required: true },
-    method: { type: String, enum: ["qr", "razorpay", "cash"], default: "qr" },
+    method: {
+      type: String,
+      enum: ["qr", "razorpay", "cashfree", "phonepe", "paytm", "cash"],
+      default: "qr",
+    },
     utrNumber: { type: String },
     transactionNumber: { type: String },
     screenshot: { type: String },
@@ -64,15 +68,23 @@ const studentSubscriptionSchema = new mongoose.Schema(
       enum: ["pending", "partial", "completed", "failed", "rejected"],
       default: "pending",
     },
+    // Generic online-order fields — the name predates multi-gateway support
+    // but holds whichever gateway's order/payment id (razorpay, cashfree,
+    // phonepe or paytm); `paymentGateway` says which.
     razorpayOrderId: { type: String, index: true },
     razorpayPaymentId: { type: String },
+    paymentGateway: {
+      type: String,
+      enum: ["razorpay", "cashfree", "phonepe", "paytm"],
+      default: "razorpay",
+    },
     // Derived — sum of `payments[].amount` where status === "verified".
     // Stored (not virtual) so existing sort/filter/report queries on it
     // keep working; recomputed by the controller after every verify/reject.
     amountPaid: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
-      enum: ["razorpay", "qr", "cash"],
+      enum: ["razorpay", "cashfree", "phonepe", "paytm", "qr", "cash"],
       default: "razorpay",
     },
     payments: [paymentAttemptSchema],

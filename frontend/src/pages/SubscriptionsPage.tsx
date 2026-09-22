@@ -12,6 +12,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
+  loadRazorpayScript,
+  loadCashfreeScript,
+  redirectToGatewayCheckout,
+} from "@/lib/paymentGateway";
+import {
   ImportExportModal,
   type ImportHeader,
 } from "@/components/ImportExportModal";
@@ -133,16 +138,6 @@ const PAYMENT_STATUS_META: Record<
 
 type SortKey = "student" | "plan" | "amount" | "renewalDate";
 
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
 
 export default function SubscriptionsPage() {
   const { user } = useAuth();
@@ -280,6 +275,95 @@ export default function SubscriptionsPage() {
     load();
   }, [load]);
 
+  const payOnline = async (
+    studentId: string,
+    planId: string,
+    cycle: "monthly" | "yearly",
+  ) => {
+    const res = await subscriptionAPI.createOrder({
+      studentId,
+      planId,
+      billingCycle: cycle,
+    });
+    const order = res.data;
+
+    if (order.checkoutMode === "redirect") {
+      // Leaves the page — /payment-return picks up after the gateway sends
+      // the browser back and confirms with a status-check poll.
+      redirectToGatewayCheckout(order);
+      return;
+    }
+
+    if (order.gateway === "cashfree") {
+      const loaded = await loadCashfreeScript();
+      if (!loaded)
+        throw new Error(
+          "Failed to load Cashfree checkout. Check your connection.",
+        );
+      const cashfree = await (window as any).Cashfree({
+        mode: import.meta.env.PROD ? "production" : "sandbox",
+      });
+      await new Promise<void>((resolve, reject) => {
+        cashfree
+          .checkout({
+            paymentSessionId: order.paymentSessionId,
+            redirectTarget: "_modal",
+          })
+          .then(async (result: any) => {
+            if (result.error) {
+              reject(new Error("Payment cancelled"));
+              return;
+            }
+            try {
+              await subscriptionAPI.verifyPayment({ orderId: order.orderId });
+              toast({ title: "Subscribed!", description: "Payment successful." });
+              resolve();
+            } catch (err: any) {
+              reject(err);
+            }
+          });
+      });
+      return;
+    }
+
+    // Default: Razorpay
+    const loaded = await loadRazorpayScript();
+    if (!loaded)
+      throw new Error(
+        "Failed to load Razorpay checkout. Check your connection.",
+      );
+
+    await new Promise<void>((resolve, reject) => {
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        order_id: order.orderId,
+        amount: order.amount * 100,
+        currency: order.currency || "INR",
+        name: "NestPlay",
+        description: `${order.planName} — ${order.studentName}`,
+        theme: { color: "#024BAB" },
+        handler: async (response: any) => {
+          try {
+            await subscriptionAPI.verifyPayment({
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            toast({
+              title: "Subscribed!",
+              description: "Payment successful.",
+            });
+            resolve();
+          } catch (err: any) {
+            reject(err);
+          }
+        },
+        modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+      });
+      rzp.open();
+    });
+  };
+
   const handleSubscribe = async () => {
     if (!selectedChild || !selectedPlan) {
       toast({ title: "Select a child and a plan", variant: "destructive" });
@@ -287,48 +371,29 @@ export default function SubscriptionsPage() {
     }
     setSubscribing(selectedPlan);
     try {
-      const res = await subscriptionAPI.createOrder({
-        studentId: selectedChild,
-        planId: selectedPlan,
-        billingCycle,
-      });
-      const order = res.data;
-
-      const loaded = await loadRazorpayScript();
-      if (!loaded)
-        throw new Error(
-          "Failed to load Razorpay checkout. Check your connection.",
-        );
-
-      await new Promise<void>((resolve, reject) => {
-        const rzp = new window.Razorpay({
-          key: order.keyId,
-          order_id: order.orderId,
-          amount: order.amount * 100,
-          currency: order.currency || "INR",
-          name: "NestSports",
-          description: `${order.planName} — ${order.studentName}`,
-          theme: { color: "#024BAB" },
-          handler: async (response: any) => {
-            try {
-              await subscriptionAPI.verifyPayment({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              toast({
-                title: "Subscribed!",
-                description: "Payment successful.",
-              });
-              resolve();
-            } catch (err: any) {
-              reject(err);
-            }
-          },
-          modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+      await payOnline(selectedChild, selectedPlan, billingCycle);
+      load();
+    } catch (e: any) {
+      if (e.message !== "Payment cancelled") {
+        toast({
+          title: "Payment failed",
+          description: e.message,
+          variant: "destructive",
         });
-        rzp.open();
-      });
+      }
+    } finally {
+      setSubscribing(null);
+    }
+  };
+
+  const handlePayRemainingOnline = async (s: Subscription) => {
+    setSubscribing(s._id);
+    try {
+      await payOnline(
+        s.student._id,
+        s.plan._id,
+        s.billingCycle as "monthly" | "yearly",
+      );
       load();
     } catch (e: any) {
       if (e.message !== "Payment cancelled") {
@@ -1235,7 +1300,7 @@ export default function SubscriptionsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : displayed.length === 0 ? (
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
@@ -1354,15 +1419,25 @@ export default function SubscriptionsPage() {
                             s.status !== "cancelled" &&
                             !s.payments?.some((p) => p.status === "pending") &&
                             (s.amountPaid || 0) < s.amount && (
-                              <button
-                                onClick={() => openPayRemaining(s)}
-                                className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
-                              >
-                                <QrCode className="w-3.5 h-3.5" />
-                                {s.amountPaid > 0
-                                  ? "Pay Remaining"
-                                  : "Pay via QR"}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handlePayRemainingOnline(s)}
+                                  disabled={subscribing === s._id}
+                                  className="flex items-center gap-1 text-xs font-bold text-[#00C48C] hover:underline disabled:opacity-60"
+                                >
+                                  <Wallet className="w-3.5 h-3.5" />
+                                  Pay Online
+                                </button>
+                                <button
+                                  onClick={() => openPayRemaining(s)}
+                                  className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
+                                >
+                                  <QrCode className="w-3.5 h-3.5" />
+                                  {s.amountPaid > 0
+                                    ? "Pay Remaining (Manual)"
+                                    : "Pay via QR"}
+                                </button>
+                              </>
                             )}
                           {s.payments
                             ?.filter((p) => p.status === "verified")

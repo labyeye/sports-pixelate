@@ -117,7 +117,7 @@ async function ensureParentAccounts(guardians, companyId) {
       // Prefer the email/password entered on the student form (lets the
       // admin set real login credentials up front); fall back to a
       // placeholder that only supports phone-OTP login.
-      let email = `parent.${normalized}.${companyId}@parents.nestsports.local`;
+      let email = `parent.${normalized}.${companyId}@parents.nestplay.local`;
       if (g.email) {
         const exists = await User.findOne({ email: g.email });
         if (!exists) email = g.email;
@@ -130,6 +130,26 @@ async function ensureParentAccounts(guardians, companyId) {
         phone: normalized,
         company: companyId,
       });
+    } else {
+      // Existing parent — apply a new password/email typed on the student
+      // form. Assigning + save() (not findOneAndUpdate) so the pre-save
+      // hook above actually hashes it.
+      let changed = false;
+      if (g.password) {
+        user.password = g.password;
+        changed = true;
+      }
+      if (g.email && g.email !== user.email) {
+        const exists = await User.findOne({
+          email: g.email,
+          _id: { $ne: user._id },
+        });
+        if (!exists) {
+          user.email = g.email;
+          changed = true;
+        }
+      }
+      if (changed) await user.save();
     }
     parentIds.push(user._id);
   }

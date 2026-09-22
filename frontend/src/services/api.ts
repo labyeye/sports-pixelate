@@ -79,6 +79,42 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify({ phone, otp }),
     }),
+  // Password reset by WhatsApp code / authenticator app
+  forgotPasswordMethods: (email: string) =>
+    request(`/auth/forgot-password/methods?email=${encodeURIComponent(email)}`),
+  forgotPasswordWhatsapp: (email: string) =>
+    request("/auth/forgot-password/whatsapp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPasswordWithOtp: (email: string, otp: string, password: string) =>
+    request("/auth/reset-password/otp/whatsapp", {
+      method: "POST",
+      body: JSON.stringify({ email, otp, password }),
+    }),
+  resetPasswordWithTotp: (email: string, token: string, password: string) =>
+    request("/auth/reset-password/otp/totp", {
+      method: "POST",
+      body: JSON.stringify({ email, token, password }),
+    }),
+  // Prove ownership of the profile phone (separate from the login OTP above)
+  sendPhoneVerifyOtp: () => request("/auth/phone/send-otp", { method: "POST" }),
+  verifyPhoneVerifyOtp: (otp: string) =>
+    request("/auth/phone/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({ otp }),
+    }),
+  // Passkey / WebAuthn
+  passkeyLoginOptions: (email?: string) =>
+    request("/auth/passkey/login-options", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  passkeyLogin: (credential: any) =>
+    request("/auth/passkey/login", {
+      method: "POST",
+      body: JSON.stringify(credential),
+    }),
 };
 
 export const dashboardAPI = {
@@ -868,7 +904,7 @@ export const attendanceCorrectionAPI = {
     }),
 };
 
-// ── NestSports domain APIs ──────────────────────────────────────────────
+// ── NestPlay domain APIs ──────────────────────────────────────────────
 
 export const studentAPI = {
   getAll: (params?: Record<string, string>) => {

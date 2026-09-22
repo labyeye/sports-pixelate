@@ -21,6 +21,8 @@ import {
   CalendarDays,
   Calendar,
   Hash,
+  Edit2,
+  Trash2,
 } from 'lucide-react-native';
 import { leaveAPI, employeeAPI } from '../api/client';
 import {
@@ -34,6 +36,7 @@ import {
   ChipSelect,
   SectionTitle,
   KpiTile,
+  ToggleRow,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 
@@ -52,6 +55,9 @@ const LEAVE_TYPES = [
   'paternity',
   'unpaid',
   'compensatory',
+  'hourly',
+  'wfh',
+  'outdoor_duty',
 ] as const;
 
 const EMPTY_FORM = {
@@ -61,6 +67,7 @@ const EMPTY_FORM = {
   endDate: '',
   days: '1',
   reason: '',
+  isHalfDay: false,
 };
 
 export default function LeaveScreen() {
@@ -76,6 +83,9 @@ export default function LeaveScreen() {
 
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   const load = useCallback(
     () =>
@@ -144,12 +154,69 @@ export default function LeaveScreen() {
   };
 
   const openApply = () => {
+    setEditId(null);
     setForm(EMPTY_FORM);
     setApplyVisible(true);
+    loadEmployees();
+  };
+
+  const loadEmployees = () =>
     employeeAPI
       .getAll({ status: 'active', limit: '300' })
       .then((r: any) => setEmployees(r.data || []))
       .catch(() => {});
+
+  const openEdit = (l: any) => {
+    setEditId(l._id);
+    setForm({
+      employee: l.employee?._id || '',
+      leaveType: l.leaveType || 'casual',
+      startDate: (l.startDate || '').split('T')[0],
+      endDate: (l.endDate || '').split('T')[0],
+      days: String(l.days ?? 1),
+      reason: l.reason || '',
+      isHalfDay: l.isHalfDay === true,
+    });
+    setApplyVisible(true);
+    loadEmployees();
+  };
+
+  // Approved leaves need a cancellation reason; anything else is deleted outright.
+  const handleDelete = (l: any) => {
+    if (l.status === 'approved') {
+      setCancelReason('');
+      setCancelId(l._id);
+      return;
+    }
+    Alert.alert('Delete Leave', 'Delete this leave request?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await leaveAPI.delete(l._id);
+            await load();
+          } catch (e: any) {
+            Alert.alert('Error', e?.message || 'Failed to delete leave');
+          }
+        },
+      },
+    ]);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelReason.trim() || !cancelId) {
+      Alert.alert('Reason required', 'Please enter a reason for cancelling');
+      return;
+    }
+    try {
+      await leaveAPI.delete(cancelId, { cancellationReason: cancelReason.trim() });
+      setCancelId(null);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to cancel leave');
+    }
   };
 
   const submitApply = async () => {
@@ -163,7 +230,9 @@ export default function LeaveScreen() {
     }
     setSaving(true);
     try {
-      await leaveAPI.create({ ...form, days: Number(form.days) });
+      const body = { ...form, days: Number(form.days) };
+      if (editId) await leaveAPI.update(editId, body);
+      else await leaveAPI.create(body);
       setApplyVisible(false);
       await load();
     } catch (e: any) {
@@ -230,9 +299,14 @@ export default function LeaveScreen() {
                         }`.trim()
                       : '-'
                   }
-                  subtitle={`${(l.leaveType || '-').replace(/_/g, ' ')} · ${
-                    l.days ?? '-'
-                  } day(s)`}
+                  subtitle={[
+                    `${(l.leaveType || '-').replace(/_/g, ' ')} · ${l.days ?? '-'} day(s)${l.isHalfDay ? ' (half day)' : ''}`,
+                    l.startDate
+                      ? `${(l.startDate || '').split('T')[0]} → ${(l.endDate || '').split('T')[0]}`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                   right={
                     <Badge
                       label={l.status}
@@ -240,6 +314,15 @@ export default function LeaveScreen() {
                     />
                   }
                 />
+                {l.reason ? <Text style={styles.reasonText}>{l.reason}</Text> : null}
+                <View style={styles.iconActions}>
+                  <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(l)} hitSlop={6}>
+                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(l)} hitSlop={6}>
+                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                  </TouchableOpacity>
+                </View>
                 {l.status === 'pending' && (
                   <View style={styles.actions}>
                     <View style={{ flex: 1 }}>
@@ -304,6 +387,30 @@ export default function LeaveScreen() {
         </View>
       </Modal>
 
+      <Modal visible={!!cancelId} transparent animationType="fade" onRequestClose={() => setCancelId(null)}>
+        <View style={styles.rejectBackdrop}>
+          <View style={styles.rejectSheet}>
+            <Text style={styles.formTitle}>Cancel Approved Leave</Text>
+            <TextField
+              label="Cancellation reason"
+              icon={FileText}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+              required
+            />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Button title="Back" variant="outline" onPress={() => setCancelId(null)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button title="Cancel Leave" color={colors.red} onPress={confirmCancel} />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal
         visible={applyVisible}
         animationType="slide"
@@ -312,7 +419,7 @@ export default function LeaveScreen() {
       >
         <SafeAreaView edges={['top']} style={styles.screen}>
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Apply for Leave</Text>
+            <Text style={styles.formTitle}>{editId ? 'Edit Leave' : 'Apply for Leave'}</Text>
             <TouchableOpacity
               onPress={() => setApplyVisible(false)}
               hitSlop={8}
@@ -376,6 +483,7 @@ export default function LeaveScreen() {
               onChangeText={v => setForm(p => ({ ...p, days: v }))}
               keyboardType="numeric"
             />
+            <ToggleRow label="Half day" value={form.isHalfDay} onChange={v => setForm(p => ({ ...p, isHalfDay: v }))} />
             <TextField
               label="Reason"
               icon={FileText}
@@ -384,7 +492,7 @@ export default function LeaveScreen() {
               multiline
             />
             <Button
-              title={saving ? 'Submitting...' : 'Submit Request'}
+              title={saving ? 'Saving...' : editId ? 'Save Changes' : 'Submit Request'}
               onPress={submitApply}
               disabled={saving}
             />
@@ -443,6 +551,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   item: { marginBottom: 4 },
+  reasonText: { color: colors.muted, fontSize: 12, fontFamily: FONT.medium, marginBottom: 8 },
+  iconActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginBottom: 8 },
+  editBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  deleteBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: colors.red, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   rejectBackdrop: {
     flex: 1,

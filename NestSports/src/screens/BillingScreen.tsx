@@ -143,7 +143,7 @@ export default function BillingScreen() {
           ) : (
             <EmptyState
               title="No active subscription"
-              sub="Manage your subscription and billing from the NestSports web dashboard."
+              sub="Manage your subscription and billing from the NestPlay web dashboard."
             />
           )}
         </Card>
@@ -188,7 +188,7 @@ export default function BillingScreen() {
         </Card>
 
         <Text style={styles.footnote}>
-          Manage your subscription and billing from the NestSports web
+          Manage your subscription and billing from the NestPlay web
           dashboard.
         </Text>
       </ScrollView>

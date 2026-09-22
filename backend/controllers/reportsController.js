@@ -4,6 +4,22 @@ const StudentSubscription = require("../models/StudentSubscription");
 const Student = require("../models/Student");
 const StudentAttendance = require("../models/StudentAttendance");
 const Event = require("../models/Event");
+const Expense = require("../models/Expense");
+
+// Start/end of "today" expressed as UTC instants for the IST (UTC+5:30)
+// calendar day — matches the IST convention used elsewhere in this codebase
+// (e.g. pdfService.js's payslip date) so a payment/expense made this morning
+// in India shows up under "today" regardless of the server's own timezone.
+function getISTDayRange(d = new Date()) {
+  const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(d.getTime() + IST_OFFSET);
+  const y = istNow.getUTCFullYear();
+  const m = istNow.getUTCMonth();
+  const day = istNow.getUTCDate();
+  const start = new Date(Date.UTC(y, m, day) - IST_OFFSET);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+  return { start, end };
+}
 
 // GET /api/reports/student-fees
 // Returns student subscriptions (fee records) with student snapshot,
@@ -420,6 +436,171 @@ const getStudentProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// GET /api/reports/payment-history?student=<id>
+// Every payment attempt (not just subscription summaries) across all of one
+// student's subscriptions — amount, method, status, who verified/rejected it
+// and when, plus UTR/transaction number for UPI payments.
+const getPaymentHistory = asyncHandler(async (req, res) => {
+  const { student } = req.query;
+  if (!student) {
+    res.status(400);
+    throw new Error("student is required");
+  }
+
+  const subs = await StudentSubscription.find({
+    company: req.user.company,
+    student,
+  })
+    .populate("plan", "name")
+    .populate("payments.verifiedBy", "name")
+    .populate("payments.rejectedBy", "name")
+    .sort({ startDate: -1 });
+
+  const rows = [];
+  for (const sub of subs) {
+    for (const p of sub.payments || []) {
+      rows.push({
+        subscriptionId: sub._id,
+        planName: sub.planName,
+        billingCycle: sub.billingCycle,
+        paymentId: p._id,
+        amount: p.amount,
+        method: p.method,
+        status: p.status,
+        utrNumber: p.utrNumber || null,
+        transactionNumber: p.transactionNumber || null,
+        submittedAt: p.submittedAt,
+        verifiedBy: p.verifiedBy?.name || null,
+        verifiedAt: p.verifiedAt || null,
+        rejectedBy: p.rejectedBy?.name || null,
+        rejectionReason: p.rejectionReason || null,
+      });
+    }
+  }
+  rows.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+  res.json({ success: true, data: rows });
+});
+
+// Shared by the Income Report and Today's Ledger — unwinds every verified
+// subscription payment in range into a flat row with student/plan context.
+async function verifiedPaymentRows(companyId, { from, to } = {}) {
+  const match = { "payments.status": "verified" };
+  if (from || to) {
+    match["payments.verifiedAt"] = {};
+    if (from) match["payments.verifiedAt"].$gte = new Date(from);
+    if (to) match["payments.verifiedAt"].$lte = new Date(to);
+  }
+
+  return StudentSubscription.aggregate([
+    { $match: { company: companyId } },
+    { $unwind: "$payments" },
+    { $match: match },
+    {
+      $lookup: {
+        from: "students",
+        localField: "student",
+        foreignField: "_id",
+        as: "studentDoc",
+      },
+    },
+    { $unwind: { path: "$studentDoc", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 0,
+        subscriptionId: "$_id",
+        paymentId: "$payments._id",
+        amount: "$payments.amount",
+        method: "$payments.method",
+        verifiedAt: "$payments.verifiedAt",
+        planName: 1,
+        studentName: {
+          $trim: {
+            input: {
+              $concat: [
+                { $ifNull: ["$studentDoc.firstName", ""] },
+                " ",
+                { $ifNull: ["$studentDoc.lastName", ""] },
+              ],
+            },
+          },
+        },
+        studentCode: "$studentDoc.studentId",
+      },
+    },
+    { $sort: { verifiedAt: -1 } },
+  ]);
+}
+
+// GET /api/reports/income?from=&to=
+// Total verified subscription income in a date range, broken down by
+// payment method and by plan, plus the flat list of payments behind it.
+const getIncomeReport = asyncHandler(async (req, res) => {
+  const { from, to } = req.query;
+  const rows = await verifiedPaymentRows(req.user.company, { from, to });
+
+  const totalIncome = rows.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const byMethod = {};
+  const byPlan = {};
+  for (const r of rows) {
+    byMethod[r.method] = (byMethod[r.method] || 0) + (r.amount || 0);
+    const plan = r.planName || "—";
+    byPlan[plan] = (byPlan[plan] || 0) + (r.amount || 0);
+  }
+
+  res.json({
+    success: true,
+    data: rows,
+    summary: {
+      totalIncome,
+      count: rows.length,
+      byMethod: Object.entries(byMethod).map(([method, total]) => ({
+        method,
+        total,
+      })),
+      byPlan: Object.entries(byPlan).map(([planName, total]) => ({
+        planName,
+        total,
+      })),
+    },
+  });
+});
+
+// GET /api/reports/today-ledger
+// Today's verified subscription income vs today's expenses, side by side.
+const getTodayLedger = asyncHandler(async (req, res) => {
+  const companyId = req.user.company;
+  const { start, end } = getISTDayRange();
+
+  const [incomeRows, expenses] = await Promise.all([
+    verifiedPaymentRows(companyId, { from: start, to: end }),
+    Expense.find({ company: companyId, date: { $gte: start, $lte: end } })
+      .populate("requestedBy", "name")
+      .sort({ date: -1 }),
+  ]);
+
+  const totalIncome = incomeRows.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const totalExpense = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  res.json({
+    success: true,
+    data: {
+      date: start,
+      income: {
+        total: totalIncome,
+        count: incomeRows.length,
+        rows: incomeRows,
+      },
+      expense: {
+        total: totalExpense,
+        count: expenses.length,
+        rows: expenses,
+      },
+      net: totalIncome - totalExpense,
+    },
+  });
+});
+
 module.exports = {
   getStudentFees,
   getOutstandingDues,
@@ -428,4 +609,7 @@ module.exports = {
   getBatchSummary,
   getSportSummary,
   getStudentProfile,
+  getPaymentHistory,
+  getIncomeReport,
+  getTodayLedger,
 };

@@ -1,4 +1,4 @@
-package com.nestsports
+package com.nestplay
 
 import android.app.Application
 import com.facebook.react.PackageList

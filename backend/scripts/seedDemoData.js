@@ -119,7 +119,7 @@ async function run() {
   const employees = [];
   for (let i = 0; i < employeeDefs.length; i++) {
     const e = employeeDefs[i];
-    const email = `${e.first.toLowerCase()}.${e.last.toLowerCase()}@nestsports-demo.com`;
+    const email = `${e.first.toLowerCase()}.${e.last.toLowerCase()}@nestplay-demo.com`;
     const employeeId = `EMP-${String(i + 1).padStart(3, "0")}`;
 
     let existing = await Employee.findOne({ company: COMPANY_ID, employeeId });
@@ -265,7 +265,7 @@ async function run() {
           relation: "father",
           name: `${s.last} Sr.`,
           phone: `+91 9${String(700000000 + i).slice(0, 9)}`,
-          email: `${s.first.toLowerCase()}.parent@nestsports-demo.com`,
+          email: `${s.first.toLowerCase()}.parent@nestplay-demo.com`,
           receivesWhatsapp: true,
         },
       ],

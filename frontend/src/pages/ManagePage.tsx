@@ -328,7 +328,7 @@ function ShiftsSection({ onBack }: { onBack: () => void }) {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : (
         <NbTable
@@ -564,7 +564,7 @@ function SalaryHeadsSection({ onBack }: { onBack: () => void }) {
       />
       {loading ? (
         <div className="flex justify-center py-12">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : (
         <NbTable
@@ -814,7 +814,7 @@ function DesignationsSection({ onBack }: { onBack: () => void }) {
       />
       {loading ? (
         <div className="flex justify-center py-12">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : (
         <NbTable
@@ -1009,7 +1009,7 @@ function OfferLettersSection({ onBack }: { onBack: () => void }) {
       />
       {loading ? (
         <div className="flex justify-center py-12">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : (
         <NbTable

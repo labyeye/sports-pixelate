@@ -1,7 +1,7 @@
 // Single source of truth for which activities belong to which category, and
 // which event types show which conditional form sections. Mirrored (same
 // shape, not shared code) in frontend/src/config/eventTypeConfig.ts and
-// NestSports/src/config/eventTypeConfig.ts — keep all three in lockstep.
+// NestPlay/src/config/eventTypeConfig.ts — keep all three in lockstep.
 //
 // Adding a brand new event type that reuses existing sections is a one-line
 // addition to `eventTypes` below — no controller/validation branching needed

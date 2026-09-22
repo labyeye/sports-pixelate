@@ -540,7 +540,7 @@ function EmptyState({ msg }: { msg: string }) {
 function LoadingState() {
   return (
     <div className="flex justify-center py-16">
-      <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+      <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
     </div>
   );
 }
@@ -1086,7 +1086,7 @@ function SalarySlipGen({
     const emp = p.employee || {};
     const win = window.open("", "_blank");
     if (!win) return;
-    const companyName = company?.name || "NestSports";
+    const companyName = company?.name || "NestPlay";
     const companyLogo = company?.logo || "";
     const empName = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
     const now = new Date().toLocaleString("en-IN", {
@@ -4862,7 +4862,7 @@ function AnalyticsTab({
   if (loading)
     return (
       <div className="flex justify-center py-20">
-        <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+        <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
       </div>
     );
 
@@ -5315,7 +5315,7 @@ function AnalyticsTab({
 
 export default function ReportsPage() {
   const [departments, setDepartments] = useState<any[]>([]);
-  const [company, setCompany] = useState<ReportCompany>({ name: "NestSports" });
+  const [company, setCompany] = useState<ReportCompany>({ name: "NestPlay" });
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<Category | "all">("all");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -5331,7 +5331,7 @@ export default function ReportsPage() {
       .then((r) => {
         if (r.success && r.data) {
           setCompany({
-            name: r.data.companyName || "NestSports",
+            name: r.data.companyName || "NestPlay",
             logo: r.data.logoUrl || undefined,
           });
         }

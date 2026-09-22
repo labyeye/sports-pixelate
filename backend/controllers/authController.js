@@ -10,6 +10,7 @@ const { validateBody } = require("../middleware/validate");
 const { sendPasswordResetEmail } = require("../services/notificationService");
 const { sendPhoneOtp } = require("../services/whatsappService");
 const { getCompanyFeatures } = require("../utils/planFeatures");
+const validator = require("validator");
 
 const registerSchema = {
   name: { required: true, type: "string", minLength: 2, maxLength: 80 },
@@ -23,6 +24,61 @@ const loginSchema = {
 };
 
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+const generateOtp = () => String(crypto.randomInt(100000, 1000000));
+const hashOtp = (otp) =>
+  crypto.createHash("sha256").update(String(otp).trim()).digest("hex");
+// 10-digit national number, which is what sendPhoneOtp expects (it adds 91).
+const to10 = (phone) =>
+  String(phone).replace(/\s/g, "").replace(/^\+91/, "").slice(-10);
+
+async function findUserByPhone(normalised) {
+  const variants = [normalised, `+91${normalised}`, `91${normalised}`];
+  const user = await User.findOne({ phone: { $in: variants } });
+  if (user) return user;
+  const employee = await Employee.findOne({ phone: { $in: variants } });
+  return employee ? User.findById(employee.user) : null;
+}
+
+// Shared by login 2FA and TOTP password reset: 10 bad codes lock the account
+// for 30 minutes, backup codes are single-use. Caller saves the user.
+async function checkTwoFactorCode(user, token, res) {
+  if (user.twoFactorLockUntil && user.twoFactorLockUntil > new Date()) {
+    res.status(429);
+    throw new Error(
+      "Account temporarily locked due to too many failed 2FA attempts. Try again later.",
+    );
+  }
+
+  // Backup codes are lowercase hex; mobile keyboards often capitalise the first letter.
+  const code = String(token).trim().toLowerCase();
+  const isBackup = user.twoFactorBackupCodes.includes(code);
+  const isTotp = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: "base32",
+    token: code,
+    window: 1,
+  });
+
+  if (!isTotp && !isBackup) {
+    user.twoFactorFailedAttempts = (user.twoFactorFailedAttempts || 0) + 1;
+    if (user.twoFactorFailedAttempts >= 10) {
+      user.twoFactorLockUntil = new Date(Date.now() + 30 * 60 * 1000);
+      user.twoFactorFailedAttempts = 0;
+    }
+    await user.save();
+    res.status(401);
+    throw new Error("Invalid authentication code");
+  }
+
+  user.twoFactorFailedAttempts = 0;
+  user.twoFactorLockUntil = undefined;
+  if (isBackup) {
+    user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(
+      (c) => c !== code,
+    );
+  }
+}
 
 const register = [
   validateBody(registerSchema),
@@ -210,6 +266,7 @@ const updateProfile = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error("Invalid phone number");
     }
+    if (phone !== user.phone) user.phoneVerified = false;
     user.phone = phone;
   }
   if (avatar !== undefined) {
@@ -320,7 +377,7 @@ const confirm2FA = asyncHandler(async (req, res) => {
     throw new Error("Token is required");
   }
 
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select("+twoFactorSecret");
   if (!user.twoFactorSecret) {
     res.status(400);
     throw new Error("2FA setup not initiated");
@@ -351,7 +408,7 @@ const confirm2FA = asyncHandler(async (req, res) => {
 // 2FA disable
 const disable2FA = asyncHandler(async (req, res) => {
   const { token } = req.body;
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select("+twoFactorSecret");
   if (!user.twoFactorEnabled) {
     res.status(400);
     throw new Error("2FA is not enabled");
@@ -385,7 +442,9 @@ const verify2FA = asyncHandler(async (req, res) => {
     throw new Error("userId and token are required");
   }
 
-  const user = await User.findById(userId).populate({
+  const user = await User.findById(userId)
+    .select("+twoFactorSecret +twoFactorBackupCodes")
+    .populate({
     path: "company",
     select: "name email phone status subscription website",
     populate: {
@@ -399,42 +458,7 @@ const verify2FA = asyncHandler(async (req, res) => {
     throw new Error("Invalid request");
   }
 
-  // Lockout check — 10 failed attempts locks for 30 minutes
-  if (user.twoFactorLockUntil && user.twoFactorLockUntil > new Date()) {
-    res.status(429);
-    throw new Error(
-      "Account temporarily locked due to too many failed 2FA attempts. Try again later.",
-    );
-  }
-
-  const isBackup = user.twoFactorBackupCodes.includes(token);
-  const isTotp = speakeasy.totp.verify({
-    secret: user.twoFactorSecret,
-    encoding: "base32",
-    token,
-    window: 1,
-  });
-
-  if (!isTotp && !isBackup) {
-    user.twoFactorFailedAttempts = (user.twoFactorFailedAttempts || 0) + 1;
-    if (user.twoFactorFailedAttempts >= 10) {
-      user.twoFactorLockUntil = new Date(Date.now() + 30 * 60 * 1000);
-      user.twoFactorFailedAttempts = 0;
-    }
-    await user.save();
-    res.status(401);
-    throw new Error("Invalid authentication code");
-  }
-
-  // Reset failure counter on success
-  user.twoFactorFailedAttempts = 0;
-  user.twoFactorLockUntil = undefined;
-
-  if (isBackup) {
-    user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(
-      (c) => c !== token,
-    );
-  }
+  await checkTwoFactorCode(user, token, res);
   await user.save();
 
   res.json({
@@ -463,14 +487,8 @@ const sendOtp = asyncHandler(async (req, res) => {
   }
 
   console.log(`[WA-OTP] controller entered, raw phone=${phone}`);
-  const normalised = phone.replace(/\s/g, "").replace(/^\+91/, "").slice(-10);
-  const phoneVariants = [normalised, `+91${normalised}`, `91${normalised}`];
-
-  let user = await User.findOne({ phone: { $in: phoneVariants } });
-  if (!user) {
-    const employee = await Employee.findOne({ phone: { $in: phoneVariants } });
-    if (employee) user = await User.findById(employee.user);
-  }
+  const normalised = to10(phone);
+  const user = await findUserByPhone(normalised);
   console.log(`[WA-OTP] lookup phone=${normalised} found=${!!user}`);
   if (!user) {
     // Return generic success to avoid user enumeration
@@ -488,8 +506,8 @@ const sendOtp = asyncHandler(async (req, res) => {
     throw new Error("Your account has been deactivated. Please contact HR.");
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.phoneOtp = crypto.createHash("sha256").update(otp).digest("hex");
+  const otp = generateOtp();
+  user.phoneOtp = hashOtp(otp);
   user.phoneOtpExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 min
   await user.save();
 
@@ -509,10 +527,17 @@ const verifyOtp = asyncHandler(async (req, res) => {
     throw new Error("Phone and OTP are required");
   }
 
-  const hashed = crypto.createHash("sha256").update(otp.trim()).digest("hex");
+  // Bind the code to the phone it was sent to — matching on the code alone
+  // would let a guess hit any other user's pending OTP.
+  const target = await findUserByPhone(to10(phone));
+  if (!target) {
+    res.status(401);
+    throw new Error("Invalid or expired OTP");
+  }
 
   const user = await User.findOne({
-    phoneOtp: hashed,
+    _id: target._id,
+    phoneOtp: hashOtp(otp),
     phoneOtpExpire: { $gt: new Date() },
   }).populate({
     path: "company",
@@ -527,6 +552,11 @@ const verifyOtp = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(401);
     throw new Error("Invalid or expired OTP");
+  }
+
+  if (user.status === "inactive") {
+    res.status(403);
+    throw new Error("Your account has been deactivated. Please contact HR.");
   }
 
   if (user.company && user.role !== "super_admin") {
@@ -574,6 +604,156 @@ const verifyOtp = asyncHandler(async (req, res) => {
   });
 });
 
+// ── Password reset via WhatsApp code / authenticator app ──────────────────
+
+const isEmail = (e) => typeof e === "string" && validator.isEmail(e);
+
+const STRONG_PASSWORD_MSG =
+  "Password must be at least 8 characters and include uppercase, lowercase, and a number";
+
+// Tells the forgot-password screen which reset methods this account has set up.
+const forgotPasswordMethods = asyncHandler(async (req, res) => {
+  const { email } = req.query;
+  if (!isEmail(email)) {
+    res.status(400);
+    throw new Error("Please provide a valid email address");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  const methods = ["email"];
+  if (user?.phoneVerified) methods.push("whatsapp");
+  if (user?.twoFactorEnabled) methods.push("totp");
+
+  res.json({ success: true, data: { methods } });
+});
+
+const forgotPasswordWhatsapp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!isEmail(email)) {
+    res.status(400);
+    throw new Error("Please provide a valid email address");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  if (user?.phoneVerified && user.phone && user.status !== "inactive") {
+    const otp = generateOtp();
+    user.resetOtp = hashOtp(otp);
+    user.resetOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+    try {
+      await sendPhoneOtp(to10(user.phone), { otp });
+    } catch {
+      // Same response either way, so delivery failures can't be probed.
+    }
+  }
+
+  res.json({
+    success: true,
+    message: "If that account has WhatsApp reset enabled, a code was sent.",
+  });
+});
+
+const resetPasswordWithOtp = asyncHandler(async (req, res) => {
+  const { email, otp, password } = req.body;
+  if (!isEmail(email) || !otp) {
+    res.status(400);
+    throw new Error("Email and code are required");
+  }
+  if (!STRONG_PASSWORD_RE.test(password || "")) {
+    res.status(400);
+    throw new Error(STRONG_PASSWORD_MSG);
+  }
+
+  const user = await User.findOne({
+    email: email.toLowerCase().trim(),
+    resetOtp: hashOtp(otp),
+    resetOtpExpire: { $gt: new Date() },
+  });
+  if (!user) {
+    res.status(400);
+    throw new Error("This code is invalid or has expired");
+  }
+
+  user.password = password;
+  user.resetOtp = undefined;
+  user.resetOtpExpire = undefined;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "Password reset successful. You can now log in.",
+  });
+});
+
+const resetPasswordWithTotp = asyncHandler(async (req, res) => {
+  const { email, token, password } = req.body;
+  if (!isEmail(email) || !token) {
+    res.status(400);
+    throw new Error("Email and authenticator code are required");
+  }
+  if (!STRONG_PASSWORD_RE.test(password || "")) {
+    res.status(400);
+    throw new Error(STRONG_PASSWORD_MSG);
+  }
+
+  const user = await User.findOne({
+    email: email.toLowerCase().trim(),
+    twoFactorEnabled: true,
+  }).select("+twoFactorSecret +twoFactorBackupCodes");
+  if (!user) {
+    res.status(400);
+    throw new Error("Invalid authenticator code");
+  }
+
+  await checkTwoFactorCode(user, token, res);
+  user.password = password;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "Password reset successful. You can now log in.",
+  });
+});
+
+// ── Phone verification (needed once before WhatsApp reset is offered) ─────
+// Uses its own OTP fields so a login/reset code can't be replayed here.
+
+const sendPhoneVerifyOtp = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user.phone) {
+    res.status(400);
+    throw new Error("Add a phone number to your profile first");
+  }
+
+  const otp = generateOtp();
+  user.phoneVerifyOtp = hashOtp(otp);
+  user.phoneVerifyOtpExpire = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  await sendPhoneOtp(to10(user.phone), { otp });
+
+  res.json({ success: true, message: "Code sent via WhatsApp" });
+});
+
+const verifyPhoneVerifyOtp = asyncHandler(async (req, res) => {
+  const user = await User.findOne({
+    _id: req.user._id,
+    phoneVerifyOtp: hashOtp(req.body.otp || ""),
+    phoneVerifyOtpExpire: { $gt: new Date() },
+  });
+  if (!user) {
+    res.status(400);
+    throw new Error("This code is invalid or has expired");
+  }
+
+  user.phoneVerified = true;
+  user.phoneVerifyOtp = undefined;
+  user.phoneVerifyOtpExpire = undefined;
+  await user.save();
+
+  res.json({ success: true, message: "Phone number verified" });
+});
+
 module.exports = {
   register,
   login,
@@ -587,4 +767,10 @@ module.exports = {
   verify2FA,
   sendOtp,
   verifyOtp,
+  forgotPasswordMethods,
+  forgotPasswordWhatsapp,
+  resetPasswordWithOtp,
+  resetPasswordWithTotp,
+  sendPhoneVerifyOtp,
+  verifyPhoneVerifyOtp,
 };

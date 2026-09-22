@@ -1,8 +1,8 @@
-# NestSports — Brochure Content
+# NestPlay — Brochure Content
 
 ## Abstract
 
-NestSports is an all-in-one sports academy management platform that brings students, coaches, attendance, fees, payroll, events, and communication onto a single system — accessible from a mobile app and a web dashboard, backed by one shared database. Built for academies running multiple sports, batches, and locations, it replaces spreadsheets, WhatsApp groups, and paper registers with one connected workflow: enroll a student, mark their attendance by face-scan, collect their fee by QR, and notify their parent — automatically, in seconds. Every module talks to every other module, so a single action (like an attendance check-in) can trigger a payroll calculation, a parent notification, and a report update without any manual re-entry.
+NestPlay is an all-in-one sports academy management platform that brings students, coaches, attendance, fees, payroll, events, and communication onto a single system — accessible from a mobile app and a web dashboard, backed by one shared database. Built for academies running multiple sports, batches, and locations, it replaces spreadsheets, WhatsApp groups, and paper registers with one connected workflow: enroll a student, mark their attendance by face-scan, collect their fee by QR, and notify their parent — automatically, in seconds. Every module talks to every other module, so a single action (like an attendance check-in) can trigger a payroll calculation, a parent notification, and a report update without any manual re-entry.
 
 ---
 
@@ -10,7 +10,7 @@ NestSports is an all-in-one sports academy management platform that brings stude
 
 Academies today run on four or five disconnected tools — a fee register, a WhatsApp group for parents, an Excel sheet for attendance, a separate payroll process, and a notebook for tournament results. Every gap between these tools is a place where money, time, or trust leaks out.
 
-NestSports puts all of it on one login, one database, one app:
+NestPlay puts all of it on one login, one database, one app:
 
 - **One record per student** — attendance, fees, subscriptions, and tournament history live on a single profile instead of five different files
 - **One app for admins, coaches, staff, and parents** — each sees only what's relevant to them, with no separate systems to reconcile
@@ -99,7 +99,7 @@ Owners and admins get a single dashboard for everything the academy is doing —
 
 ## Inventory & Facility Management
 
-Equipment and facilities are tracked like everything else in NestSports — assigned to a person, booked against a schedule, and accounted for — instead of managed off-system on a whiteboard or notebook.
+Equipment and facilities are tracked like everything else in NestPlay — assigned to a person, booked against a schedule, and accounted for — instead of managed off-system on a whiteboard or notebook.
 
 **Features:**
 - Inventory CRUD with photo per item and stock-in/out transactions

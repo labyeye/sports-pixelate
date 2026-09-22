@@ -9,6 +9,9 @@ import {
   RefreshControl,
   StyleSheet,
   Alert,
+  Modal,
+  FlatList,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -38,8 +41,12 @@ import {
   Fingerprint,
   Clock,
   LayoutDashboard,
+  Search,
+  X,
+  Check,
 } from 'lucide-react-native';
 import { settingsAPI, RNFile } from '../api/client';
+import { INDIAN_BANKS } from '../constants/indianBanks';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -77,6 +84,7 @@ const SINGLE_PUNCH_ACTIONS = ['half_day', 'present', 'absent'] as const;
 const DASHBOARD_TYPES = ['Normal', 'Advanced', 'Compact'] as const;
 const TIME_FORMATS = ['12', '24'] as const;
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED'] as const;
+const PAYMENT_GATEWAYS = ['razorpay', 'cashfree', 'phonepe', 'paytm'] as const;
 
 const GST_REGEX = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z[A-Z\d]{1}$/;
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -112,6 +120,100 @@ function pickImage(onPicked: (file: RNFile) => void) {
     },
     { text: 'Cancel', style: 'cancel' },
   ]);
+}
+
+function BankNamePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [showCustom, setShowCustom] = useState(
+    !!value && !(INDIAN_BANKS as readonly string[]).includes(value),
+  );
+  const filtered = INDIAN_BANKS.filter(b =>
+    b.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.fieldLabel}>Bank Name *</Text>
+      <TouchableOpacity
+        style={styles.pickerField}
+        onPress={() => {
+          setQuery('');
+          setOpen(true);
+        }}
+      >
+        <Landmark size={16} color={colors.muted} />
+        <Text
+          style={[
+            styles.pickerFieldText,
+            !value && { color: colors.muted },
+          ]}
+        >
+          {value || 'Select your bank'}
+        </Text>
+      </TouchableOpacity>
+
+      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.white }}>
+          <View style={styles.pickerHeader}>
+            <Text style={styles.pickerHeaderTitle}>Select Bank</Text>
+            <TouchableOpacity onPress={() => setOpen(false)} hitSlop={10}>
+              <X size={22} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.pickerSearchRow}>
+            <Search size={16} color={colors.muted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search banks"
+              style={styles.pickerSearchInput}
+              autoFocus
+            />
+          </View>
+          <FlatList
+            data={filtered}
+            keyExtractor={b => b}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.pickerRow}
+                onPress={() => {
+                  if (item === 'Other') {
+                    setShowCustom(true);
+                    onChange('');
+                  } else {
+                    setShowCustom(false);
+                    onChange(item);
+                  }
+                  setOpen(false);
+                }}
+              >
+                <Text style={styles.pickerRowText}>{item}</Text>
+                {item === value && (
+                  <Check size={18} color={colors.blue} strokeWidth={2.5} />
+                )}
+              </TouchableOpacity>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {showCustom && (
+        <TextField
+          label="Bank Name"
+          value={value}
+          onChangeText={onChange}
+          placeholder="Enter your bank's name"
+        />
+      )}
+    </View>
+  );
 }
 
 function ToggleRow({
@@ -390,12 +492,9 @@ export default function SettingsScreen() {
         {tab === 'bank' && (
           <Card>
             <SectionTitle title="Bank Details" />
-            <TextField
-              label="Bank Name"
-              icon={Landmark}
-              required
+            <BankNamePicker
               value={settings?.bankName || ''}
-              onChangeText={v => set({ bankName: v })}
+              onChange={v => set({ bankName: v })}
             />
             <TextField
               label="Bank Branch"
@@ -426,6 +525,126 @@ export default function SettingsScreen() {
               onChangeText={v => set({ bankIFSC: v.toUpperCase() })}
               placeholder="SBIN0001234"
             />
+
+            <SectionTitle
+              title="Payment Gateway (Auto-verify Payments)"
+              sub="Connect your own gateway account so student and booking payments land in your bank account and get verified automatically — no manual UTR review."
+            />
+            <ChipSelect
+              label="Gateway"
+              options={PAYMENT_GATEWAYS}
+              value={settings?.paymentGateway || 'razorpay'}
+              onChange={v => set({ paymentGateway: v })}
+              labels={{
+                razorpay: 'Razorpay',
+                cashfree: 'Cashfree',
+                phonepe: 'PhonePe',
+                paytm: 'Paytm',
+              }}
+            />
+
+            {(settings?.paymentGateway || 'razorpay') === 'razorpay' && (
+              <>
+                <TextField
+                  label="Razorpay Key ID"
+                  icon={Hash}
+                  value={settings?.razorpayKeyId || ''}
+                  onChangeText={v => set({ razorpayKeyId: v.trim() })}
+                  placeholder="rzp_live_xxxxxxxxxxxx"
+                />
+                <TextField
+                  label="Razorpay Key Secret"
+                  icon={CreditCard}
+                  secureTextEntry
+                  value={settings?.razorpayKeySecret || ''}
+                  onChangeText={v => set({ razorpayKeySecret: v.trim() })}
+                  placeholder={
+                    settings?.razorpayKeyId
+                      ? 'Connected — leave blank to keep unchanged'
+                      : 'Paste your Key Secret'
+                  }
+                />
+              </>
+            )}
+
+            {settings?.paymentGateway === 'cashfree' && (
+              <>
+                <TextField
+                  label="Cashfree App ID"
+                  icon={Hash}
+                  value={settings?.cashfreeAppId || ''}
+                  onChangeText={v => set({ cashfreeAppId: v.trim() })}
+                  placeholder="e.g. TEST12345abcdef"
+                />
+                <TextField
+                  label="Cashfree Secret Key"
+                  icon={CreditCard}
+                  secureTextEntry
+                  value={settings?.cashfreeSecretKey || ''}
+                  onChangeText={v => set({ cashfreeSecretKey: v.trim() })}
+                  placeholder={
+                    settings?.cashfreeAppId
+                      ? 'Connected — leave blank to keep unchanged'
+                      : 'Paste your Secret Key'
+                  }
+                />
+              </>
+            )}
+
+            {settings?.paymentGateway === 'phonepe' && (
+              <>
+                <TextField
+                  label="PhonePe Merchant ID"
+                  icon={Hash}
+                  value={settings?.phonepeMerchantId || ''}
+                  onChangeText={v => set({ phonepeMerchantId: v.trim() })}
+                  placeholder="e.g. PGTESTPAYUAT"
+                />
+                <TextField
+                  label="PhonePe Salt Key"
+                  icon={CreditCard}
+                  secureTextEntry
+                  value={settings?.phonepeSaltKey || ''}
+                  onChangeText={v => set({ phonepeSaltKey: v.trim() })}
+                  placeholder={
+                    settings?.phonepeMerchantId
+                      ? 'Connected — leave blank to keep unchanged'
+                      : 'Paste your Salt Key'
+                  }
+                />
+                <TextField
+                  label="Salt Index"
+                  icon={Hash}
+                  value={settings?.phonepeSaltIndex || '1'}
+                  onChangeText={v => set({ phonepeSaltIndex: v.trim() })}
+                  placeholder="1"
+                />
+              </>
+            )}
+
+            {settings?.paymentGateway === 'paytm' && (
+              <>
+                <TextField
+                  label="Paytm Merchant ID (MID)"
+                  icon={Hash}
+                  value={settings?.paytmMerchantId || ''}
+                  onChangeText={v => set({ paytmMerchantId: v.trim() })}
+                  placeholder="e.g. abcDEF12345"
+                />
+                <TextField
+                  label="Paytm Merchant Key"
+                  icon={CreditCard}
+                  secureTextEntry
+                  value={settings?.paytmMerchantKey || ''}
+                  onChangeText={v => set({ paytmMerchantKey: v.trim() })}
+                  placeholder={
+                    settings?.paytmMerchantId
+                      ? 'Connected — leave blank to keep unchanged'
+                      : 'Paste your Merchant Key'
+                  }
+                />
+              </>
+            )}
           </Card>
         )}
 
@@ -726,4 +945,64 @@ const styles = StyleSheet.create({
   },
   logoImg: { width: '100%', height: '100%' },
   logoPlaceholder: { fontFamily: FONT.bold, color: colors.muted, fontSize: 11 },
+  fieldLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.black,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 6,
+  },
+  pickerField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  pickerFieldText: {
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    color: colors.black,
+    flex: 1,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.black,
+  },
+  pickerHeaderTitle: { fontFamily: FONT.bold, fontSize: 16, color: colors.black },
+  pickerSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    margin: 16,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingHorizontal: 12,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    color: colors.black,
+    paddingVertical: 10,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#0000001A',
+  },
+  pickerRowText: { fontFamily: FONT.medium, fontSize: 14, color: colors.black },
 });

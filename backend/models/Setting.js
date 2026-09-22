@@ -73,6 +73,56 @@ const settingSchema = new mongoose.Schema(
       default: "",
     },
 
+    // The club's own payment gateway account — when credentials for the
+    // selected gateway are set, student/booking payments are created
+    // against this account (and land in the club's bank account) instead
+    // of the platform's default RAZORPAY_KEY_ID/SECRET.
+    paymentGateway: {
+      type: String,
+      enum: ["razorpay", "cashfree", "phonepe", "paytm"],
+      default: "razorpay",
+    },
+    razorpayKeyId: {
+      type: String,
+      default: "",
+    },
+    razorpayKeySecret: {
+      type: String,
+      default: "",
+      select: false,
+    },
+    cashfreeAppId: {
+      type: String,
+      default: "",
+    },
+    cashfreeSecretKey: {
+      type: String,
+      default: "",
+      select: false,
+    },
+    phonepeMerchantId: {
+      type: String,
+      default: "",
+    },
+    phonepeSaltKey: {
+      type: String,
+      default: "",
+      select: false,
+    },
+    phonepeSaltIndex: {
+      type: String,
+      default: "1",
+    },
+    paytmMerchantId: {
+      type: String,
+      default: "",
+    },
+    paytmMerchantKey: {
+      type: String,
+      default: "",
+      select: false,
+    },
+
     whatsappEnabled: { type: Boolean, default: false },
     whatsappNotifyCheckIn: { type: Boolean, default: true },
     whatsappNotifyLeave: { type: Boolean, default: true },

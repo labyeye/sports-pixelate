@@ -777,7 +777,7 @@ export default function PayrollPage() {
       {}
       {loading ? (
         <div className="flex items-center justify-center h-48">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : payrolls.length === 0 ? (
         <div className="border-2 bg-white p-12 flex flex-col items-center justify-center">

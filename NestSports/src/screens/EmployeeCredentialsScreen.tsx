@@ -10,11 +10,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowUpDown, KeyRound, X } from 'lucide-react-native';
-import { employeeAPI } from '../api/client';
+import { employeeAPI, parentAPI } from '../api/client';
 import {
+  FilterPills,
   Row,
   EmptyState,
   LoadingView,
@@ -35,7 +37,40 @@ const SORT_OPTIONS: SortOption[] = [
 
 let searchDebounce: ReturnType<typeof setTimeout>;
 
+const PWD_CHARS =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+const generatePassword = () =>
+  Array.from(
+    { length: 12 },
+    () => PWD_CHARS[Math.floor(Math.random() * PWD_CHARS.length)],
+  ).join('');
+
+// The web page copies credentials to the clipboard; on mobile the share sheet
+// is the equivalent way to hand them to the person securely.
+const offerShare = (title: string, email: string, password: string) =>
+  Alert.alert(title, 'Share the new credentials with them securely.', [
+    { text: 'Done', style: 'cancel' },
+    {
+      text: 'Share',
+      onPress: () =>
+        Share.share({ message: `Email: ${email}\nPassword: ${password}` }),
+    },
+  ]);
+
+type Tab = 'staff' | 'parents';
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'staff', label: 'Staff' },
+  { value: 'parents', label: 'Parents' },
+];
+
 export default function EmployeeCredentialsScreen() {
+  const [tab, setTab] = useState<Tab>('staff');
+  const [parents, setParents] = useState<any[]>([]);
+  const [parentFor, setParentFor] = useState<any>(null);
+  const [parentEmail, setParentEmail] = useState('');
+  const [parentPassword, setParentPassword] = useState('');
+  // Generated passwords are revealed so the admin can read them out; typed ones stay masked.
+  const [showPwd, setShowPwd] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,6 +149,7 @@ export default function EmployeeCredentialsScreen() {
   };
 
   const openReset = (emp: any) => {
+    setShowPwd(false);
     setResetFor(emp);
     setNewPassword('');
   };
@@ -127,13 +163,62 @@ export default function EmployeeCredentialsScreen() {
     setSaving(true);
     try {
       await employeeAPI.resetPassword(resetFor._id, newPassword);
-      Alert.alert(
-        'Success',
-        `Password reset for ${resetFor.firstName} ${resetFor.lastName}`,
-      );
+      const done = resetFor;
       setResetFor(null);
+      offerShare(
+        `Password reset for ${done.firstName} ${done.lastName}`,
+        done.email,
+        newPassword,
+      );
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Could not reset password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== 'parents') return;
+    parentAPI
+      .getAll(search ? { search } : undefined)
+      .then((res: any) => res.success && setParents(res.data || []))
+      .catch(() => {});
+  }, [tab, search]);
+
+  const openParent = (p: any) => {
+    setShowPwd(false);
+    setParentFor(p);
+    setParentEmail(p.email || '');
+    setParentPassword('');
+  };
+
+  const submitParent = async () => {
+    if (!parentFor) return;
+    const email = parentEmail.trim();
+    if (!email && !parentPassword) {
+      Alert.alert('Nothing to update', 'Set an email or a password');
+      return;
+    }
+    setSaving(true);
+    try {
+      const body: { email?: string; password?: string } = {};
+      if (email && email !== parentFor.email) body.email = email;
+      if (parentPassword) body.password = parentPassword;
+      await parentAPI.updateCredentials(parentFor._id, body);
+      setParents(list =>
+        list.map(p =>
+          p._id === parentFor._id ? { ...p, email: body.email || p.email } : p,
+        ),
+      );
+      const done = parentFor;
+      setParentFor(null);
+      offerShare(
+        'Credentials updated',
+        body.email || done.email,
+        parentPassword || '(unchanged)',
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not update credentials');
     } finally {
       setSaving(false);
     }
@@ -155,39 +240,67 @@ export default function EmployeeCredentialsScreen() {
           </TouchableOpacity>
         </View>
 
+        <FilterPills options={TABS} value={tab} onChange={setTab} />
+        <View style={{ height: 10 }} />
         <SearchBar
           value={searchInput}
           onChangeText={setSearchInput}
-          placeholder="Search staff..."
+          placeholder={tab === 'staff' ? 'Search staff...' : 'Search parents...'}
         />
 
-        <FlatList
-          data={employees}
-          keyExtractor={e => e._id}
-          style={styles.listCard}
-          contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 8 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          onEndReached={onLoadMore}
-          onEndReachedThreshold={0.4}
-          ListFooterComponent={
-            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
-          }
-          ListEmptyComponent={<EmptyState title="No staff found" />}
-          renderItem={({ item: e }) => (
-            <Row
-              title={`${e.firstName} ${e.lastName}`}
-              subtitle={`${e.employeeId || '-'} · ${e.email || '-'}`}
-              onPress={() => openReset(e)}
-              right={
-                <TouchableOpacity onPress={() => openReset(e)} hitSlop={8}>
-                  <KeyRound size={18} color={colors.blue} strokeWidth={2} />
-                </TouchableOpacity>
-              }
-            />
-          )}
-        />
+        {tab === 'staff' ? (
+          <FlatList
+            data={employees}
+            keyExtractor={e => e._id}
+            style={styles.listCard}
+            contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 8 }}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            onEndReached={onLoadMore}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+            }
+            ListEmptyComponent={<EmptyState title="No staff found" />}
+            renderItem={({ item: e }) => (
+              <Row
+                title={`${e.firstName} ${e.lastName}`}
+                subtitle={`${e.employeeId || '-'} · ${e.email || '-'}`}
+                onPress={() => openReset(e)}
+                right={
+                  <TouchableOpacity onPress={() => openReset(e)} hitSlop={8}>
+                    <KeyRound size={18} color={colors.blue} strokeWidth={2} />
+                  </TouchableOpacity>
+                }
+              />
+            )}
+          />
+        ) : (
+          <FlatList
+            data={parents}
+            keyExtractor={p => p._id}
+            style={styles.listCard}
+            contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 8 }}
+            ListEmptyComponent={<EmptyState title="No parents found" />}
+            renderItem={({ item: p }) => (
+              <Row
+                title={p.name || p.email || '-'}
+                subtitle={`${p.email || '-'}${
+                  p.children?.length
+                    ? ` · ${p.children.map((c: any) => c.firstName).join(', ')}`
+                    : ''
+                }`}
+                onPress={() => openParent(p)}
+                right={
+                  <TouchableOpacity onPress={() => openParent(p)} hitSlop={8}>
+                    <KeyRound size={18} color={colors.blue} strokeWidth={2} />
+                  </TouchableOpacity>
+                }
+              />
+            )}
+          />
+        )}
       </View>
 
       <SortSheet
@@ -230,9 +343,18 @@ export default function EmployeeCredentialsScreen() {
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder="At least 6 characters"
-              secureTextEntry
+              secureTextEntry={!showPwd}
               required
             />
+            <Button
+              title="Generate Password"
+              variant="outline"
+              onPress={() => {
+                setShowPwd(true);
+                setNewPassword(generatePassword());
+              }}
+            />
+            <View style={{ height: 10 }} />
             <Button
               title={saving ? 'Saving...' : 'Reset Password'}
               onPress={submitReset}
@@ -244,6 +366,57 @@ export default function EmployeeCredentialsScreen() {
                 color={colors.blue}
               />
             )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal
+        visible={!!parentFor}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setParentFor(null)}
+      >
+        <SafeAreaView edges={['top']} style={styles.screen}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>Parent Credentials</Text>
+            <TouchableOpacity onPress={() => setParentFor(null)} hitSlop={8}>
+              <X size={22} color={colors.black} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <SectionTitle
+              title={parentFor?.name || ''}
+              sub={parentFor?.phone || undefined}
+            />
+            <TextField
+              label="Email"
+              value={parentEmail}
+              onChangeText={setParentEmail}
+              keyboardType="email-address"
+            />
+            <TextField
+              label="New Password (leave blank to keep)"
+              value={parentPassword}
+              onChangeText={setParentPassword}
+              secureTextEntry={!showPwd}
+            />
+            <Button
+              title="Generate Password"
+              variant="outline"
+              onPress={() => {
+                setShowPwd(true);
+                setParentPassword(generatePassword());
+              }}
+            />
+            <View style={{ height: 10 }} />
+            <Button
+              title={saving ? 'Saving...' : 'Update Credentials'}
+              onPress={submitParent}
+              disabled={saving}
+            />
           </ScrollView>
         </SafeAreaView>
       </Modal>

@@ -24,7 +24,7 @@ export default function PaymentFailedPage() {
             <Zap className="w-5 h-5 text-white" />
           </div>
           <span className="font-display font-bold text-xl text-black">
-            NestSports
+            NestPlay
           </span>
         </div>
       </header>

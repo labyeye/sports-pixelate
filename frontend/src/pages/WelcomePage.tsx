@@ -120,7 +120,7 @@ export default function WelcomePage() {
             <Zap className="w-5 h-5 text-white" />
           </div>
           <span className="font-display font-bold text-xl text-black">
-            NestSports
+            NestPlay
           </span>
         </div>
       </header>
@@ -166,7 +166,7 @@ export default function WelcomePage() {
                 <span className="text-[#FA731C]">{userName}!</span>
               </h1>
               <p className="mt-3 text-white/80 text-sm font-medium max-w-md">
-                Your NestSports workspace is live. Everything you need to manage
+                Your NestPlay workspace is live. Everything you need to manage
                 your team — payroll, attendance, leaves, performance — is ready.
               </p>
             </div>

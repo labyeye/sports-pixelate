@@ -15,7 +15,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import nestsportsLogo from "../../assets/logo.png";
+import nestplayLogo from "../../assets/logo.png";
 import { Arrow } from "@radix-ui/react-select";
 declare global {
   interface Window {
@@ -190,8 +190,8 @@ export default function OnboardingPage() {
           order_id: order.orderId,
           amount: order.amount * 100,
           currency: order.currency || "INR",
-          name: "NestSports",
-          description: `NestSports — ${count} students`,
+          name: "NestPlay",
+          description: `NestPlay — ${count} students`,
           theme: { color: "#024BAB" },
           handler: async (response: any) => {
             try {
@@ -202,7 +202,7 @@ export default function OnboardingPage() {
               });
               toast({
                 title: "Payment Successful!",
-                description: "Subscription activated. Welcome to NestSports!",
+                description: "Subscription activated. Welcome to NestPlay!",
                 variant: "success",
               });
               const createdCompany = verifyRes.data?.company;
@@ -256,8 +256,8 @@ export default function OnboardingPage() {
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src={nestsportsLogo}
-              alt="NestSports"
+              src={nestplayLogo}
+              alt="NestPlay"
               className="w-full h-14"
             />
           </div>

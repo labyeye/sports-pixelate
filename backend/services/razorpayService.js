@@ -1,19 +1,25 @@
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
-function getClient() {
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+// creds lets a caller pass a club's own Razorpay key (so the money lands in
+// their account) instead of the platform's default RAZORPAY_KEY_ID/SECRET.
+function resolveCreds(creds) {
+  const key_id = creds?.key_id || process.env.RAZORPAY_KEY_ID;
+  const key_secret = creds?.key_secret || process.env.RAZORPAY_KEY_SECRET;
   if (!key_id || !key_secret) {
     throw new Error(
-      "Razorpay credentials not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env",
+      "Razorpay credentials not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env, or connect a Razorpay account in Settings.",
     );
   }
-  return new Razorpay({ key_id, key_secret });
+  return { key_id, key_secret };
 }
 
-async function createOrder({ amount, currency = "INR", receipt, notes = {} }) {
-  const client = getClient();
+async function createOrder(
+  { amount, currency = "INR", receipt, notes = {} },
+  creds,
+) {
+  const { key_id, key_secret } = resolveCreds(creds);
+  const client = new Razorpay({ key_id, key_secret });
   const order = await client.orders.create({
     amount: Math.round(amount * 100),
     currency,
@@ -22,19 +28,17 @@ async function createOrder({ amount, currency = "INR", receipt, notes = {} }) {
   });
   return {
     orderId: order.id,
-    keyId: process.env.RAZORPAY_KEY_ID,
+    keyId: key_id,
     amount,
     currency,
   };
 }
 
-function verifySignature({
-  razorpayOrderId,
-  razorpayPaymentId,
-  razorpaySignature,
-}) {
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!key_secret) throw new Error("RAZORPAY_KEY_SECRET not set");
+function verifySignature(
+  { razorpayOrderId, razorpayPaymentId, razorpaySignature },
+  creds,
+) {
+  const { key_secret } = resolveCreds(creds);
 
   const expected = crypto
     .createHmac("sha256", key_secret)

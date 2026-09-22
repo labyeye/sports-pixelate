@@ -447,7 +447,7 @@ export default function HolidaysPage() {
         {}
         {loading ? (
           <div className="flex justify-center py-16">
-            <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+            <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
           </div>
         ) : holidays.length === 0 ? (
           <div className="text-center py-16 bg-white border-2 border-black">

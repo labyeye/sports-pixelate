@@ -44,6 +44,7 @@ import MyLoansScreen from '../screens/MyLoansScreen';
 import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 import ChoosePlanScreen from '../screens/ChoosePlanScreen';
 import QrRenewalScreen from '../screens/QrRenewalScreen';
+import PaymentWebViewScreen from '../screens/PaymentWebViewScreen';
 import BookingsScreen from '../screens/BookingsScreen';
 import ParentAttendanceScreen from '../screens/ParentAttendanceScreen';
 import ParentReportScreen from '../screens/ParentReportScreen';
@@ -62,6 +63,7 @@ import FacilitiesScreen from '../screens/FacilitiesScreen';
 
 // System
 import ReportsScreen from '../screens/ReportsScreen';
+import ReportViewerScreen from '../screens/ReportViewerScreen';
 import StudentReportsScreen from '../screens/StudentReportsScreen';
 import StudentAttendanceReportScreen from '../screens/StudentAttendanceReportScreen';
 import StudentSubscriptionReportScreen from '../screens/StudentSubscriptionReportScreen';
@@ -256,6 +258,11 @@ export default function RootNavigator() {
               component={QrRenewalScreen}
               options={{ title: 'Renew Subscription' }}
             />
+            <Stack.Screen
+              name="PaymentWebView"
+              component={PaymentWebViewScreen}
+              options={{ title: 'Complete Payment' }}
+            />
             <Stack.Screen name="Bookings" component={BookingsScreen} />
             <Stack.Screen
               name="ParentAttendance"
@@ -304,6 +311,7 @@ export default function RootNavigator() {
             <Stack.Screen name="Facilities" component={FacilitiesScreen} />
 
             <Stack.Screen name="Reports" component={ReportsScreen} />
+            <Stack.Screen name="ReportViewer" component={ReportViewerScreen} />
             <Stack.Screen
               name="StudentReports"
               component={StudentReportsScreen}

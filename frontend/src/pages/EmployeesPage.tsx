@@ -928,7 +928,7 @@ export default function EmployeesPage() {
       {}
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <img src={nesthrlogo} alt="NestSports" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : employees.length === 0 ? (
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
@@ -3959,7 +3959,7 @@ export default function EmployeesPage() {
             </p>
             <p>
               • <strong>Department</strong> and <strong>Shift Name</strong> must
-              exactly match names already created in NestSports.
+              exactly match names already created in NestPlay.
             </p>
             <p>
               • <strong>Gender</strong> must be one of: <code>male</code>,{" "}

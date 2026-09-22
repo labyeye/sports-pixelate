@@ -77,9 +77,15 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.nestsports"
+    namespace "com.nestplay"
+    // 3.22.1's ninja (1.10.2) fails on Windows paths >260 chars; 3.31.6 ships ninja 1.12.1 (long-path aware)
+    externalNativeBuild {
+        cmake {
+            version "3.31.6"
+        }
+    }
     defaultConfig {
-        applicationId "com.nestsports"
+        applicationId "com.nestplay"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
