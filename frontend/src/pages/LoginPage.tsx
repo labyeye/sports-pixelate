@@ -11,13 +11,13 @@ import {
   IndianRupee,
   BarChart2,
   ShieldCheck,
-  Smartphone,
   Baby,
   Wallet,
   KeyRound,
 } from "lucide-react";
 import nesthrlogo from "../../assets/logo.png";
 import { authAPI } from "@/services/api";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 function bufferToBase64Url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -322,7 +322,7 @@ export default function LoginPage() {
             <>
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                  <Smartphone className="w-7 h-7 text-[#024BAB]" />
+                  <WhatsAppIcon className="w-7 h-7 text-[#25D366]" />
                   <h2 className="text-2xl font-display font-bold text-black">
                     {otpSent ? "Enter OTP" : "Phone Login"}
                   </h2>
@@ -550,7 +550,7 @@ export default function LoginPage() {
                   }}
                   className="w-full py-2.5 px-4 bg-gray-50 border-2 border-black/10 hover:border-black text-xs font-bold text-black transition-all flex items-center justify-center gap-2"
                 >
-                  <Smartphone className="w-4 h-4 text-[#024BAB]" /> Login with Phone OTP (WhatsApp)
+                  <WhatsAppIcon className="w-4 h-4 text-[#25D366]" /> Login with Phone OTP (WhatsApp)
                 </button>
                 <button
                   type="button"

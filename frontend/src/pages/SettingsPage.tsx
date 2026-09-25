@@ -6,6 +6,7 @@ import { settingsAPI, authAPI } from "@/services/api";
 import { compressImageFile } from "@/lib/imageCompress";
 import { INDIAN_BANKS } from "@/lib/indianBanks";
 import { useToast } from "@/hooks/use-toast";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
   Building2,
   Landmark,
@@ -15,7 +16,6 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
-  MessageCircle,
   ShieldCheck,
   Users,
   Settings2,
@@ -374,7 +374,7 @@ function PhoneVerifyPanel() {
     <div className="p-6 space-y-6 max-w-lg">
       <div>
         <h3 className="text-lg font-bold text-black flex items-center gap-2">
-          <MessageCircle className="w-5 h-5" /> WhatsApp Verification
+          <WhatsAppIcon className="w-5 h-5 text-[#25D366]" /> WhatsApp Verification
         </h3>
         <p className="text-sm text-gray-500 mt-1">
           Verify your WhatsApp number to be able to reset your password with a
@@ -1183,7 +1183,7 @@ export default function SettingsPage() {
     },
     {
       group: "Integrations",
-      items: [{ id: "whatsapp", label: "WhatsApp", icon: MessageCircle }],
+      items: [{ id: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon }],
     },
     {
       group: "HR Config",
@@ -1209,7 +1209,7 @@ export default function SettingsPage() {
         {
           id: "phone_verify",
           label: "WhatsApp Verification",
-          icon: MessageCircle,
+          icon: WhatsAppIcon,
         },
       ],
     },

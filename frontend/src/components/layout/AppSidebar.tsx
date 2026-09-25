@@ -3,9 +3,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getNavGroupsForRole } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, LogOut, X } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import nesthrlogo from "../../../assets/logo.png";
 import nesthrlogosmall from "../../../assets/nesthr.png";
+
+// Every page mounts its own AppLayout, so the sidebar remounts on navigation; keep scroll here.
+let navScrollTop = 0;
 
 interface AppSidebarProps {
   mobileOpen: boolean;
@@ -16,6 +19,11 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    if (navRef.current) navRef.current.scrollTop = navScrollTop;
+  }, [user]);
 
   if (!user) return null;
 
@@ -63,7 +71,10 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
         </div>
 
         {}
-        <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
+        <nav
+          ref={navRef}
+          onScroll={(e) => (navScrollTop = e.currentTarget.scrollTop)}
+          className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
           {groups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
