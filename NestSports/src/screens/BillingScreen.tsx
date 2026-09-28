@@ -126,9 +126,7 @@ export default function BillingScreen() {
                 </Text>
               ) : null}
               <Text style={styles.sub}>
-                {subscription.wantsWhatsapp
-                  ? 'Includes WhatsApp notifications'
-                  : 'WhatsApp notifications not enabled'}
+                ₹30/student/month · WhatsApp notifications included
               </Text>
               {subscription.renewalDate ? (
                 <Text style={styles.sub}>

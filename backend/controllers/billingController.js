@@ -10,11 +10,7 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const {
-  RATE_STANDARD,
-  RATE_WHATSAPP,
-  calculatePricing,
-} = require("../utils/pricing");
+const { RATE_PER_STUDENT, calculatePricing } = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 
 const PLAN_NAME = "NestPlay";
@@ -25,8 +21,7 @@ const getPlans = asyncHandler(async (req, res) => {
     data: [
       {
         name: PLAN_NAME,
-        ratePerUnit: RATE_STANDARD,
-        ratePerUnitWhatsapp: RATE_WHATSAPP,
+        ratePerStudentMonthly: RATE_PER_STUDENT,
       },
     ],
   });
@@ -87,7 +82,7 @@ function _offerMessage(offer) {
     return `Offer code applied! You will get ${offer.bonusMonths} bonus month(s) added to your subscription.`;
   }
   if (offer.discountType === "flat_rate") {
-    return `Offer code applied! Your rate is now ₹${offer.flatRate}/unit/year.`;
+    return `Offer code applied! Your rate is now ₹${offer.flatRate}/student/month.`;
   }
   return `Offer code applied! ${offer.percentOff}% off your order.`;
 }

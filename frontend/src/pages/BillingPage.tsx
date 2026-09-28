@@ -30,8 +30,8 @@ declare global {
   }
 }
 
-const RATE_STANDARD = 150;
-const RATE_WHATSAPP = 300;
+const RATE_PER_STUDENT = 30;
+const GST_RATE = 18;
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -43,8 +43,6 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [newStudentCount, setNewStudentCount] = useState<number | "">("");
-  const [newEmployeeCount, setNewEmployeeCount] = useState<number | "">("");
-  const [newWantsWhatsapp, setNewWantsWhatsapp] = useState(false);
   const [gatewayModal, setGatewayModal] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
@@ -59,8 +57,6 @@ export default function BillingPage() {
           if (r.success) {
             setSubscription(r.data);
             setNewStudentCount(r.data.maxStudents || "");
-            setNewEmployeeCount(r.data.maxEmployees || "");
-            setNewWantsWhatsapp(!!r.data.wantsWhatsapp);
           }
         })
         .catch(() => {}),
@@ -149,8 +145,6 @@ export default function BillingPage() {
       const res = await billingAPI.validateOfferCode(
         couponCode.trim(),
         Number(newStudentCount) || undefined,
-        Number(newEmployeeCount) || undefined,
-        newWantsWhatsapp,
       );
       setAppliedCoupon(res.data);
       toast({ title: "Coupon applied", description: res.message });
@@ -184,15 +178,14 @@ export default function BillingPage() {
   const handleGatewaySelect = async (gateway: "razorpay" | "hdfc") => {
     const count = Number(newStudentCount);
     if (!count) return;
-    const empCount = Number(newEmployeeCount) || 0;
     setGatewayModal(false);
     setUpgrading(true);
     try {
       const res = await billingAPI.createOrder(
         count,
-        empCount,
-        newWantsWhatsapp,
-        "yearly",
+        0,
+        true,
+        "monthly",
         gateway,
         undefined,
         appliedCoupon?.code,
@@ -289,8 +282,7 @@ export default function BillingPage() {
                   month: "long",
                   year: "numeric",
                 })}
-                . Subscribe anytime below to keep full access and unlock yearly
-                savings.
+                . Subscribe anytime below to keep full access.
               </p>
             </div>
           </div>
@@ -368,7 +360,7 @@ export default function BillingPage() {
             {
               label: "Employees",
               value: employeesUsed,
-              max: employeesMax,
+              max: employeesMax || "Unlimited",
               pct: employeesPct,
               icon: Briefcase,
             },
@@ -421,15 +413,11 @@ export default function BillingPage() {
             Update Plan & Student Count
           </h2>
           <p className="text-sm text-muted-foreground -mt-4 mb-6">
-            Priced per student & employee, per year — switch plans anytime
+            ₹{RATE_PER_STUDENT} per student, per month — employees free,
+            WhatsApp notifications included
           </p>
 
           <div className="border-2 p-5 bg-white max-w-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-              ₹{RATE_STANDARD}/person/year, or ₹{RATE_WHATSAPP}/person/year with
-              WhatsApp notifications
-            </p>
-
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
               <Users className="w-3.5 h-3.5 text-[#024BAB]" />
               Number of students
@@ -447,51 +435,6 @@ export default function BillingPage() {
               }
               className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
             />
-
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
-              <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />
-              Number of employees
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={newEmployeeCount}
-              onChange={(e) =>
-                setNewEmployeeCount(
-                  e.target.value === ""
-                    ? ""
-                    : Math.max(0, parseInt(e.target.value) || 0),
-                )
-              }
-              className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
-            />
-
-            <button
-              type="button"
-              onClick={() => setNewWantsWhatsapp((v) => !v)}
-              className={cn(
-                "w-full border-2 border-black px-4 py-2.5 mb-4 flex items-center justify-between text-left transition-all",
-                newWantsWhatsapp
-                  ? "bg-[#024BAB] text-white"
-                  : "bg-white text-black",
-              )}
-            >
-              <span className="font-bold text-sm">
-                Enable WhatsApp notifications
-              </span>
-              <span
-                className={cn(
-                  "w-5 h-5 border-2 flex items-center justify-center shrink-0",
-                  newWantsWhatsapp
-                    ? "bg-white border-white"
-                    : "bg-white border-black",
-                )}
-              >
-                {newWantsWhatsapp && (
-                  <Check className="w-3.5 h-3.5 text-[#024BAB]" />
-                )}
-              </span>
-            </button>
 
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
               <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
@@ -543,21 +486,18 @@ export default function BillingPage() {
                 {appliedCoupon.discountType === "bonus_months" &&
                   `${appliedCoupon.bonusMonths} bonus month(s)`}
                 {appliedCoupon.discountType === "flat_rate" &&
-                  `₹${appliedCoupon.flatRate}/person/year`}
+                  `₹${appliedCoupon.flatRate}/student/month`}
                 {appliedCoupon.discountType === "percent_off" &&
                   `${appliedCoupon.percentOff}% off`}
               </p>
             )}
             {!appliedCoupon && !couponError && <div className="mb-3" />}
 
-            {(Number(newStudentCount) > 0 || Number(newEmployeeCount) > 0) && (
+            {Number(newStudentCount) > 0 && (
               <div className="mb-4">
                 {(() => {
-                  const units =
-                    Number(newStudentCount) + Number(newEmployeeCount);
-                  const baseRate = newWantsWhatsapp
-                    ? RATE_WHATSAPP
-                    : RATE_STANDARD;
+                  const units = Number(newStudentCount);
+                  const baseRate = RATE_PER_STUDENT;
                   let rate = baseRate;
                   if (
                     appliedCoupon?.discountType === "flat_rate" &&
@@ -565,16 +505,16 @@ export default function BillingPage() {
                   ) {
                     rate = appliedCoupon.flatRate;
                   }
-                  let yearly = units * rate;
+                  let monthly = units * rate;
                   if (
                     appliedCoupon?.discountType === "percent_off" &&
                     appliedCoupon.percentOff
                   ) {
-                    yearly = Math.round(
-                      yearly * (1 - appliedCoupon.percentOff / 100),
+                    monthly = Math.round(
+                      monthly * (1 - appliedCoupon.percentOff / 100),
                     );
                   }
-                  const discounted = yearly !== units * baseRate;
+                  const discounted = monthly !== units * baseRate;
                   return (
                     <>
                       {discounted && (
@@ -583,13 +523,18 @@ export default function BillingPage() {
                         </span>
                       )}
                       <span className="font-display font-bold text-3xl text-black">
-                        ₹{yearly.toLocaleString("en-IN")}
+                        ₹{monthly.toLocaleString("en-IN")}
                       </span>
                       <span className="text-sm font-medium text-muted-foreground">
-                        /yr
+                        /mo
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
-                        ₹{rate}/person/year
+                        ₹{rate}/student/month + {GST_RATE}% GST
+                        (₹
+                        {(
+                          monthly + Math.round((monthly * GST_RATE) / 100)
+                        ).toLocaleString("en-IN")}{" "}
+                        total)
                         {appliedCoupon?.discountType === "bonus_months" &&
                           ` + ${appliedCoupon.bonusMonths} bonus month(s)`}
                       </p>
@@ -603,9 +548,7 @@ export default function BillingPage() {
               onClick={handleUpdateStudentCount}
               disabled={
                 upgrading ||
-                (Number(newStudentCount) === studentsMax &&
-                  Number(newEmployeeCount) === (sub?.maxEmployees ?? 0) &&
-                  newWantsWhatsapp === !!sub?.wantsWhatsapp)
+                (isActive && Number(newStudentCount) === studentsMax)
               }
               className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
             >

@@ -1,9 +1,7 @@
 const Company = require("../models/Company");
-const Subscription = require("../models/Subscription");
 
-// Single plan (see utils/pricing.js): ₹150/person/year, every feature
-// included except WhatsApp notifications, which are ₹300/person/year and
-// gated by the subscription's `wantsWhatsapp` flag.
+// Single plan (see utils/pricing.js): ₹30/student/month, every feature
+// included (WhatsApp notifications too).
 const ALL_FEATURES = {
   mobileApp: true,
   payroll: true,
@@ -27,11 +25,7 @@ async function getCompanyFeatures(companyId) {
     : null;
   if (!company?.subscription) return NO_FEATURES;
 
-  const subscription = await Subscription.findById(company.subscription).select(
-    "wantsWhatsapp",
-  );
-
-  return { ...ALL_FEATURES, whatsapp: !!subscription?.wantsWhatsapp };
+  return ALL_FEATURES;
 }
 
 module.exports = { ALL_FEATURES, getCompanyFeatures };
