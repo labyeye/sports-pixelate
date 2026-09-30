@@ -32,7 +32,7 @@ import {
 } from 'lucide-react-native';
 import { studentAttendanceAPI, studentAPI, RNFile } from '../api/client';
 import { colors, FONT } from '../theme/colors';
-import { DateTimeField } from '../components/ui';
+import { DateTimeField, FilterPills } from '../components/ui';
 import { requestSelfMarkPermissions } from '../utils/location';
 
 // Mirrors AttendanceScreen's (staff) STATUS_CONFIG 1:1 — same colors, same
@@ -392,48 +392,19 @@ export default function StudentAttendanceScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.summaryBar}
-        contentContainerStyle={styles.summaryContent}
-      >
-        {Object.entries(summary).map(([status, count]) => {
-          const active = statusFilter === status;
-          const cfg = STATUS_CONFIG[status];
-          return (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.summaryPill,
-                {
-                  backgroundColor: active ? cfg.color : cfg.bg,
-                  borderColor: cfg.color,
-                },
-              ]}
-              onPress={() => setStatusFilter(p => (p === status ? '' : status))}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.summaryCount,
-                  { color: active ? colors.white : cfg.color },
-                ]}
-              >
-                {count}
-              </Text>
-              <Text
-                style={[
-                  styles.summaryStatus,
-                  { color: active ? colors.white : cfg.color },
-                ]}
-              >
-                {status.replace('_', ' ')}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <FilterPills
+        options={[
+          { value: '', label: 'All' },
+          ...Object.keys(summary).map(status => ({
+            value: status,
+            label:
+              status.charAt(0).toUpperCase() +
+              status.slice(1).replace('_', ' '),
+          })),
+        ]}
+        value={statusFilter}
+        onChange={v => setStatusFilter(v)}
+      />
 
       <View style={styles.searchWrap}>
         <Search size={15} color={colors.muted} />

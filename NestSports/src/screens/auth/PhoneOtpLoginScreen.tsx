@@ -476,8 +476,8 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
               marginTop: 25,
             }}
           >
-            ----------------------------------- Or Login With
-            ---------------------------------
+            ------------------- Or Login With
+            -------------------
           </Text>
           <View
             style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}

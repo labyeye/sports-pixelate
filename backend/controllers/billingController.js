@@ -10,7 +10,7 @@ const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { RATE_PER_STUDENT, calculatePricing } = require("../utils/pricing");
+const { RATE_INAPP, RATE_WHATSAPP, calculatePricing } = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 
 const PLAN_NAME = "NestPlay";
@@ -21,7 +21,8 @@ const getPlans = asyncHandler(async (req, res) => {
     data: [
       {
         name: PLAN_NAME,
-        ratePerStudentMonthly: RATE_PER_STUDENT,
+        rateInAppMonthly: RATE_INAPP,
+        rateWhatsappMonthly: RATE_WHATSAPP,
       },
     ],
   });

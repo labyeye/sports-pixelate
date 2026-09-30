@@ -20,6 +20,11 @@ const {
   sendStudentCheckOut,
 } = require("../services/whatsappService");
 const { sendPushToEmployee } = require("../services/pushNotificationService");
+const {
+  notifyOwners,
+  notifyParentsOfStudent,
+  notifyUsers,
+} = require("../services/inAppNotify");
 const { getEffectiveCheckOut } = require("../utils/shiftUtils");
 const { toDateOnly } = require("../utils/dateOnly");
 const {
@@ -576,6 +581,21 @@ const recordBiometric = asyncHandler(async (req, res) => {
         });
       }
     } catch {}
+    try {
+      const empName = `${person.firstName} ${person.lastName}`.trim();
+      const inAppPayload = {
+        type: "employee_attendance",
+        title: "Attendance recorded",
+        message: `${empName} ${logType === "check_in" ? "checked in" : "checked out"} via device at ${device.location.name}.`,
+        employee: person._id,
+      };
+      await Promise.all([
+        notifyOwners(device.company, inAppPayload),
+        person.user ? notifyUsers(device.company, [person.user], inAppPayload) : null,
+      ]);
+    } catch (err) {
+      console.error("[Biometric] employee in-app notify error:", err.message);
+    }
   } else {
     // StudentAttendance.date is bucketed with toDateOnly (UTC-normalized),
     // same convention studentAttendanceController.js uses for manual marks
@@ -608,6 +628,21 @@ const recordBiometric = asyncHandler(async (req, res) => {
       await notifyGuardians(person, logType, device.location.name, now);
     } catch (err) {
       console.error("[Biometric] notifyGuardians error:", err.message);
+    }
+    try {
+      const studentName = `${person.firstName} ${person.lastName}`.trim();
+      const inAppPayload = {
+        type: "student_attendance",
+        title: "Student attendance marked",
+        message: `${studentName} was marked ${logType === "check_in" ? "present (check-in)" : "checked out"} via device at ${device.location.name}.`,
+        student: person._id,
+      };
+      await Promise.all([
+        notifyOwners(person.company, inAppPayload),
+        notifyParentsOfStudent(person._id, person.company, inAppPayload),
+      ]);
+    } catch (err) {
+      console.error("[Biometric] in-app notify error:", err.message);
     }
   }
 
@@ -1264,6 +1299,23 @@ const faceAttendance = asyncHandler(async (req, res) => {
     } catch (err) {
       console.error("[Biometric] faceAttendance notify error:", err.message);
     }
+    try {
+      const empName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
+      const inAppPayload = {
+        type: "employee_attendance",
+        title: "Attendance recorded",
+        message: `${empName} ${logType === "check_in" ? "checked in" : "checked out"} via face recognition.`,
+        employee: bestMatch._id,
+      };
+      await Promise.all([
+        notifyOwners(bestMatch.company, inAppPayload),
+        bestMatch.user
+          ? notifyUsers(bestMatch.company, [bestMatch.user], inAppPayload)
+          : null,
+      ]);
+    } catch (err) {
+      console.error("[Biometric] faceAttendance employee in-app notify error:", err.message);
+    }
   } else {
     const studentDate = toDateOnly(now);
     const attendanceUpdate = {
@@ -1297,6 +1349,21 @@ const faceAttendance = asyncHandler(async (req, res) => {
         "[Biometric] faceAttendance notifyGuardians error:",
         err.message,
       );
+    }
+    try {
+      const studentName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
+      const inAppPayload = {
+        type: "student_attendance",
+        title: "Student attendance marked",
+        message: `${studentName} was marked ${logType === "check_in" ? "present (check-in)" : "checked out"} via face recognition.`,
+        student: bestMatch._id,
+      };
+      await Promise.all([
+        notifyOwners(bestMatch.company, inAppPayload),
+        notifyParentsOfStudent(bestMatch._id, bestMatch.company, inAppPayload),
+      ]);
+    } catch (err) {
+      console.error("[Biometric] faceAttendance student in-app notify error:", err.message);
     }
   }
 

@@ -174,8 +174,8 @@ export default function LoginScreen({ navigation }: any) {
               color: colors.muted,
             }}
           >
-            ----------------------------------- Or Login With
-            ---------------------------------
+            ------------------- Or Login With
+            -------------------
           </Text>
           <View
             style={{ flexDirection: 'row', justifyContent: 'center', gap: 24 }}

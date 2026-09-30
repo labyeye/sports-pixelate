@@ -103,6 +103,7 @@ export default function PermissionsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.roleScroll}
         contentContainerStyle={styles.roleBar}
       >
         {ROLES.map(r => {
@@ -168,6 +169,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 12 },
+  roleScroll: { flexGrow: 0 },
   roleBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
   roleChip: {
     borderWidth: 2,

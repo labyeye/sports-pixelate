@@ -1332,3 +1332,13 @@ export const bookingAPI = {
     }),
   cancel: (id: string) => request(`/bookings/${id}/cancel`, { method: "POST" }),
 };
+
+export const notificationAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/notifications${q}`);
+  },
+  markRead: (id: string) =>
+    request(`/notifications/${id}/read`, { method: "POST" }),
+  markAllRead: () => request("/notifications/read-all", { method: "POST" }),
+};

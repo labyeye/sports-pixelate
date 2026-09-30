@@ -38,7 +38,8 @@ interface CompanyFormData {
   pincode: string;
 }
 
-const RATE_PER_STUDENT = 30;
+const RATE_INAPP = 30;
+const RATE_WHATSAPP = 50;
 const GST_RATE = 18;
 
 const STEPS: { id: Step; label: string }[] = [
@@ -104,6 +105,8 @@ export default function OnboardingPage() {
     user?.company ? "students" : "company",
   );
   const [studentCount, setStudentCount] = useState<number | "">("");
+  const [employeeCount, setEmployeeCount] = useState<number | "">("");
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
   const [paying, setPaying] = useState(false);
   const [companyError, setCompanyError] = useState("");
   const [companyForm, setCompanyForm] = useState<CompanyFormData | null>(null);
@@ -115,7 +118,10 @@ export default function OnboardingPage() {
   }, [user?.company, user?.subscription?.status, navigate]);
 
   const count = Number(studentCount) || 0;
-  const monthlySubtotal = count * RATE_PER_STUDENT;
+  const empCount = Number(employeeCount) || 0;
+  const totalUsers = count + empCount;
+  const rate = wantsWhatsapp ? RATE_WHATSAPP : RATE_INAPP;
+  const monthlySubtotal = totalUsers * rate;
   const monthlyGstAmount = Math.round(monthlySubtotal * (GST_RATE / 100));
   const monthlyPrice = monthlySubtotal + monthlyGstAmount;
 
@@ -163,8 +169,8 @@ export default function OnboardingPage() {
     try {
       const res = await billingAPI.createOrder(
         count,
-        0,
-        true,
+        empCount,
+        wantsWhatsapp,
         "monthly",
         "razorpay",
         user?.company ? undefined : companyForm!,
@@ -294,11 +300,11 @@ export default function OnboardingPage() {
           <div>
             <div className="text-center mb-8">
               <h1 className="font-display font-bold text-3xl text-black mb-2">
-                How many students?
+                How many users?
               </h1>
               <p className="text-gray-500 font-medium text-sm">
-                ₹{RATE_PER_STUDENT}/student/month — employees free, WhatsApp
-                notifications included
+                ₹{RATE_INAPP}/user/month for in-app notifications, or ₹
+                {RATE_WHATSAPP}/user/month with WhatsApp included
               </p>
             </div>
 
@@ -325,13 +331,60 @@ export default function OnboardingPage() {
                 Your current enrolled students, across all sports and batches
               </p>
 
+              <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
+                Number of employees
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={employeeCount}
+                onChange={(e) =>
+                  setEmployeeCount(
+                    e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value) || 0),
+                  )
+                }
+                placeholder="e.g. 5"
+                className="w-full border-2 border-black px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-2"
+              />
+              <p className="text-xs text-gray-400 font-medium text-center mb-4">
+                Coaches and staff you'll track attendance for
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setWantsWhatsapp((v) => !v)}
+                className={cn(
+                  "w-full flex items-center justify-between border-2 border-black px-4 py-3 mb-4 text-left transition-colors",
+                  wantsWhatsapp ? "bg-[#00C48C]/10" : "bg-white",
+                )}
+              >
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-black">
+                    WhatsApp Notifications
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    ₹{RATE_WHATSAPP}/user/month instead of ₹{RATE_INAPP}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "w-10 h-6 border-2 border-black shrink-0 flex items-center px-0.5 transition-colors",
+                    wantsWhatsapp
+                      ? "bg-[#00C48C] justify-end"
+                      : "bg-white justify-start",
+                  )}
+                >
+                  <div className="w-4 h-4 bg-white border-2 border-black" />
+                </div>
+              </button>
+
               {count > 0 && (
                 <div className="text-center mb-6">
                   <p className="text-sm font-bold text-[#024BAB]">
                     ₹{monthlyPrice.toLocaleString("en-IN")}/month
                   </p>
                   <p className="text-[11px] text-gray-400 font-medium mt-0.5">
-                    Inclusive of {GST_RATE}% GST
+                    {totalUsers} users × ₹{rate} — inclusive of {GST_RATE}% GST
                   </p>
                 </div>
               )}
@@ -371,12 +424,17 @@ export default function OnboardingPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Plan</span>
                     <span className="font-bold text-black">
-                      ₹{RATE_PER_STUDENT}/student/month
+                      ₹{rate}/user/month
+                      {wantsWhatsapp ? " (WhatsApp)" : " (In-app)"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Students</span>
                     <span className="font-bold text-black">{studentCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-bold text-gray-600">Employees</span>
+                    <span className="font-bold text-black">{empCount}</span>
                   </div>
                   <div className="border-t-2 border-black pt-3 space-y-2">
                     <div className="flex justify-between items-center text-sm">

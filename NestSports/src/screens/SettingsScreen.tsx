@@ -361,6 +361,7 @@ export default function SettingsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.tabScroll}
         contentContainerStyle={styles.tabBar}
       >
         {TABS.map(t => {
@@ -889,6 +890,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 12 },
+  tabScroll: { flexGrow: 0 },
   tabBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
   tabChip: {
     flexDirection: 'row',

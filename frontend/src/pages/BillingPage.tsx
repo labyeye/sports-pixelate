@@ -30,7 +30,8 @@ declare global {
   }
 }
 
-const RATE_PER_STUDENT = 30;
+const RATE_INAPP = 30;
+const RATE_WHATSAPP = 50;
 const GST_RATE = 18;
 
 export default function BillingPage() {
@@ -43,6 +44,8 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [newStudentCount, setNewStudentCount] = useState<number | "">("");
+  const [newEmployeeCount, setNewEmployeeCount] = useState<number | "">("");
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
   const [gatewayModal, setGatewayModal] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
@@ -57,6 +60,8 @@ export default function BillingPage() {
           if (r.success) {
             setSubscription(r.data);
             setNewStudentCount(r.data.maxStudents || "");
+            setNewEmployeeCount(r.data.maxEmployees || "");
+            setWantsWhatsapp(!!r.data.wantsWhatsapp);
           }
         })
         .catch(() => {}),
@@ -183,8 +188,8 @@ export default function BillingPage() {
     try {
       const res = await billingAPI.createOrder(
         count,
-        0,
-        true,
+        Number(newEmployeeCount) || 0,
+        wantsWhatsapp,
         "monthly",
         gateway,
         undefined,
@@ -410,11 +415,12 @@ export default function BillingPage() {
         {}
         <div>
           <h2 className="font-display font-bold text-2xl text-black mb-6">
-            Update Plan & Student Count
+            Update Plan & User Count
           </h2>
           <p className="text-sm text-muted-foreground -mt-4 mb-6">
-            ₹{RATE_PER_STUDENT} per student, per month — employees free,
-            WhatsApp notifications included
+            ₹{RATE_INAPP}/user/month for in-app notifications, or ₹
+            {RATE_WHATSAPP}/user/month with WhatsApp notifications included —
+            billed per student + employee
           </p>
 
           <div className="border-2 p-5 bg-white max-w-sm">
@@ -435,6 +441,49 @@ export default function BillingPage() {
               }
               className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
             />
+
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+              <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />
+              Number of employees
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={newEmployeeCount}
+              onChange={(e) =>
+                setNewEmployeeCount(
+                  e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value) || 0),
+                )
+              }
+              className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
+            />
+
+            <button
+              type="button"
+              onClick={() => setWantsWhatsapp((v) => !v)}
+              className={cn(
+                "w-full flex items-center justify-between border-2 border-black px-4 py-3 mb-4 text-left transition-colors",
+                wantsWhatsapp ? "bg-[#00C48C]/10" : "bg-white",
+              )}
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-black">
+                  WhatsApp Notifications
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  ₹{RATE_WHATSAPP}/user/month instead of ₹{RATE_INAPP} — adds
+                  WhatsApp alongside in-app
+                </p>
+              </div>
+              <div
+                className={cn(
+                  "w-10 h-6 border-2 border-black shrink-0 flex items-center px-0.5 transition-colors",
+                  wantsWhatsapp ? "bg-[#00C48C] justify-end" : "bg-white justify-start",
+                )}
+              >
+                <div className="w-4 h-4 bg-white border-2 border-black" />
+              </div>
+            </button>
 
             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
               <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
@@ -486,7 +535,7 @@ export default function BillingPage() {
                 {appliedCoupon.discountType === "bonus_months" &&
                   `${appliedCoupon.bonusMonths} bonus month(s)`}
                 {appliedCoupon.discountType === "flat_rate" &&
-                  `₹${appliedCoupon.flatRate}/student/month`}
+                  `₹${appliedCoupon.flatRate}/user/month`}
                 {appliedCoupon.discountType === "percent_off" &&
                   `${appliedCoupon.percentOff}% off`}
               </p>
@@ -496,8 +545,9 @@ export default function BillingPage() {
             {Number(newStudentCount) > 0 && (
               <div className="mb-4">
                 {(() => {
-                  const units = Number(newStudentCount);
-                  const baseRate = RATE_PER_STUDENT;
+                  const units =
+                    Number(newStudentCount) + (Number(newEmployeeCount) || 0);
+                  const baseRate = wantsWhatsapp ? RATE_WHATSAPP : RATE_INAPP;
                   let rate = baseRate;
                   if (
                     appliedCoupon?.discountType === "flat_rate" &&
@@ -529,7 +579,7 @@ export default function BillingPage() {
                         /mo
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
-                        ₹{rate}/student/month + {GST_RATE}% GST
+                        ₹{rate}/user/month × {units} users + {GST_RATE}% GST
                         (₹
                         {(
                           monthly + Math.round((monthly * GST_RATE) / 100)

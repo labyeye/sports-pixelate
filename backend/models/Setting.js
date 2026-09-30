@@ -52,6 +52,10 @@ const settingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    chequeTemplateDesign: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
     bankAccountName: {
       type: String,
       default: "",

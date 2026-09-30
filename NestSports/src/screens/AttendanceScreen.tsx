@@ -44,7 +44,7 @@ import {
   RNFile,
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
-import { DateTimeField } from '../components/ui';
+import { DateTimeField, FilterPills } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 
 function openLocationInMaps(loc: { lat: number; lng: number }) {
@@ -694,50 +694,19 @@ export default function AttendanceScreen() {
         )}
 
       {!isEmployee && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.summaryBar}
-          contentContainerStyle={styles.summaryContent}
-        >
-          {Object.entries(summary).map(([status, count]) => {
-            const active = statusFilter === status;
-            const cfg = STATUS_CONFIG[status];
-            return (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.summaryPill,
-                  {
-                    backgroundColor: active ? cfg.color : cfg.bg,
-                    borderColor: cfg.color,
-                  },
-                ]}
-                onPress={() =>
-                  setStatusFilter(p => (p === status ? '' : status))
-                }
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.summaryCount,
-                    { color: active ? colors.white : cfg.color },
-                  ]}
-                >
-                  {count}
-                </Text>
-                <Text
-                  style={[
-                    styles.summaryStatus,
-                    { color: active ? colors.white : cfg.color },
-                  ]}
-                >
-                  {status.replace('_', ' ')}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        <FilterPills
+          options={[
+            { value: '', label: 'All' },
+            ...Object.keys(summary).map(status => ({
+              value: status,
+              label:
+                status.charAt(0).toUpperCase() +
+                status.slice(1).replace('_', ' '),
+            })),
+          ]}
+          value={statusFilter}
+          onChange={v => setStatusFilter(v)}
+        />
       )}
 
       {!isEmployee && (

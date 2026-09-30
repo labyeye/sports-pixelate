@@ -154,6 +154,7 @@ app.use("/api/bookings", require("./routes/bookingRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
 // Reports (student & billing reports)
 app.use("/api/reports", require("./routes/reportsRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 app.get("/api/health", (req, res) =>
   res.json({ status: "ok", service: "NestPlay API" }),

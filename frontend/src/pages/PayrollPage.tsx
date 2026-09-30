@@ -28,6 +28,8 @@ import {
   Eye,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
+import { fillVars, normalizeTemplate, type VarCtx } from "@/lib/chequeTemplate";
+import { imageNaturalSize } from "@/components/settings/cheque-designer/imageUtil";
 
 // ── Indian number to words ───────────────────────────────────────────────────
 function toIndianWords(n: number): string {
@@ -97,6 +99,7 @@ async function printPayslip(
     chequeLogoX: 10,
     chequeLogoY: 20,
     chequeLogoSize: 60,
+    chequeTemplateDesign: null as any,
   },
 ) {
   const emp = p.employee as any;
@@ -108,8 +111,86 @@ async function printPayslip(
   const dd = String(today.getDate()).padStart(2, "0");
   const mm2 = String(today.getMonth() + 1).padStart(2, "0");
   const yyyy = String(today.getFullYear());
+  const empName_ =
+    `${(p.employee as any)?.firstName ?? ""}_${(p.employee as any)?.lastName ?? ""}`.replace(
+      /\s+/g,
+      "_",
+    );
 
-  // ── X / Y positions — tune these to match your PDF template fields ──
+  // Companies that designed their own payslip in Settings → Payslip Designer print from that
+  // background + field layout. Everyone else keeps printing the bundled sample cheque below.
+  if (co.chequeTemplate && co.chequeTemplateDesign?.fields?.length) {
+    const tpl = normalizeTemplate(co.chequeTemplateDesign);
+    const ctx: VarCtx = {
+      "company.name": co.name,
+      "company.address": co.address,
+      "issue.date": `${dd}/${mm2}/${yyyy}`,
+      "emp.name": `${emp?.firstName ?? ""} ${emp?.lastName ?? ""}`.trim(),
+      "emp.id": emp?.employeeId ?? "—",
+      "emp.designation": emp?.designation ?? "—",
+      "amount.net": net.toLocaleString("en-IN"),
+      "amount.words": toIndianWords(net),
+      "period.from": fromDate,
+      "period.to": toDate,
+    };
+
+    const { w: bgW, h: bgH } = await imageNaturalSize(co.chequeTemplate);
+    const SCALE = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = bgW * SCALE;
+    canvas.height = bgH * SCALE;
+    const c = canvas.getContext("2d")!;
+
+    const loadImg = (src: string) =>
+      new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+
+    const bg = await loadImg(co.chequeTemplate);
+    if (bg) c.drawImage(bg, 0, 0, canvas.width, canvas.height);
+
+    for (const f of tpl.fields) {
+      if (!f.visible) continue;
+      const x = (f.x / 100) * canvas.width;
+      const y = (f.y / 100) * canvas.height;
+      const w = (f.w / 100) * canvas.width;
+      const h = (f.h / 100) * canvas.height;
+      if (f.kind === "image") {
+        const src = f.usesCompanyLogo ? f.src || co.logo : f.src;
+        if (!src) continue;
+        const img = await loadImg(src);
+        if (!img) continue;
+        const ratio = img.naturalWidth ? img.naturalHeight / img.naturalWidth : 1;
+        const drawW = w;
+        const drawH = Math.min(h, drawW * ratio);
+        c.drawImage(img, x, y, drawW, drawH);
+      } else {
+        const text = fillVars(f.text, ctx);
+        if (!text) continue;
+        const size = (f.size || 10) * SCALE;
+        c.font = `${f.bold ? "bold " : ""}${size}px 'Segoe UI',Arial,sans-serif`;
+        c.fillStyle = f.color || "#000000";
+        c.textBaseline = "middle";
+        const align = f.align || "left";
+        c.textAlign = align;
+        const tx = align === "right" ? x + w : align === "center" ? x + w / 2 : x;
+        c.fillText(text, tx, y + h / 2, w);
+      }
+    }
+
+    const imgData = canvas.toDataURL("image/png");
+    const orientation = bgW > bgH ? "landscape" : "portrait";
+    const pdf = new jsPDF({ orientation, unit: "pt", format: [bgW, bgH] });
+    pdf.addImage(imgData, "PNG", 0, 0, bgW, bgH);
+    pdf.save(`Payslip_${empName_}_${p.month}_${p.year}.pdf`);
+    return;
+  }
+
+  // ── Legacy fallback: bundled sample cheque with hardcoded X / Y positions ──
   const F = " 11px 'Segoe UI',Arial,sans-serif";
   const POS = {
     companyName: {
@@ -311,6 +392,7 @@ export default function PayrollPage() {
     chequeLogoX: number;
     chequeLogoY: number;
     chequeLogoSize: number; // width in pts; height auto from aspect ratio
+    chequeTemplateDesign: any;
   }>({
     name: "",
     address: "",
@@ -319,6 +401,7 @@ export default function PayrollPage() {
     chequeLogoX: 10,
     chequeLogoY: 20,
     chequeLogoSize: 60,
+    chequeTemplateDesign: null,
   });
   const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
   const [logoSettingsSaving, setLogoSettingsSaving] = useState(false);
@@ -350,6 +433,7 @@ export default function PayrollPage() {
             chequeLogoX: r.data.chequeLogoX ?? 10,
             chequeLogoY: r.data.chequeLogoY ?? 20,
             chequeLogoSize: r.data.chequeLogoW ?? 60,
+            chequeTemplateDesign: r.data.chequeTemplateDesign || null,
           });
         }
       })

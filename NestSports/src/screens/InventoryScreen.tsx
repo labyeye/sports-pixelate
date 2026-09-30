@@ -31,7 +31,6 @@ import {
   Truck,
   ArrowDownCircle,
   ArrowUpCircle,
-  Boxes,
   AlertTriangle,
   Download,
   FileSpreadsheet,
@@ -58,7 +57,6 @@ import {
   SortSheet,
   LoadMoreFooter,
   SortOption,
-  KpiTile,
 } from '../components/ui';
 import {
   ImportExportModal,
@@ -462,7 +460,7 @@ export default function InventoryScreen() {
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={{ marginBottom: 12 }}>
             <Text style={styles.title}>Inventory</Text>
             <Text style={styles.subtitle}>
               Sports equipment and stock levels
@@ -518,30 +516,19 @@ export default function InventoryScreen() {
           </View>
         </View>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Items"
-            value={items.length}
-            color={colors.blue}
-            icon={Package}
-          />
-          <KpiTile
-            label="Units Available"
-            value={items.reduce((s, i) => s + (i.availableQuantity || 0), 0)}
-            color={colors.green}
-            icon={Boxes}
-          />
-          <KpiTile
-            label="Low Stock Items"
-            value={
+        <Text style={styles.summaryText}>
+          {items.length} items ·{' '}
+          {items.reduce((t, i) => t + (i.availableQuantity || 0), 0)} units
+          available ·{' '}
+          <Text style={{ color: colors.red }}>
+            {
               items.filter(
                 i => (i.availableQuantity ?? 0) <= (i.reorderThreshold ?? 0),
               ).length
-            }
-            color={colors.red}
-            icon={AlertTriangle}
-          />
-        </View>
+            }{' '}
+            low stock
+          </Text>
+        </Text>
 
         <SearchBar
           value={searchInput}
@@ -585,7 +572,7 @@ export default function InventoryScreen() {
               : items
           }
           keyExtractor={i => i._id}
-          contentContainerStyle={{ paddingBottom: 24, gap: 12 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -598,7 +585,7 @@ export default function InventoryScreen() {
           renderItem={({ item: i }) => {
             const low = i.availableQuantity <= (i.reorderThreshold ?? 0);
             return (
-              <Card>
+              <View style={styles.flatRow}>
                 <View style={styles.itemRow}>
                   <ItemPhoto uri={i.photo} />
                   <View style={{ flex: 1, minWidth: 0 }}>
@@ -699,7 +686,7 @@ export default function InventoryScreen() {
                     </>
                   )}
                 </View>
-              </Card>
+              </View>
             );
           }}
         />
@@ -1104,6 +1091,17 @@ export default function InventoryScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
+  summaryText: {
+    color: colors.muted,
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  flatRow: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1111,10 +1109,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'stretch',
+    marginBottom: 12,
   },
   title: {
     fontSize: 24,

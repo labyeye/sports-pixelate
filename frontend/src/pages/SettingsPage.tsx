@@ -41,9 +41,11 @@ import {
   Image,
   FileImage,
   Clock,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
+import ChequeTemplateDesigner from "@/components/settings/cheque-designer/ChequeTemplateDesigner";
 
 type CrudOp = "create" | "read" | "update" | "delete";
 type HrmsRole =
@@ -837,9 +839,7 @@ export default function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [chequeTemplatePreview, setChequeTemplatePreview] = useState<
-    string | null
-  >(null);
+  const [designersOpened, setDesignersOpened] = useState(false); // the cheque designer stays mounted after its first visit so edits survive tab switches
   const [permissions, setPermissions] =
     useState<ResourcePermissions[]>(INITIAL_PERMISSIONS);
   const [actionModal, setActionModal] = useState<{
@@ -866,6 +866,10 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "cheque_design") setDesignersOpened(true);
+  }, [activeTab]);
 
   useEffect(() => {
     setProfileName(user?.name || "");
@@ -1006,36 +1010,6 @@ export default function SettingsPage() {
   ) => {
     const { name, value } = e.target;
     setSettings((prev: any) => ({ ...prev, [name]: value }));
-  };
-
-  const handleChequeTemplateUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please upload a valid image file",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "File size must be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setChequeTemplatePreview(base64);
-      setSettings((prev: any) => ({ ...prev, payrollChequeTemplate: base64 }));
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1191,6 +1165,7 @@ export default function SettingsPage() {
         { id: "salary_mode", label: "Salary Mode", icon: CheckCircle },
         { id: "punch", label: "Punch Settings", icon: AlertCircle },
         { id: "ess", label: "Employee App", icon: Users },
+        { id: "cheque_design", label: "Payslip Designer", icon: Palette },
       ],
     },
     {
@@ -1265,7 +1240,7 @@ export default function SettingsPage() {
 
           {}
           <div className="flex-1 min-w-0 flex flex-col">
-            <div className="p-6 flex-1">
+            <div className={cn("flex-1", activeTab === "cheque_design" ? "hidden" : "p-6")}>
               {}
               {activeTab === "general" && (
                 <div className="space-y-4">
@@ -1422,63 +1397,35 @@ export default function SettingsPage() {
                     />
                   )}
 
-                  {/* Payroll Cheque Template */}
+                  {/* Payroll Cheque Template — background upload + field layout now live in its own designer */}
                   <div className="border-t-2 border-black pt-4 mt-4">
                     <label className="flex items-center gap-1.5 text-xs font-bold text-black uppercase tracking-wider mb-1">
                       <FileImage className="w-3.5 h-3.5 text-[#024BAB]" />
-                      Payroll Cheque Template
+                      Payroll Cheque / Payslip Template
                     </label>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Upload the cheque/payslip background image (PNG or JPG).
-                      This will be used as the background when printing
-                      payslips.
+                      Upload your cheque/payslip background and drag each
+                      field (name, amount, dates, signature…) into place with
+                      the visual designer.
                     </p>
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleChequeTemplateUpload}
-                          className="hidden"
-                          id="cheque-template-upload"
+                    <div className="flex items-center gap-4">
+                      {settings?.payrollChequeTemplate && (
+                        <img
+                          src={settings.payrollChequeTemplate}
+                          alt="Cheque template preview"
+                          className="h-24 object-contain border-2 border-black bg-white p-1"
                         />
-                        <label
-                          htmlFor="cheque-template-upload"
-                          className="block w-full px-4 py-3 border-2 border-dashed border-black hover:bg-[#024BAB]/5 transition-colors cursor-pointer text-center"
-                        >
-                          <div className="text-xs font-bold text-black">
-                            Click to upload cheque template
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            PNG, JPG up to 5MB
-                          </div>
-                        </label>
-                      </div>
-                      {(chequeTemplatePreview ||
-                        settings?.payrollChequeTemplate) && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={
-                              chequeTemplatePreview ||
-                              settings?.payrollChequeTemplate
-                            }
-                            alt="Cheque template preview"
-                            className="h-24 object-contain border-2 border-black bg-white p-1"
-                          />
-                          <button
-                            onClick={() => {
-                              setChequeTemplatePreview(null);
-                              setSettings((prev: any) => ({
-                                ...prev,
-                                payrollChequeTemplate: "",
-                              }));
-                            }}
-                            className="px-2 py-1 bg-[#EF4444] text-white text-xs font-bold border-2 border-black hover:bg-[#DC2626]"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("cheque_design")}
+                        className="px-4 py-2.5 bg-[#024BAB] text-white text-xs font-bold border-2 border-black hover:bg-[#01368A] flex items-center gap-2"
+                      >
+                        <Palette className="w-3.5 h-3.5" />
+                        {settings?.payrollChequeTemplate
+                          ? "Open Payslip Designer"
+                          : "Design Payslip Template"}
+                      </button>
                     </div>
                   </div>
 
@@ -2804,7 +2751,23 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {!["my_profile", "two_factor", "phone_verify"].includes(activeTab) && (
+            {designersOpened && (
+              <div className={activeTab === "cheque_design" ? "" : "hidden"}>
+                <ChequeTemplateDesigner
+                  settings={settings}
+                  active={activeTab === "cheque_design"}
+                  onSaved={(design, background) =>
+                    setSettings((prev: any) => ({
+                      ...prev,
+                      chequeTemplateDesign: design,
+                      payrollChequeTemplate: background,
+                    }))
+                  }
+                />
+              </div>
+            )}
+
+            {!["my_profile", "two_factor", "phone_verify", "cheque_design"].includes(activeTab) && (
               <div className="border-t-2 border-black p-4 flex justify-end bg-gray-50/50">
                 <button
                   onClick={handleSave}

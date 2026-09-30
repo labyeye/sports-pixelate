@@ -11,6 +11,7 @@ const { safePagination } = require("../middleware/validate");
 const { sendAttendanceStatus } = require("../services/whatsappService");
 const { validateMagicBytes } = require("../middleware/upload");
 const { verifyFace } = require("../services/faceService");
+const { notifyOwners, notifyUsers } = require("../services/inAppNotify");
 
 // Great-circle distance between two lat/lng points, in meters.
 function haversineMeters(lat1, lon1, lat2, lon2) {
@@ -49,6 +50,24 @@ async function notifyAttendanceStatus(emp, date, status, companyId) {
     { firstName: emp.firstName, date, status },
     companyId,
   );
+}
+
+// In-app notification to the owner and the employee themself, for both
+// manual (HR-marked) and self-marked attendance — separate from the
+// biometric-device path's own in-app notify in biometricController.js.
+async function notifyEmployeeAttendanceMarkedInApp(companyId, emp, status) {
+  if (!emp) return;
+  const empName = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
+  const payload = {
+    type: "employee_attendance",
+    title: "Attendance marked",
+    message: `${empName}'s attendance was marked ${status} today.`,
+    employee: emp._id,
+  };
+  await Promise.all([
+    notifyOwners(companyId, payload),
+    emp.user ? notifyUsers(companyId, [emp.user], payload) : null,
+  ]);
 }
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30
@@ -361,7 +380,7 @@ const markAttendance = asyncHandler(async (req, res) => {
     { upsert: true, new: true },
   ).populate({
     path: "employee",
-    select: "firstName lastName employeeId designation department avatar phone",
+    select: "firstName lastName employeeId designation department avatar phone user",
     populate: { path: "department", select: "name" },
   });
 
@@ -372,6 +391,11 @@ const markAttendance = asyncHandler(async (req, res) => {
     computedStatus,
     req.user.company,
   );
+  notifyEmployeeAttendanceMarkedInApp(
+    req.user.company,
+    record.employee,
+    computedStatus,
+  ).catch((err) => console.error("[notify] markAttendance:", err.message));
 
   res.json({ success: true, data: record });
 });
@@ -558,6 +582,9 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
   }
 
   await notifyAttendanceStatus(emp, d, record.status, req.user.company);
+  notifyEmployeeAttendanceMarkedInApp(req.user.company, emp, record.status).catch(
+    (err) => console.error("[notify] selfMarkAttendance:", err.message),
+  );
 
   res.json({ success: true, data: record });
 });

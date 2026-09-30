@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { attendanceAPI } from "@/services/api";
-import { Bell, Search, Menu, LogIn, LogOut, Clock } from "lucide-react";
+import { notificationAPI } from "@/services/api";
+import { Bell, Search, Menu, CheckCircle2, Clock } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 interface AppHeaderProps {
@@ -9,14 +9,16 @@ interface AppHeaderProps {
 }
 
 interface NotifEntry {
-  id: string;
-  name: string;
-  avatar?: string;
-  type: "checkin" | "checkout";
-  time: Date;
+  _id: string;
+  type: "student_attendance" | "employee_attendance" | "general";
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
 }
 
-function timeAgo(date: Date): string {
+function timeAgo(iso: string): string {
+  const date = new Date(iso);
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
   if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -24,69 +26,56 @@ function timeAgo(date: Date): string {
   return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
-function fmt12(date: Date): string {
-  return date.toLocaleTimeString("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
 export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
   const { user } = useAuth();
   const [searchVal, setSearchVal] = useState("");
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifEntry[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [seen, setSeen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const fetchToday = useCallback(async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const res: any = await attendanceAPI.getAll({ date: today, limit: "50" });
+      const res: any = await notificationAPI.getAll({ limit: "30" });
       if (!res.success) return;
-
-      const entries: NotifEntry[] = [];
-      for (const rec of res.data ?? []) {
-        const firstName = rec.employee?.firstName ?? rec.employee?.name ?? "";
-        const lastName = rec.employee?.lastName ?? "";
-        const name = `${firstName} ${lastName}`.trim() || "Unknown";
-        const avatar = rec.employee?.avatar;
-
-        if (rec.checkIn) {
-          entries.push({
-            id: `${rec._id}-in`,
-            name,
-            avatar,
-            type: "checkin",
-            time: new Date(rec.checkIn),
-          });
-        }
-        if (rec.checkOut) {
-          entries.push({
-            id: `${rec._id}-out`,
-            name,
-            avatar,
-            type: "checkout",
-            time: new Date(rec.checkOut),
-          });
-        }
-      }
-
-      entries.sort((a, b) => b.time.getTime() - a.time.getTime());
-      setNotifs(entries.slice(0, 30));
+      setNotifs(res.data ?? []);
+      setUnreadCount(res.unreadCount ?? 0);
     } catch {}
     setLoading(false);
   }, []);
 
+  // Poll for unread count in the background so the badge stays fresh even
+  // when the panel is closed.
+  useEffect(() => {
+    if (!user) return;
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [user, fetchNotifications]);
+
   const handleBell = () => {
-    if (!open) {
-      fetchToday();
-      setSeen(true);
-    }
+    if (!open) fetchNotifications();
     setOpen((v) => !v);
+  };
+
+  const handleMarkRead = async (id: string) => {
+    setNotifs((prev) =>
+      prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+    try {
+      await notificationAPI.markRead(id);
+    } catch {}
+  };
+
+  const handleMarkAllRead = async () => {
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+    try {
+      await notificationAPI.markAllRead();
+    } catch {}
   };
 
   // Close on outside click
@@ -138,8 +127,10 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
             aria-label="Notifications"
           >
             <Bell className="w-[18px] h-[18px] text-black" />
-            {!seen && (
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-[#FA731C] border border-black rounded-xl" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#FA731C] border border-black rounded-full flex items-center justify-center text-[9px] font-bold text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
             )}
           </button>
 
@@ -148,17 +139,19 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b-2 border-black bg-[#024BAB]">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-white" />
+                  <Bell className="w-4 h-4 text-white" />
                   <span className="text-sm font-bold text-white">
-                    Today's Activity
+                    Notifications
                   </span>
                 </div>
-                <span className="text-xs text-white/70 font-medium">
-                  {new Date().toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-[11px] text-white/80 hover:text-white font-medium"
+                  >
+                    Mark all read
+                  </button>
+                )}
               </div>
 
               {/* Body */}
@@ -174,76 +167,41 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
                   <div className="flex flex-col items-center justify-center py-10 gap-2">
                     <Bell className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-xs font-bold text-muted-foreground">
-                      No activity today
+                      No notifications yet
                     </p>
                   </div>
                 ) : (
                   notifs.map((n) => (
-                    <div
-                      key={n.id}
-                      className="flex items-center gap-3 px-4 py-3 border-b border-black/10 last:border-0 hover:bg-[#024BAB]/5 transition-colors"
+                    <button
+                      key={n._id}
+                      onClick={() => !n.read && handleMarkRead(n._id)}
+                      className={`w-full text-left flex items-start gap-2 px-4 py-3 border-b border-black/10 last:border-0 hover:bg-[#024BAB]/5 transition-colors ${
+                        n.read ? "" : "bg-[#024BAB]/[0.04]"
+                      }`}
                     >
-                      {/* Avatar */}
-                      <div className="w-8 h-8 rounded-full border-2 border-black shrink-0 overflow-hidden bg-[#024BAB] flex items-center justify-center text-xs font-bold text-white">
-                        {n.avatar ? (
-                          <img
-                            src={n.avatar}
-                            alt={n.name}
-                            className="w-full h-full object-cover"
-                          />
+                      <div className="mt-0.5 shrink-0">
+                        {n.read ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/40" />
                         ) : (
-                          n.name[0]?.toUpperCase()
+                          <span className="block w-2 h-2 mt-0.5 rounded-full bg-[#024BAB]" />
                         )}
                       </div>
-
-                      {/* Text */}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-black truncate">
-                          {n.name}
+                          {n.title}
                         </p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {n.type === "checkin" ? (
-                            <LogIn className="w-3 h-3 text-[#00C48C] shrink-0" />
-                          ) : (
-                            <LogOut className="w-3 h-3 text-[#FA731C] shrink-0" />
-                          )}
-                          <span
-                            className={`text-[11px] font-semibold ${n.type === "checkin" ? "text-[#00C48C]" : "text-[#FA731C]"}`}
-                          >
-                            {n.type === "checkin"
-                              ? "Checked in"
-                              : "Checked out"}{" "}
-                            at {fmt12(n.time)}
-                          </span>
-                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
+                          {n.message}
+                        </p>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground/70 font-medium mt-1">
+                          <Clock className="w-2.5 h-2.5" />
+                          {timeAgo(n.createdAt)}
+                        </span>
                       </div>
-
-                      {/* Time ago */}
-                      <span className="text-[10px] text-muted-foreground font-medium shrink-0">
-                        {timeAgo(n.time)}
-                      </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
-
-              {/* Footer */}
-              {notifs.length > 0 && (
-                <div className="border-t-2 border-black px-4 py-2.5 bg-[#F8FAFF] flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground font-medium">
-                    {notifs.filter((n) => n.type === "checkin").length}{" "}
-                    check-ins ·{" "}
-                    {notifs.filter((n) => n.type === "checkout").length}{" "}
-                    check-outs
-                  </span>
-                  <button
-                    onClick={fetchToday}
-                    className="text-[11px] font-bold text-[#024BAB] hover:underline"
-                  >
-                    Refresh
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>

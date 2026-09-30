@@ -8,6 +8,28 @@ const { safePagination } = require("../middleware/validate");
 const { verifyFace } = require("../services/faceService");
 const { validateMagicBytes } = require("../middleware/upload");
 const { toDateOnly } = require("../utils/dateOnly");
+const {
+  notifyOwners,
+  notifyParentsOfStudent,
+  notifyUsers,
+} = require("../services/inAppNotify");
+
+// Fires the in-app "student attendance marked" notification to the owner,
+// the student's parent(s), and the staff member who marked it (a manual
+// mark always has a marker; device/biometric marks are notified separately
+// in biometricController.js since markedBy is null there).
+async function notifyStudentAttendanceMarked(companyId, studentDoc, status, markedByUserId) {
+  const studentName = `${studentDoc.firstName} ${studentDoc.lastName}`.trim();
+  const title = "Student attendance marked";
+  const message = `${studentName} was marked ${status} today.`;
+  const payload = { type: "student_attendance", title, message, student: studentDoc._id };
+
+  await Promise.all([
+    notifyOwners(companyId, payload),
+    notifyParentsOfStudent(studentDoc._id, companyId, payload),
+    markedByUserId ? notifyUsers(companyId, [markedByUserId], payload) : null,
+  ]);
+}
 
 // Mirrors studentController's coachStudentFilter: a coach only ever sees
 // attendance for students assigned to them, never the whole company roster.
@@ -133,6 +155,13 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
     { upsert: true, new: true },
   ).populate("student", "firstName lastName studentId sport batch avatar");
 
+  notifyStudentAttendanceMarked(
+    req.user.company,
+    studentDoc,
+    record.status,
+    req.user._id,
+  ).catch((err) => console.error("[notify] markStudentAttendance:", err.message));
+
   res.json({ success: true, data: record });
 });
 
@@ -153,28 +182,41 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
   const validStudents = await Student.find({
     _id: { $in: studentIds },
     company: req.user.company,
-  }).select("_id");
-  const validSet = new Set(validStudents.map((s) => s._id.toString()));
+  }).select("_id firstName lastName");
+  const validMap = new Map(validStudents.map((s) => [s._id.toString(), s]));
 
-  const ops = records
-    .filter((r) => r.student && validSet.has(r.student.toString()))
-    .map((r) => ({
-      updateOne: {
-        filter: { student: r.student, date: d },
-        update: {
-          $set: {
-            company: req.user.company,
-            status: r.status || "present",
-            batch: r.batch,
-            notes: r.notes,
-            markedBy: req.user._id,
-          },
+  const validRecords = records.filter(
+    (r) => r.student && validMap.has(r.student.toString()),
+  );
+  const ops = validRecords.map((r) => ({
+    updateOne: {
+      filter: { student: r.student, date: d },
+      update: {
+        $set: {
+          company: req.user.company,
+          status: r.status || "present",
+          batch: r.batch,
+          notes: r.notes,
+          markedBy: req.user._id,
         },
-        upsert: true,
       },
-    }));
+      upsert: true,
+    },
+  }));
 
   if (ops.length > 0) await StudentAttendance.bulkWrite(ops);
+
+  Promise.all(
+    validRecords.map((r) =>
+      notifyStudentAttendanceMarked(
+        req.user.company,
+        validMap.get(r.student.toString()),
+        r.status || "present",
+        req.user._id,
+      ),
+    ),
+  ).catch((err) => console.error("[notify] bulkMarkStudentAttendance:", err.message));
+
   res.json({
     success: true,
     message: `Marked attendance for ${ops.length} student(s)`,
@@ -252,6 +294,13 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
     },
     { upsert: true, new: true },
   ).populate("student", "firstName lastName studentId sport batch avatar");
+
+  notifyStudentAttendanceMarked(
+    req.user.company,
+    studentDoc,
+    "present",
+    req.user._id,
+  ).catch((err) => console.error("[notify] markStudentAttendanceByFace:", err.message));
 
   res.json({ success: true, data: record, distance });
 });
