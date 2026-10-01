@@ -55,8 +55,8 @@ export default function SettingsTab({ event, navigation, canManage }: { event: a
 }
 
 const styles = StyleSheet.create({
-  editBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black, paddingVertical: 12 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.blue, borderWidth: 2, borderRadius: 8, borderColor: colors.black, paddingVertical: 12 },
   editBtnText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '800', fontSize: 13, textTransform: 'uppercase' },
-  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 2, borderColor: colors.red, paddingVertical: 12 },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 2, borderRadius: 8, borderColor: colors.red, paddingVertical: 12 },
   deleteBtnText: { color: colors.red, fontFamily: FONT.bold, fontWeight: '700', fontSize: 13 },
 });

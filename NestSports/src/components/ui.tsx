@@ -34,6 +34,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import { colors, FONT } from '../theme/colors';
+import { cropFile } from '../utils/cropImage';
 
 export function ScreenContainer({ children }: { children: React.ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
@@ -183,15 +184,26 @@ export function KpiTile({
   return (
     <View style={styles.kpi}>
       {Icon ? (
-        <View style={[styles.kpiIconWrap, { backgroundColor: color }]}>
-          <Icon size={16} color={colors.white} strokeWidth={2.5} />
+        <View
+          style={[
+            styles.kpiIconWrap,
+            { backgroundColor: color + '1A', borderColor: color },
+          ]}
+        >
+          <Icon size={18} color={color} strokeWidth={2.5} />
         </View>
       ) : (
         <View style={[styles.kpiDot, { backgroundColor: color }]} />
       )}
-      <Text style={styles.kpiValue}>{value}</Text>
-      <Text style={styles.kpiLabel}>{label}</Text>
-      {sub ? <Text style={styles.kpiSub}>{sub}</Text> : null}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.kpiLabel} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text style={styles.kpiValue} numberOfLines={1}>
+          {value}
+        </Text>
+        {sub ? <Text style={styles.kpiSub}>{sub}</Text> : null}
+      </View>
     </View>
   );
 }
@@ -809,14 +821,15 @@ export function ImagePicker({
   onChange: (file: PickedImage) => void;
   icon?: LucideIcon;
 }) {
-  const handle = (r: any) => {
+  const handle = async (r: any) => {
     const a = r?.assets?.[0];
     if (a?.uri) {
-      onChange({
+      const cropped = await cropFile({
         uri: a.uri,
         name: a.fileName || `photo-${Date.now()}.jpg`,
         type: a.type || 'image/jpeg',
       });
+      if (cropped) onChange(cropped);
     }
   };
 
@@ -1070,6 +1083,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     padding: 16,
     marginBottom: 12,
@@ -1083,6 +1101,11 @@ const styles = StyleSheet.create({
   },
   button: {
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1090,8 +1113,12 @@ const styles = StyleSheet.create({
   buttonText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14 },
   badge: {
     borderWidth: 2,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
-    borderRadius: 20,
+    borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
     alignSelf: 'flex-start',
@@ -1117,21 +1144,28 @@ const styles = StyleSheet.create({
     flexBasis: '48%',
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
-    padding: 14,
+    padding: 12,
     marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  kpiDot: { width: 10, height: 10, marginBottom: 8 },
+  kpiDot: { width: 10, height: 10 },
   kpiIconWrap: {
-    width: 32,
-    height: 32,
+    width: 38,
+    height: 38,
     borderWidth: 2,
-    borderColor: colors.black,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
-  kpiValue: { ...textStyle, fontSize: 24 },
+  kpiValue: { ...textStyle, fontSize: 22 },
   kpiLabel: {
     fontFamily: FONT.bold,
     color: colors.muted,
@@ -1165,6 +1199,7 @@ const styles = StyleSheet.create({
   },
   avatar: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.blue,
     alignItems: 'center',
@@ -1203,6 +1238,11 @@ const styles = StyleSheet.create({
   fieldInput: {
     fontFamily: FONT.medium,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -1217,6 +1257,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: '#D1D5DB',
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -1234,6 +1275,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -1254,6 +1300,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 2,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 72,
@@ -1269,6 +1316,7 @@ const styles = StyleSheet.create({
   },
   pill: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -1315,6 +1363,11 @@ const styles = StyleSheet.create({
   sheetDirBtn: {
     flex: 1,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingVertical: 10,
@@ -1323,6 +1376,11 @@ const styles = StyleSheet.create({
   collapsible: {
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     marginBottom: 12,
   },
@@ -1354,6 +1412,11 @@ const styles = StyleSheet.create({
   imagePickerBox: {
     height: 110,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     borderStyle: 'dashed',
     alignItems: 'center',
@@ -1373,6 +1436,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -1390,6 +1458,11 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -1412,6 +1485,11 @@ const styles = StyleSheet.create({
   stickyFooterCancel: {
     flex: 1,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     alignItems: 'center',
@@ -1427,6 +1505,11 @@ const styles = StyleSheet.create({
   stickyFooterSave: {
     flex: 2,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.blue,
     alignItems: 'center',

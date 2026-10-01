@@ -18,6 +18,7 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
+import { cropFile } from '../utils/cropImage';
 import {
   Plus,
   Pencil,
@@ -128,7 +129,7 @@ function pickPhoto(onPicked: (file: RNFile) => void) {
       onPress: () =>
         launchCamera({ mediaType: 'photo', quality: 0.7 }, r => {
           const file = r.assets?.[0] && assetToRNFile(r.assets[0]);
-          if (file) onPicked(file);
+          if (file) cropFile(file).then(c => c && onPicked(c));
         }),
     },
     {
@@ -136,7 +137,7 @@ function pickPhoto(onPicked: (file: RNFile) => void) {
       onPress: () =>
         launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, r => {
           const file = r.assets?.[0] && assetToRNFile(r.assets[0]);
-          if (file) onPicked(file);
+          if (file) cropFile(file).then(c => c && onPicked(c));
         }),
     },
     { text: 'Cancel', style: 'cancel' },
@@ -1128,11 +1129,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
   },
   lowStockToggle: {
     alignSelf: 'flex-start',
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -1155,6 +1162,7 @@ const styles = StyleSheet.create({
   },
   photoBox: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1199,6 +1207,7 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1235,6 +1244,11 @@ const styles = StyleSheet.create({
   },
   personList: {
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     marginBottom: 14,
     maxHeight: 220,
@@ -1279,6 +1293,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.blue,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1306,6 +1321,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     paddingVertical: 12,
     paddingHorizontal: 12,

@@ -182,6 +182,7 @@ export default function MainTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
+    overflow: 'hidden',
     borderTopWidth: 2,
     borderTopColor: colors.black,
     backgroundColor: colors.white,

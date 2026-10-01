@@ -14,6 +14,7 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
+import { cropFile } from '../utils/cropImage';
 import {
   Plus,
   Trash2,
@@ -87,7 +88,7 @@ function pickPhoto(onPicked: (file: RNFile) => void) {
       onPress: () =>
         launchCamera({ mediaType: 'photo', quality: 0.7 }, r => {
           const file = r.assets?.[0] && assetToRNFile(r.assets[0]);
-          if (file) onPicked(file);
+          if (file) cropFile(file).then(c => c && onPicked(c));
         }),
     },
     {
@@ -95,7 +96,7 @@ function pickPhoto(onPicked: (file: RNFile) => void) {
       onPress: () =>
         launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, r => {
           const file = r.assets?.[0] && assetToRNFile(r.assets[0]);
-          if (file) onPicked(file);
+          if (file) cropFile(file).then(c => c && onPicked(c));
         }),
     },
     { text: 'Cancel', style: 'cancel' },
@@ -807,6 +808,7 @@ const styles = StyleSheet.create({
   coachChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   coachChip: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -864,6 +866,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.blue,
     borderStyle: 'dashed',
     paddingVertical: 12,
@@ -882,6 +885,11 @@ const styles = StyleSheet.create({
   },
   planAmountBox: {
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: '#024BAB0D',
     padding: 12,

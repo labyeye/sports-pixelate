@@ -257,10 +257,12 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontSize: 18, fontFamily: FONT.bold, color: colors.black },
   stepper: {
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     paddingHorizontal: 14,
     paddingVertical: 10,

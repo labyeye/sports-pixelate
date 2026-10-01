@@ -451,6 +451,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
   },
   headerRowInner: {

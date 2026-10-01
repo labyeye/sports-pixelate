@@ -1353,6 +1353,11 @@ export const bookingAPI = {
       body: JSON.stringify(body),
     }),
   cancel: (id: string) => request(`/bookings/${id}/cancel`, { method: "POST" }),
+  returnItems: (id: string, itemIds?: string[]) =>
+    request(`/bookings/${id}/return-items`, {
+      method: "POST",
+      body: JSON.stringify(itemIds ? { itemIds } : {}),
+    }),
 };
 
 export const notificationAPI = {

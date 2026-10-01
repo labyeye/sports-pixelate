@@ -393,6 +393,11 @@ const styles = StyleSheet.create({
   methodBtn: {
     flex: 1,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     paddingVertical: 10,
     alignItems: 'center',
@@ -418,6 +423,11 @@ const styles = StyleSheet.create({
   },
   uploadBtn: {
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     borderStyle: 'dashed',
     minHeight: 100,

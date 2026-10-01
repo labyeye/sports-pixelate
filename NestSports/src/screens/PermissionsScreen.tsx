@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
   roleBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
   roleChip: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,

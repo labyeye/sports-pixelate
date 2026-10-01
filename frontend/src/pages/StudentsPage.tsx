@@ -1821,7 +1821,6 @@ export default function StudentsPage() {
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
                   {[
-                    "ID",
                     "Name",
                     "Sport",
                     "Batch",
@@ -1852,9 +1851,6 @@ export default function StudentsPage() {
                         idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
                       )}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {s.studentId}
-                      </td>
                       <td className="px-4 py-3 font-bold text-black">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 border-[1px] border-black shrink-0 overflow-hidden bg-[#024BAB] flex items-center justify-center text-xs font-bold text-white rounded-full">
@@ -1868,13 +1864,27 @@ export default function StudentsPage() {
                               s.firstName?.[0]?.toUpperCase()
                             )}
                           </div>
-                          {s.firstName} {s.lastName}
+                          <div>
+                            <p className="font-bold text-black">
+                              {s.firstName} {s.lastName}
+                            </p>
+                            <p className="text-xs font-normal text-muted-foreground">
+                              {s.studentId}
+                            </p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-black">{s.sport}</td>
                       <td className="px-4 py-3 text-black">{s.batch || "—"}</td>
                       <td className="px-4 py-3 text-black">
-                        {s.bloodGroup || "—"}
+                        {s.bloodGroup ? (
+                          <span className="inline-flex items-center gap-1.5 font-bold">
+                            <Droplet className="w-3.5 h-3.5 text-[#EF4444] fill-[#EF4444]" />
+                            {s.bloodGroup}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-4 py-3 text-black">
                         {s.coach

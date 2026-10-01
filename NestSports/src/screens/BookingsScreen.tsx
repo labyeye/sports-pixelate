@@ -21,8 +21,15 @@ import {
   IndianRupee,
   Calendar,
   Clock,
+  Package,
+  RotateCcw,
 } from 'lucide-react-native';
-import { bookingAPI, facilityAPI, studentAPI } from '../api/client';
+import {
+  bookingAPI,
+  facilityAPI,
+  studentAPI,
+  inventoryAPI,
+} from '../api/client';
 import {
   Card,
   EmptyState,
@@ -89,6 +96,9 @@ export default function BookingsScreen() {
   const [facilities, setFacilities] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [gear, setGear] = useState<Record<string, number>>({});
+  const [returningId, setReturningId] = useState<string | null>(null);
 
   const fetchPage = useCallback(
     (pageNum: number) =>
@@ -141,7 +151,12 @@ export default function BookingsScreen() {
 
   const openAdd = () => {
     setBookingForm(EMPTY_BOOKING_FORM);
+    setGear({});
     setFormVisible(true);
+    inventoryAPI
+      .getAll({ limit: '200' })
+      .then((r: any) => setInventory(r.data || []))
+      .catch(() => {});
     facilityAPI
       .getAll()
       .then((r: any) => setFacilities(r.data || []))
@@ -159,7 +174,10 @@ export default function BookingsScreen() {
     }
     setCreating(true);
     try {
-      const res: any = await bookingAPI.create(bookingForm);
+      const items = Object.entries(gear)
+        .filter(([, q]) => q > 0)
+        .map(([itemId, quantity]) => ({ itemId, quantity }));
+      const res: any = await bookingAPI.create({ ...bookingForm, items });
       if (res.payment) {
         Alert.alert(
           'Payment required',
@@ -172,6 +190,18 @@ export default function BookingsScreen() {
       Alert.alert('Error', e?.message || 'Could not create booking');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleReturn = async (id: string) => {
+    setReturningId(id);
+    try {
+      await bookingAPI.returnItems(id);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not record return');
+    } finally {
+      setReturningId(null);
     }
   };
 
@@ -299,6 +329,40 @@ export default function BookingsScreen() {
               <Text style={styles.feeText}>
                 {b.fee > 0 ? `₹${b.fee.toLocaleString('en-IN')}` : 'Free'}
               </Text>
+              {(b.items || []).length > 0 && (
+                <View style={styles.gearWrap}>
+                  {b.items.map((l: any) => (
+                    <View
+                      key={l._id}
+                      style={[
+                        styles.gearChip,
+                        {
+                          backgroundColor: l.returnedAt
+                            ? '#00C48C26'
+                            : '#FA731C26',
+                        },
+                      ]}
+                    >
+                      <Package size={11} color={colors.black} />
+                      <Text style={styles.gearChipText}>
+                        {l.item?.name || 'Item'} × {l.quantity}
+                        {l.returnedAt ? ' · returned' : ' · out'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {(b.items || []).some((l: any) => !l.returnedAt) &&
+                b.status !== 'cancelled' && (
+                  <View style={{ marginBottom: 10 }}>
+                    <Button
+                      title="Record Return"
+                      onPress={() => handleReturn(b._id)}
+                      color={colors.green}
+                      loading={returningId === b._id}
+                    />
+                  </View>
+                )}
               {b.status === 'confirmed' && (
                 <Button
                   title="Cancel Booking"
@@ -402,6 +466,56 @@ export default function BookingsScreen() {
               })}
             </ScrollView>
 
+            <SectionTitle title="Equipment from inventory (optional)" />
+            <ScrollView style={styles.pickList} nestedScrollEnabled>
+              {inventory.filter((i: any) => i.availableQuantity > 0).length ===
+              0 ? (
+                <Text style={styles.emptyPickText}>No stock available</Text>
+              ) : (
+                inventory
+                  .filter((i: any) => i.availableQuantity > 0)
+                  .map((i: any) => {
+                    const qty = gear[i._id] || 0;
+                    return (
+                      <View key={i._id} style={styles.gearRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.pickRowText}>{i.name}</Text>
+                          <Text style={styles.gearAvail}>
+                            {i.availableQuantity} available
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setGear(g => ({
+                              ...g,
+                              [i._id]: Math.max(0, (g[i._id] || 0) - 1),
+                            }))
+                          }
+                          style={styles.stepBtn}
+                        >
+                          <Text style={styles.stepText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.stepQty}>{qty}</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setGear(g => ({
+                              ...g,
+                              [i._id]: Math.min(
+                                i.availableQuantity,
+                                (g[i._id] || 0) + 1,
+                              ),
+                            }))
+                          }
+                          style={styles.stepBtn}
+                        >
+                          <Text style={styles.stepText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+              )}
+            </ScrollView>
+
             <TextField
               label="Date"
               value={bookingForm.date}
@@ -471,6 +585,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
   },
   addBtn: {
@@ -479,6 +598,11 @@ const styles = StyleSheet.create({
     gap: 5,
     backgroundColor: colors.blue,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -508,6 +632,11 @@ const styles = StyleSheet.create({
   },
   pickList: {
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     marginBottom: 14,
     maxHeight: 180,
@@ -525,6 +654,45 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     padding: 12,
+  },
+  gearWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  gearChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 2,
+    borderColor: colors.black,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  gearChipText: { fontFamily: FONT.bold, fontSize: 10, color: colors.black },
+  gearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  gearAvail: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
+  stepBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.black,
+    borderRadius: 8,
+  },
+  stepText: { fontFamily: FONT.bold, fontSize: 16, color: colors.black },
+  stepQty: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    minWidth: 20,
+    textAlign: 'center',
+    color: colors.black,
   },
   cardHeaderRow: {
     flexDirection: 'row',

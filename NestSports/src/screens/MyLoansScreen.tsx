@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 8 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.blue, borderWidth: 2, borderRadius: 8, borderRightWidth: 5, borderBottomWidth: 5, borderRightColor: '#0A0A0A', borderBottomColor: '#0A0A0A', borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 8 },
   addBtnText: { color: colors.white, fontSize: 12, fontFamily: FONT.bold, textTransform: 'uppercase' },
   formHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: colors.black },
   formTitle: { fontSize: 17, color: colors.black, fontFamily: FONT.bold },

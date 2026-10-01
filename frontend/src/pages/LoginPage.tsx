@@ -548,7 +548,7 @@ export default function LoginPage() {
                     setLoginMode("phone");
                     setError("");
                   }}
-                  className="w-full py-2.5 px-4 bg-gray-50 border-2 border-black/10 hover:border-black text-xs font-bold text-black transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-white border-2 border-black text-xs font-bold text-black flex items-center justify-center gap-2"
                 >
                   <WhatsAppIcon className="w-4 h-4 text-[#25D366]" /> Login with Phone OTP (WhatsApp)
                 </button>
@@ -556,7 +556,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handlePasskeyLogin}
                   disabled={passkeyLoading}
-                  className="w-full py-2.5 px-4 bg-gray-50 border-2 border-black/10 hover:border-black text-xs font-bold text-black transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-white border-2 border-black text-xs font-bold text-black flex items-center justify-center gap-2"
                 >
                   {passkeyLoading ? (
                     <>

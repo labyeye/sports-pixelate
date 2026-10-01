@@ -129,6 +129,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -139,6 +144,11 @@ const styles = StyleSheet.create({
   addBtn: {
     width: 40,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     alignItems: 'center',
     justifyContent: 'center',

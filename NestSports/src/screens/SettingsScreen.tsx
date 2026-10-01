@@ -19,6 +19,7 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
+import { cropFile } from '../utils/cropImage';
 import {
   Building2,
   Landmark,
@@ -98,11 +99,11 @@ function pickImage(onPicked: (file: RNFile) => void) {
         launchCamera({ mediaType: 'photo', quality: 0.8 }, r => {
           const a: Asset | undefined = r.assets?.[0];
           if (a?.uri)
-            onPicked({
+            cropFile({
               uri: a.uri,
               name: a.fileName || `img_${Date.now()}.jpg`,
               type: a.type || 'image/jpeg',
-            });
+            }).then(c => c && onPicked(c));
         }),
     },
     {
@@ -111,11 +112,11 @@ function pickImage(onPicked: (file: RNFile) => void) {
         launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, r => {
           const a: Asset | undefined = r.assets?.[0];
           if (a?.uri)
-            onPicked({
+            cropFile({
               uri: a.uri,
               name: a.fileName || `img_${Date.now()}.jpg`,
               type: a.type || 'image/jpeg',
-            });
+            }).then(c => c && onPicked(c));
         }),
     },
     { text: 'Cancel', style: 'cancel' },
@@ -662,21 +663,25 @@ export default function SettingsScreen() {
             />
             <ToggleRow
               label="Notify on Leave"
+              sub="Notify employee when HR approves or rejects their leave request"
               value={settings?.whatsappNotifyLeave ?? true}
               onChange={v => set({ whatsappNotifyLeave: v })}
             />
             <ToggleRow
               label="Notify on Payroll"
+              sub="Notify employee when their payroll is marked as paid"
               value={settings?.whatsappNotifyPayroll ?? true}
               onChange={v => set({ whatsappNotifyPayroll: v })}
             />
             <ToggleRow
               label="Notify on Subscription Payment"
+              sub="Notify parent and club owner when a subscription payment is verified or rejected"
               value={settings?.whatsappNotifySubscription ?? true}
               onChange={v => set({ whatsappNotifySubscription: v })}
             />
             <ToggleRow
               label="Notify on Check-In"
+              sub="Notify employee when attendance is recorded via biometric device"
               value={settings?.whatsappNotifyCheckIn ?? true}
               onChange={v => set({ whatsappNotifyCheckIn: v })}
             />
@@ -897,6 +902,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 12,
@@ -914,9 +920,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#0000001A',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
   },
   toggleLabel: {
     fontFamily: FONT.bold,
@@ -940,6 +954,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     alignItems: 'center',
     justifyContent: 'center',
@@ -961,6 +976,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -987,6 +1007,7 @@ const styles = StyleSheet.create({
     gap: 8,
     margin: 16,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     paddingHorizontal: 12,
   },

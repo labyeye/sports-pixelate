@@ -70,10 +70,10 @@ export default function JudgesTab({ event, onChanged }: { event: any; onChanged:
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
   meta: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
-  input: { borderWidth: 2, borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, fontFamily: FONT.medium },
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black, paddingVertical: 10 },
+  input: { borderWidth: 2, borderRadius: 8, borderRightWidth: 5, borderBottomWidth: 5, borderRightColor: '#0A0A0A', borderBottomColor: '#0A0A0A', borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, fontFamily: FONT.medium },
+  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.blue, borderWidth: 2, borderRadius: 8, borderRightWidth: 5, borderBottomWidth: 5, borderRightColor: '#0A0A0A', borderBottomColor: '#0A0A0A', borderColor: colors.black, paddingVertical: 10 },
   addBtnText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
 });

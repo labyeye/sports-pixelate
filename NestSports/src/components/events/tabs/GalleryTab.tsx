@@ -70,7 +70,7 @@ export default function GalleryTab({ eventId }: { eventId: string }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  thumbWrap: { width: '31%', aspectRatio: 1, borderWidth: 2, borderColor: colors.black, overflow: 'hidden' },
+  thumbWrap: { width: '31%', aspectRatio: 1, borderWidth: 2, borderRadius: 8, borderColor: colors.black, overflow: 'hidden' },
   thumb: { width: '100%', height: '100%' },
-  removeBtn: { position: 'absolute', top: 2, right: 2, backgroundColor: colors.white, borderWidth: 2, borderColor: colors.black, padding: 2 },
+  removeBtn: { position: 'absolute', top: 2, right: 2, backgroundColor: colors.white, borderWidth: 2, borderRadius: 8, borderColor: colors.black, padding: 2 },
 });

@@ -13,6 +13,7 @@ import {
   launchImageLibrary,
   Asset,
 } from 'react-native-image-picker';
+import { cropFile } from '../utils/cropImage';
 import { authAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -55,7 +56,12 @@ function pickAvatar(onPicked: (uri: string) => void) {
       onPress: () =>
         launchCamera(AVATAR_PICKER_OPTS, r => {
           const a: Asset | undefined = r.assets?.[0];
-          if (a?.uri) onPicked(a.uri);
+          if (a?.uri)
+            cropFile({
+              uri: a.uri,
+              name: a.fileName || `photo_${Date.now()}.jpg`,
+              type: a.type || 'image/jpeg',
+            }).then(c => c && onPicked(c.uri));
         }),
     },
     {
@@ -63,7 +69,12 @@ function pickAvatar(onPicked: (uri: string) => void) {
       onPress: () =>
         launchImageLibrary(AVATAR_PICKER_OPTS, r => {
           const a: Asset | undefined = r.assets?.[0];
-          if (a?.uri) onPicked(a.uri);
+          if (a?.uri)
+            cropFile({
+              uri: a.uri,
+              name: a.fileName || `photo_${Date.now()}.jpg`,
+              type: a.type || 'image/jpeg',
+            }).then(c => c && onPicked(c.uri));
         }),
     },
     { text: 'Cancel', style: 'cancel' },
@@ -316,6 +327,7 @@ const styles = StyleSheet.create({
   },
   readonlyValue: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: '#D1D5DB',
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
@@ -325,6 +337,7 @@ const styles = StyleSheet.create({
   },
   linkRow: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: 14,

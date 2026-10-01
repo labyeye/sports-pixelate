@@ -24,6 +24,8 @@ import {
   CalendarClock,
   CalendarX,
   Pencil,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface ActivePlan {
@@ -108,6 +110,22 @@ const STATUS_ICONS: Record<Status, React.ElementType> = {
   excused: AlertCircle,
 };
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 function toDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -134,6 +152,22 @@ export default function StudentAttendancePage() {
     checkOut: string;
   }>({ status: "present", checkIn: "", checkOut: "" });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [windowStart, setWindowStart] = useState<number>(
+    Math.max(1, new Date().getDate() - 3),
+  );
+
+  const [selYear, selMonth] = date.split("-").map(Number);
+  const daysInMonth = new Date(selYear, selMonth, 0).getDate();
+  const todayIso = toDateStr(new Date());
+
+  const changeMonthYear = (m: number, y: number) => {
+    const dim = new Date(y, m, 0).getDate();
+    const day = Math.min(Number(date.split("-")[2]), dim);
+    setDate(
+      `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    );
+    setWindowStart(Math.max(1, Math.min(day - 3, dim - 6)));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -305,15 +339,34 @@ export default function StudentAttendancePage() {
 
   return (
     <AppLayout title="Student Attendance">
-      {/* Top bar: date + save button */}
+      {/* Top bar: month/year + save button */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+          <select
+            value={selMonth}
+            onChange={(e) => changeMonthYear(Number(e.target.value), selYear)}
             className="border-2 border-black px-3 py-2 text-sm font-semibold outline-none bg-white"
-          />
+          >
+            {MONTHS.map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selYear}
+            onChange={(e) => changeMonthYear(selMonth, Number(e.target.value))}
+            className="border-2 border-black px-3 py-2 text-sm font-semibold outline-none bg-white"
+          >
+            {Array.from(
+              { length: 5 },
+              (_, i) => new Date().getFullYear() - 2 + i,
+            ).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
           {activeFilter && (
             <button
               onClick={() => setActiveFilter(null)}
@@ -326,7 +379,7 @@ export default function StudentAttendancePage() {
         <button
           onClick={saveAll}
           disabled={saving}
-          className="border-2 border-black bg-[#024BAB] text-white px-4 py-2.5 text-sm font-bold flex items-center gap-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-60 disabled:pointer-events-none"
+          className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 disabled:pointer-events-none"
         >
           {saving ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -337,7 +390,7 @@ export default function StudentAttendancePage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
         {[
           {
             label: "Total",
@@ -400,8 +453,121 @@ export default function StudentAttendancePage() {
         ))}
       </div>
 
+      {/* Date strip */}
+      <div className="border-2 border-black bg-white mb-5 flex items-stretch">
+        <button
+          onClick={() => setWindowStart((w) => Math.max(1, w - 7))}
+          disabled={windowStart <= 1}
+          className="px-3 border-r-2 border-black hover:bg-[#024BAB]/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="flex flex-1 overflow-hidden">
+          {Array.from({ length: 7 }, (_, i) => windowStart + i)
+            .filter((day) => day <= daysInMonth)
+            .map((day) => {
+              const dt = new Date(selYear, selMonth - 1, day);
+              const iso = toDateStr(dt);
+              const isToday = iso === todayIso;
+              const isSelected = iso === date;
+              const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+              const dayRecs = history.filter(
+                (r) => r.date?.slice(0, 10) === iso,
+              );
+              const presentCount = dayRecs.filter(
+                (r) => r.status === "present" || r.status === "late",
+              ).length;
+              const absentCount = dayRecs.filter(
+                (r) => r.status === "absent",
+              ).length;
+              return (
+                <button
+                  key={iso}
+                  onClick={() => setDate(iso)}
+                  className={cn(
+                    "flex-1 flex flex-col items-center justify-center py-3 px-1 border-r last:border-r-0 border-black/10 transition-colors relative",
+                    isSelected
+                      ? "bg-[#024BAB] text-white"
+                      : isToday
+                        ? "bg-[#024BAB]/5"
+                        : isWeekend
+                          ? "bg-gray-50"
+                          : "hover:bg-[#024BAB]/5",
+                  )}
+                >
+                  {isToday && !isSelected && (
+                    <span className="absolute top-1.5 w-1.5 h-1.5 rounded-full bg-[#024BAB]" />
+                  )}
+                  <span
+                    className={cn(
+                      "text-xs font-bold whitespace-nowrap mb-2",
+                      isSelected
+                        ? "text-white"
+                        : isToday
+                          ? "text-[#024BAB]"
+                          : isWeekend
+                            ? "text-gray-400"
+                            : "text-black",
+                    )}
+                  >
+                    {DAY_ABBR[dt.getDay()]},{" "}
+                    {dt.toLocaleDateString("en-IN", { month: "short" })} {day}
+                  </span>
+                  {presentCount > 0 || absentCount > 0 ? (
+                    <div className="flex flex-col items-center gap-0.5">
+                      {presentCount > 0 && (
+                        <span
+                          className={cn(
+                            "text-[11px] font-bold leading-none",
+                            isSelected ? "text-[#86efac]" : "text-[#00C48C]",
+                          )}
+                        >
+                          {presentCount}P
+                        </span>
+                      )}
+                      {absentCount > 0 && (
+                        <span
+                          className={cn(
+                            "text-[11px] font-bold leading-none",
+                            isSelected ? "text-[#fca5a5]" : "text-[#EF4444]",
+                          )}
+                        >
+                          {absentCount}A
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-[10px]",
+                        isSelected
+                          ? "text-white/40"
+                          : "text-muted-foreground/40",
+                      )}
+                    >
+                      —
+                    </span>
+                  )}
+                  {isSelected && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
+                  )}
+                </button>
+              );
+            })}
+        </div>
+        <button
+          onClick={() =>
+            setWindowStart((w) => Math.min(Math.max(1, daysInMonth - 6), w + 7))
+          }
+          disabled={windowStart + 7 > daysInMonth}
+          className="px-3 border-l-2 border-black hover:bg-[#024BAB]/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
       {loading ? (
-        <div className="border-2 border-black bg-white flex items-center justify-center h-48">
+        <div className="flex items-center justify-center h-48">
           <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
         </div>
       ) : displayedStudents.length === 0 ? (
@@ -462,9 +628,14 @@ export default function StudentAttendancePage() {
                             {s.firstName?.[0]?.toUpperCase()}
                           </div>
                         )}
-                        <span className="font-bold text-black text-xs">
-                          {s.firstName} {s.lastName}
-                        </span>
+                        <div>
+                          <p className="font-bold text-black text-xs">
+                            {s.firstName} {s.lastName}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {s.studentId}
+                          </p>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-black text-xs">

@@ -32,6 +32,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     padding: 24,
     alignItems: 'center',

@@ -329,6 +329,7 @@ const dayPickerStyles = StyleSheet.create({
     width: 48,
     height: 40,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     alignItems: 'center',
     justifyContent: 'center',

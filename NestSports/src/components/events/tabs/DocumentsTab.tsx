@@ -74,7 +74,7 @@ export default function DocumentsTab({ event, onChanged }: { event: any; onChang
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black, flexShrink: 1 },
   meta: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted },
 });

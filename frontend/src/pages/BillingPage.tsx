@@ -8,7 +8,7 @@ import { buildInvoiceHTML } from "@/lib/buildInvoiceHTML";
 import {
   Check,
   CreditCard,
-  Crown,
+  FileText,
   AlertTriangle,
   ArrowRight,
   Loader2,
@@ -167,6 +167,20 @@ export default function BillingPage() {
     setCouponError("");
   };
 
+  // Payments are one-off gateway checkouts (no card is stored), so the method
+  // is picked each time you pay. "Change" takes you to the payment section,
+  // where Update & Pay opens the gateway chooser.
+  const handleChangePaymentMethod = () => {
+    document
+      .getElementById("update-plan")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    toast({
+      title: "Choose payment method at checkout",
+      description:
+        "Set your student count below and tap Update & Pay to pick Razorpay or another gateway.",
+    });
+  };
+
   const handleUpdateStudentCount = () => {
     const count = Number(newStudentCount);
     if (!count || count < 1) {
@@ -311,7 +325,11 @@ export default function BillingPage() {
         <div className="border-2 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#024BAB]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center shrink-0">
-              <Crown className="w-5 h-5 text-[#024BAB]" />
+              <img
+                src={nesthrlogo}
+                alt="NestPlay"
+                className="w-7 h-7 object-contain"
+              />
             </div>
             <div>
               <p className="font-display font-bold text-white text-lg">
@@ -413,7 +431,7 @@ export default function BillingPage() {
         </div>
 
         {}
-        <div>
+        <div id="update-plan">
           <h2 className="font-display font-bold text-2xl text-black mb-6">
             Update Plan & User Count
           </h2>
@@ -422,304 +440,323 @@ export default function BillingPage() {
             {RATE_WHATSAPP}/user/month with WhatsApp notifications included —
             billed per student + employee
           </p>
+          <div className="grid grid-cols-2">
+            <div className="border-2 p-5 bg-white max-w-sm">
+              <div className="grid grid-cols-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+                  <Users className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Number of students
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={newStudentCount}
+                  onChange={(e) =>
+                    setNewStudentCount(
+                      e.target.value === ""
+                        ? ""
+                        : Math.max(1, parseInt(e.target.value) || 1),
+                    )
+                  }
+                  className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
+                />
 
-          <div className="border-2 p-5 bg-white max-w-sm">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
-              <Users className="w-3.5 h-3.5 text-[#024BAB]" />
-              Number of students
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={newStudentCount}
-              onChange={(e) =>
-                setNewStudentCount(
-                  e.target.value === ""
-                    ? ""
-                    : Math.max(1, parseInt(e.target.value) || 1),
-                )
-              }
-              className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
-            />
-
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
-              <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />
-              Number of employees
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={newEmployeeCount}
-              onChange={(e) =>
-                setNewEmployeeCount(
-                  e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value) || 0),
-                )
-              }
-              className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
-            />
-
-            <button
-              type="button"
-              onClick={() => setWantsWhatsapp((v) => !v)}
-              className={cn(
-                "w-full flex items-center justify-between border-2 border-black px-4 py-3 mb-4 text-left transition-colors",
-                wantsWhatsapp ? "bg-[#00C48C]/10" : "bg-white",
-              )}
-            >
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-black">
-                  WhatsApp Notifications
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  ₹{RATE_WHATSAPP}/user/month instead of ₹{RATE_INAPP} — adds
-                  WhatsApp alongside in-app
-                </p>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+                  <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />
+                  Number of employees
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={newEmployeeCount}
+                  onChange={(e) =>
+                    setNewEmployeeCount(
+                      e.target.value === ""
+                        ? ""
+                        : Math.max(0, parseInt(e.target.value) || 0),
+                    )
+                  }
+                  className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
+                />
               </div>
-              <div
+
+              <button
+                type="button"
+                onClick={() => setWantsWhatsapp((v) => !v)}
                 className={cn(
-                  "w-10 h-6 border-2 border-black shrink-0 flex items-center px-0.5 transition-colors",
-                  wantsWhatsapp ? "bg-[#00C48C] justify-end" : "bg-white justify-start",
+                  "w-full flex items-center justify-between border-2 border-black px-4 py-3 mb-4 text-left transition-colors",
+                  wantsWhatsapp ? "bg-[#00C48C]/10" : "bg-white",
                 )}
               >
-                <div className="w-4 h-4 bg-white border-2 border-black" />
-              </div>
-            </button>
-
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
-              <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
-              Coupon code
-            </label>
-            <div className="flex gap-2 mb-1">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => {
-                  setCouponCode(e.target.value.toUpperCase());
-                  setCouponError("");
-                }}
-                disabled={!!appliedCoupon}
-                placeholder="Enter code"
-                className="flex-1 min-w-0 border-2 border-black px-3 py-2 text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[#024BAB] disabled:bg-gray-100"
-              />
-              {appliedCoupon ? (
-                <button
-                  type="button"
-                  onClick={handleRemoveCoupon}
-                  className="border-2 border-black px-3 py-2 text-xs font-bold bg-white hover:bg-gray-50 shrink-0"
-                >
-                  Remove
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleApplyCoupon}
-                  disabled={couponChecking || !couponCode.trim()}
-                  className="border-2 border-black px-3 py-2 text-xs font-bold bg-white hover:bg-gray-50 disabled:opacity-50 shrink-0"
-                >
-                  {couponChecking ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    "Apply"
-                  )}
-                </button>
-              )}
-            </div>
-            {couponError && (
-              <p className="text-xs text-[#EF4444] font-medium mb-3">
-                {couponError}
-              </p>
-            )}
-            {appliedCoupon && (
-              <p className="text-xs text-[#00C48C] font-bold mb-3">
-                "{appliedCoupon.code}" applied —{" "}
-                {appliedCoupon.discountType === "bonus_months" &&
-                  `${appliedCoupon.bonusMonths} bonus month(s)`}
-                {appliedCoupon.discountType === "flat_rate" &&
-                  `₹${appliedCoupon.flatRate}/user/month`}
-                {appliedCoupon.discountType === "percent_off" &&
-                  `${appliedCoupon.percentOff}% off`}
-              </p>
-            )}
-            {!appliedCoupon && !couponError && <div className="mb-3" />}
-
-            {Number(newStudentCount) > 0 && (
-              <div className="mb-4">
-                {(() => {
-                  const units =
-                    Number(newStudentCount) + (Number(newEmployeeCount) || 0);
-                  const baseRate = wantsWhatsapp ? RATE_WHATSAPP : RATE_INAPP;
-                  let rate = baseRate;
-                  if (
-                    appliedCoupon?.discountType === "flat_rate" &&
-                    appliedCoupon.flatRate
-                  ) {
-                    rate = appliedCoupon.flatRate;
-                  }
-                  let monthly = units * rate;
-                  if (
-                    appliedCoupon?.discountType === "percent_off" &&
-                    appliedCoupon.percentOff
-                  ) {
-                    monthly = Math.round(
-                      monthly * (1 - appliedCoupon.percentOff / 100),
-                    );
-                  }
-                  const discounted = monthly !== units * baseRate;
-                  return (
-                    <>
-                      {discounted && (
-                        <span className="text-sm font-medium text-muted-foreground line-through mr-2">
-                          ₹{(units * baseRate).toLocaleString("en-IN")}
-                        </span>
-                      )}
-                      <span className="font-display font-bold text-3xl text-black">
-                        ₹{monthly.toLocaleString("en-IN")}
-                      </span>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        /mo
-                      </span>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ₹{rate}/user/month × {units} users + {GST_RATE}% GST
-                        (₹
-                        {(
-                          monthly + Math.round((monthly * GST_RATE) / 100)
-                        ).toLocaleString("en-IN")}{" "}
-                        total)
-                        {appliedCoupon?.discountType === "bonus_months" &&
-                          ` + ${appliedCoupon.bonusMonths} bonus month(s)`}
-                      </p>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-
-            <button
-              onClick={handleUpdateStudentCount}
-              disabled={
-                upgrading ||
-                (isActive && Number(newStudentCount) === studentsMax)
-              }
-              className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
-            >
-              {upgrading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  Update & Pay
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {}
-        <div className="border-2 p-4 sm:p-5 bg-white">
-          <h3 className="font-display font-bold text-lg text-black mb-4 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#024BAB]" /> Payment Method
-          </h3>
-          {sub?.paymentMethod ? (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border-2 border-black bg-[#024BAB]/5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-7 bg-black flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-xs uppercase">
-                    {sub.paymentMethod}
-                  </span>
-                </div>
                 <div>
-                  <p className="font-bold text-sm text-black capitalize">
-                    {sub.paymentMethod} — last payment ₹
-                    {sub.amountPaid?.toLocaleString("en-IN")}
+                  <p className="text-xs font-bold uppercase tracking-wider text-black">
+                    WhatsApp Notifications
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Paid on{" "}
-                    {sub.startDate
-                      ? new Date(sub.startDate).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "—"}
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    ₹{RATE_WHATSAPP}/user/month instead of ₹{RATE_INAPP} — adds
+                    WhatsApp alongside in-app
                   </p>
                 </div>
+                <div
+                  className={cn(
+                    "w-10 h-6 border-2 border-black shrink-0 flex items-center px-0.5 transition-colors",
+                    wantsWhatsapp
+                      ? "bg-[#00C48C] justify-end"
+                      : "bg-white justify-start",
+                  )}
+                >
+                  <div className="w-4 h-4 bg-white border-2 border-black" />
+                </div>
+              </button>
+
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
+                <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
+                Coupon code
+              </label>
+              <div className="flex gap-2 mb-1">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponError("");
+                  }}
+                  disabled={!!appliedCoupon}
+                  placeholder="Enter code"
+                  className="flex-1 min-w-0 border-2 border-black px-3 py-2 text-sm font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[#024BAB] disabled:bg-gray-100"
+                />
+                {appliedCoupon ? (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="border-2 border-black px-3 py-2 text-xs font-bold bg-white hover:bg-gray-50 shrink-0"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponChecking || !couponCode.trim()}
+                    className="border-2 border-black px-3 py-2 text-xs font-bold bg-white hover:bg-gray-50 disabled:opacity-50 shrink-0"
+                  >
+                    {couponChecking ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      "Apply"
+                    )}
+                  </button>
+                )}
               </div>
-              <button className=" bg-white text-black px-4 py-2 text-sm self-start sm:self-auto border-2 border-black">
-                Change
+              {couponError && (
+                <p className="text-xs text-[#EF4444] font-medium mb-3">
+                  {couponError}
+                </p>
+              )}
+              {appliedCoupon && (
+                <p className="text-xs text-[#00C48C] font-bold mb-3">
+                  "{appliedCoupon.code}" applied —{" "}
+                  {appliedCoupon.discountType === "bonus_months" &&
+                    `${appliedCoupon.bonusMonths} bonus month(s)`}
+                  {appliedCoupon.discountType === "flat_rate" &&
+                    `₹${appliedCoupon.flatRate}/user/month`}
+                  {appliedCoupon.discountType === "percent_off" &&
+                    `${appliedCoupon.percentOff}% off`}
+                </p>
+              )}
+              {!appliedCoupon && !couponError && <div className="mb-3" />}
+
+              {Number(newStudentCount) > 0 && (
+                <div className="mb-4">
+                  {(() => {
+                    const units =
+                      Number(newStudentCount) + (Number(newEmployeeCount) || 0);
+                    const baseRate = wantsWhatsapp ? RATE_WHATSAPP : RATE_INAPP;
+                    let rate = baseRate;
+                    if (
+                      appliedCoupon?.discountType === "flat_rate" &&
+                      appliedCoupon.flatRate
+                    ) {
+                      rate = appliedCoupon.flatRate;
+                    }
+                    let monthly = units * rate;
+                    if (
+                      appliedCoupon?.discountType === "percent_off" &&
+                      appliedCoupon.percentOff
+                    ) {
+                      monthly = Math.round(
+                        monthly * (1 - appliedCoupon.percentOff / 100),
+                      );
+                    }
+                    const discounted = monthly !== units * baseRate;
+                    return (
+                      <>
+                        {discounted && (
+                          <span className="text-sm font-medium text-muted-foreground line-through mr-2">
+                            ₹{(units * baseRate).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                        <span className="font-display font-bold text-3xl text-black">
+                          ₹{monthly.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          /mo
+                        </span>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ₹{rate}/user/month × {units} users + {GST_RATE}% GST
+                          (₹
+                          {(
+                            monthly + Math.round((monthly * GST_RATE) / 100)
+                          ).toLocaleString("en-IN")}{" "}
+                          total)
+                          {appliedCoupon?.discountType === "bonus_months" &&
+                            ` + ${appliedCoupon.bonusMonths} bonus month(s)`}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
+              <button
+                onClick={handleUpdateStudentCount}
+                disabled={
+                  upgrading ||
+                  (isActive && Number(newStudentCount) === studentsMax)
+                }
+                className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
+              >
+                {upgrading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    Update & Pay
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
-          ) : (
-            <div className="p-4 border-2 border-dashed border-black text-center">
-              <p className="text-sm text-muted-foreground">
-                No payment method on file
+            <div className="border-2 p-4 sm:p-5 bg-white">
+              <h3 className="font-display font-bold text-lg text-black mb-4 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-[#024BAB]" /> Payment Method
+              </h3>
+              {sub?.paymentMethod ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border-2 border-black bg-[#024BAB]/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-7 bg-black flex items-center justify-center shrink-0">
+                      <span className="text-white font-bold text-xs uppercase">
+                        {sub.paymentMethod}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-black capitalize">
+                        {sub.paymentMethod} — last payment ₹
+                        {sub.amountPaid?.toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Paid on{" "}
+                        {sub.startDate
+                          ? new Date(sub.startDate).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              },
+                            )
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleChangePaymentMethod}
+                    className=" bg-white text-black px-4 py-2 text-sm self-start sm:self-auto border-2 border-black"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 border-2 border-dashed border-black text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No payment method on file
+                  </p>
+                </div>
+              )}
+              <div className="mt-5 pt-5 border-t-2 border-black">
+                <h3 className="font-display font-bold text-base text-black mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#024BAB]" />
+                  Invoice History
+                </h3>
+                {invoices.length === 0 ? (
+                  <div className="text-center py-6 border-2 border-dashed border-black/30">
+                    <p className="text-xs text-muted-foreground">
+                      No invoices found
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {invoices.map((inv) => (
+                      <div
+                        key={inv._id}
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border-2 border-black hover:bg-[#024BAB]/5 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-bold text-muted-foreground">
+                            {inv.invoiceNumber}
+                          </span>
+                          <span className="text-sm font-medium text-black">
+                            {new Date(
+                              inv.paidAt || inv.createdAt,
+                            ).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {inv.plan} · {inv.billingCycle}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-bold text-black">
+                            ₹{inv.amount?.toLocaleString("en-IN")}
+                          </span>
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black text-[11px] font-bold",
+                              inv.status === "paid"
+                                ? "bg-[#00C48C] text-black"
+                                : "bg-[#FA731C] text-white",
+                            )}
+                          >
+                            {inv.status === "paid" && (
+                              <Check className="w-3 h-3" />
+                            )}
+                            {inv.status.charAt(0).toUpperCase() +
+                              inv.status.slice(1)}
+                          </span>
+                          <button
+                            onClick={() => handleDownloadInvoice(inv)}
+                            disabled={downloading === inv._id}
+                            className="text-xs font-bold text-[#024BAB] underline hover:text-[#024BAB]/80 transition-colors flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <Download className="w-3 h-3" />
+                            {downloading === inv._id ? "Opening…" : "Download"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 shrink-0" />
+                Payments processed securely via Razorpay or HDFC SmartGateway.
+                We never store your card details.
               </p>
             </div>
-          )}
-          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3 shrink-0" />
-            Payments processed securely via Razorpay or HDFC SmartGateway. We
-            never store your card details.
-          </p>
-        </div>
-
-        {}
-        <div className="border-2 p-4 sm:p-5 bg-white">
-          <h3 className="font-display font-bold text-lg text-black mb-4">
-            Invoice History
-          </h3>
-          {invoices.length === 0 ? (
-            <div className="text-center py-6 border-2 border-dashed border-black/30">
-              <p className="text-xs text-muted-foreground">No invoices found</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {invoices.map((inv) => (
-                <div
-                  key={inv._id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border-2 border-black hover:bg-[#024BAB]/5 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs font-bold text-muted-foreground">
-                      {inv.invoiceNumber}
-                    </span>
-                    <span className="text-sm font-medium text-black">
-                      {new Date(inv.paidAt || inv.createdAt).toLocaleDateString(
-                        "en-IN",
-                        { day: "numeric", month: "long", year: "numeric" },
-                      )}
-                    </span>
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {inv.plan} · {inv.billingCycle}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-black">
-                      ₹{inv.amount?.toLocaleString("en-IN")}
-                    </span>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black text-[11px] font-bold",
-                        inv.status === "paid"
-                          ? "bg-[#00C48C] text-black"
-                          : "bg-[#FA731C] text-white",
-                      )}
-                    >
-                      {inv.status === "paid" && <Check className="w-3 h-3" />}
-                      {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
-                    </span>
-                    <button
-                      onClick={() => handleDownloadInvoice(inv)}
-                      disabled={downloading === inv._id}
-                      className="text-xs font-bold text-[#024BAB] underline hover:text-[#024BAB]/80 transition-colors flex items-center gap-1 disabled:opacity-50"
-                    >
-                      <Download className="w-3 h-3" />
-                      {downloading === inv._id ? "Opening…" : "Download"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

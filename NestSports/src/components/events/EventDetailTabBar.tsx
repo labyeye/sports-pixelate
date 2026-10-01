@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
   content: { gap: 8, paddingVertical: 2, paddingHorizontal: 16 },
   pill: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 14,

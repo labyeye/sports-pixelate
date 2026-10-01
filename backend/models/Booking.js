@@ -43,6 +43,17 @@ const bookingSchema = new mongoose.Schema(
       default: "razorpay",
     },
     notes: { type: String },
+    // Inventory gear taken for this booking. Stock is deducted when the
+    // booking is created (an assignment is pushed on the InventoryItem) and
+    // restored when the return is recorded or the booking is cancelled.
+    items: [
+      {
+        item: { type: mongoose.Schema.Types.ObjectId, ref: "InventoryItem" },
+        quantity: { type: Number, default: 1, min: 1 },
+        assignmentId: { type: mongoose.Schema.Types.ObjectId },
+        returnedAt: { type: Date },
+      },
+    ],
   },
   { timestamps: true },
 );

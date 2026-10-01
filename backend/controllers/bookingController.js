@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Booking = require("../models/Booking");
 const Facility = require("../models/Facility");
+const InventoryItem = require("../models/InventoryItem");
 const Setting = require("../models/Setting");
 const paymentGatewayService = require("../services/paymentGatewayService");
 const { safePagination, safeSort } = require("../middleware/validate");
@@ -43,6 +44,81 @@ function timesOverlap(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
 }
 
+
+// Restores stock for gear on a booking that hasn't been returned yet.
+// `onlyIds` limits it to specific booking-item subdocs; otherwise every
+// outstanding item is returned. Mutates the booking but does not save it.
+async function returnBookingItems(booking, company, onlyIds) {
+  const now = new Date();
+  const returned = [];
+  for (const line of booking.items || []) {
+    if (line.returnedAt) continue;
+    if (onlyIds && !onlyIds.includes(String(line._id))) continue;
+    const item = await InventoryItem.findOne({ _id: line.item, company });
+    if (item) {
+      const assignment = item.assignments.id(line.assignmentId);
+      if (assignment && !assignment.returnedAt) {
+        assignment.returnedAt = now;
+        item.availableQuantity += assignment.quantity;
+        await item.save();
+      }
+    }
+    line.returnedAt = now;
+    returned.push(line);
+  }
+  return returned;
+}
+
+// Takes stock out for every requested gear line. All-or-nothing: if any line
+// can't be satisfied, lines already taken are put back and an error is thrown.
+async function takeBookingItems(requested, { company, studentId, bookingId }) {
+  const taken = [];
+  try {
+    for (const r of requested) {
+      const qty = Math.floor(Number(r.quantity)) || 0;
+      if (!r.itemId || qty < 1) throw new Error("Invalid equipment line");
+      const item = await InventoryItem.findOneAndUpdate(
+        { _id: r.itemId, company, availableQuantity: { $gte: qty } },
+        {
+          $inc: { availableQuantity: -qty },
+          $push: {
+            assignments: {
+              ...(studentId
+                ? { assignedTo: studentId, assignedToModel: "Student" }
+                : {}),
+              quantity: qty,
+              notes: `Facility booking ${bookingId}`,
+            },
+          },
+        },
+        { new: true },
+      );
+      if (!item) {
+        const existing = await InventoryItem.findOne({ _id: r.itemId, company });
+        throw new Error(
+          existing
+            ? `Not enough stock for ${existing.name} (only ${existing.availableQuantity} available)`
+            : "Equipment item not found",
+        );
+      }
+      const assignment = item.assignments[item.assignments.length - 1];
+      taken.push({ item: item._id, quantity: qty, assignmentId: assignment._id });
+    }
+  } catch (err) {
+    for (const t of taken) {
+      await InventoryItem.updateOne(
+        { _id: t.item, company, "assignments._id": t.assignmentId },
+        {
+          $inc: { availableQuantity: t.quantity },
+          $set: { "assignments.$.returnedAt": new Date() },
+        },
+      );
+    }
+    throw err;
+  }
+  return taken;
+}
+
 // owner/staff: every booking. parent: only bookings for their children (or made by them).
 const getBookings = asyncHandler(async (req, res) => {
   const { facility, date, status } = req.query;
@@ -67,6 +143,7 @@ const getBookings = asyncHandler(async (req, res) => {
     .populate("facility", "name type sport hourlyFee")
     .populate("student", "firstName lastName")
     .populate("bookedBy", "name")
+    .populate("items.item", "name photo")
     .sort(sort)
     .skip(skip)
     .limit(limit);
@@ -84,7 +161,8 @@ const getBookings = asyncHandler(async (req, res) => {
 // order the client must pay before the booking is treated as confirmed+paid —
 // otherwise it's confirmed immediately (free booking).
 const createBooking = asyncHandler(async (req, res) => {
-  const { facilityId, studentId, date, startTime, endTime, notes } = req.body;
+  const { facilityId, studentId, date, startTime, endTime, notes, items } =
+    req.body;
   if (!facilityId || !date || !startTime || !endTime) {
     res.status(400);
     throw new Error("facilityId, date, startTime and endTime are required");
@@ -134,6 +212,10 @@ const createBooking = asyncHandler(async (req, res) => {
     );
   }
 
+  // Gear is staff-only; parents book the slot, the club hands out equipment.
+  const requestedItems =
+    req.user.role !== "parent" && Array.isArray(items) ? items : [];
+
   const booking = await Booking.create({
     company: req.user.company,
     facility: facilityId,
@@ -146,6 +228,21 @@ const createBooking = asyncHandler(async (req, res) => {
     notes,
     paymentStatus: fee > 0 ? "pending" : "not_required",
   });
+
+  if (requestedItems.length > 0) {
+    try {
+      booking.items = await takeBookingItems(requestedItems, {
+        company: req.user.company,
+        studentId: studentId || undefined,
+        bookingId: booking._id,
+      });
+      await booking.save();
+    } catch (err) {
+      await Booking.deleteOne({ _id: booking._id });
+      res.status(400);
+      throw err;
+    }
+  }
 
   if (fee === 0) {
     return res.status(201).json({ success: true, data: booking });
@@ -244,15 +341,42 @@ const cancelBooking = asyncHandler(async (req, res) => {
       { bookedBy: req.user._id },
     ];
   }
-  const booking = await Booking.findOneAndUpdate(
-    filter,
-    { status: "cancelled" },
-    { new: true },
-  );
+  const booking = await Booking.findOne(filter);
   if (!booking) {
     res.status(404);
     throw new Error("Booking not found");
   }
+  booking.status = "cancelled";
+  // A cancelled booking never uses the gear — put it back in stock.
+  await returnBookingItems(booking, req.user.company);
+  await booking.save();
+  res.json({ success: true, data: booking });
+});
+
+// Records that gear taken with a booking has come back. Body: { itemIds? } —
+// ids of the booking's item lines; omit to return everything outstanding.
+const returnBookingItemsHandler = asyncHandler(async (req, res) => {
+  const booking = await Booking.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!booking) {
+    res.status(404);
+    throw new Error("Booking not found");
+  }
+  const onlyIds = Array.isArray(req.body.itemIds)
+    ? req.body.itemIds.map(String)
+    : undefined;
+  const returned = await returnBookingItems(booking, req.user.company, onlyIds);
+  if (returned.length === 0) {
+    res.status(400);
+    throw new Error("No outstanding equipment to return");
+  }
+  // Everything back on a confirmed booking whose slot is over → completed.
+  const allBack = booking.items.every((l) => l.returnedAt);
+  if (allBack && booking.status === "confirmed") booking.status = "completed";
+  await booking.save();
+  await booking.populate("items.item", "name photo");
   res.json({ success: true, data: booking });
 });
 
@@ -261,4 +385,5 @@ module.exports = {
   createBooking,
   verifyBookingPayment,
   cancelBooking,
+  returnBookingItems: returnBookingItemsHandler,
 };

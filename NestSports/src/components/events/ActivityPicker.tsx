@@ -64,6 +64,7 @@ const styles = StyleSheet.create({
   suggestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   chip: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: '#D1D5DB',
     backgroundColor: colors.white,
     paddingHorizontal: 10,

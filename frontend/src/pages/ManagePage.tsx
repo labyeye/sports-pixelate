@@ -25,6 +25,7 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
+  ChevronRight,
 } from "lucide-react";
 
 function NbSelect({
@@ -1324,25 +1325,28 @@ export default function ManagePage() {
           Click any module to view and manage records
         </p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {MANAGE_ITEMS.map(({ id, label, sub: subtitle, icon: Icon, bg }) => (
           <button
             key={id}
             onClick={() => setSub(id)}
-            className="border-2 bg-white p-5 text-left flex flex-col gap-3 hover:border-[#024BAB] transition-colors"
+            className="group border-2 border-black bg-white p-5 text-left flex items-center gap-4 hover:bg-[#F0F6FF]"
           >
             <div
               className={cn(
-                "w-12 h-12 border-2 border-black flex items-center justify-center",
+                "w-14 h-14 border-2 border-black rounded-lg shadow-[3px_3px_0px_0px_#0a0a0a] flex items-center justify-center shrink-0",
                 bg,
               )}
             >
-              <Icon className="w-6 h-6 text-white" />
+              <Icon className="w-7 h-7 text-white" />
             </div>
-            <div>
-              <p className="font-bold text-black text-sm">{label}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold text-black text-base">
+                {label}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
             </div>
+            <ChevronRight className="w-5 h-5 shrink-0 text-black transition-transform group-hover:translate-x-1" />
           </button>
         ))}
       </div>

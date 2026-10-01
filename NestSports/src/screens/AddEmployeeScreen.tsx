@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   hint: { color: colors.muted, fontSize: 11, marginTop: -8, marginBottom: 14 },
   dayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  day: { borderWidth: 2, borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 8 },
+  day: { borderWidth: 2, borderRadius: 8, borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 8 },
   dayOn: { backgroundColor: colors.blue },
   dayText: { fontFamily: FONT.bold, fontSize: 12, color: colors.black },
 });

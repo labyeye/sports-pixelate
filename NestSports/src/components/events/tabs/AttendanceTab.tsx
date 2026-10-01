@@ -40,7 +40,7 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
   status: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 11, textTransform: 'uppercase' },
 });

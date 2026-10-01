@@ -43,7 +43,7 @@ import {
   PersonType,
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
-import { Button, ChipSelect, LoadingView } from '../components/ui';
+import { Button, ChipSelect, LoadingView, KpiTile } from '../components/ui';
 
 interface Location {
   _id: string;
@@ -517,6 +517,26 @@ export default function BiometricDeviceScreen() {
             />
           }
         >
+          <View style={styles.kpiRow}>
+            <KpiTile
+              label="Locations"
+              value={locations.length}
+              color={colors.blue}
+              icon={MapPin}
+            />
+            <KpiTile
+              label="Devices"
+              value={devices.length}
+              color={colors.orange}
+              icon={Cpu}
+            />
+            <KpiTile
+              label="Connected"
+              value={devices.filter(d => d.activated).length}
+              color={colors.green}
+              icon={CheckCircle2}
+            />
+          </View>
           {tab === 'locations' ? (
             locations.length === 0 ? (
               <View style={styles.empty}>
@@ -527,11 +547,11 @@ export default function BiometricDeviceScreen() {
                 </Text>
               </View>
             ) : (
-              <View style={styles.card}>
-                {locations.map((loc, i) => (
+              <View>
+                {locations.map(loc => (
                   <View
                     key={loc._id}
-                    style={[styles.row, i > 0 && styles.rowBorder]}
+                    style={[styles.card, styles.itemCard, styles.row]}
                   >
                     <View style={styles.locIcon}>
                       <MapPin size={16} color={colors.blue} />
@@ -577,11 +597,11 @@ export default function BiometricDeviceScreen() {
               </Text>
             </View>
           ) : (
-            <View style={styles.card}>
-              {devices.map((dev, i) => (
-                <View key={dev._id}>
+            <View>
+              {devices.map(dev => (
+                <View key={dev._id} style={[styles.card, styles.itemCard]}>
                   <TouchableOpacity
-                    style={[styles.row, i > 0 && styles.rowBorder]}
+                    style={styles.row}
                     onPress={() =>
                       setExpandedDev(expandedDev === dev._id ? null : dev._id)
                     }
@@ -1302,6 +1322,11 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.blue,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingVertical: 10,
   },
@@ -1315,6 +1340,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
   },
   row: {
@@ -1325,6 +1355,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   rowBorder: { borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  itemCard: { marginBottom: 12, overflow: 'hidden' },
+  kpiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
   rowTitle: {
     fontFamily: FONT.bold,
     fontSize: 14,
@@ -1342,6 +1378,7 @@ const styles = StyleSheet.create({
     height: 36,
     backgroundColor: '#EFF6FF',
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1353,6 +1390,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     borderWidth: 2,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 999,
     borderColor: colors.green,
     paddingHorizontal: 6,
     paddingVertical: 3,
@@ -1372,6 +1414,11 @@ const styles = StyleSheet.create({
   codeBox: {
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
     borderColor: colors.black,
     padding: 12,
     marginBottom: 10,
@@ -1405,6 +1452,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.red,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1422,6 +1474,11 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.blue,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1479,6 +1536,11 @@ const styles = StyleSheet.create({
   fieldInput: {
     fontFamily: FONT.medium,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1492,6 +1554,7 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 10,
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: '#E5E7EB',
     marginBottom: 6,
   },
@@ -1508,6 +1571,11 @@ const sync = StyleSheet.create({
   section: {
     backgroundColor: colors.white,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     padding: 16,
     marginBottom: 12,
@@ -1546,6 +1614,11 @@ const sync = StyleSheet.create({
   },
   deviceCard: {
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     padding: 12,
     marginBottom: 8,
@@ -1567,6 +1640,11 @@ const sync = StyleSheet.create({
   snBadge: {
     marginLeft: 'auto',
     borderWidth: 2,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 999,
     borderColor: colors.green,
     backgroundColor: '#F0FDF4',
     paddingHorizontal: 6,
@@ -1584,6 +1662,11 @@ const sync = StyleSheet.create({
     gap: 5,
     backgroundColor: colors.blue,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -1625,6 +1708,11 @@ const sync = StyleSheet.create({
     gap: 5,
     backgroundColor: colors.blue,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1661,6 +1749,11 @@ const sync = StyleSheet.create({
   bioIdInput: {
     width: 60,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.blue,
     paddingHorizontal: 6,
     paddingVertical: 4,
@@ -1673,6 +1766,7 @@ const sync = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 2,
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 4,
   },
@@ -1685,6 +1779,11 @@ const sync = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 7,
     paddingVertical: 5,
@@ -1710,6 +1809,11 @@ const sync = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
     borderColor: colors.black,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1743,6 +1847,7 @@ const sync = StyleSheet.create({
   },
   cmdStatus: {
     borderWidth: 2,
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
@@ -1759,6 +1864,7 @@ const sync = StyleSheet.create({
   rfidPersonBox: {
     backgroundColor: '#EFF6FF',
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: '#BFDBFE',
     padding: 12,
     marginBottom: 14,

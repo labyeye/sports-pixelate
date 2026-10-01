@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Building2,
+  Users,
+  MapPin,
+  Gift,
+  Clock,
+  ShieldCheck,
+  ChevronRight,
+} from 'lucide-react-native';
 import {
   departmentAPI,
   designationAPI,
@@ -8,8 +23,8 @@ import {
   shiftAPI,
 } from '../api/client';
 import ConfigCrud, { CrudConfig } from '../components/ConfigCrud';
-import { Card, FilterPills, Row, SectionTitle } from '../components/ui';
-import { colors } from '../theme/colors';
+import { FilterPills, SectionTitle } from '../components/ui';
+import { colors, FONT } from '../theme/colors';
 
 const STATUS = ['active', 'inactive'];
 const statusBadge = (s: string) => ({
@@ -130,15 +145,31 @@ export default function ManageScreen({ navigation }: any) {
         <View style={{ height: 12 }} />
         <ConfigCrud key={tab} config={CONFIGS[tab]} />
 
-        <Card>
-          <SectionTitle title="Modules" />
-          <Row title="Departments" subtitle="Manage teams and departments" onPress={go('Departments')} />
-          <Row title="Employees" subtitle="Manage staff and coaches" onPress={go('Employees')} />
-          <Row title="Facilities" subtitle="Sports facilities and rates" onPress={go('Facilities')} />
-          <Row title="Coaching Plans" subtitle="Sports plans and pricing" onPress={go('Plans')} />
-          <Row title="Attendance Settings" subtitle="Shift, late & leave allowance rules" onPress={go('AttendanceSettings')} />
-          <Row title="User Roles & Permissions" subtitle="Who can see and do what" onPress={go('Permissions')} />
-        </Card>
+        <SectionTitle title="Modules" />
+        {[
+          { title: 'Departments', sub: 'Manage teams and departments', screen: 'Departments', icon: Building2, color: colors.blue },
+          { title: 'Employees', sub: 'Manage staff and coaches', screen: 'Employees', icon: Users, color: colors.green },
+          { title: 'Facilities', sub: 'Sports facilities and rates', screen: 'Facilities', icon: MapPin, color: colors.orange },
+          { title: 'Coaching Plans', sub: 'Sports plans and pricing', screen: 'Plans', icon: Gift, color: colors.purple },
+          { title: 'Attendance Settings', sub: 'Shift, late & leave allowance rules', screen: 'AttendanceSettings', icon: Clock, color: colors.blue },
+          { title: 'User Roles & Permissions', sub: 'Who can see and do what', screen: 'Permissions', icon: ShieldCheck, color: colors.orange },
+        ].map(({ title, sub, screen, icon: Icon, color }) => (
+          <TouchableOpacity
+            key={screen}
+            style={styles.moduleCard}
+            onPress={go(screen)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.moduleIcon, { backgroundColor: color }]}>
+              <Icon size={22} color={colors.white} strokeWidth={2.5} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.moduleTitle}>{title}</Text>
+              <Text style={styles.moduleSub}>{sub}</Text>
+            </View>
+            <ChevronRight size={20} color={colors.black} strokeWidth={2.5} />
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -148,4 +179,35 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
+  moduleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    padding: 14,
+    marginBottom: 12,
+  },
+  moduleIcon: {
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+  },
+  moduleTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.black,
+  },
+  moduleSub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
 });

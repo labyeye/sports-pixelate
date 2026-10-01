@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -183,6 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
+    borderRadius: 8,
     borderColor: colors.black,
     padding: 10,
     marginBottom: 8,

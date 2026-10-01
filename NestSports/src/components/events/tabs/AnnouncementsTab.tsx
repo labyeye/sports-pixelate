@@ -67,10 +67,10 @@ export default function AnnouncementsTab({ eventId }: { eventId: string }) {
 }
 
 const styles = StyleSheet.create({
-  item: { borderWidth: 2, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
+  item: { borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   title: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
   message: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
-  input: { borderWidth: 2, borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, fontFamily: FONT.medium },
-  postBtn: { backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black, paddingVertical: 10, alignItems: 'center' },
+  input: { borderWidth: 2, borderRadius: 8, borderRightWidth: 5, borderBottomWidth: 5, borderRightColor: '#0A0A0A', borderBottomColor: '#0A0A0A', borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, fontFamily: FONT.medium },
+  postBtn: { backgroundColor: colors.blue, borderWidth: 2, borderRadius: 8, borderColor: colors.black, paddingVertical: 10, alignItems: 'center' },
   postBtnText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
 });

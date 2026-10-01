@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { bookingAPI, facilityAPI, studentAPI } from "@/services/api";
+import {
+  bookingAPI,
+  facilityAPI,
+  studentAPI,
+  inventoryAPI,
+} from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -24,6 +29,9 @@ import {
   User,
   Calendar,
   Clock,
+  Package,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 declare global {
@@ -43,6 +51,45 @@ interface Booking {
   fee: number;
   status: string;
   paymentStatus: string;
+  items?: {
+    _id: string;
+    item: { _id: string; name: string; photo?: string } | null;
+    quantity: number;
+    returnedAt?: string;
+  }[];
+}
+
+interface GearLine {
+  itemId: string;
+  quantity: number;
+}
+
+function GearList({ b }: { b: Booking }) {
+  if (!b.items || b.items.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {b.items.map((l) => (
+        <span
+          key={l._id}
+          className={cn(
+            "inline-flex items-center gap-1 border-2 border-black px-1.5 py-0.5 text-[10px] font-bold",
+            l.returnedAt
+              ? "bg-[#00C48C]/15 text-[#047857]"
+              : "bg-[#FA731C]/15 text-[#C2410C]",
+          )}
+          title={l.returnedAt ? "Returned" : "Not returned yet"}
+        >
+          <Package className="w-3 h-3" />
+          {l.item?.name || "Item"} × {l.quantity}
+          {l.returnedAt ? " · returned" : " · out"}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function hasOutstanding(b: Booking) {
+  return !!b.items?.some((l) => !l.returnedAt);
 }
 
 function toDateStr(d: Date) {
@@ -65,6 +112,11 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [facilities, setFacilities] = useState<any[]>([]);
   const [children, setChildren] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [gear, setGear] = useState<GearLine[]>([]);
+  const [gearPick, setGearPick] = useState({ itemId: "", quantity: 1 });
+  const [returningId, setReturningId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -120,6 +172,16 @@ export default function BookingsPage() {
       if (isParent) {
         const studRes = await studentAPI.getAll();
         setChildren(studRes.data);
+      } else {
+        // Staff pick the student and any gear from the club's own lists.
+        const [studRes, invRes] = await Promise.all([
+          studentAPI
+            .getAll({ status: "active", limit: "500" })
+            .catch(() => null),
+          inventoryAPI.getAll({ limit: "200" }).catch(() => null),
+        ]);
+        if (studRes) setStudents(studRes.data || []);
+        if (invRes) setInventory(invRes.data || []);
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -155,7 +217,44 @@ export default function BookingsPage() {
       startTime: "09:00",
       endTime: "10:00",
     });
+    setGear([]);
+    setGearPick({ itemId: "", quantity: 1 });
     setShowForm(false);
+  };
+
+  const addGear = () => {
+    const item = inventory.find((i) => i._id === gearPick.itemId);
+    if (!item) return;
+    const already = gear.find((g) => g.itemId === item._id)?.quantity || 0;
+    const qty = Math.max(1, Math.floor(Number(gearPick.quantity)) || 1);
+    if (already + qty > item.availableQuantity) {
+      toast({
+        title: `Only ${item.availableQuantity} ${item.name} available`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setGear((g) =>
+      g.some((x) => x.itemId === item._id)
+        ? g.map((x) =>
+            x.itemId === item._id ? { ...x, quantity: x.quantity + qty } : x,
+          )
+        : [...g, { itemId: item._id, quantity: qty }],
+    );
+    setGearPick({ itemId: "", quantity: 1 });
+  };
+
+  const handleReturn = async (id: string) => {
+    setReturningId(id);
+    try {
+      await bookingAPI.returnItems(id);
+      toast({ title: "Return recorded — stock updated" });
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setReturningId(null);
+    }
   };
 
   const handleCreate = async () => {
@@ -166,7 +265,7 @@ export default function BookingsPage() {
     }
     setSaving(true);
     try {
-      const res = await bookingAPI.create(form);
+      const res = await bookingAPI.create({ ...form, items: gear });
       if (res.payment) {
         const payment = res.payment;
 
@@ -228,7 +327,9 @@ export default function BookingsPage() {
                   reject(err);
                 }
               },
-              modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+              modal: {
+                ondismiss: () => reject(new Error("Payment cancelled")),
+              },
             });
             rzp.open();
           });
@@ -254,7 +355,7 @@ export default function BookingsPage() {
     if (!confirm("Cancel this booking?")) return;
     try {
       await bookingAPI.cancel(id);
-      toast({ title: "Booking cancelled" });
+      toast({ title: "Booking cancelled — any gear is back in stock" });
       load();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -463,6 +564,28 @@ export default function BookingsPage() {
                 </select>
               </div>
             )}
+            {!isParent && (
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                  <User className="w-3.5 h-3.5 text-[#024BAB]" />
+                  For Student
+                </label>
+                <select
+                  value={form.studentId}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, studentId: e.target.value }))
+                  }
+                  className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                >
+                  <option value="">—</option>
+                  {students.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.firstName} {c.lastName} ({c.studentId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
                 <Calendar className="w-3.5 h-3.5 text-[#024BAB]" />
@@ -508,6 +631,82 @@ export default function BookingsPage() {
               </div>
             </div>
           </div>
+          {!isParent && (
+            <div className="mt-4 border-2 border-black p-4">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase mb-3">
+                <Package className="w-3.5 h-3.5 text-[#024BAB]" />
+                Equipment from inventory
+              </p>
+              <div className="flex flex-wrap items-end gap-2">
+                <select
+                  value={gearPick.itemId}
+                  onChange={(e) =>
+                    setGearPick((p) => ({ ...p, itemId: e.target.value }))
+                  }
+                  className="flex-1 min-w-48 border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                >
+                  <option value="">Choose an item</option>
+                  {inventory
+                    .filter((i) => i.availableQuantity > 0)
+                    .map((i) => (
+                      <option key={i._id} value={i._id}>
+                        {i.name} ({i.availableQuantity} available)
+                      </option>
+                    ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  value={gearPick.quantity}
+                  onChange={(e) =>
+                    setGearPick((p) => ({
+                      ...p,
+                      quantity: Number(e.target.value),
+                    }))
+                  }
+                  className="w-24 border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={addGear}
+                  disabled={!gearPick.itemId}
+                  className="border-2 border-black bg-white px-3 py-2 text-xs font-bold uppercase disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+              {gear.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {gear.map((g) => {
+                    const item = inventory.find((i) => i._id === g.itemId);
+                    return (
+                      <span
+                        key={g.itemId}
+                        className="inline-flex items-center gap-2 border-2 border-black bg-[#F0F6FF] px-2 py-1 text-xs font-bold"
+                      >
+                        {item?.name} × {g.quantity}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setGear((x) =>
+                              x.filter((y) => y.itemId !== g.itemId),
+                            )
+                          }
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Stock is reduced now and restored when you record the return (or
+                cancel the booking).
+              </p>
+            </div>
+          )}
           <div className="flex gap-3 mt-4">
             <button
               onClick={handleCreate}
@@ -591,10 +790,22 @@ export default function BookingsPage() {
                       </span>
                     </div>
                   </div>
+                  <GearList b={b} />
+                  {!isParent &&
+                    hasOutstanding(b) &&
+                    b.status !== "cancelled" && (
+                      <button
+                        onClick={() => handleReturn(b._id)}
+                        disabled={returningId === b._id}
+                        className="w-full mt-3 border-2 border-black bg-[#00C48C] py-2 text-xs font-bold text-black disabled:opacity-60 flex items-center justify-center gap-1"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Record Return
+                      </button>
+                    )}
                   {b.status === "confirmed" && (
                     <button
                       onClick={() => handleCancel(b._id)}
-                      className="w-full border-2 border-black bg-white py-2 text-xs font-bold text-red-600 hover:bg-red-50"
+                      className="w-full mt-2 border-2 border-black bg-white py-2 text-xs font-bold text-red-600 hover:bg-red-50"
                     >
                       Cancel Booking
                     </button>
@@ -615,6 +826,7 @@ export default function BookingsPage() {
                     "Date",
                     "Time",
                     "Fee",
+                    "Equipment",
                     "Status",
                     "Actions",
                   ].map((h) => (
@@ -656,6 +868,13 @@ export default function BookingsPage() {
                         {b.fee > 0 ? `₹${b.fee}` : "Free"}
                       </td>
                       <td className="px-4 py-3">
+                        {b.items && b.items.length > 0 ? (
+                          <GearList b={b} />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         <span
                           className={cn(
                             "text-[10px] font-bold uppercase px-1.5 py-0.5 border",
@@ -668,14 +887,27 @@ export default function BookingsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {b.status === "confirmed" && (
-                          <button
-                            onClick={() => handleCancel(b._id)}
-                            className="text-xs font-bold text-red-500 hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {!isParent &&
+                            hasOutstanding(b) &&
+                            b.status !== "cancelled" && (
+                              <button
+                                onClick={() => handleReturn(b._id)}
+                                disabled={returningId === b._id}
+                                className="border-2 border-black bg-[#00C48C] px-2 py-1 text-xs font-bold text-black disabled:opacity-60 flex items-center gap-1"
+                              >
+                                <RotateCcw className="w-3 h-3" /> Record Return
+                              </button>
+                            )}
+                          {b.status === "confirmed" && (
+                            <button
+                              onClick={() => handleCancel(b._id)}
+                              className="border-2 border-black bg-white px-2 py-1 text-xs font-bold text-red-600"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
