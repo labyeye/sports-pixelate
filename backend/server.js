@@ -152,6 +152,7 @@ app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/facilities", require("./routes/facilityRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/exits", require("./routes/exitRoutes"));
 // Reports (student & billing reports)
 app.use("/api/reports", require("./routes/reportsRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));

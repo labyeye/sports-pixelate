@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Cpu,
   FileBarChart,
+  UserMinus,
 } from 'lucide-react-native';
 
 // Mirrors frontend/src/config/navigation.ts (the web sidebar) so every role
@@ -107,6 +108,13 @@ export const navGroups: NavGroup[] = [
         icon: Trophy,
         roles: ALL,
         desc: 'Manage tournaments, competitions & events',
+      },
+      {
+        title: 'Exit Management',
+        screen: 'ExitManagement',
+        icon: UserMinus,
+        roles: OWNER,
+        desc: 'Offboard staff & students',
       },
     ],
   },

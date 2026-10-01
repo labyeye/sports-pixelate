@@ -51,6 +51,7 @@ import ParentReportScreen from '../screens/ParentReportScreen';
 import PlansScreen from '../screens/PlansScreen';
 import AddPlanScreen from '../screens/AddPlanScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
+import ExitManagementScreen from '../screens/ExitManagementScreen';
 import PayrollScreen from '../screens/PayrollScreen';
 import AttendanceSettingsScreen from '../screens/AttendanceSettingsScreen';
 import LoansScreen from '../screens/LoansScreen';
@@ -285,6 +286,10 @@ export default function RootNavigator() {
               options={{ title: 'Add Plan' }}
             />
             <Stack.Screen name="Expenses" component={ExpensesScreen} />
+            <Stack.Screen
+              name="ExitManagement"
+              component={ExitManagementScreen}
+            />
             <Stack.Screen name="Payroll" component={PayrollScreen} />
             <Stack.Screen
               name="AttendanceSettings"

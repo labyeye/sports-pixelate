@@ -190,19 +190,18 @@ export function KpiTile({
             { backgroundColor: color + '1A', borderColor: color },
           ]}
         >
-          <Icon size={18} color={color} strokeWidth={2.5} />
+          <Icon size={20} color={color} strokeWidth={2.5} />
         </View>
       ) : (
         <View style={[styles.kpiDot, { backgroundColor: color }]} />
       )}
       <View style={{ flex: 1 }}>
-        <Text style={styles.kpiLabel} numberOfLines={1}>
-          {label}
-        </Text>
         <Text style={styles.kpiValue} numberOfLines={1}>
           {value}
         </Text>
-        {sub ? <Text style={styles.kpiSub}>{sub}</Text> : null}
+        <Text style={styles.kpiLabel} numberOfLines={2}>
+          {label}
+        </Text>
       </View>
     </View>
   );
@@ -1158,14 +1157,14 @@ const styles = StyleSheet.create({
   },
   kpiDot: { width: 10, height: 10 },
   kpiIconWrap: {
-    width: 38,
-    height: 38,
+    width: 42,
+    height: 42,
     borderWidth: 2,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  kpiValue: { ...textStyle, fontSize: 22 },
+  kpiValue: { ...textStyle, fontSize: 22, flexShrink: 1 },
   kpiLabel: {
     fontFamily: FONT.bold,
     color: colors.muted,

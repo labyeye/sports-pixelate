@@ -97,9 +97,12 @@ const getStats = asyncHandler(async (req, res) => {
       status: { $in: ["active", "pending_renewal"] },
       renewalDate: { $lte: sevenDaysOut },
     })
-      .populate("student", "firstName lastName studentId sport avatar")
+      .populate(
+        "student",
+        "firstName lastName studentId sport batch avatar guardians",
+      )
       .sort({ renewalDate: 1 })
-      .limit(10)
+      .limit(15)
       .catch(() => []);
 
     const attendanceRate =
@@ -116,6 +119,22 @@ const getStats = asyncHandler(async (req, res) => {
       .limit(5)
       .select("firstName lastName designation department joinDate avatar")
       .catch(() => []);
+
+    // Students who joined this month — shown alongside staff in "Recent Joinings".
+    const [recentStudents, newStudents] = await Promise.all([
+      Student.find({
+        company: companyId,
+        enrollmentDate: { $gte: startOfMonth },
+      })
+        .sort({ enrollmentDate: -1 })
+        .limit(5)
+        .select("firstName lastName studentId sport batch enrollmentDate avatar")
+        .catch(() => []),
+      Student.countDocuments({
+        company: companyId,
+        enrollmentDate: { $gte: startOfMonth },
+      }).catch(() => 0),
+    ]);
 
     const pendingLeaveList = await Leave.find({
       company: companyId,
@@ -221,8 +240,10 @@ const getStats = asyncHandler(async (req, res) => {
           totalBookings,
           todayBookings,
           subscriptionIncome,
+          newStudents,
         },
         recentHires,
+        recentStudents,
         pendingLeaveList,
         deptHeadcounts,
         attTrend,
@@ -248,8 +269,10 @@ const getStats = asyncHandler(async (req, res) => {
           totalBookings: 0,
           todayBookings: 0,
           subscriptionIncome: 0,
+          newStudents: 0,
         },
         recentHires: [],
+        recentStudents: [],
         pendingLeaveList: [],
         deptHeadcounts: [],
         subscriptionAlerts: [],

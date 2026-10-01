@@ -29,6 +29,7 @@ import EventDetailPage from "./pages/EventDetailPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import InventoryPage from "./pages/InventoryPage";
+import ExitManagementPage from "./pages/ExitManagementPage";
 import FacilitiesPage from "./pages/FacilitiesPage";
 import BookingsPage from "./pages/BookingsPage";
 import ParentHomePage from "./pages/ParentHomePage";
@@ -324,6 +325,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <LoansPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exits"
+          element={
+            <ProtectedRoute>
+              <ExitManagementPage />
             </ProtectedRoute>
           }
         />

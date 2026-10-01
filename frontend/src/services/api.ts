@@ -799,19 +799,6 @@ export const transactionAPI = {
   delete: (id: string) => request(`/transactions/${id}`, { method: "DELETE" }),
 };
 
-export const exitAPI = {
-  getAll: (params?: Record<string, string>) => {
-    const q = params ? "?" + new URLSearchParams(params).toString() : "";
-    return request(`/exit${q}`);
-  },
-  getOne: (id: string) => request(`/exit/${id}`),
-  create: (body: object) =>
-    request("/exit", { method: "POST", body: JSON.stringify(body) }),
-  update: (id: string, body: object) =>
-    request(`/exit/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-  delete: (id: string) => request(`/exit/${id}`, { method: "DELETE" }),
-};
-
 export const auditAPI = {
   getLogs: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
@@ -1368,4 +1355,24 @@ export const notificationAPI = {
   markRead: (id: string) =>
     request(`/notifications/${id}/read`, { method: "POST" }),
   markAllRead: () => request("/notifications/read-all", { method: "POST" }),
+};
+
+export const exitAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/exits${q}`);
+  },
+  getOne: (id: string) => request(`/exits/${id}`),
+  initiate: (body: object) =>
+    request("/exits", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/exits/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  complete: (id: string, force = false) =>
+    request(`/exits/${id}/complete`, {
+      method: "POST",
+      body: JSON.stringify({ force }),
+    }),
+  cancel: (id: string) => request(`/exits/${id}/cancel`, { method: "POST" }),
+  reinstate: (id: string) =>
+    request(`/exits/${id}/reinstate`, { method: "POST" }),
 };

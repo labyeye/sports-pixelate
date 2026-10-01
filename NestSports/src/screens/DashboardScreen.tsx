@@ -25,9 +25,10 @@ import {
   SectionTitle,
   Row,
   Badge,
+  FilterPills,
   LoadingView,
 } from '../components/ui';
-import { colors } from '../theme/colors';
+import { colors, FONT } from '../theme/colors';
 
 function formatCurrency(n: number) {
   return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
@@ -37,6 +38,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [joinTab, setJoinTab] = useState<'staff' | 'students'>('staff');
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(() => {
@@ -60,7 +62,12 @@ export default function DashboardScreen() {
 
   if (loading || !data) return <LoadingView />;
 
-  const { stats, subscriptionAlerts = [] } = data;
+  const {
+    stats,
+    subscriptionAlerts = [],
+    recentHires = [],
+    recentStudents = [],
+  } = data;
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -147,29 +154,139 @@ export default function DashboardScreen() {
           />
           {subscriptionAlerts.length > 0 ? (
             subscriptionAlerts.map((sub: any) => {
-              const isPastDue = new Date(sub.renewalDate) < new Date();
+              const days = Math.ceil(
+                (new Date(sub.renewalDate).getTime() - Date.now()) / 86400000,
+              );
+              const isPastDue = days < 0;
+              const balance = Math.max(
+                0,
+                (sub.amount || 0) - (sub.amountPaid || 0),
+              );
+              const g = sub.student?.guardians?.[0];
+              const fmt = (d?: string) =>
+                d
+                  ? new Date(d).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '—';
               return (
-                <Row
-                  key={sub._id}
-                  title={`${sub.student?.firstName} ${sub.student?.lastName}`}
-                  subtitle={`${sub.planName} · ${new Date(
-                    sub.renewalDate,
-                  ).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                  })}`}
-                  right={
+                <View key={sub._id} style={styles.renewal}>
+                  <View style={styles.renewalTop}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.renewalName}>
+                        {sub.student?.firstName} {sub.student?.lastName}
+                      </Text>
+                      <Text style={styles.renewalSub}>
+                        {sub.student?.studentId} · {sub.student?.sport || '—'}
+                        {sub.student?.batch ? ` · ${sub.student.batch}` : ''}
+                      </Text>
+                    </View>
                     <Badge
                       label={isPastDue ? 'Ended' : 'Ending Soon'}
                       color={isPastDue ? colors.red : colors.orange}
                     />
-                  }
-                />
+                  </View>
+                  <View style={styles.renewalGrid}>
+                    <Text style={styles.renewalCell}>
+                      Plan: <Text style={styles.bold}>{sub.planName}</Text>
+                      {sub.billingCycle ? ` (${sub.billingCycle})` : ''}
+                    </Text>
+                    <Text style={styles.renewalCell}>
+                      {fmt(sub.startDate)} →{' '}
+                      <Text style={styles.bold}>{fmt(sub.renewalDate)}</Text>
+                    </Text>
+                    <Text
+                      style={[
+                        styles.renewalCell,
+                        {
+                          color: isPastDue ? colors.red : colors.orange,
+                          fontFamily: FONT.bold,
+                        },
+                      ]}
+                    >
+                      {isPastDue
+                        ? `${Math.abs(days)}d overdue`
+                        : days === 0
+                        ? 'Due today'
+                        : `${days}d left`}
+                    </Text>
+                    <Text style={styles.renewalCell}>
+                      ₹{(sub.amount || 0).toLocaleString('en-IN')} · Paid ₹
+                      {(sub.amountPaid || 0).toLocaleString('en-IN')} ·{' '}
+                      <Text
+                        style={{
+                          color: balance > 0 ? colors.red : colors.muted,
+                          fontFamily: FONT.bold,
+                        }}
+                      >
+                        Due ₹{balance.toLocaleString('en-IN')}
+                      </Text>
+                    </Text>
+                    {g ? (
+                      <Text style={styles.renewalCell}>
+                        {g.name}
+                        {g.phone ? ` · ${g.phone}` : ''}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
               );
             })
           ) : (
             <Text style={{ color: colors.muted }}>
               No subscriptions ending soon
+            </Text>
+          )}
+        </Card>
+
+        <Card>
+          <SectionTitle
+            title="Recent Joinings"
+            sub={`${stats.newHires ?? 0} staff · ${
+              stats.newStudents ?? 0
+            } students this month`}
+          />
+          <FilterPills
+            options={[
+              { value: 'staff', label: 'Staff' },
+              { value: 'students', label: 'Students' },
+            ]}
+            value={joinTab}
+            onChange={v => setJoinTab(v as 'staff' | 'students')}
+          />
+          {(joinTab === 'staff' ? recentHires : recentStudents).length > 0 ? (
+            (joinTab === 'staff' ? recentHires : recentStudents).map(
+              (p: any) => (
+                <Row
+                  key={p._id}
+                  title={`${p.firstName} ${p.lastName}`}
+                  subtitle={
+                    joinTab === 'staff'
+                      ? `${p.designation || 'Staff'} · ${
+                          p.department?.name || '—'
+                        }`
+                      : `${p.sport || '—'}${p.batch ? ` · ${p.batch}` : ''} · ${
+                          p.studentId
+                        }`
+                  }
+                  right={
+                    <Text style={styles.joinDate}>
+                      {new Date(
+                        joinTab === 'staff' ? p.joinDate : p.enrollmentDate,
+                      ).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </Text>
+                  }
+                />
+              ),
+            )
+          ) : (
+            <Text style={{ color: colors.muted }}>
+              No new {joinTab === 'staff' ? 'hires' : 'students'} this month
             </Text>
           )}
         </Card>
@@ -187,4 +304,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
+  renewal: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#0000001A',
+  },
+  renewalTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  renewalName: { fontFamily: FONT.bold, fontSize: 14, color: colors.black },
+  renewalSub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted },
+  renewalGrid: { marginTop: 6, gap: 2 },
+  renewalCell: { fontFamily: FONT.medium, fontSize: 12, color: colors.black },
+  bold: { fontFamily: FONT.bold },
+  joinDate: { fontFamily: FONT.bold, fontSize: 11, color: colors.muted },
 });

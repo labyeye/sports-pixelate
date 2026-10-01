@@ -61,29 +61,28 @@ function KpiCard({
   to?: string;
 }) {
   const inner = (
-    <div className="border-2 p-4 flex flex-col gap-3 bg-white">
-      <div className="flex items-start justify-between">
-        <div
-          className={cn(
-            "w-10 h-10 border-2 border-black flex items-center justify-center shrink-0",
-            bg,
-          )}
-        >
-          <Icon className={cn("w-5 h-5", iconColor)} />
-        </div>
-        {trend && (
-          <span className="flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 border-2 border-black bg-[#A3E635] text-black">
-            <ArrowUpRight className="w-3 h-3" />
-          </span>
+    <div className="border-2 p-4 flex items-center gap-3 bg-white">
+      <div
+        className={cn(
+          "w-12 h-12 border-2 border-black flex items-center justify-center shrink-0",
+          bg,
         )}
+      >
+        <Icon className={cn("w-6 h-6", iconColor)} />
       </div>
-      <div>
-        <p className="font-display font-bold text-3xl text-black">{value}</p>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+      <div className="min-w-0 flex-1">
+        <p className="font-display font-bold text-3xl text-black leading-none truncate">
+          {value}
+        </p>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1.5">
           {title}
         </p>
-        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </div>
+      {trend && (
+        <span className="self-start flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 border-2 border-black bg-[#A3E635] text-black">
+          <ArrowUpRight className="w-3 h-3" />
+        </span>
+      )}
     </div>
   );
   return to ? <Link to={to}>{inner}</Link> : inner;
@@ -122,6 +121,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [joinTab, setJoinTab] = useState<"staff" | "students">("staff");
 
   useEffect(() => {
     dashboardAPI
@@ -146,6 +146,7 @@ export default function DashboardPage() {
   const {
     stats,
     recentHires,
+    recentStudents = [],
     pendingLeaveList,
     deptHeadcounts,
     attTrend = [],
@@ -690,52 +691,168 @@ export default function DashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black text-left">
-                  <th className="py-2 pr-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Student
-                  </th>
-                  <th className="py-2 pr-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Plan
-                  </th>
-                  <th className="py-2 pr-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Renewal Date
-                  </th>
-                  <th className="py-2 pr-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Amount
-                  </th>
-                  <th className="py-2 pr-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Status
-                  </th>
+                  {[
+                    "Student",
+                    "Sport / Batch",
+                    "Plan",
+                    "Period",
+                    "Days",
+                    "Amount",
+                    "Paid",
+                    "Balance",
+                    "Payment",
+                    "Guardian",
+                    "Status",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="py-2 pr-4 text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {subscriptionAlerts.map((sub: any) => {
-                  const isPastDue = new Date(sub.renewalDate) < new Date();
-                  return (
-                    <tr
-                      key={sub._id}
-                      className="border-b border-black/10 last:border-0"
-                    >
-                      <td className="py-2 pr-3 font-bold text-black">
-                        {sub.student?.firstName} {sub.student?.lastName}
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          {sub.student?.sport}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-3">{sub.planName}</td>
-                      <td className="py-2 pr-3">
-                        {new Date(sub.renewalDate).toLocaleDateString("en-IN", {
+                  const renewal = new Date(sub.renewalDate);
+                  const msPerDay = 86400000;
+                  const days = Math.ceil(
+                    (renewal.getTime() - Date.now()) / msPerDay,
+                  );
+                  const isPastDue = days < 0;
+                  const balance = Math.max(
+                    0,
+                    (sub.amount || 0) - (sub.amountPaid || 0),
+                  );
+                  const guardian = sub.student?.guardians?.[0];
+                  const fmtDate = (d?: string) =>
+                    d
+                      ? new Date(d).toLocaleDateString("en-IN", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
-                        })}
+                        })
+                      : "—";
+                  return (
+                    <tr
+                      key={sub._id}
+                      className="border-b border-black/10 last:border-0 align-top"
+                    >
+                      <td className="py-2.5 pr-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {sub.student?.avatar ? (
+                            <img
+                              src={sub.student.avatar}
+                              alt=""
+                              className="w-8 h-8 border-2 border-black object-cover rounded-full shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-[#024BAB] border-2 border-black rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">
+                              {sub.student?.firstName?.[0]?.toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-bold text-black">
+                              {sub.student?.firstName} {sub.student?.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {sub.student?.studentId}
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-2 pr-3 font-bold">
-                        {formatCurrency(sub.amount)}
+                      <td className="py-2.5 pr-4 whitespace-nowrap">
+                        <p className="font-medium text-black">
+                          {sub.student?.sport || "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {sub.student?.batch || "No batch"}
+                        </p>
                       </td>
-                      <td className="py-2 pr-3">
+                      <td className="py-2.5 pr-4 whitespace-nowrap">
+                        <p className="font-medium text-black">{sub.planName}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {sub.billingCycle || "—"}
+                        </p>
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap text-xs">
+                        <p>{fmtDate(sub.startDate)}</p>
+                        <p className="font-bold text-black">
+                          → {fmtDate(sub.renewalDate)}
+                        </p>
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap">
                         <span
                           className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase",
+                            "font-bold",
+                            isPastDue ? "text-[#EF4444]" : "text-[#FA731C]",
+                          )}
+                        >
+                          {isPastDue
+                            ? `${Math.abs(days)}d overdue`
+                            : days === 0
+                              ? "Today"
+                              : `${days}d left`}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 font-bold whitespace-nowrap">
+                        {formatCurrency(sub.amount || 0)}
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap text-[#047857] font-medium">
+                        {formatCurrency(sub.amountPaid || 0)}
+                      </td>
+                      <td
+                        className={cn(
+                          "py-2.5 pr-4 whitespace-nowrap font-bold",
+                          balance > 0
+                            ? "text-[#EF4444]"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {formatCurrency(balance)}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase whitespace-nowrap",
+                            sub.paymentStatus === "completed"
+                              ? "bg-[#00C48C] text-black"
+                              : "bg-[#FFD60A] text-black",
+                          )}
+                        >
+                          {sub.paymentStatus === "completed"
+                            ? "Paid"
+                            : sub.paymentStatus || "Pending"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap text-xs">
+                        {guardian ? (
+                          <>
+                            <p className="font-medium text-black">
+                              {guardian.name}
+                            </p>
+                            {guardian.phone ? (
+                              <a
+                                href={`tel:${guardian.phone}`}
+                                className="text-[#024BAB] font-bold hover:underline"
+                              >
+                                {guardian.phone}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                No phone
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase whitespace-nowrap",
                             isPastDue
                               ? "bg-[#EF4444] text-white"
                               : "bg-[#FA731C] text-white",
@@ -760,56 +877,96 @@ export default function DashboardPage() {
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Recent hires */}
+        {/* Recent joinings (staff + students) */}
         <div className="border-2 bg-white p-5">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="font-display font-bold text-base text-black">
-                Recent Hires
+                Recent Joinings
               </h3>
               <p className="text-xs text-muted-foreground">
-                {stats.newHires} new this month
+                {stats.newHires} staff · {stats.newStudents ?? 0} students this
+                month
               </p>
             </div>
-            <Link to="/employees">
+            <Link to={joinTab === "staff" ? "/employees" : "/students"}>
               <button className="text-xs font-bold text-black border-2 border-black px-2 py-1 hover:bg-[#024BAB] hover:text-white transition-colors">
                 View all →
               </button>
             </Link>
           </div>
-          {recentHires?.length > 0 ? (
+          <div className="flex border-2 border-black mb-3 no-nb">
+            {(
+              [
+                ["staff", "Staff"],
+                ["students", "Students"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setJoinTab(key)}
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors",
+                  key === "students" && "border-l-2 border-black",
+                  joinTab === key
+                    ? "bg-[#024BAB] text-white"
+                    : "bg-white text-black hover:bg-[#024BAB]/5",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {(joinTab === "staff" ? recentHires : recentStudents)?.length > 0 ? (
             <div className="space-y-2">
-              {recentHires.slice(0, 5).map((emp: any) => (
-                <Link key={emp._id} to="/employees">
-                  <div className="flex items-center gap-3 p-2.5 border-2 border-transparent hover:border-black hover: transition-all">
-                    {emp.avatar ? (
-                      <img
-                        src={emp.avatar}
-                        alt={emp.firstName}
-                        className="w-8 h-8 border-2 border-black object-cover shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-[#024BAB] border-2 border-black flex items-center justify-center text-xs font-bold text-white shrink-0">
-                        {emp.firstName?.[0]?.toUpperCase()}
+              {(joinTab === "staff" ? recentHires : recentStudents)
+                .slice(0, 5)
+                .map((p: any) => (
+                  <Link
+                    key={p._id}
+                    to={joinTab === "staff" ? "/employees" : "/students"}
+                  >
+                    <div className="flex items-center gap-3 p-2.5 border-2 border-transparent hover:border-black transition-all">
+                      {p.avatar ? (
+                        <img
+                          src={p.avatar}
+                          alt={p.firstName}
+                          className="w-8 h-8 border-2 border-black object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-[#024BAB] border-2 border-black flex items-center justify-center text-xs font-bold text-white shrink-0">
+                          {p.firstName?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-black truncate">
+                          {p.firstName} {p.lastName}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {joinTab === "staff"
+                            ? `${p.designation || "Staff"} · ${p.department?.name || "—"}`
+                            : `${p.sport || "—"}${p.batch ? ` · ${p.batch}` : ""} · ${p.studentId}`}
+                        </p>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-black truncate">
-                        {emp.firstName} {emp.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {emp.designation} · {emp.department?.name}
-                      </p>
+                      <span className="text-[11px] font-bold text-muted-foreground shrink-0">
+                        {new Date(
+                          joinTab === "staff" ? p.joinDate : p.enrollmentDate,
+                        ).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                     </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-36 text-center text-muted-foreground">
               <Users className="w-8 h-8 mb-2 opacity-30" />
-              <p className="text-sm font-bold">No new hires this month</p>
+              <p className="text-sm font-bold">
+                No new {joinTab === "staff" ? "hires" : "students"} this month
+              </p>
             </div>
           )}
         </div>

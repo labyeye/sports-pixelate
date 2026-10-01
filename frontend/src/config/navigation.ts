@@ -28,6 +28,7 @@ import {
   Trophy,
   Fingerprint,
   AlertCircle,
+  UserMinus,
 } from "lucide-react";
 
 export interface NavItem {
@@ -96,6 +97,12 @@ const allGroups: NavGroup[] = [
         roles: ["super_admin", "hr_manager", "employee"],
       },
       { title: "Events", href: "/events", icon: Trophy, roles: ALL },
+      {
+        title: "Exit Management",
+        href: "/exits",
+        icon: UserMinus,
+        roles: OWNER,
+      },
     ],
   },
   {

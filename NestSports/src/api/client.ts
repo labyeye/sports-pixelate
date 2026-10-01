@@ -1128,3 +1128,23 @@ export const bookingAPI = {
       body: JSON.stringify(itemIds ? { itemIds } : {}),
     }),
 };
+
+export const exitAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/exits${q}`);
+  },
+  getOne: (id: string) => request(`/exits/${id}`),
+  initiate: (body: object) =>
+    request('/exits', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/exits/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  complete: (id: string, force = false) =>
+    request(`/exits/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ force }),
+    }),
+  cancel: (id: string) => request(`/exits/${id}/cancel`, { method: 'POST' }),
+  reinstate: (id: string) =>
+    request(`/exits/${id}/reinstate`, { method: 'POST' }),
+};
