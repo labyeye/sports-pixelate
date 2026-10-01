@@ -19,6 +19,7 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { fetchAllPages } from '../utils/fetchAllPages';
 
 const FEE_STATUS_COLORS: Record<string, string> = {
   paid: colors.green,
@@ -36,7 +37,7 @@ export default function BatchSummaryReportScreen() {
 
   const loadFilters = useCallback(async () => {
     try {
-      const res: any = await studentAPI.getAll({ limit: '1000' });
+      const res: any = await fetchAllPages(studentAPI.getAll, { limit: '1000' });
       const all: any[] = res.data || [];
       setBatches(
         Array.from(new Set(all.map(s => s.batch).filter(Boolean))) as string[],

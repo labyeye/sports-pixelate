@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { buildReportHTML, ReportCompany } from "@/lib/reportPrintHTML";
+import { fetchAllPages } from "@/lib/fetchAllPages";
+import { exportPDF, setReportCompanyName } from "@/lib/reportPDF";
 import * as XLSX from "xlsx";
 import {
   BarChart,
@@ -710,7 +712,11 @@ function PayReportGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -794,6 +800,17 @@ function PayReportGen({
           </button>
           <button
             onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `pay_report_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
+          <button
+            onClick={() =>
               exportXLSX(
                 [headers, ...rows],
                 `pay_report_${MONTHS[+month - 1]}_${year}.xlsx`,
@@ -835,7 +852,11 @@ function SalaryRegisterGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -924,6 +945,17 @@ function SalaryRegisterGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `salary_register_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {data.length > 0 && (
@@ -984,7 +1016,11 @@ function NetSalaryGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -1040,6 +1076,17 @@ function NetSalaryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `net_salary_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -1074,7 +1121,11 @@ function SalarySlipGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -1364,7 +1415,11 @@ function PFRegisterGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data.filter((p: any) => (p.pf || 0) > 0));
     } catch {}
     setLoading(false);
@@ -1420,6 +1475,17 @@ function PFRegisterGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `pf_register_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -1452,7 +1518,11 @@ function ESICRegisterGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data.filter((p: any) => (p.esi || 0) > 0));
     } catch {}
     setLoading(false);
@@ -1508,6 +1578,17 @@ function ESICRegisterGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `esic_register_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -1540,7 +1621,11 @@ function BankUploadGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -1594,6 +1679,17 @@ function BankUploadGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `bank_upload_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -1629,7 +1725,7 @@ function AbsentLeaveSummaryGen({
     try {
       const params: Record<string, string> = { month, year, limit: "500" };
       if (dept !== "all") params.department = dept;
-      const r = await attendanceAPI.getAll(params);
+      const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -1723,6 +1819,17 @@ function AbsentLeaveSummaryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `absent_leave_summary_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -1758,7 +1865,7 @@ function LateComingGen({
     try {
       const params: Record<string, string> = { month, year, limit: "500" };
       if (dept !== "all") params.department = dept;
-      const r = await attendanceAPI.getAll(params);
+      const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success)
         setData(r.data.filter((rec: any) => rec.status === "late"));
     } catch {}
@@ -1836,6 +1943,17 @@ function LateComingGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `late_coming_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -1865,7 +1983,10 @@ function DesignationSummaryGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await employeeAPI.getAll({ limit: "500", status: "active" });
+      const r = await fetchAllPages(employeeAPI.getAll, {
+        limit: "500",
+        status: "active",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -1916,6 +2037,14 @@ function DesignationSummaryGen({
         >
           <Download className="w-4 h-4" /> Export CSV
         </button>
+        <button
+          onClick={() =>
+            exportPDF([headers, ...rows], `designation_summary.csv`)
+          }
+          className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+        >
+          <FileText className="w-4 h-4" /> PDF
+        </button>
       </div>
       {loading ? (
         <LoadingState />
@@ -1950,7 +2079,7 @@ function AttendanceReportGen({
     try {
       const params: Record<string, string> = { month, year, limit: "500" };
       if (dept !== "all") params.department = dept;
-      const r = await attendanceAPI.getAll(params);
+      const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -2038,6 +2167,17 @@ function AttendanceReportGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `attendance_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -2073,7 +2213,7 @@ function AttendanceInOutGen({
     try {
       const params: Record<string, string> = { month, year, limit: "500" };
       if (dept !== "all") params.department = dept;
-      const r = await attendanceAPI.getAll(params);
+      const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data.filter((rec: any) => rec.checkIn));
     } catch {}
     setLoading(false);
@@ -2147,6 +2287,17 @@ function AttendanceInOutGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `attendance_inout_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -2182,7 +2333,7 @@ function AttendanceSummaryGen({
     try {
       const params: Record<string, string> = { month, year, limit: "500" };
       if (dept !== "all") params.department = dept;
-      const r = await attendanceAPI.getAll(params);
+      const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -2275,6 +2426,17 @@ function AttendanceSummaryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `attendance_summary_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -2311,7 +2473,7 @@ function LeaveReportGen({
       const params: Record<string, string> = { limit: "500", year };
       if (leaveType !== "all") params.leaveType = leaveType;
       if (status !== "all") params.status = status;
-      const r = await leaveAPI.getAll(params);
+      const r = await fetchAllPages(leaveAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -2383,6 +2545,14 @@ function LeaveReportGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `leave_report_${year}.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -2418,7 +2588,7 @@ function MissPunchGen({
     try {
       const params: Record<string, string> = { month, year, limit: "500" };
       if (dept !== "all") params.department = dept;
-      const r = await attendanceAPI.getAll(params);
+      const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success)
         setData(r.data.filter((rec: any) => rec.checkIn && !rec.checkOut));
     } catch {}
@@ -2486,6 +2656,17 @@ function MissPunchGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `miss_punch_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -2520,7 +2701,7 @@ function EmployeeDirectoryGen({
       const params: Record<string, string> = { limit: "500" };
       if (dept !== "all") params.department = dept;
       if (status !== "all") params.status = status;
-      const r = await employeeAPI.getAll(params);
+      const r = await fetchAllPages(employeeAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -2597,6 +2778,14 @@ function EmployeeDirectoryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `employee_directory.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -2653,8 +2842,7 @@ function EmployeeReportGen({
   const [generated, setGenerated] = useState(false);
 
   useEffect(() => {
-    employeeAPI
-      .getAll({ limit: "500", status: "active" })
+    fetchAllPages(employeeAPI.getAll, { limit: "500", status: "active" })
       .then((r) => {
         if (r.success) setEmployees(r.data);
         setEmpLoading(false);
@@ -2678,7 +2866,7 @@ function EmployeeReportGen({
     setGenerated(false);
     try {
       if (reportType === "attendance") {
-        const r = await attendanceAPI.getAll({
+        const r = await fetchAllPages(attendanceAPI.getAll, {
           employeeId: selectedEmp._id,
           month,
           year,
@@ -2686,14 +2874,14 @@ function EmployeeReportGen({
         });
         setData(r.data || []);
       } else if (reportType === "salary-slip") {
-        const r = await payrollAPI.getAll({
+        const r = await fetchAllPages(payrollAPI.getAll, {
           employeeId: selectedEmp._id,
           month,
           year,
         });
         setData(r.data || []);
       } else if (reportType === "leave") {
-        const r = await leaveAPI.getAll({
+        const r = await fetchAllPages(leaveAPI.getAll, {
           employeeId: selectedEmp._id,
           year,
           limit: "200",
@@ -3016,6 +3204,17 @@ function EmployeeReportGen({
                 >
                   <Download className="w-4 h-4" /> CSV
                 </button>
+                <button
+                  onClick={() =>
+                    exportPDF(
+                      [headers, ...rows],
+                      `${reportType}_${empName.replace(" ", "_")}_${period}.csv`,
+                    )
+                  }
+                  className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+                >
+                  <FileText className="w-4 h-4" /> PDF
+                </button>
               </>
             )}
           </div>
@@ -3050,8 +3249,7 @@ function StudentAttendanceReportGen({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    studentAPI
-      .getAll({ limit: "1000" })
+    fetchAllPages(studentAPI.getAll, { limit: "1000" })
       .then((r) => {
         if (r.success) {
           setBatchOptions(
@@ -3080,7 +3278,7 @@ function StudentAttendanceReportGen({
       const params: Record<string, string> = { month, year, limit: "500" };
       if (batch !== "all") params.batch = batch;
       if (sport !== "all") params.sport = sport;
-      const r = await studentAttendanceAPI.getAll(params);
+      const r = await fetchAllPages(studentAttendanceAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -3195,6 +3393,17 @@ function StudentAttendanceReportGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `student_attendance_${MONTHS[+month - 1]}_${year}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -3304,6 +3513,14 @@ function StudentSubscriptionReportGen({
             className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
           >
             <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `student_subscriptions.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
           </button>
         </div>
       </div>
@@ -3424,6 +3641,12 @@ function StudentFeeReportGen({
           >
             <Download className="w-4 h-4" /> CSV
           </button>
+          <button
+            onClick={() => exportPDF([headers, ...rows], `student_fees.csv`)}
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -3522,6 +3745,14 @@ function StudentOutstandingDuesGen({
             className="border-2 border-black px-3 py-2 bg-[#00C48C] text-white font-bold"
           >
             CSV
+          </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `student_outstanding.csv`)
+            }
+            className="border-2 border-black px-3 py-2 bg-[#EF4444] text-white font-bold"
+          >
+            PDF
           </button>
         </div>
       </div>
@@ -3643,6 +3874,17 @@ function TournamentReportGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `tournament_${(tournament?.name || "results").replace(/\s+/g, "_")}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -3662,8 +3904,7 @@ function useSportBatchOptions() {
   const [sportOptions, setSportOptions] = useState<string[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   useEffect(() => {
-    studentAPI
-      .getAll({ limit: "1000" })
+    fetchAllPages(studentAPI.getAll, { limit: "1000" })
       .then((r) => {
         if (r.success) {
           setBatchOptions(
@@ -3722,7 +3963,7 @@ function StudentDirectoryGen({
       if (sport !== "all") params.sport = sport;
       if (batch !== "all") params.batch = batch;
       if (status !== "all") params.status = status;
-      const r = await studentAPI.getAll(params);
+      const r = await fetchAllPages(studentAPI.getAll, params);
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -3867,6 +4108,14 @@ function StudentDirectoryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `student_directory.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -3936,6 +4185,17 @@ function StudentDirectoryGen({
                 className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#00C48C] text-white"
               >
                 <Download className="w-4 h-4" /> CSV
+              </button>
+              <button
+                onClick={() =>
+                  exportPDF(
+                    [pHeaders, ...pRows],
+                    `report_card_${selectedName.replace(/\s+/g, "_")}.csv`,
+                  )
+                }
+                className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+              >
+                <FileText className="w-4 h-4" /> PDF
               </button>
             </>
           )}
@@ -4042,6 +4302,14 @@ function StudentPerformanceGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `student_performance.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -4144,6 +4412,14 @@ function StudentEnrollmentGen({
           >
             <Download className="w-4 h-4" /> CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `student_enrollment.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       <p className="text-sm font-bold text-black">
@@ -4239,6 +4515,17 @@ function BatchSummaryGen({
             className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#024BAB] text-white"
           >
             <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `batch_summary${batch ? `_${batch}` : ""}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
           </button>
         </div>
       </div>
@@ -4341,6 +4628,17 @@ function SportSummaryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `sport_summary${sport ? `_${sport}` : ""}.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -4364,8 +4662,7 @@ function GuardianContactListGen({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    studentAPI
-      .getAll({ limit: "1000" })
+    fetchAllPages(studentAPI.getAll, { limit: "1000" })
       .then((r) => r.success && setData(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -4430,6 +4727,14 @@ function GuardianContactListGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `guardian_contact_list.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -4455,8 +4760,7 @@ function StudentPaymentHistoryGen({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    studentAPI
-      .getAll({ limit: "1000" })
+    fetchAllPages(studentAPI.getAll, { limit: "1000" })
       .then((r) => r.success && setStudents(r.data))
       .catch(() => {});
   }, []);
@@ -4544,6 +4848,14 @@ function StudentPaymentHistoryGen({
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
+          <button
+            onClick={() =>
+              exportPDF([headers, ...rows], `student_payment_history.csv`)
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
+          </button>
         </div>
       </div>
       {loading ? (
@@ -4598,7 +4910,11 @@ function TallyExportGen({
   async function load() {
     setLoading(true);
     try {
-      const r = await payrollAPI.getAll({ month, year, limit: "500" });
+      const r = await fetchAllPages(payrollAPI.getAll, {
+        month,
+        year,
+        limit: "500",
+      });
       if (r.success) setData(r.data);
     } catch {}
     setLoading(false);
@@ -4689,6 +5005,17 @@ function TallyExportGen({
             className="flex items-center gap-2 border-2 border-black px-4 py-2 text-sm font-bold bg-[#16A34A] text-white disabled:opacity-40"
           >
             <Download className="w-4 h-4" /> Download CSV
+          </button>
+          <button
+            onClick={() =>
+              exportPDF(
+                [headers, ...rows],
+                `Payroll_${MONTHS[+month - 1]}_${year}_Tally.csv`,
+              )
+            }
+            className="flex items-center gap-2 border-2 border-black px-3 py-2 text-sm font-bold bg-[#EF4444] text-white"
+          >
+            <FileText className="w-4 h-4" /> PDF
           </button>
           <button
             disabled={data.length === 0}
@@ -4786,13 +5113,13 @@ function AnalyticsTab({
 
   useEffect(() => {
     Promise.all([
-      employeeAPI.getAll({ limit: "500", status: "active" }),
-      payrollAPI.getAll({
+      fetchAllPages(employeeAPI.getAll, { limit: "500", status: "active" }),
+      fetchAllPages(payrollAPI.getAll, {
         month: String(now.getMonth() + 1),
         year: String(now.getFullYear()),
         limit: "500",
       }),
-      attendanceAPI.getAll({
+      fetchAllPages(attendanceAPI.getAll, {
         month: String(now.getMonth() + 1),
         year: String(now.getFullYear()),
         limit: "500",
@@ -5316,6 +5643,9 @@ function AnalyticsTab({
 export default function ReportsPage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [company, setCompany] = useState<ReportCompany>({ name: "NestPlay" });
+  useEffect(() => {
+    setReportCompanyName(company.name);
+  }, [company.name]);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<Category | "all">("all");
   const [activeId, setActiveId] = useState<string | null>(null);

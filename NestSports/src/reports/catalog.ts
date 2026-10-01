@@ -6,6 +6,7 @@ import {
   payrollAPI,
   reportAPI,
 } from '../api/client';
+import { fetchAllPages } from '../utils/fetchAllPages';
 
 // Config-driven port of the web ReportsPage generators: each report declares
 // its filters and a `run` that returns headers + rows. One viewer screen
@@ -68,19 +69,19 @@ const deptParam = (f: Filters): Record<string, string> =>
   f.dept && f.dept !== 'all' ? { department: f.dept } : {};
 
 const payrolls = async (f: Filters): Promise<any[]> =>
-  ((await payrollAPI.getAll({ month: f.month, year: f.year, limit: '500' })) as any)
+  ((await fetchAllPages(payrollAPI.getAll, { month: f.month, year: f.year, limit: '500' })) as any)
     .data || [];
 
 // Payroll rows only populate a few employee fields (no bank / PF / ESIC), so the
 // statutory reports join the full employee record by id.
 const employeesById = async (): Promise<Map<string, any>> => {
   const list: any[] =
-    ((await employeeAPI.getAll({ limit: '500' })) as any).data || [];
+    ((await fetchAllPages(employeeAPI.getAll, { limit: '500' })) as any).data || [];
   return new Map(list.map(e => [e._id, e]));
 };
 
 const attendance = async (f: Filters): Promise<any[]> =>
-  ((await attendanceAPI.getAll({
+  ((await fetchAllPages(attendanceAPI.getAll, {
     month: f.month,
     year: f.year,
     limit: '500',
@@ -337,7 +338,7 @@ export const REPORTS: ReportDef[] = [
     filters: [],
     run: async () => {
       const emps: any[] =
-        ((await employeeAPI.getAll({ limit: '500', status: 'active' })) as any).data || [];
+        ((await fetchAllPages(employeeAPI.getAll, { limit: '500', status: 'active' })) as any).data || [];
       const by = new Map<string, { count: number; total: number; dept: string }>();
       for (const e of emps) {
         const k = e.designation || 'Unknown';
@@ -437,7 +438,7 @@ export const REPORTS: ReportDef[] = [
       const params: Record<string, string> = { limit: '500', year: f.year };
       if (f.leaveType && f.leaveType !== 'all') params.leaveType = f.leaveType;
       if (f.status && f.status !== 'all') params.status = f.status;
-      const data: any[] = ((await leaveAPI.getAll(params)) as any).data || [];
+      const data: any[] = ((await fetchAllPages(leaveAPI.getAll, params)) as any).data || [];
       return {
         headers: ['Emp ID', 'Employee', 'Department', 'Leave Type', 'From', 'To', 'Days', 'Reason', 'Status'],
         rows: data.map(l => [
@@ -494,7 +495,7 @@ export const REPORTS: ReportDef[] = [
     run: async f => {
       const params: Record<string, string> = { limit: '500', ...deptParam(f) };
       if (f.status && f.status !== 'all') params.status = f.status;
-      const data: any[] = ((await employeeAPI.getAll(params)) as any).data || [];
+      const data: any[] = ((await fetchAllPages(employeeAPI.getAll, params)) as any).data || [];
       return {
         headers: ['Emp ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Type', 'Join Date', 'Salary (p.a.)', 'Status'],
         rows: data.map(e => [

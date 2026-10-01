@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Booking = require("../models/Booking");
 const Facility = require("../models/Facility");
 const InventoryItem = require("../models/InventoryItem");
+const Student = require("../models/Student");
 const Setting = require("../models/Setting");
 const paymentGatewayService = require("../services/paymentGatewayService");
 const { safePagination, safeSort } = require("../middleware/validate");
@@ -180,6 +181,24 @@ const createBooking = asyncHandler(async (req, res) => {
   if (!facility) {
     res.status(404);
     throw new Error("Facility not found");
+  }
+
+  // The booking is "for" a student — make sure that student is in this
+  // academy (and, for a parent, is one of their own children).
+  if (studentId) {
+    const studentFilter = { _id: studentId, company: req.user.company };
+    if (req.user.role === "parent") {
+      studentFilter._id = { $in: req.user.children || [] };
+      if (!(req.user.children || []).map(String).includes(String(studentId))) {
+        res.status(403);
+        throw new Error("You can only book for your own children");
+      }
+    }
+    const studentDoc = await Student.findOne(studentFilter).select("_id");
+    if (!studentDoc) {
+      res.status(404);
+      throw new Error("Student not found");
+    }
   }
 
   const d = toDateOnly(date);

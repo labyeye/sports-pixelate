@@ -1,4 +1,6 @@
+import { Alert } from 'react-native';
 import * as XLSX from 'xlsx';
+import RNPrint from 'react-native-print';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import { pick, types } from '@react-native-documents/picker';
@@ -74,11 +76,47 @@ export async function shareImportTemplate(
 }
 
 // Exports rows of data to an .xlsx file and opens the native share sheet.
-export async function exportRowsToExcel(
+const escapeHtml = (v: unknown) =>
+  String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+// Opens the native print/preview sheet with every row in a table — from there
+// the user can "Save as PDF" / share (iOS share sheet, Android print dialog).
+async function printRowsAsPDF(
   headers: { key: string; label: string }[],
   rows: any[],
   filename: string,
-  sheetName = 'Sheet1',
+) {
+  const title = filename
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+  const head = headers.map(h => `<th>${escapeHtml(h.label)}</th>`).join('');
+  const body = rows
+    .map(
+      r =>
+        `<tr>${headers.map(h => `<td>${escapeHtml(r[h.key])}</td>`).join('')}</tr>`,
+    )
+    .join('');
+  const html = `<html><head><meta name="viewport" content="width=device-width"/><style>
+    body{font-family:Helvetica,Arial,sans-serif;font-size:${headers.length > 8 ? 8 : 10}px;color:#0a0a0a;margin:16px}
+    h1{font-size:16px;margin:0 0 2px;color:#024BAB} .meta{color:#666;font-size:9px;margin-bottom:10px}
+    table{border-collapse:collapse;width:100%} th{background:#024BAB;color:#fff;text-align:left}
+    th,td{padding:4px 6px;border-bottom:1px solid #d7dbe3;vertical-align:top;word-break:break-word}
+    tr:nth-child(even) td{background:#f0f6ff} thead{display:table-header-group} tr{page-break-inside:avoid}
+  </style></head><body><h1>${escapeHtml(title)}</h1>
+  <div class="meta">Generated ${escapeHtml(new Date().toLocaleString('en-IN'))} · ${rows.length} record${rows.length === 1 ? '' : 's'}</div>
+  <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+  await RNPrint.print({ html });
+}
+
+async function writeExcel(
+  headers: { key: string; label: string }[],
+  rows: any[],
+  filename: string,
+  sheetName: string,
 ) {
   const headerRow = headers.map(h => h.label);
   const dataRows = rows.map(row =>
@@ -90,6 +128,30 @@ export async function exportRowsToExcel(
   const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
   ws['!cols'] = headers.map(() => ({ wch: 22 }));
   await writeAndShareWorkbook(ws, filename, sheetName);
+}
+
+// Every list/report "download" in the app goes through here, so each one now
+// offers both Excel and PDF.
+export function exportRowsToExcel(
+  headers: { key: string; label: string }[],
+  rows: any[],
+  filename: string,
+  sheetName = 'Sheet1',
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    Alert.alert('Download report', 'Choose a format', [
+      {
+        text: 'Excel (.xlsx)',
+        onPress: () =>
+          writeExcel(headers, rows, filename, sheetName).then(resolve, reject),
+      },
+      {
+        text: 'PDF',
+        onPress: () => printRowsAsPDF(headers, rows, filename).then(resolve, reject),
+      },
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+    ]);
+  });
 }
 
 async function writeAndShareWorkbook(

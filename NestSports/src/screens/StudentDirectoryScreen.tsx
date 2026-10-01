@@ -26,6 +26,7 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { fetchAllPages } from '../utils/fetchAllPages';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   active: { color: colors.green, label: 'Active' },
@@ -54,7 +55,7 @@ export default function StudentDirectoryScreen() {
   const loadFilters = useCallback(async () => {
     try {
       const [stRes, spRes]: any[] = await Promise.all([
-        studentAPI.getAll({ limit: '1000' }),
+        fetchAllPages(studentAPI.getAll, { limit: '1000' }),
         sportAPI.getAll(),
       ]);
       const all: any[] = stRes.data || [];
@@ -69,7 +70,7 @@ export default function StudentDirectoryScreen() {
   }, []);
 
   const load = useCallback(async () => {
-    const res: any = await studentAPI.getAll({
+    const res: any = await fetchAllPages(studentAPI.getAll, {
       limit: '200',
       ...(search ? { search } : {}),
       ...(sport ? { sport } : {}),

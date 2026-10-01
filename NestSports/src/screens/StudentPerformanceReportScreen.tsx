@@ -19,6 +19,7 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { fetchAllPages } from '../utils/fetchAllPages';
 
 const FEE_STATUS_COLORS: Record<string, string> = {
   paid: colors.green,
@@ -42,7 +43,7 @@ export default function StudentPerformanceReportScreen() {
   const loadFilters = useCallback(async () => {
     try {
       const [stRes, spRes]: any[] = await Promise.all([
-        studentAPI.getAll({ limit: '1000' }),
+        fetchAllPages(studentAPI.getAll, { limit: '1000' }),
         sportAPI.getAll(),
       ]);
       const all: any[] = stRes.data || [];

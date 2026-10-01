@@ -28,6 +28,7 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { fetchAllPages } from '../utils/fetchAllPages';
 
 // Mirrors StudentAttendanceScreen's STATUS_CONFIG so status colors read the
 // same across the app.
@@ -93,7 +94,7 @@ export default function StudentAttendanceReportScreen() {
   const loadFilters = useCallback(async () => {
     try {
       const [stRes, spRes]: any[] = await Promise.all([
-        studentAPI.getAll({ limit: '1000' }),
+        fetchAllPages(studentAPI.getAll, { limit: '1000' }),
         sportAPI.getAll(),
       ]);
       const students: any[] = stRes.data || [];
@@ -109,7 +110,7 @@ export default function StudentAttendanceReportScreen() {
   }, []);
 
   const load = useCallback(async () => {
-    const res: any = await studentAttendanceAPI.getAll({
+    const res: any = await fetchAllPages(studentAttendanceAPI.getAll, {
       month: String(month),
       year: String(year),
       limit: '500',

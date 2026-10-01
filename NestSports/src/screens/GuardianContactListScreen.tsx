@@ -13,6 +13,7 @@ import { studentAPI } from '../api/client';
 import { Card, SearchBar, EmptyState, LoadingView } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { fetchAllPages } from '../utils/fetchAllPages';
 
 // Slots guardians into Father / Mother / Guardian 1 / Guardian 2, mirroring
 // the web app's slotting rule: father and mother get dedicated slots; any
@@ -42,7 +43,7 @@ export default function GuardianContactListScreen() {
   const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
-    const res: any = await studentAPI.getAll({ limit: '1000' });
+    const res: any = await fetchAllPages(studentAPI.getAll, { limit: '1000' });
     setStudents(res.data || []);
   }, []);
 
