@@ -1,3 +1,4 @@
+import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useCallback, useRef } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { useNavigate } from "react-router-dom";
@@ -715,8 +716,9 @@ export default function EmployeesPage() {
     );
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = await cropImage(e.target.files?.[0]);
+    e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("Please upload a valid image file");
@@ -1252,8 +1254,8 @@ export default function EmployeesPage() {
 
       {}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="border-2 border-black bg-white w-full max-w-3xl max-h-[95vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="border-2 border-black bg-white w-full max-w-3xl max-h-[calc(100vh-2rem)] flex flex-col">
             {}
             <div className="flex items-center justify-between px-6 py-4 border-b-2 border-black bg-[#024BAB]">
               <div className="flex items-center gap-3">
@@ -2026,8 +2028,11 @@ export default function EmployeesPage() {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
+                                onChange={async (e) => {
+                                  const file = await cropImage(
+                                    e.target.files?.[0],
+                                  );
+                                  e.target.value = "";
                                   if (file) handleEnrollFace(file);
                                 }}
                               />

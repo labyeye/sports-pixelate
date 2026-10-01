@@ -12,12 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  BarChart2,
-  Percent,
-  CalendarDays,
-  Users,
-} from 'lucide-react-native';
+import { BarChart2, Percent, CalendarDays, Users } from 'lucide-react-native';
 import { attendanceSettingsAPI, employeeAPI } from '../api/client';
 import {
   Card,
@@ -107,6 +102,9 @@ function NumField({
 }
 
 export default function AttendanceSettingsScreen() {
+  const [activeTab, setActiveTab] = useState<'rules' | 'late' | 'leave'>(
+    'rules',
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -241,266 +239,307 @@ export default function AttendanceSettingsScreen() {
         <Text style={styles.title}>Attendance Settings</Text>
         <Text style={styles.subtitle}>Shift, late & leave allowance rules</Text>
 
-        <Card>
-          <SectionTitle title="Shift Timings" />
-          <View style={{ flexDirection: 'row', gap: 16 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>Shift Start</Text>
-              <View style={styles.timeInputs}>
-                <TextInput
-                  style={[styles.fieldInput, styles.timeInput]}
-                  value={pad(rules.shiftStartHour)}
-                  onChangeText={v =>
-                    set(
-                      'shiftStartHour',
-                      Math.min(23, Math.max(0, Number(v) || 0)),
-                    )
-                  }
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholder="HH"
-                  placeholderTextColor={colors.muted}
-                />
-                <Text style={styles.timeSep}>:</Text>
-                <TextInput
-                  style={[styles.fieldInput, styles.timeInput]}
-                  value={pad(rules.shiftStartMinute)}
-                  onChangeText={v =>
-                    set(
-                      'shiftStartMinute',
-                      Math.min(59, Math.max(0, Number(v) || 0)),
-                    )
-                  }
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholder="MM"
-                  placeholderTextColor={colors.muted}
+        <View style={styles.tabBar}>
+          {(
+            [
+              ['rules', 'Deduction Rules'],
+              ['late', 'Late Allowance'],
+              ['leave', 'Leave Allowance'],
+            ] as const
+          ).map(([key, label], idx) => (
+            <TouchableOpacity
+              key={key}
+              onPress={() => setActiveTab(key)}
+              activeOpacity={0.8}
+              style={[
+                styles.tabBtn,
+                idx > 0 && styles.tabBtnDivider,
+                activeTab === key && styles.tabBtnActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === key && styles.tabTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {activeTab === 'rules' ? (
+          <>
+            <Card>
+              <SectionTitle title="Shift Timings" />
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Shift Start</Text>
+                  <View style={styles.timeInputs}>
+                    <TextInput
+                      style={[styles.fieldInput, styles.timeInput]}
+                      value={pad(rules.shiftStartHour)}
+                      onChangeText={v =>
+                        set(
+                          'shiftStartHour',
+                          Math.min(23, Math.max(0, Number(v) || 0)),
+                        )
+                      }
+                      keyboardType="numeric"
+                      maxLength={2}
+                      placeholder="HH"
+                      placeholderTextColor={colors.muted}
+                    />
+                    <Text style={styles.timeSep}>:</Text>
+                    <TextInput
+                      style={[styles.fieldInput, styles.timeInput]}
+                      value={pad(rules.shiftStartMinute)}
+                      onChangeText={v =>
+                        set(
+                          'shiftStartMinute',
+                          Math.min(59, Math.max(0, Number(v) || 0)),
+                        )
+                      }
+                      keyboardType="numeric"
+                      maxLength={2}
+                      placeholder="MM"
+                      placeholderTextColor={colors.muted}
+                    />
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Shift End</Text>
+                  <View style={styles.timeInputs}>
+                    <TextInput
+                      style={[styles.fieldInput, styles.timeInput]}
+                      value={pad(rules.shiftEndHour)}
+                      onChangeText={v =>
+                        set(
+                          'shiftEndHour',
+                          Math.min(23, Math.max(0, Number(v) || 0)),
+                        )
+                      }
+                      keyboardType="numeric"
+                      maxLength={2}
+                      placeholder="HH"
+                      placeholderTextColor={colors.muted}
+                    />
+                    <Text style={styles.timeSep}>:</Text>
+                    <TextInput
+                      style={[styles.fieldInput, styles.timeInput]}
+                      value={pad(rules.shiftEndMinute)}
+                      onChangeText={v =>
+                        set(
+                          'shiftEndMinute',
+                          Math.min(59, Math.max(0, Number(v) || 0)),
+                        )
+                      }
+                      keyboardType="numeric"
+                      maxLength={2}
+                      placeholder="MM"
+                      placeholderTextColor={colors.muted}
+                    />
+                  </View>
+                </View>
+              </View>
+            </Card>
+
+            <Card>
+              <SectionTitle title="Late Coming" />
+              <NumField
+                label="Grace Period"
+                value={rules.lateThresholdMinutes}
+                onChange={v => set('lateThresholdMinutes', v)}
+                hint="Employee is marked late after this many minutes"
+                suffix="min"
+              />
+              <ChipSelect
+                label="Deduction Type"
+                icon={Percent}
+                options={['fixed', 'percent'] as const}
+                value={rules.lateDeductionType}
+                onChange={v => set('lateDeductionType', v)}
+                labels={{ fixed: 'Fixed (₹)', percent: 'Percent (%)' }}
+              />
+              <NumField
+                label={
+                  rules.lateDeductionType === 'fixed'
+                    ? 'Deduction Amount (₹)'
+                    : 'Deduction Percent (%)'
+                }
+                value={rules.lateDeductionAmount}
+                onChange={v => set('lateDeductionAmount', v)}
+                hint={
+                  rules.lateDeductionType === 'percent'
+                    ? 'Percentage of daily salary to deduct'
+                    : undefined
+                }
+                suffix={rules.lateDeductionType === 'fixed' ? '₹' : '%'}
+              />
+              <NumField
+                label="Half-Day Threshold"
+                value={rules.halfDayThresholdMinutes}
+                onChange={v => set('halfDayThresholdMinutes', v)}
+                hint="Mark as half-day if late by more than this"
+                suffix="min"
+              />
+            </Card>
+
+            <Card>
+              <SectionTitle title="Early Checkout" />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>
+                    Enable Early Checkout Deduction
+                  </Text>
+                  <Text style={styles.toggleDesc}>
+                    Deduct salary for employees who leave early
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.earlyCheckoutDeductionEnabled}
+                  onValueChange={v => set('earlyCheckoutDeductionEnabled', v)}
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
                 />
               </View>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>Shift End</Text>
-              <View style={styles.timeInputs}>
-                <TextInput
-                  style={[styles.fieldInput, styles.timeInput]}
-                  value={pad(rules.shiftEndHour)}
-                  onChangeText={v =>
-                    set(
-                      'shiftEndHour',
-                      Math.min(23, Math.max(0, Number(v) || 0)),
-                    )
-                  }
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholder="HH"
-                  placeholderTextColor={colors.muted}
+              {rules.earlyCheckoutDeductionEnabled ? (
+                <NumField
+                  label="Early Checkout Grace"
+                  value={rules.earlyCheckoutThresholdMinutes}
+                  onChange={v => set('earlyCheckoutThresholdMinutes', v)}
+                  hint="Minutes before shift end that triggers deduction"
+                  suffix="min"
                 />
-                <Text style={styles.timeSep}>:</Text>
-                <TextInput
-                  style={[styles.fieldInput, styles.timeInput]}
-                  value={pad(rules.shiftEndMinute)}
-                  onChangeText={v =>
-                    set(
-                      'shiftEndMinute',
-                      Math.min(59, Math.max(0, Number(v) || 0)),
-                    )
-                  }
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholder="MM"
-                  placeholderTextColor={colors.muted}
-                />
-              </View>
-            </View>
-          </View>
-        </Card>
+              ) : null}
+            </Card>
 
-        <Card>
-          <SectionTitle title="Late Coming" />
-          <NumField
-            label="Grace Period"
-            value={rules.lateThresholdMinutes}
-            onChange={v => set('lateThresholdMinutes', v)}
-            hint="Employee is marked late after this many minutes"
-            suffix="min"
-          />
-          <ChipSelect
-            label="Deduction Type"
-            icon={Percent}
-            options={['fixed', 'percent'] as const}
-            value={rules.lateDeductionType}
-            onChange={v => set('lateDeductionType', v)}
-            labels={{ fixed: 'Fixed (₹)', percent: 'Percent (%)' }}
-          />
-          <NumField
-            label={
-              rules.lateDeductionType === 'fixed'
-                ? 'Deduction Amount (₹)'
-                : 'Deduction Percent (%)'
-            }
-            value={rules.lateDeductionAmount}
-            onChange={v => set('lateDeductionAmount', v)}
-            hint={
-              rules.lateDeductionType === 'percent'
-                ? 'Percentage of daily salary to deduct'
-                : undefined
-            }
-            suffix={rules.lateDeductionType === 'fixed' ? '₹' : '%'}
-          />
-          <NumField
-            label="Half-Day Threshold"
-            value={rules.halfDayThresholdMinutes}
-            onChange={v => set('halfDayThresholdMinutes', v)}
-            hint="Mark as half-day if late by more than this"
-            suffix="min"
-          />
-        </Card>
-
-        <Card>
-          <SectionTitle title="Early Checkout" />
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>
-                Enable Early Checkout Deduction
-              </Text>
-              <Text style={styles.toggleDesc}>
-                Deduct salary for employees who leave early
-              </Text>
-            </View>
-            <Switch
-              value={rules.earlyCheckoutDeductionEnabled}
-              onValueChange={v => set('earlyCheckoutDeductionEnabled', v)}
-              trackColor={{ false: '#E5E7EB', true: colors.blue }}
-              thumbColor={colors.white}
+            <Button
+              title="Save Attendance Settings"
+              onPress={handleSave}
+              loading={saving}
             />
-          </View>
-          {rules.earlyCheckoutDeductionEnabled ? (
-            <NumField
-              label="Early Checkout Grace"
-              value={rules.earlyCheckoutThresholdMinutes}
-              onChange={v => set('earlyCheckoutThresholdMinutes', v)}
-              hint="Minutes before shift end that triggers deduction"
-              suffix="min"
-            />
-          ) : null}
-        </Card>
-
-        <Button
-          title="Save Attendance Settings"
-          onPress={handleSave}
-          loading={saving}
-        />
+          </>
+        ) : null}
 
         <View style={{ height: 20 }} />
 
-        <Card>
-          <SectionTitle title="Late Allowance / Month" />
-          <ChipSelect
-            label="Mode"
-            icon={Users}
-            options={['bulk', 'custom'] as const}
-            value={lateMode}
-            onChange={setLateMode}
-            labels={{
-              bulk: 'Bulk (all employees)',
-              custom: 'Custom (per employee)',
-            }}
-          />
-          {lateMode === 'bulk' ? (
-            <View style={{ marginBottom: 14 }}>
-              <Text style={styles.fieldLabel}>
-                Max lates/month (no deduction)
-              </Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={lateBulk}
-                onChangeText={setLateBulk}
-                keyboardType="numeric"
-                placeholderTextColor={colors.muted}
-              />
-            </View>
-          ) : (
-            employees.map(e => (
-              <View key={e._id} style={styles.perEmpRow}>
-                <Text style={styles.perEmpName} numberOfLines={1}>
-                  {e.firstName} {e.lastName}
+        {activeTab === 'late' ? (
+          <Card>
+            <SectionTitle title="Late Allowance / Month" />
+            <ChipSelect
+              label="Mode"
+              icon={Users}
+              options={['bulk', 'custom'] as const}
+              value={lateMode}
+              onChange={setLateMode}
+              labels={{
+                bulk: 'Bulk (all employees)',
+                custom: 'Custom (per employee)',
+              }}
+            />
+            {lateMode === 'bulk' ? (
+              <View style={{ marginBottom: 14 }}>
+                <Text style={styles.fieldLabel}>
+                  Max lates/month (no deduction)
                 </Text>
                 <TextInput
-                  style={styles.perEmpInput}
-                  value={latePerEmp[e._id] ?? ''}
-                  onChangeText={v => setLatePerEmp(p => ({ ...p, [e._id]: v }))}
+                  style={styles.fieldInput}
+                  value={lateBulk}
+                  onChangeText={setLateBulk}
                   keyboardType="numeric"
-                  placeholder="0"
                   placeholderTextColor={colors.muted}
                 />
               </View>
-            ))
-          )}
-          <Button
-            title="Save Late Allowance"
-            onPress={handleSaveLateAllowance}
-            loading={savingLate}
-          />
-        </Card>
+            ) : (
+              employees.map(e => (
+                <View key={e._id} style={styles.perEmpRow}>
+                  <Text style={styles.perEmpName} numberOfLines={1}>
+                    {e.firstName} {e.lastName}
+                  </Text>
+                  <TextInput
+                    style={styles.perEmpInput}
+                    value={latePerEmp[e._id] ?? ''}
+                    onChangeText={v =>
+                      setLatePerEmp(p => ({ ...p, [e._id]: v }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={colors.muted}
+                  />
+                </View>
+              ))
+            )}
+            <Button
+              title="Save Late Allowance"
+              onPress={handleSaveLateAllowance}
+              loading={savingLate}
+            />
+          </Card>
+        ) : null}
 
-        <Card>
-          <SectionTitle title="Leave Allowance / Month" />
-          <ChipSelect
-            label="Leave Type"
-            icon={CalendarDays}
-            options={LEAVE_TYPES}
-            value={leaveType}
-            onChange={setLeaveType}
-          />
-          <ChipSelect
-            label="Mode"
-            icon={Users}
-            options={['bulk', 'custom'] as const}
-            value={leaveMode}
-            onChange={setLeaveMode}
-            labels={{
-              bulk: 'Bulk (all employees)',
-              custom: 'Custom (per employee)',
-            }}
-          />
-          {leaveMode === 'bulk' ? (
-            <View style={{ marginBottom: 14 }}>
-              <Text style={styles.fieldLabel}>
-                No-deduction days/month for {leaveType}
-              </Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={leaveBulk}
-                onChangeText={setLeaveBulk}
-                keyboardType="numeric"
-                placeholderTextColor={colors.muted}
-              />
-            </View>
-          ) : (
-            employees.map(e => (
-              <View key={e._id} style={styles.perEmpRow}>
-                <Text style={styles.perEmpName} numberOfLines={1}>
-                  {e.firstName} {e.lastName}
+        {activeTab === 'leave' ? (
+          <Card>
+            <SectionTitle title="Leave Allowance / Month" />
+            <ChipSelect
+              label="Leave Type"
+              icon={CalendarDays}
+              options={LEAVE_TYPES}
+              value={leaveType}
+              onChange={setLeaveType}
+            />
+            <ChipSelect
+              label="Mode"
+              icon={Users}
+              options={['bulk', 'custom'] as const}
+              value={leaveMode}
+              onChange={setLeaveMode}
+              labels={{
+                bulk: 'Bulk (all employees)',
+                custom: 'Custom (per employee)',
+              }}
+            />
+            {leaveMode === 'bulk' ? (
+              <View style={{ marginBottom: 14 }}>
+                <Text style={styles.fieldLabel}>
+                  No-deduction days/month for {leaveType}
                 </Text>
                 <TextInput
-                  style={styles.perEmpInput}
-                  value={leavePerEmp[e._id] ?? ''}
-                  onChangeText={v =>
-                    setLeavePerEmp(p => ({ ...p, [e._id]: v }))
-                  }
+                  style={styles.fieldInput}
+                  value={leaveBulk}
+                  onChangeText={setLeaveBulk}
                   keyboardType="numeric"
-                  placeholder="0"
                   placeholderTextColor={colors.muted}
                 />
               </View>
-            ))
-          )}
-          <Button
-            title="Save Leave Allowance"
-            onPress={handleSaveLeaveAllowance}
-            loading={savingLeave}
-          />
-        </Card>
+            ) : (
+              employees.map(e => (
+                <View key={e._id} style={styles.perEmpRow}>
+                  <Text style={styles.perEmpName} numberOfLines={1}>
+                    {e.firstName} {e.lastName}
+                  </Text>
+                  <TextInput
+                    style={styles.perEmpInput}
+                    value={leavePerEmp[e._id] ?? ''}
+                    onChangeText={v =>
+                      setLeavePerEmp(p => ({ ...p, [e._id]: v }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={colors.muted}
+                  />
+                </View>
+              ))
+            )}
+            <Button
+              title="Save Leave Allowance"
+              onPress={handleSaveLeaveAllowance}
+              loading={savingLeave}
+            />
+          </Card>
+        ) : null}
 
         <Card>
           <TouchableOpacity
@@ -563,6 +602,29 @@ export default function AttendanceSettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
+  tabBar: {
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: colors.black,
+    marginBottom: 16,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+  },
+  tabBtnDivider: { borderLeftWidth: 2, borderLeftColor: colors.black },
+  tabBtnActive: { backgroundColor: colors.blue },
+  tabText: {
+    fontFamily: FONT.bold,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.black,
+    textTransform: 'uppercase',
+  },
+  tabTextActive: { color: colors.white },
   title: {
     fontFamily: FONT.bold,
     fontSize: 24,

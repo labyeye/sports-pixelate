@@ -1,3 +1,4 @@
+import { StatCard } from "@/components/ui/StatCard";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import payrollChequePdf from "../../assets/payrollcheque.pdf";
@@ -696,43 +697,36 @@ export default function PayrollPage() {
       </div>
 
       {}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           {
             label: "Gross Salary",
             value: formatCurrency(totalGross),
-            bg: "bg-[#024BAB]",
+            color: "#024BAB",
           },
           {
             label: "Total Deductions",
             value: formatCurrency(totalDed),
-            bg: "bg-[#FA731C]",
+            color: "#FA731C",
           },
           {
             label: "Net Payable",
             value: formatCurrency(totalNet),
-            bg: "bg-[#00C48C]",
+            color: "#00C48C",
           },
           {
             label: "Paid",
             value: `${paidCount}/${payrolls.length}`,
-            bg: "bg-[#024BAB]",
+            color: "#024BAB",
           },
-        ].map(({ label, value, bg }) => (
-          <div key={label} className="border-2 bg-white p-4">
-            <div
-              className={cn(
-                "w-10 h-10 border-2 border-black flex items-center justify-center mb-2",
-                bg,
-              )}
-            >
-              <IndianRupee className="w-5 h-5 text-white" />
-            </div>
-            <p className="font-display font-bold text-lg text-black">{value}</p>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              {label}
-            </p>
-          </div>
+        ].map(({ label, value, color }) => (
+          <StatCard
+            key={label}
+            label={label}
+            value={value}
+            icon={IndianRupee}
+            color={color}
+          />
         ))}
       </div>
 

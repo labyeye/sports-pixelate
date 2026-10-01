@@ -23,7 +23,14 @@ async function request<T = any>(
       ...(options.headers || {}),
     },
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => null);
+  if (data === null) {
+    const err: any = new Error(
+      "Cannot reach the server (got a non-JSON response). Please check the API URL configuration or try again shortly.",
+    );
+    err.status = res.status;
+    throw err;
+  }
   if (!res.ok) {
     const err: any = new Error(data.message || "Request failed");
     err.status = res.status;
@@ -1285,6 +1292,21 @@ export const inventoryAPI = {
   update: (id: string, body: object) =>
     request(`/inventory/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/inventory/${id}`, { method: "DELETE" }),
+  uploadPhoto: async (id: string, file: File) => {
+    const compressed = await compressImageFile(file);
+    const form = new FormData();
+    form.append("photo", compressed);
+    const token = getToken();
+    return fetch(`${BASE_URL}/inventory/${id}/photo`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || "Photo upload failed");
+      return data;
+    });
+  },
   bulkImport: (items: object[]) =>
     request("/inventory/bulk-import", {
       method: "POST",

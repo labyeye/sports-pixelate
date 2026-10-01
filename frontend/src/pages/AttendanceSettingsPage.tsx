@@ -287,6 +287,9 @@ interface BalanceRow {
 }
 
 export default function AttendanceSettingsPage() {
+  const [activeTab, setActiveTab] = useState<"rules" | "late" | "leave">(
+    "rules",
+  );
   const { toast } = useToast();
   const [settings, setSettings] =
     useState<AttendanceSettings>(DEFAULT_SETTINGS);
@@ -485,255 +488,286 @@ export default function AttendanceSettingsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-white border-2 border-black">
-              <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
-                <div className="flex items-center gap-3">
-                  <ShieldAlert className="w-5 h-5 text-[#024BAB]" />
-                  <div>
-                    <h2 className="font-bold text-base">
-                      Attendance Deduction Rules
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      Shift timing, grace period, and late / early-checkout
-                      deductions. Per-employee shift assignments override these
-                      fallback timings.
-                    </p>
+            <div className="flex flex-wrap border-2 border-black bg-white">
+              {(
+                [
+                  {
+                    key: "rules",
+                    label: "Attendance Deduction Rules",
+                    icon: ShieldAlert,
+                  },
+                  { key: "late", label: "Late Allowance", icon: Clock },
+                  {
+                    key: "leave",
+                    label: "Leave Allowance",
+                    icon: CalendarDays,
+                  },
+                ] as const
+              ).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`flex-1 min-w-fit flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-r-2 border-black last:border-r-0 transition-colors ${activeTab === key ? "bg-[#024BAB] text-white" : "bg-white text-black hover:bg-[#024BAB]/5"}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "rules" && (
+              <>
+                <div className="bg-white border-2 border-black">
+                  <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                    <div className="flex items-center gap-3">
+                      <ShieldAlert className="w-5 h-5 text-[#024BAB]" />
+                      <div>
+                        <h2 className="font-bold text-base">
+                          Attendance Deduction Rules
+                        </h2>
+                        <p className="text-xs text-gray-500">
+                          Shift timing, grace period, and late / early-checkout
+                          deductions. Per-employee shift assignments override
+                          these fallback timings.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="p-5 space-y-6">
-                <div>
-                  <p className="text-xs font-bold uppercase mb-3">
-                    Late Arrival
-                  </p>
-                  <div className="grid grid-cols-3 gap-4">
-                    <NumField
-                      label="Grace Period (min)"
-                      value={settings.lateThresholdMinutes}
-                      onChange={(v) => set({ lateThresholdMinutes: v })}
-                      hint={`On time if in by ${fmt(settings.shiftStartHour, settings.shiftStartMinute + settings.lateThresholdMinutes)}`}
-                    />
+                  <div className="p-5 space-y-6">
                     <div>
-                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
-                        <Percent className="w-3.5 h-3.5 text-[#024BAB]" />
-                        Deduction Type
-                      </label>
-                      <select
-                        value={settings.lateDeductionType}
-                        onChange={(e) =>
-                          set({
-                            lateDeductionType: e.target.value as
-                              "fixed" | "percent",
-                          })
-                        }
-                        className="w-full border-2 border-black px-3 py-2 text-sm bg-white focus:outline-none"
-                      >
-                        <option value="fixed">Fixed Amount (₹)</option>
-                        <option value="percent">% of Daily Salary</option>
-                      </select>
+                      <p className="text-xs font-bold uppercase mb-3">
+                        Late Arrival &amp; Half-Day Rule
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <NumField
+                          label="Grace Period (min)"
+                          value={settings.lateThresholdMinutes}
+                          onChange={(v) => set({ lateThresholdMinutes: v })}
+                          hint={`On time if in by ${fmt(settings.shiftStartHour, settings.shiftStartMinute + settings.lateThresholdMinutes)}`}
+                        />
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
+                            <Percent className="w-3.5 h-3.5 text-[#024BAB]" />
+                            Deduction Type
+                          </label>
+                          <select
+                            value={settings.lateDeductionType}
+                            onChange={(e) =>
+                              set({
+                                lateDeductionType: e.target.value as
+                                  "fixed" | "percent",
+                              })
+                            }
+                            className="w-full border-2 border-black px-3 py-2 text-sm bg-white focus:outline-none"
+                          >
+                            <option value="fixed">Fixed Amount (₹)</option>
+                            <option value="percent">% of Daily Salary</option>
+                          </select>
+                        </div>
+                        <NumField
+                          label={
+                            settings.lateDeductionType === "fixed"
+                              ? "Amount per Late Day (₹)"
+                              : "% of Daily Salary"
+                          }
+                          value={settings.lateDeductionAmount}
+                          onChange={(v) => set({ lateDeductionAmount: v })}
+                          suffix={
+                            settings.lateDeductionType === "percent"
+                              ? "%"
+                              : undefined
+                          }
+                        />
+                        <NumField
+                          label="Half Day After (min late)"
+                          value={settings.halfDayThresholdMinutes}
+                          onChange={(v) => set({ halfDayThresholdMinutes: v })}
+                          hint={`Half day (50% pay) if in after ${fmt(settings.shiftStartHour, settings.shiftStartMinute + settings.halfDayThresholdMinutes)}`}
+                        />
+                      </div>
                     </div>
-                    <NumField
-                      label={
-                        settings.lateDeductionType === "fixed"
-                          ? "Amount per Late Day (₹)"
-                          : "% of Daily Salary"
-                      }
-                      value={settings.lateDeductionAmount}
-                      onChange={(v) => set({ lateDeductionAmount: v })}
-                      suffix={
-                        settings.lateDeductionType === "percent"
-                          ? "%"
-                          : undefined
-                      }
-                    />
-                  </div>
-                </div>
 
-                <div className="border-t pt-5">
-                  <p className="text-xs font-bold uppercase mb-3">
-                    Half-Day Rule
-                  </p>
-                  <NumField
-                    label="Late by more than (min) = Half Day (50% pay)"
-                    value={settings.halfDayThresholdMinutes}
-                    onChange={(v) => set({ halfDayThresholdMinutes: v })}
-                    hint={`Half day if arriving after ${fmt(settings.shiftStartHour, settings.shiftStartMinute + settings.halfDayThresholdMinutes)}`}
-                  />
-                </div>
-
-                <div className="border-t pt-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <LogOut className="w-4 h-4 text-[#024BAB]" />
-                    <p className="text-xs font-bold uppercase">
-                      Early Checkout
-                    </p>
-                  </div>
-                  <Toggle
-                    label="Enable Early Checkout Deduction"
-                    description="Proportionally deducts pay when employee leaves before shift end"
-                    checked={settings.earlyCheckoutDeductionEnabled}
-                    onChange={(v) => set({ earlyCheckoutDeductionEnabled: v })}
-                  />
-                  {settings.earlyCheckoutDeductionEnabled && (
-                    <div className="mt-3">
-                      <NumField
-                        label="Grace Period Before Shift End (min)"
-                        value={settings.earlyCheckoutThresholdMinutes}
+                    <div className="border-t pt-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <LogOut className="w-4 h-4 text-[#024BAB]" />
+                        <p className="text-xs font-bold uppercase">
+                          Early Checkout
+                        </p>
+                      </div>
+                      <Toggle
+                        label="Enable Early Checkout Deduction"
+                        description="Proportionally deducts pay when employee leaves before shift end"
+                        checked={settings.earlyCheckoutDeductionEnabled}
                         onChange={(v) =>
-                          set({ earlyCheckoutThresholdMinutes: v })
+                          set({ earlyCheckoutDeductionEnabled: v })
                         }
-                        hint="No deduction if leaving within this many minutes of shift end"
                       />
+                      {settings.earlyCheckoutDeductionEnabled && (
+                        <div className="mt-3">
+                          <NumField
+                            label="Grace Period Before Shift End (min)"
+                            value={settings.earlyCheckoutThresholdMinutes}
+                            onChange={(v) =>
+                              set({ earlyCheckoutThresholdMinutes: v })
+                            }
+                            hint="No deduction if leaving within this many minutes of shift end"
+                          />
+                        </div>
+                      )}
                     </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-6 py-3 font-bold text-sm uppercase disabled:opacity-60"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saving ? "Saving..." : "Save Settings"}
+                </button>
+              </>
+            )}
+
+            {/* Late Allowance */}
+            {activeTab === "late" && (
+              <div className="bg-white border-2 border-black">
+                <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-[#024BAB]" />
+                    <div>
+                      <h2 className="font-bold text-base">Late Allowance</h2>
+                      <p className="text-xs text-gray-500">
+                        Max late arrivals per month with no deduction/approval
+                        needed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setLateMode("bulk")}
+                      className={`flex-1 py-2 text-sm font-bold border-2 border-black ${lateMode === "bulk" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
+                    >
+                      Bulk (All Employees)
+                    </button>
+                    <button
+                      onClick={() => setLateMode("custom")}
+                      className={`flex-1 py-2 text-sm font-bold border-2 border-black ${lateMode === "custom" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
+                    >
+                      Custom (Per Employee)
+                    </button>
+                  </div>
+                  {lateMode === "bulk" ? (
+                    <div className="flex items-end gap-3">
+                      <div className="w-48">
+                        <NumField
+                          label="Max Lates / Month"
+                          value={lateBulkCount}
+                          onChange={setLateBulkCount}
+                        />
+                      </div>
+                      <button
+                        onClick={saveLateBulk}
+                        disabled={savingLate}
+                        className="border-2 bg-[#024BAB] text-white px-6 py-2.5 text-sm font-bold disabled:opacity-60"
+                      >
+                        {savingLate ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowLateModal(true)}
+                      className="border-2 border-black px-4 py-2.5 text-sm font-bold flex items-center gap-2"
+                    >
+                      <Users className="w-4 h-4" /> Configure per Employee
+                    </button>
                   )}
                 </div>
               </div>
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-6 py-3 font-bold text-sm uppercase disabled:opacity-60"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saving ? "Saving..." : "Save Settings"}
-            </button>
-
-            {/* Late Allowance */}
-            <div className="bg-white border-2 border-black">
-              <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-[#024BAB]" />
-                  <div>
-                    <h2 className="font-bold text-base">Late Allowance</h2>
-                    <p className="text-xs text-gray-500">
-                      Max late arrivals per month with no deduction/approval
-                      needed.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-5 space-y-4">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setLateMode("bulk")}
-                    className={`flex-1 py-2 text-sm font-bold border-2 border-black ${lateMode === "bulk" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
-                  >
-                    Bulk (All Employees)
-                  </button>
-                  <button
-                    onClick={() => setLateMode("custom")}
-                    className={`flex-1 py-2 text-sm font-bold border-2 border-black ${lateMode === "custom" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
-                  >
-                    Custom (Per Employee)
-                  </button>
-                </div>
-                {lateMode === "bulk" ? (
-                  <div className="flex items-end gap-3">
-                    <div className="w-48">
-                      <NumField
-                        label="Max Lates / Month"
-                        value={lateBulkCount}
-                        onChange={setLateBulkCount}
-                      />
-                    </div>
-                    <button
-                      onClick={saveLateBulk}
-                      disabled={savingLate}
-                      className="border-2 bg-[#024BAB] text-white px-6 py-2.5 text-sm font-bold disabled:opacity-60"
-                    >
-                      {savingLate ? "Saving..." : "Save"}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowLateModal(true)}
-                    className="border-2 border-black px-4 py-2.5 text-sm font-bold flex items-center gap-2"
-                  >
-                    <Users className="w-4 h-4" /> Configure per Employee
-                  </button>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Leave Allowance */}
-            <div className="bg-white border-2 border-black">
-              <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
-                <div className="flex items-center gap-3">
-                  <CalendarDays className="w-5 h-5 text-[#024BAB]" />
-                  <div>
-                    <h2 className="font-bold text-base">Leave Allowance</h2>
-                    <p className="text-xs text-gray-500">
-                      Max no-deduction leave days per month, configured per
-                      leave type.
-                    </p>
+            {activeTab === "leave" && (
+              <div className="bg-white border-2 border-black">
+                <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                  <div className="flex items-center gap-3">
+                    <CalendarDays className="w-5 h-5 text-[#024BAB]" />
+                    <div>
+                      <h2 className="font-bold text-base">Leave Allowance</h2>
+                      <p className="text-xs text-gray-500">
+                        Max no-deduction leave days per month, configured per
+                        leave type.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
-                    <CalendarDays className="w-3.5 h-3.5 text-[#024BAB]" />
-                    Leave Type
-                  </label>
-                  <select
-                    value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value)}
-                    className="w-full border-2 border-black px-3 py-2 text-sm bg-white focus:outline-none"
-                  >
-                    {LEAVE_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {LEAVE_LABELS[t]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setLeaveMode("bulk")}
-                    className={`flex-1 py-2 text-sm font-bold border-2 border-black ${leaveMode === "bulk" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
-                  >
-                    Bulk (All Employees)
-                  </button>
-                  <button
-                    onClick={() => setLeaveMode("custom")}
-                    className={`flex-1 py-2 text-sm font-bold border-2 border-black ${leaveMode === "custom" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
-                  >
-                    Custom (Per Employee)
-                  </button>
-                </div>
-                {leaveMode === "bulk" ? (
-                  <div className="flex items-end gap-3">
-                    <div className="w-48">
-                      <NumField
-                        label={`${LEAVE_LABELS[leaveType]} Days / Month`}
-                        value={leaveBulkDays}
-                        onChange={setLeaveBulkDays}
-                      />
-                    </div>
-                    <button
-                      onClick={saveLeaveBulk}
-                      disabled={savingLeave}
-                      className="border-2 bg-[#024BAB] text-white px-6 py-2.5 text-sm font-bold disabled:opacity-60"
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1 text-gray-600">
+                      <CalendarDays className="w-3.5 h-3.5 text-[#024BAB]" />
+                      Leave Type
+                    </label>
+                    <select
+                      value={leaveType}
+                      onChange={(e) => setLeaveType(e.target.value)}
+                      className="w-full border-2 border-black px-3 py-2 text-sm bg-white focus:outline-none"
                     >
-                      {savingLeave ? "Saving..." : "Save"}
+                      {LEAVE_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {LEAVE_LABELS[t]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setLeaveMode("bulk")}
+                      className={`flex-1 py-2 text-sm font-bold border-2 border-black ${leaveMode === "bulk" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
+                    >
+                      Bulk (All Employees)
+                    </button>
+                    <button
+                      onClick={() => setLeaveMode("custom")}
+                      className={`flex-1 py-2 text-sm font-bold border-2 border-black ${leaveMode === "custom" ? "bg-[#024BAB] text-white" : "bg-white text-black"}`}
+                    >
+                      Custom (Per Employee)
                     </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setShowLeaveModal(true)}
-                    className="border-2 border-black px-4 py-2.5 text-sm font-bold flex items-center gap-2"
-                  >
-                    <Users className="w-4 h-4" /> Configure per Employee (
-                    {LEAVE_LABELS[leaveType]})
-                  </button>
-                )}
+                  {leaveMode === "bulk" ? (
+                    <div className="flex items-end gap-3">
+                      <div className="w-48">
+                        <NumField
+                          label={`${LEAVE_LABELS[leaveType]} Days / Month`}
+                          value={leaveBulkDays}
+                          onChange={setLeaveBulkDays}
+                        />
+                      </div>
+                      <button
+                        onClick={saveLeaveBulk}
+                        disabled={savingLeave}
+                        className="border-2 bg-[#024BAB] text-white px-6 py-2.5 text-sm font-bold disabled:opacity-60"
+                      >
+                        {savingLeave ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowLeaveModal(true)}
+                      className="border-2 border-black px-4 py-2.5 text-sm font-bold flex items-center gap-2"
+                    >
+                      <Users className="w-4 h-4" /> Configure per Employee (
+                      {LEAVE_LABELS[leaveType]})
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Balance Summary */}
             <div className="bg-white border-2 border-black">

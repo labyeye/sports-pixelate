@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ImageCropHost } from "@/components/ui/ImageCropper";
 import { ToastProvider } from "@/hooks/use-toast";
 import { usePushNotification } from "@/hooks/usePushNotification";
 import DashboardPage from "./pages/DashboardPage";
@@ -475,6 +476,7 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
+          <ImageCropHost />
         </BrowserRouter>
       </AuthProvider>
     </ToastProvider>

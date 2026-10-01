@@ -1,3 +1,4 @@
+import { StatCard } from "@/components/ui/StatCard";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -492,33 +493,19 @@ export default function LeavePage() {
       </div>
 
       {}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
         {[
-          { label: "Pending", value: summary.pending, bg: "bg-[#FA731C]" },
-          { label: "Approved", value: summary.approved, bg: "bg-[#024BAB]" },
-          { label: "Rejected", value: summary.rejected, bg: "bg-[#EF4444]" },
-        ].map(({ label, value, bg }) => (
-          <div
+          { label: "Pending", value: summary.pending, color: "#FA731C" },
+          { label: "Approved", value: summary.approved, color: "#00C48C" },
+          { label: "Rejected", value: summary.rejected, color: "#EF4444" },
+        ].map(({ label, value, color }) => (
+          <StatCard
             key={label}
-            className="border-2 bg-white p-4 flex items-center gap-3"
-          >
-            <div
-              className={cn(
-                "w-10 h-10 border-2 border-black flex items-center justify-center shrink-0",
-                bg,
-              )}
-            >
-              <CalendarDays className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="font-display font-bold text-2xl text-black">
-                {value}
-              </p>
-              <p className="text-xs font-bold text-muted-foreground uppercase">
-                {label}
-              </p>
-            </div>
-          </div>
+            label={label}
+            value={value}
+            icon={CalendarDays}
+            color={color}
+          />
         ))}
       </div>
 

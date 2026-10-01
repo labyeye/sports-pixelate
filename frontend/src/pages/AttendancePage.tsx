@@ -5,6 +5,7 @@ import { attendanceAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { AttendanceRecord, Employee } from "@/types/hrms";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   Clock,
   CheckCircle,
@@ -461,111 +462,69 @@ export default function AttendancePage() {
         )}
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           {
             label: "Total",
             value: summary.total,
             icon: Users,
-            bg: "bg-[#024BAB]",
-            text: "text-white",
+            color: "#024BAB",
             filterKey: "total",
           },
           {
             label: "Present",
             value: summary.present,
             icon: UserCheck,
-            bg: "bg-[#00C48C]",
-            text: "text-white",
+            color: "#00C48C",
             filterKey: "present",
           },
           {
             label: "Absent",
             value: summary.absent,
             icon: UserX,
-            bg: "bg-[#EF4444]",
-            text: "text-white",
+            color: "#EF4444",
             filterKey: "absent",
           },
           {
             label: "Half Day",
             value: summary.halfDay,
             icon: Timer,
-            bg: "bg-[#F59E0B]",
-            text: "text-white",
+            color: "#F59E0B",
             filterKey: "half_day",
           },
           {
             label: "Late",
             value: summary.late,
             icon: AlarmClock,
-            bg: "bg-[#A855F7]",
-            text: "text-white",
+            color: "#A855F7",
             filterKey: "late",
           },
           {
             label: "Early Leave",
             value: summary.earlyLeaving,
             icon: LogOut,
-            bg: "bg-[#3B82F6]",
-            text: "text-white",
+            color: "#3B82F6",
             filterKey: "early_leaving",
           },
           {
             label: "On Leave",
             value: summary.leave,
             icon: Palmtree,
-            bg: "bg-[#EAB308]",
-            text: "text-white",
+            color: "#EAB308",
             filterKey: "on_leave",
           },
-        ].map(({ label, value, icon: Icon, bg, text, filterKey }) => {
+        ].map(({ label, value, icon, color, filterKey }) => {
           const isActive = activeFilter === filterKey;
           return (
-            <button
+            <StatCard
               key={filterKey}
-              onClick={() =>
-                setActiveFilter(
-                  isActive || filterKey === "total" ? null : filterKey,
-                )
-              }
-              className={cn(
-                "border-2 border-black p-4 flex flex-col gap-2 text-left transition-all",
-                isActive
-                  ? `${bg} ${text} shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`
-                  : "bg-white hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
-              )}
-            >
-              <div
-                className={cn(
-                  "w-8 h-8 border-2 border-black flex items-center justify-center shrink-0",
-                  isActive ? "bg-white/20 border-white/40" : bg,
-                )}
-              >
-                <Icon
-                  className={cn("w-4 h-4", isActive ? text : "text-white")}
-                />
-              </div>
-              <div>
-                <p
-                  className={cn(
-                    "text-2xl font-bold leading-none",
-                    isActive ? text : "text-black",
-                  )}
-                >
-                  {value}
-                </p>
-                <p
-                  className={cn(
-                    "text-[11px] font-bold mt-1 uppercase tracking-wider",
-                    isActive ? `${text} opacity-80` : "text-muted-foreground",
-                  )}
-                >
-                  {label}
-                </p>
-              </div>
-            </button>
+              label={label}
+              value={value}
+              icon={icon}
+              color={color}
+              active={isActive}
+              onClick={() => setActiveFilter(isActive || filterKey === "total" ? null : filterKey)}
+            />
           );
         })}
       </div>

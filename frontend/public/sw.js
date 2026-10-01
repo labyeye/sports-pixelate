@@ -1,7 +1,7 @@
 self.addEventListener("push", (event) => {
   const data = event.data?.json() || {};
   event.waitUntil(
-    self.registration.showNotification(data.title || "NestHR", {
+    self.registration.showNotification(data.title || "NestPlay", {
       body: data.body || "",
       icon: "/assets/nesthr_bgwhite.png",
       badge: "/assets/nesthr_bgwhite.png",

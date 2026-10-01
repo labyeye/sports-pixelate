@@ -34,14 +34,30 @@ export function CollapsibleSection({
         </span>
         <ChevronDown
           className={cn(
-            "w-4 h-4 transition-transform",
+            "w-4 h-4 transition-transform duration-300",
             open ? "rotate-180" : "",
           )}
         />
       </button>
-      {open && (
-        <div className="px-4 pb-4 pt-1 border-t-2 border-black">{children}</div>
-      )}
+      {/* grid-rows 0fr -> 1fr animates height without measuring content */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-in-out",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+        aria-hidden={!open}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={cn(
+              "px-4 pb-4 pt-1 border-t-2 border-black transition-[opacity,visibility] duration-300",
+              open ? "opacity-100 visible" : "opacity-0 invisible",
+            )}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

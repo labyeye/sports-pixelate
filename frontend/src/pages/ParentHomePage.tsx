@@ -1,3 +1,4 @@
+import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import nesthrlogo from "../../assets/nesthr.png";
@@ -38,7 +39,8 @@ export default function ParentHomePage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = await cropImage(e.target.files?.[0]);
+    e.target.value = "";
     if (!file) return;
     if (file.size > 3 * 1024 * 1024) {
       toast({
@@ -353,7 +355,8 @@ export default function ParentHomePage() {
                           <XCircle className="w-4 h-4" /> Due — {sub.planName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          ₹{(sub.amount - (sub.amountPaid || 0)).toLocaleString(
+                          ₹
+                          {(sub.amount - (sub.amountPaid || 0)).toLocaleString(
                             "en-IN",
                           )}{" "}
                           pending
@@ -383,7 +386,11 @@ export default function ParentHomePage() {
                     )}
                   >
                     <Wallet className="w-3.5 h-3.5" />{" "}
-                    {sub && !subDue ? "Manage Plan" : subDue ? "Pay Now" : "Subscribe"}
+                    {sub && !subDue
+                      ? "Manage Plan"
+                      : subDue
+                        ? "Pay Now"
+                        : "Subscribe"}
                   </button>
                   <button
                     onClick={() => navigate("/bookings")}

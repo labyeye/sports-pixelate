@@ -1,3 +1,4 @@
+import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useRef, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -253,7 +254,8 @@ export default function EmployeeDashboard() {
   }, [loadEmployeeData]);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = await cropImage(e.target.files?.[0]);
+    e.target.value = "";
     if (!file) return;
     if (file.size > 3 * 1024 * 1024) {
       toast({
@@ -752,8 +754,8 @@ export default function EmployeeDashboard() {
                             Happy Birthday to You! 🎂
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            The NestPlay family wishes you a fantastic day
-                            ahead filled with joy and success!
+                            The NestPlay family wishes you a fantastic day ahead
+                            filled with joy and success!
                           </p>
                         </div>
                       </div>

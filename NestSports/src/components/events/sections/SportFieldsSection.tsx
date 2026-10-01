@@ -44,7 +44,7 @@ export default function SportFieldsSection({
     onChange({ ...value, [key]: v });
 
   return (
-    <CollapsibleSection title="Sport Details" icon={Trophy}>
+    <CollapsibleSection title="Event Details" icon={Trophy}>
       <ChipSelect
         label="Format"
         options={FORMATS}

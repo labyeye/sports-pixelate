@@ -1,3 +1,4 @@
+import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -37,6 +38,7 @@ import {
   IndianRupee,
   User,
   FileText,
+  ImagePlus,
 } from "lucide-react";
 
 const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
@@ -96,6 +98,7 @@ interface Item {
   name: string;
   category: string;
   sport: string;
+  photo?: string;
   totalQuantity: number;
   availableQuantity: number;
   onOrderQuantity?: number;
@@ -108,6 +111,18 @@ interface Person {
   _id: string;
   firstName: string;
   lastName: string;
+}
+
+function ItemThumb({ src, name }: { src?: string; name: string }) {
+  return (
+    <div className="w-10 h-10 shrink-0 border-2 border-black bg-[#024BAB]/5 flex items-center justify-center overflow-hidden">
+      {src ? (
+        <img src={src} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <Package className="w-4 h-4 text-muted-foreground/60" />
+      )}
+    </div>
+  );
 }
 
 type SortKey = "name" | "category" | "available" | "total";
@@ -123,6 +138,9 @@ export default function InventoryPage() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [existingPhoto, setExistingPhoto] = useState<string>("");
   const [txnFor, setTxnFor] = useState<Item | null>(null);
   const [txnQty, setTxnQty] = useState("1");
   const [assignFor, setAssignFor] = useState<Item | null>(null);
@@ -223,7 +241,25 @@ export default function InventoryPage() {
       reorderThreshold: "0",
     });
     setEditingId(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setExistingPhoto("");
     setShowForm(false);
+  };
+
+  const handlePhotoPick = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please choose an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Photo must be under 5MB", variant: "destructive" });
+      return;
+    }
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const startEdit = (i: Item) => {
@@ -236,6 +272,9 @@ export default function InventoryPage() {
       unitCost: String(i.unitCost || ""),
       reorderThreshold: String(i.reorderThreshold),
     });
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setExistingPhoto(i.photo || "");
     setShowForm(true);
   };
 
@@ -253,13 +292,31 @@ export default function InventoryPage() {
         unitCost: Number(form.unitCost) || 0,
         reorderThreshold: Number(form.reorderThreshold) || 0,
       };
+      let saved: Item;
       if (editingId) {
         const r = await inventoryAPI.update(editingId, payload);
-        setItems((p) => p.map((x) => (x._id === editingId ? r.data : x)));
-        toast({ title: "Item updated" });
+        saved = r.data;
       } else {
         const r = await inventoryAPI.create(payload);
-        setItems((p) => [...p, r.data]);
+        saved = r.data;
+      }
+      if (photoFile) {
+        try {
+          const up = await inventoryAPI.uploadPhoto(saved._id, photoFile);
+          saved = up.data || { ...saved, photo: up.photo };
+        } catch (e: any) {
+          toast({
+            title: "Item saved, but photo upload failed",
+            description: e.message,
+            variant: "destructive",
+          });
+        }
+      }
+      if (editingId) {
+        setItems((p) => p.map((x) => (x._id === editingId ? saved : x)));
+        toast({ title: "Item updated" });
+      } else {
+        setItems((p) => [...p, saved]);
         toast({ title: "Item added" });
       }
       resetForm();
@@ -567,119 +624,196 @@ export default function InventoryPage() {
       </div>
 
       {showForm && canManage && (
-        <div className="bg-white border-2 border-black p-6 mb-6">
-          <h3 className="font-bold text-base mb-4">
-            {editingId ? "Edit Inventory Item" : "Add Inventory Item"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
-                <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
-                Name *
-              </label>
-              <input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, name: e.target.value }))
-                }
-                placeholder="e.g. Tennis Racket"
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
-                <Layers className="w-3.5 h-3.5 text-[#024BAB]" />
-                Category
-              </label>
-              <select
-                value={form.category}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, category: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="border-2 border-black bg-white w-full max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b-2 border-black bg-[#024BAB]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 border-2 border-white flex items-center justify-center">
+                  <Package className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold text-lg text-white">
+                  {editingId ? "Edit Inventory Item" : "Add Inventory Item"}
+                </h3>
+              </div>
+              <button
+                onClick={resetForm}
+                className="text-white hover:opacity-80"
+                aria-label="Close"
               >
-                {["equipment", "apparel", "consumable", "other"].map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
-                <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
-                Sport
-              </label>
-              <input
-                value={form.sport}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, sport: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="border-2 border-black p-4 mb-5 flex items-center gap-4">
+                <div className="relative w-24 h-24 shrink-0 border-2 border-black bg-[#024BAB]/5 flex items-center justify-center overflow-hidden">
+                  {photoPreview || existingPhoto ? (
+                    <img
+                      src={photoPreview || existingPhoto}
+                      alt="Item"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Package className="w-8 h-8 text-muted-foreground/50" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase mb-1">Item Photo</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    PNG or JPG, up to 5MB.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <label className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase cursor-pointer hover:bg-[#024BAB]/5">
+                      <ImagePlus className="w-3.5 h-3.5" />
+                      {photoPreview || existingPhoto
+                        ? "Change Photo"
+                        : "Upload Photo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const raw = e.target.files?.[0];
+                          e.target.value = "";
+                          const file = await cropImage(raw);
+                          handlePhotoPick(file || undefined);
+                        }}
+                      />
+                    </label>
+                    {photoPreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(photoPreview);
+                          setPhotoFile(null);
+                          setPhotoPreview(null);
+                        }}
+                        className="border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                    <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Name *
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, name: e.target.value }))
+                    }
+                    placeholder="e.g. Tennis Racket"
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                    <Layers className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Category
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, category: e.target.value }))
+                    }
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
+                  >
+                    {["equipment", "apparel", "consumable", "other"].map(
+                      (c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                    <Trophy className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Sport
+                  </label>
+                  <input
+                    value={form.sport}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, sport: e.target.value }))
+                    }
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                    <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Initial Quantity
+                  </label>
+                  <input
+                    type="number"
+                    value={form.totalQuantity}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, totalQuantity: e.target.value }))
+                    }
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                    <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Unit Cost (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.unitCost}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, unitCost: e.target.value }))
+                    }
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#024BAB]" />
+                    Reorder Threshold
+                  </label>
+                  <input
+                    type="number"
+                    value={form.reorderThreshold}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        reorderThreshold: e.target.value,
+                      }))
+                    }
+                    className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
-                <Hash className="w-3.5 h-3.5 text-[#024BAB]" />
-                Initial Quantity
-              </label>
-              <input
-                type="number"
-                value={form.totalQuantity}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, totalQuantity: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
+
+            <div className="flex justify-end gap-3 px-6 py-4 border-t-2 border-black bg-white">
+              <button
+                onClick={resetForm}
+                className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+              >
+                <X className="w-4 h-4" /> Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                Save
+              </button>
             </div>
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
-                <IndianRupee className="w-3.5 h-3.5 text-[#024BAB]" />
-                Unit Cost (₹)
-              </label>
-              <input
-                type="number"
-                value={form.unitCost}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, unitCost: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase mb-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-[#024BAB]" />
-                Reorder Threshold
-              </label>
-              <input
-                type="number"
-                value={form.reorderThreshold}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, reorderThreshold: e.target.value }))
-                }
-                className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
-              Save
-            </button>
-            <button
-              onClick={resetForm}
-              className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
-            >
-              <X className="w-4 h-4" /> Cancel
-            </button>
           </div>
         </div>
       )}
@@ -909,11 +1043,14 @@ export default function InventoryPage() {
                   )}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-bold text-black">{i.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {i.category} {i.sport ? `· ${i.sport}` : ""}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <ItemThumb src={i.photo} name={i.name} />
+                      <div>
+                        <p className="font-bold text-black">{i.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {i.category} {i.sport ? `· ${i.sport}` : ""}
+                        </p>
+                      </div>
                     </div>
                     {low && (
                       <span className="border-2 border-[#EF4444] text-[#EF4444] text-[10px] font-bold px-1.5 py-0.5 shrink-0">
@@ -1000,7 +1137,10 @@ export default function InventoryPage() {
                       )}
                     >
                       <td className="px-4 py-3 font-bold text-black">
-                        {i.name}
+                        <div className="flex items-center gap-3">
+                          <ItemThumb src={i.photo} name={i.name} />
+                          {i.name}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-black capitalize">
                         {i.category}

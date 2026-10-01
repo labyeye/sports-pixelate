@@ -21,7 +21,7 @@ export function ActivityPicker({
     return (
       <div>
         <label className="block text-xs font-bold uppercase mb-1">
-          Activity (Sport){required ? " *" : ""}
+          Event{required ? " *" : ""}
         </label>
         <SportPicker value={value} onChange={onChange} required={required} />
       </div>

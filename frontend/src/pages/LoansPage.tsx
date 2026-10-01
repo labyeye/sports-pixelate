@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { loanAPI, employeeAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   ImportExportModal,
   type ImportHeader,
@@ -389,51 +390,46 @@ export default function LoansPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
         {[
           {
             label: "Total Disbursed",
             value: fmt(totalDisbursed),
             icon: Banknote,
-            color: "text-[#024BAB]",
+            color: "#024BAB",
           },
           {
             label: "Outstanding",
             value: fmt(totalOutstanding),
             icon: TrendingDown,
-            color: "text-red-600",
+            color: "#EF4444",
           },
           {
             label: "Active",
             value: String(activeCount),
             icon: IndianRupee,
-            color: "text-green-600",
+            color: "#00C48C",
           },
           {
             label: "Pending",
             value: String(pendingCount),
             icon: Clock,
-            color: "text-orange-600",
+            color: "#FA731C",
           },
           {
             label: "Cleared",
             value: String(clearedCount),
             icon: CheckCircle2,
-            color: "text-gray-600",
+            color: "#6B7280",
           },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div
+        ].map(({ label, value, icon, color }) => (
+          <StatCard
             key={label}
-            className="border-2 border-black bg-white p-4 flex flex-col gap-1"
-          >
-            <div className="flex items-center gap-2">
-              <Icon className={cn("w-4 h-4", color)} />
-              <p className="text-xs font-bold text-gray-500 uppercase">
-                {label}
-              </p>
-            </div>
-            <p className={cn("text-xl font-bold", color)}>{value}</p>
-          </div>
+            label={label}
+            value={value}
+            icon={icon}
+            color={color}
+          />
         ))}
       </div>
 

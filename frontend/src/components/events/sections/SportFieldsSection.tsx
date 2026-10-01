@@ -31,7 +31,7 @@ export function SportFieldsSection({
   onFormatChange,
 }: Props) {
   return (
-    <CollapsibleSection title="Sport Details" icon={Dumbbell}>
+    <CollapsibleSection title="Event Details" icon={Dumbbell}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>

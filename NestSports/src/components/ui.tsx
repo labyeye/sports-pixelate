@@ -9,6 +9,9 @@ import {
   ViewStyle,
   TextStyle,
   Image,
+  LayoutAnimation,
+  Platform,
+  UIManager,
   KeyboardTypeOptions,
   ScrollView,
   Modal,
@@ -691,6 +694,13 @@ export function LoadMoreFooter({
   );
 }
 
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 // RN accordion built from the existing Card styling — used to group the
 // many optional form sections on the Event form/detail screens without
 // overwhelming a single scroll view.
@@ -709,7 +719,10 @@ export function CollapsibleSection({
   return (
     <View style={styles.collapsible}>
       <TouchableOpacity
-        onPress={() => setOpen(o => !o)}
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setOpen(o => !o);
+        }}
         style={styles.collapsibleHeader}
         activeOpacity={0.7}
       >

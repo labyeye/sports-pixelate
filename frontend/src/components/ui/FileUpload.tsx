@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { UploadCloud, X, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { cropImage } from "@/components/ui/ImageCropper";
 
 interface FileUploadProps {
   label?: string;
@@ -33,12 +34,17 @@ export function FileUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
 
-  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handlePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0];
+    e.target.value = "";
+    if (!picked) return;
+    // Images get a crop step first (non-image files pass through untouched).
+    const file = isImage
+      ? await cropImage(picked, { aspect: 16 / 9 })
+      : picked;
     if (!file) return;
     if (isImage) setLocalPreview(URL.createObjectURL(file));
     onFileSelected(file);
-    e.target.value = "";
   };
 
   const shownPreview = localPreview || previewUrl;

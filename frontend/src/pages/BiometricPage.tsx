@@ -42,6 +42,7 @@ import {
   Fingerprint,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/StatCard";
 
 type Tab = "locations_devices" | "logs" | "adms";
 
@@ -698,194 +699,247 @@ export default function BiometricPage() {
 
         <div className="min-w-0">
           {tab === "locations_devices" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-bold text-lg flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#024BAB]" /> Locations
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowLocForm(true);
-                    setEditingLoc(null);
-                    setLocForm({ name: "", address: "", description: "" });
-                  }}
-                  className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase transition-all"
-                >
-                  <Plus className="w-4 h-4" /> Add Location
-                </button>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <StatCard
+                  label="Locations"
+                  value={locations.length}
+                  icon={MapPin}
+                  color="#024BAB"
+                />
+                <StatCard
+                  label="Devices"
+                  value={devices.length}
+                  icon={Cpu}
+                  color="#FA731C"
+                />
+                <StatCard
+                  label="Connected"
+                  value={devices.filter((d) => d.activated).length}
+                  icon={CheckCircle2}
+                  color="#00C48C"
+                />
               </div>
 
-              {showLocForm && (
-                <div className="bg-white border-2 border-black p-6 mb-6">
-                  <h3 className="font-bold mb-4">
-                    {editingLoc ? "Edit Location" : "New Location"}
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <section className="border-2 border-black bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b-2 border-black bg-[#F0F6FF]">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-[#024BAB]" />
                     <div>
-                      <label className="block text-xs font-bold uppercase mb-1">
-                        Location Name *
-                      </label>
-                      <input
-                        value={locForm.name}
-                        onChange={(e) =>
-                          setLocForm((p) => ({ ...p, name: e.target.value }))
-                        }
-                        placeholder="e.g. Main Gate"
-                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#024BAB]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase mb-1">
-                        Address
-                      </label>
-                      <input
-                        value={locForm.address}
-                        onChange={(e) =>
-                          setLocForm((p) => ({
-                            ...p,
-                            address: e.target.value,
-                          }))
-                        }
-                        placeholder="e.g. Ground 1"
-                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#024BAB]"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-bold uppercase mb-1">
-                        Description
-                      </label>
-                      <input
-                        value={locForm.description}
-                        onChange={(e) =>
-                          setLocForm((p) => ({
-                            ...p,
-                            description: e.target.value,
-                          }))
-                        }
-                        placeholder="Optional description"
-                        className="w-full border-2 border-black px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#024BAB]"
-                      />
+                      <h2 className="font-bold text-base">Locations</h2>
+                      <p className="text-xs text-gray-500">
+                        Sites where your biometric terminals are installed.
+                      </p>
                     </div>
                   </div>
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      onClick={handleSaveLocation}
-                      disabled={locSaving}
-                      className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
-                    >
-                      {locSaving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Check className="w-4 h-4" />
-                      )}{" "}
-                      {locSaving ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowLocForm(false);
-                        setEditingLoc(null);
-                      }}
-                      className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
-                    >
-                      <X className="w-4 h-4" /> Cancel
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      setShowLocForm(true);
+                      setEditingLoc(null);
+                      setLocForm({ name: "", address: "", description: "" });
+                    }}
+                    className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-xs uppercase transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Add Location
+                  </button>
                 </div>
-              )}
-
-              {locLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#024BAB]" />
-                </div>
-              ) : locations.length === 0 ? (
-                <div className="text-center py-12 bg-white border-2 border-black">
-                  <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="font-bold text-gray-500">
-                    No locations yet. Add one to get started.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {locations.map((loc) => (
-                    <div
-                      key={loc._id}
-                      className="bg-white border-2 border-black p-5"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={cn(
-                              "w-2.5 h-2.5 rounded-full border border-black",
-                              loc.isActive ? "bg-green-500" : "bg-gray-300",
-                            )}
+                <div className="p-4">
+                  {showLocForm && (
+                    <div className="bg-white border-2 border-black p-6 mb-6">
+                      <h3 className="font-bold mb-4">
+                        {editingLoc ? "Edit Location" : "New Location"}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Location Name *
+                          </label>
+                          <input
+                            value={locForm.name}
+                            onChange={(e) =>
+                              setLocForm((p) => ({
+                                ...p,
+                                name: e.target.value,
+                              }))
+                            }
+                            placeholder="e.g. Main Gate"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#024BAB]"
                           />
-                          <h3 className="font-bold text-base">{loc.name}</h3>
                         </div>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => startEditLoc(loc)}
-                            className="p-1.5 border-2 border-gray-200 hover:border-black hover:bg-gray-50 transition-all"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLocation(loc._id)}
-                            className="p-1.5 border-2 border-gray-200 hover:border-red-500 hover:text-red-500 hover:bg-red-50 transition-all"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                        <div>
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Address
+                          </label>
+                          <input
+                            value={locForm.address}
+                            onChange={(e) =>
+                              setLocForm((p) => ({
+                                ...p,
+                                address: e.target.value,
+                              }))
+                            }
+                            placeholder="e.g. Ground 1"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#024BAB]"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold uppercase mb-1">
+                            Description
+                          </label>
+                          <input
+                            value={locForm.description}
+                            onChange={(e) =>
+                              setLocForm((p) => ({
+                                ...p,
+                                description: e.target.value,
+                              }))
+                            }
+                            placeholder="Optional description"
+                            className="w-full border-2 border-black px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#024BAB]"
+                          />
                         </div>
                       </div>
-                      {loc.address && (
-                        <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {loc.address}
-                        </p>
-                      )}
-                      {loc.description && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {loc.description}
-                        </p>
-                      )}
-                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                        <span
-                          className={cn(
-                            "text-xs font-bold uppercase px-2 py-0.5 border-2",
-                            loc.isActive
-                              ? "bg-[#00C48C]/10 text-[#00C48C] border-[#00C48C]"
-                              : "bg-gray-100 text-gray-500 border-gray-300",
-                          )}
+                      <div className="flex gap-3 mt-4">
+                        <button
+                          onClick={handleSaveLocation}
+                          disabled={locSaving}
+                          className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-sm uppercase disabled:opacity-60"
                         >
-                          {loc.isActive ? "Active" : "Inactive"}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {
-                            devices.filter((d) => d.location?._id === loc._id)
-                              .length
-                          }{" "}
-                          devices
-                        </span>
+                          {locSaving ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}{" "}
+                          {locSaving ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowLocForm(false);
+                            setEditingLoc(null);
+                          }}
+                          className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm uppercase"
+                        >
+                          <X className="w-4 h-4" /> Cancel
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              <div className="mt-8 border-t-2 border-black pt-8">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                  <div className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-bold text-lg flex items-center gap-2">
-                        <Cpu className="w-5 h-5 text-[#024BAB]" /> Devices
-                      </h2>
-                      <button
-                        onClick={() => setShowDevForm((p) => !p)}
-                        className="flex items-center gap-1.5 bg-[#024BAB] text-white border-2 border-black px-3 py-1.5 font-bold text-xs uppercase"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add
-                      </button>
+                  {locLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#024BAB]" />
                     </div>
+                  ) : locations.length === 0 ? (
+                    <div className="text-center py-12 bg-white border-2 border-black">
+                      <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="font-bold text-gray-500">
+                        No locations yet. Add one to get started.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {locations.map((loc) => (
+                        <div
+                          key={loc._id}
+                          className="bg-white border-2 border-black p-4 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={cn(
+                                  "w-9 h-9 border-2 flex items-center justify-center shrink-0",
+                                  loc.isActive
+                                    ? "bg-[#024BAB]/10 border-[#024BAB]"
+                                    : "bg-gray-100 border-gray-300",
+                                )}
+                              >
+                                <MapPin
+                                  className={cn(
+                                    "w-4 h-4",
+                                    loc.isActive
+                                      ? "text-[#024BAB]"
+                                      : "text-gray-400",
+                                  )}
+                                />
+                              </div>
+                              <h3 className="font-bold text-base">
+                                {loc.name}
+                              </h3>
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => startEditLoc(loc)}
+                                className="p-1.5 border-2 border-gray-200 hover:border-black hover:bg-gray-50 transition-all"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLocation(loc._id)}
+                                className="p-1.5 border-2 border-gray-200 hover:border-red-500 hover:text-red-500 hover:bg-red-50 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          {loc.address && (
+                            <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {loc.address}
+                            </p>
+                          )}
+                          {loc.description && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              {loc.description}
+                            </p>
+                          )}
+                          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <span
+                              className={cn(
+                                "text-xs font-bold uppercase px-2 py-0.5 border-2",
+                                loc.isActive
+                                  ? "bg-[#00C48C]/10 text-[#00C48C] border-[#00C48C]"
+                                  : "bg-gray-100 text-gray-500 border-gray-300",
+                              )}
+                            >
+                              {loc.isActive ? "Active" : "Inactive"}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {
+                                devices.filter(
+                                  (d) => d.location?._id === loc._id,
+                                ).length
+                              }{" "}
+                              devices
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
 
+              <section className="border-2 border-black bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b-2 border-black bg-[#F0F6FF]">
+                  <div className="flex items-center gap-3">
+                    <Cpu className="w-5 h-5 text-[#024BAB]" />
+                    <div>
+                      <h2 className="font-bold text-base">Devices</h2>
+                      <p className="text-xs text-gray-500">
+                        Select a device to view its connection details and
+                        manage NFC cards.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowDevForm((p) => !p)}
+                    className="flex items-center gap-2 bg-[#024BAB] text-white border-2 border-black px-4 py-2 font-bold text-xs uppercase"
+                  >
+                    <Plus className="w-4 h-4" /> Add Device
+                  </button>
+                </div>
+                <div className="p-4 grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                  <div className="lg:col-span-2 lg:sticky lg:top-4">
                     {showDevForm && (
                       <div className="bg-white border-2 border-black p-4 mb-4">
                         <div className="space-y-3">
@@ -982,15 +1036,27 @@ export default function BiometricPage() {
                                   {dev.name}
                                 </span>
                               </div>
-                              <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                              <span
+                                className={cn(
+                                  "text-[10px] font-bold uppercase px-1.5 py-0.5 border-2",
+                                  dev.activated
+                                    ? "text-[#00C48C] border-[#00C48C] bg-[#00C48C]/10"
+                                    : "text-[#FA731C] border-[#FA731C] bg-[#FA731C]/10",
+                                )}
+                              >
+                                {dev.activated ? "Connected" : "Pending"}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1.5 text-xs text-gray-500 font-medium">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {dev.location?.name}
+                              </span>
+                              <span className="flex items-center gap-1">
                                 <CreditCard className="w-3 h-3" />
                                 {dev.nfcCards.length}/10
                               </span>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1 font-medium flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {dev.location?.name}
-                            </p>
                             {dev.lastSeenAt && (
                               <p className="text-xs text-gray-400 mt-1">
                                 Last seen:{" "}
@@ -1089,127 +1155,133 @@ export default function BiometricPage() {
                           </div>
 
                           <div className="mt-4 space-y-3">
-                            <div className="p-3 bg-blue-50 border-2 border-[#024BAB]/20">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Monitor className="w-4 h-4 text-[#024BAB]" />
-                                <span className="text-xs font-bold uppercase text-[#024BAB]">
-                                  Option A — Browser Terminal (Tablet / Kiosk)
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-600 mb-2">
-                                Open this URL on any tablet or PC at the venue.
-                                Works with NFC, PIN, and face modes.
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <code className="flex-1 text-xs font-mono bg-white border border-gray-200 px-2 py-1.5 text-gray-700 truncate">
-                                  {showTokenFor === selectedDevice._id
-                                    ? devicePageUrl(selectedDevice.deviceToken)
-                                    : "••••••••••••••••••••••••••••••••"}
-                                </code>
-                                <button
-                                  onClick={() =>
-                                    setShowTokenFor(
-                                      showTokenFor === selectedDevice._id
-                                        ? null
-                                        : selectedDevice._id,
-                                    )
-                                  }
-                                  className="p-1.5 border-2 border-gray-200 hover:border-black"
-                                  title="Show/hide URL"
-                                >
-                                  {showTokenFor === selectedDevice._id ? (
-                                    <EyeOff className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Eye className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    copyToClipboard(
-                                      devicePageUrl(selectedDevice.deviceToken),
-                                    )
-                                  }
-                                  className="p-1.5 border-2 border-gray-200 hover:border-black"
-                                  title="Copy URL"
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                                <a
-                                  href={devicePageUrl(
-                                    selectedDevice.deviceToken,
-                                  )}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="p-1.5 border-2 border-gray-200 hover:border-black"
-                                  title="Open terminal"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                              </div>
-                            </div>
-
-                            <div className="p-3 bg-gray-50 border-2 border-gray-200">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Terminal className="w-4 h-4 text-gray-600" />
-                                <span className="text-xs font-bold uppercase text-gray-600">
-                                  Option B — Hardware Device / Local Agent
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-500 mb-3">
-                                Enter these details in the device web panel or
-                                agent config. The device calls{" "}
-                                <code className="bg-white px-1 border">
-                                  /api/biometric/register
-                                </code>{" "}
-                                once with the activation code to auto-connect.
-                              </p>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-gray-500 w-28 shrink-0">
-                                    Server URL
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
+                              <div className="p-3 bg-blue-50 border-2 border-[#024BAB]/20">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Monitor className="w-4 h-4 text-[#024BAB]" />
+                                  <span className="text-xs font-bold uppercase text-[#024BAB]">
+                                    Option A — Browser Terminal (Tablet / Kiosk)
                                   </span>
-                                  <code className="flex-1 text-xs font-mono bg-white border border-gray-200 px-2 py-1 text-gray-700 truncate">
-                                    {window.location.origin}
-                                    /api/biometric/register
-                                  </code>
-                                  <button
-                                    onClick={() =>
-                                      copyToClipboard(
-                                        `${window.location.origin}/api/biometric/register`,
-                                      )
-                                    }
-                                    className="p-1 hover:text-black text-gray-400"
-                                  >
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </button>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-gray-500 w-28 shrink-0">
-                                    Activation Code
-                                  </span>
-                                  <code className="flex-1 text-sm font-mono font-bold bg-white border-2 border-black px-2 py-1 text-black tracking-widest">
-                                    {selectedDevice.activationCode || "——"}
-                                  </code>
-                                  <button
-                                    onClick={() =>
-                                      copyToClipboard(
-                                        selectedDevice.activationCode,
-                                      )
-                                    }
-                                    className="p-1 hover:text-black text-gray-400"
-                                  >
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                                <p className="text-xs text-gray-400">
-                                  The device will call{" "}
-                                  <code className="bg-white px-1 border">
-                                    POST /register
-                                  </code>{" "}
-                                  with{" "}
-                                  <code className="bg-white px-1 border">{`{ "activationCode": "XXXXXXXX" }`}</code>{" "}
-                                  and receive back the permanent device token.
+                                <p className="text-xs text-gray-600 mb-2">
+                                  Open this URL on any tablet or PC at the
+                                  venue. Works with NFC, PIN, and face modes.
                                 </p>
+                                <div className="flex items-center gap-2">
+                                  <code className="flex-1 text-xs font-mono bg-white border border-gray-200 px-2 py-1.5 text-gray-700 truncate">
+                                    {showTokenFor === selectedDevice._id
+                                      ? devicePageUrl(
+                                          selectedDevice.deviceToken,
+                                        )
+                                      : "••••••••••••••••••••••••••••••••"}
+                                  </code>
+                                  <button
+                                    onClick={() =>
+                                      setShowTokenFor(
+                                        showTokenFor === selectedDevice._id
+                                          ? null
+                                          : selectedDevice._id,
+                                      )
+                                    }
+                                    className="p-1.5 border-2 border-gray-200 hover:border-black"
+                                    title="Show/hide URL"
+                                  >
+                                    {showTokenFor === selectedDevice._id ? (
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      copyToClipboard(
+                                        devicePageUrl(
+                                          selectedDevice.deviceToken,
+                                        ),
+                                      )
+                                    }
+                                    className="p-1.5 border-2 border-gray-200 hover:border-black"
+                                    title="Copy URL"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                  <a
+                                    href={devicePageUrl(
+                                      selectedDevice.deviceToken,
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1.5 border-2 border-gray-200 hover:border-black"
+                                    title="Open terminal"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
+                              </div>
+
+                              <div className="p-3 bg-gray-50 border-2 border-gray-200">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Terminal className="w-4 h-4 text-gray-600" />
+                                  <span className="text-xs font-bold uppercase text-gray-600">
+                                    Option B — Hardware Device / Local Agent
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-3">
+                                  Enter these details in the device web panel or
+                                  agent config. The device calls{" "}
+                                  <code className="bg-white px-1 border">
+                                    /api/biometric/register
+                                  </code>{" "}
+                                  once with the activation code to auto-connect.
+                                </p>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-gray-500 w-28 shrink-0">
+                                      Server URL
+                                    </span>
+                                    <code className="flex-1 text-xs font-mono bg-white border border-gray-200 px-2 py-1 text-gray-700 truncate">
+                                      {window.location.origin}
+                                      /api/biometric/register
+                                    </code>
+                                    <button
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          `${window.location.origin}/api/biometric/register`,
+                                        )
+                                      }
+                                      className="p-1 hover:text-black text-gray-400"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-gray-500 w-28 shrink-0">
+                                      Activation Code
+                                    </span>
+                                    <code className="flex-1 text-sm font-mono font-bold bg-white border-2 border-black px-2 py-1 text-black tracking-widest">
+                                      {selectedDevice.activationCode || "——"}
+                                    </code>
+                                    <button
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          selectedDevice.activationCode,
+                                        )
+                                      }
+                                      className="p-1 hover:text-black text-gray-400"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <p className="text-xs text-gray-400">
+                                    The device will call{" "}
+                                    <code className="bg-white px-1 border">
+                                      POST /register
+                                    </code>{" "}
+                                    with{" "}
+                                    <code className="bg-white px-1 border">{`{ "activationCode": "XXXXXXXX" }`}</code>{" "}
+                                    and receive back the permanent device token.
+                                  </p>
+                                </div>
                               </div>
                             </div>
 
@@ -1394,7 +1466,7 @@ export default function BiometricPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
           )}
 

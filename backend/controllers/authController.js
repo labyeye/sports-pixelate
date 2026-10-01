@@ -357,7 +357,8 @@ const resetPassword = asyncHandler(async (req, res) => {
 const setup2FA = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   const secret = speakeasy.generateSecret({
-    name: `NestHR (${user.email})`,
+    name: `NestPlay (${user.email})`,
+    issuer: "NestPlay",
     length: 32,
   });
 

@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { studentAPI, studentAttendanceAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   Clock,
   CheckCircle,
@@ -336,100 +337,67 @@ export default function StudentAttendancePage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         {[
           {
             label: "Total",
             value: summary.total,
             icon: Users,
-            bg: "bg-[#024BAB]",
+            color: "#024BAB",
             filterKey: "total",
           },
           {
             label: "Present",
             value: summary.present,
             icon: UserCheck,
-            bg: "bg-[#00C48C]",
+            color: "#00C48C",
             filterKey: "present",
           },
           {
             label: "Late",
             value: summary.late,
             icon: Clock,
-            bg: "bg-[#FA731C]",
+            color: "#FA731C",
             filterKey: "late",
           },
           {
             label: "Absent",
             value: summary.absent,
             icon: UserX,
-            bg: "bg-[#EF4444]",
+            color: "#EF4444",
             filterKey: "absent",
           },
           {
             label: "Excused",
             value: summary.excused,
             icon: ShieldAlert,
-            bg: "bg-[#FA731C]",
+            color: "#FA731C",
             filterKey: "excused",
           },
           {
             label: "Unmarked",
             value: summary.unmarked,
             icon: Clock,
-            bg: "bg-gray-400",
+            color: "#9CA3AF",
             filterKey: "unmarked",
           },
-        ].map(({ label, value, icon: Icon, bg, filterKey }) => {
-          const isActive = activeFilter === filterKey;
-          return (
-            <button
-              key={filterKey}
-              onClick={() =>
-                setActiveFilter(
-                  isActive || filterKey === "total"
-                    ? null
-                    : (filterKey as Status),
-                )
-              }
-              className={cn(
-                "border-2 border-black p-4 flex flex-col gap-2 text-left transition-all",
-                isActive
-                  ? `${bg} text-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`
-                  : "bg-white hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
-              )}
-            >
-              <div
-                className={cn(
-                  "w-8 h-8 border-2 border-black flex items-center justify-center shrink-0",
-                  isActive ? "bg-white/20 border-white/40" : bg,
-                )}
-              >
-                <Icon className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p
-                  className={cn(
-                    "text-2xl font-bold leading-none",
-                    isActive ? "text-white" : "text-black",
-                  )}
-                >
-                  {value}
-                </p>
-                <p
-                  className={cn(
-                    "text-[11px] font-bold mt-1 uppercase tracking-wider",
-                    isActive
-                      ? "text-white opacity-80"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {label}
-                </p>
-              </div>
-            </button>
-          );
-        })}
+        ].map(({ label, value, icon, color, filterKey }) => (
+          <StatCard
+            key={filterKey}
+            label={label}
+            value={value}
+            icon={icon}
+            color={color}
+            active={activeFilter === filterKey}
+            onClick={() =>
+              setActiveFilter(
+                activeFilter === filterKey || filterKey === "total"
+                  ? null
+                  : (filterKey as Status),
+              )
+            }
+          />
+        ))}
       </div>
 
       {loading ? (

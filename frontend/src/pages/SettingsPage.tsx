@@ -1,3 +1,4 @@
+import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useRef, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -376,7 +377,8 @@ function PhoneVerifyPanel() {
     <div className="p-6 space-y-6 max-w-lg">
       <div>
         <h3 className="text-lg font-bold text-black flex items-center gap-2">
-          <WhatsAppIcon className="w-5 h-5 text-[#25D366]" /> WhatsApp Verification
+          <WhatsAppIcon className="w-5 h-5 text-[#25D366]" /> WhatsApp
+          Verification
         </h3>
         <p className="text-sm text-gray-500 mt-1">
           Verify your WhatsApp number to be able to reset your password with a
@@ -900,7 +902,8 @@ export default function SettingsPage() {
   };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = await cropImage(e.target.files?.[0]);
+    e.target.value = "";
     if (!file) return;
     setPhotoUploading(true);
     try {
@@ -1012,8 +1015,9 @@ export default function SettingsPage() {
     setSettings((prev: any) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = await cropImage(e.target.files?.[0], { aspect: 4 / 3 });
+    e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast({
@@ -1240,7 +1244,12 @@ export default function SettingsPage() {
 
           {}
           <div className="flex-1 min-w-0 flex flex-col">
-            <div className={cn("flex-1", activeTab === "cheque_design" ? "hidden" : "p-6")}>
+            <div
+              className={cn(
+                "flex-1",
+                activeTab === "cheque_design" ? "hidden" : "p-6",
+              )}
+            >
               {}
               {activeTab === "general" && (
                 <div className="space-y-4">
@@ -1404,9 +1413,9 @@ export default function SettingsPage() {
                       Payroll Cheque / Payslip Template
                     </label>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Upload your cheque/payslip background and drag each
-                      field (name, amount, dates, signature…) into place with
-                      the visual designer.
+                      Upload your cheque/payslip background and drag each field
+                      (name, amount, dates, signature…) into place with the
+                      visual designer.
                     </p>
                     <div className="flex items-center gap-4">
                       {settings?.payrollChequeTemplate && (
@@ -1464,7 +1473,10 @@ export default function SettingsPage() {
                           handleChange({
                             target: {
                               name: "bankName",
-                              value: e.target.value === "Other" ? "" : e.target.value,
+                              value:
+                                e.target.value === "Other"
+                                  ? ""
+                                  : e.target.value,
                             },
                           } as any)
                         }
@@ -1561,9 +1573,9 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground mb-3">
                       Connect your own gateway account so student and booking
                       payments land directly in your bank account and get
-                      verified automatically — no manual UTR review needed.
-                      Pick whichever gateway you already have (or can sign up
-                      for fastest) and fill in its keys below.
+                      verified automatically — no manual UTR review needed. Pick
+                      whichever gateway you already have (or can sign up for
+                      fastest) and fill in its keys below.
                     </p>
 
                     <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -1649,8 +1661,8 @@ export default function SettingsPage() {
                           >
                             merchant.cashfree.com
                           </a>
-                          , then copy the App ID and Secret Key from
-                          Developers → API Keys.
+                          , then copy the App ID and Secret Key from Developers
+                          → API Keys.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <InputField
@@ -1731,8 +1743,7 @@ export default function SettingsPage() {
                     {settings?.paymentGateway === "paytm" && (
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
-                          Apply for a Paytm Payment Gateway merchant account
-                          at{" "}
+                          Apply for a Paytm Payment Gateway merchant account at{" "}
                           <a
                             href="https://business.paytm.com/payment-gateway"
                             target="_blank"
@@ -2767,7 +2778,12 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {!["my_profile", "two_factor", "phone_verify", "cheque_design"].includes(activeTab) && (
+            {![
+              "my_profile",
+              "two_factor",
+              "phone_verify",
+              "cheque_design",
+            ].includes(activeTab) && (
               <div className="border-t-2 border-black p-4 flex justify-end bg-gray-50/50">
                 <button
                   onClick={handleSave}
