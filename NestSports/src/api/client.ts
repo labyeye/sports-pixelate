@@ -1,23 +1,55 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 import { API_BASE_URL } from '../config';
 
-const TOKEN_KEY = 'hrms_token';
+const TOKEN_KEY = 'hrms_token'; // legacy AsyncStorage key (migrated away from)
+const KEYCHAIN_SERVICE = 'com.nestplay.auth';
 
 let cachedToken: string | null = null;
 
+// The JWT lives in the iOS Keychain / Android Keystore, not plain AsyncStorage.
+// Anything still in AsyncStorage from an older app version is moved over on
+// first read. If secure storage is unavailable we fall back to AsyncStorage
+// rather than logging the user out.
 export async function getToken(): Promise<string | null> {
   if (cachedToken !== null) return cachedToken;
-  cachedToken = await AsyncStorage.getItem(TOKEN_KEY);
-  return cachedToken;
+  try {
+    const creds = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+    if (creds) {
+      cachedToken = creds.password;
+      return cachedToken;
+    }
+  } catch {
+    // fall through to legacy storage
+  }
+  const legacy = await AsyncStorage.getItem(TOKEN_KEY);
+  if (legacy) {
+    await setToken(legacy); // migrate; also clears the plain-text copy on success
+    return legacy;
+  }
+  return null;
 }
 
 export async function setToken(token: string) {
   cachedToken = token;
-  await AsyncStorage.setItem(TOKEN_KEY, token);
+  try {
+    await Keychain.setGenericPassword('session', token, {
+      service: KEYCHAIN_SERVICE,
+      accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK,
+    });
+    await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+  }
 }
 
 export async function removeToken() {
   cachedToken = null;
+  try {
+    await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+  } catch {
+    // ignore
+  }
   await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
@@ -29,12 +61,47 @@ export interface RNFile {
   type: string;
 }
 
+const NETWORK_MESSAGE =
+  "Can't connect right now. Please check your internet connection and try again.";
+
+// Plain-language text for an HTTP failure. The server's own message wins when it
+// has one (it is already written for users); otherwise fall back by status code.
+export function statusMessage(status: number, serverMessage?: string): string {
+  if (serverMessage && serverMessage !== 'Request failed' && serverMessage !== 'Upload failed') {
+    return serverMessage;
+  }
+  if (status === 400 || status === 422) {
+    return 'Please check the information you entered and try again.';
+  }
+  if (status === 401) return 'Your session has expired. Please log in again.';
+  if (status === 403) return "You don't have permission to do this.";
+  if (status === 404) return "We couldn't find what you were looking for.";
+  if (status === 413) return 'That file is too large. Please choose a smaller one.';
+  if (status === 429) return 'Too many attempts. Please wait a moment and try again.';
+  if (status >= 500) {
+    return 'Something went wrong on our side. Please try again in a moment.';
+  }
+  return 'Something went wrong. Please try again.';
+}
+
+// fetch() that turns a network failure (offline, timeout, server down) into a
+// readable error instead of "Network request failed".
+async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    const err: any = new Error(NETWORK_MESSAGE);
+    err.status = 0;
+    throw err;
+  }
+}
+
 async function request<T = any>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
   const token = await getToken();
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const res = await apiFetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -44,8 +111,10 @@ async function request<T = any>(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err: any = new Error(data.message || 'Request failed');
+    const err: any = new Error(statusMessage(res.status, data.message));
     err.status = res.status;
+    err.code = data.code;
+    err.details = data.details;
     throw err;
   }
   return data;
@@ -57,13 +126,19 @@ async function upload<T = any>(
   method = 'POST',
 ): Promise<T> {
   const token = await getToken();
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const res = await apiFetch(`${API_BASE_URL}${endpoint}`, {
     method,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || 'Upload failed');
+  if (!res.ok) {
+    const err: any = new Error(statusMessage(res.status, data.message));
+    err.status = res.status;
+    err.code = data.code;
+    err.details = data.details;
+    throw err;
+  }
   return data;
 }
 
@@ -201,6 +276,7 @@ export const employeeAPI = {
     upload(`/employees/${id}/face-enroll`, toFormData({ photo })),
   enrollMyFace: (photo: RNFile) =>
     upload('/employees/me/face-enroll', toFormData({ photo })),
+  resetMyFace: () => request('/employees/me/face', { method: 'DELETE' }),
   bulkImport: (employees: object[]) =>
     request('/employees/bulk-import', {
       method: 'POST',
@@ -550,6 +626,7 @@ export const studentAPI = {
     ),
   enrollFace: (id: string, photo: RNFile) =>
     upload(`/students/${id}/face-enroll`, toFormData({ photo })),
+  getFaceStatus: () => request('/students/face-status'),
   bulkImport: (students: object[]) =>
     request('/students/bulk-import', {
       method: 'POST',
@@ -1074,6 +1151,10 @@ export const biometricAPI = {
     request(`/biometric/people/${personType}/${personId}/face`, {
       method: 'POST',
       body: JSON.stringify({ descriptor }),
+    }),
+  resetFace: (personType: PersonType, personId: string) =>
+    request(`/biometric/people/${personType}/${personId}/face`, {
+      method: 'DELETE',
     }),
   getFaceDescriptors: () => request('/biometric/face-descriptors'),
 

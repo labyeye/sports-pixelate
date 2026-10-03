@@ -18,6 +18,7 @@ import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
 import LottieView from 'lottie-react-native';
 import { Mail, ChevronDown } from 'lucide-react-native';
+import { getErrorMessage } from '../../utils/format';
 
 // Flag emoji is derived from the ISO 3166-1 alpha-2 code (two regional-
 // indicator symbols) rather than hand-typed, so the list below can't drift
@@ -277,8 +278,8 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
     try {
       await authAPI.sendPhoneOtp(fullPhone);
       setOtpSent(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send OTP');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to send OTP');
     }
     setLoading(false);
   };
@@ -292,8 +293,8 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
       completeLogin(userData, token);
       // On success, AuthContext flips isAuthenticated and RootNavigator swaps
       // to the main app automatically.
-    } catch (err: any) {
-      setError(err.message || 'Invalid or expired OTP');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Invalid or expired OTP');
     }
     setLoading(false);
   };

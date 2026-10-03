@@ -3,7 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { departmentAPI } from "@/services/api";
 import { Department } from "@/types/hrms";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   Plus,
   Building2,
@@ -17,6 +17,7 @@ import {
   FileText,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
+import { notifyError } from "@/hooks/use-toast";
 
 const DEPT_BG_COLORS = [
   "bg-[#024BAB]",
@@ -90,7 +91,9 @@ export default function DepartmentsPage() {
         setPages(res.pages || 1);
         setTotal(res.total ?? res.data.length);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, [deptParams]);
 
@@ -105,7 +108,9 @@ export default function DepartmentsPage() {
         setPage(next);
         setPages(res.pages || 1);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoadingMore(false);
   };
 
@@ -144,12 +149,12 @@ export default function DepartmentsPage() {
       });
       setShowModal(false);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to save department.",
+        message: getErrorMessage(err) || "Failed to save department.",
       });
     }
     setSaving(false);
@@ -160,7 +165,9 @@ export default function DepartmentsPage() {
     try {
       await departmentAPI.delete(id);
       load();
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
   };
 
   const displayedDepts = [...departments].sort((a, b) => {

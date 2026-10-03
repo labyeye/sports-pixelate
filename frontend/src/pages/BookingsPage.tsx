@@ -9,7 +9,7 @@ import {
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   loadRazorpayScript,
   loadCashfreeScript,
@@ -183,8 +183,8 @@ export default function BookingsPage() {
         if (studRes) setStudents(studRes.data || []);
         if (invRes) setInventory(invRes.data || []);
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -199,8 +199,8 @@ export default function BookingsPage() {
       setBookings((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setLoadingMore(false);
   };
@@ -250,8 +250,8 @@ export default function BookingsPage() {
       await bookingAPI.returnItems(id);
       toast({ title: "Return recorded — stock updated" });
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setReturningId(null);
     }
@@ -297,7 +297,7 @@ export default function BookingsPage() {
                     orderId: payment.orderId,
                   });
                   resolve();
-                } catch (err: any) {
+                } catch (err: unknown) {
                   reject(err);
                 }
               });
@@ -323,7 +323,7 @@ export default function BookingsPage() {
                     razorpaySignature: response.razorpay_signature,
                   });
                   resolve();
-                } catch (err: any) {
+                } catch (err: unknown) {
                   reject(err);
                 }
               },
@@ -338,11 +338,11 @@ export default function BookingsPage() {
       toast({ title: "Booking confirmed" });
       resetForm();
       load();
-    } catch (e: any) {
-      if (e.message !== "Payment cancelled") {
+    } catch (e: unknown) {
+      if (getErrorMessage(e) !== "Payment cancelled") {
         toast({
           title: "Error",
-          description: e.message,
+          description: getErrorMessage(e),
           variant: "destructive",
         });
       }
@@ -357,8 +357,8 @@ export default function BookingsPage() {
       await bookingAPI.cancel(id);
       toast({ title: "Booking cancelled — any gear is back in stock" });
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 

@@ -19,10 +19,8 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const PAYMENT_STATUS_COLORS: Record<string, string> = {
   completed: colors.green,
@@ -48,7 +46,7 @@ export default function StudentPaymentHistoryScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -63,7 +61,7 @@ export default function StudentPaymentHistoryScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

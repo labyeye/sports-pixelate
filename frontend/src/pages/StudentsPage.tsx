@@ -14,8 +14,8 @@ import {
   INDIA_STATES_AND_CITIES,
 } from "@/data/indiaStatesAndCities";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   ImportExportModal,
   type ImportHeader,
@@ -362,8 +362,8 @@ export default function StudentsPage() {
       setPage(1);
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -378,8 +378,8 @@ export default function StudentsPage() {
       setStudents((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoadingMore(false);
     }
@@ -401,7 +401,7 @@ export default function StudentsPage() {
           ).sort(),
         ),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -409,11 +409,11 @@ export default function StudentsPage() {
       employeeAPI
         .getAll({ role: "coach" })
         .then((r) => setCoaches(r.data))
-        .catch(() => {});
+        .catch(notifyError);
       sportsPlanAPI
         .getAll()
         .then((r) => setPlans(r.data))
-        .catch(() => {});
+        .catch(notifyError);
     }
   }, [canManage]);
 
@@ -558,10 +558,10 @@ export default function StudentsPage() {
             planId: subscriptionPlan.planId,
             billingCycle: subscriptionPlan.billingCycle,
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
           toast({
             title: "Student saved, but subscription failed",
-            description: e.message,
+            description: getErrorMessage(e),
             variant: "destructive",
           });
         }
@@ -573,8 +573,8 @@ export default function StudentsPage() {
           : [saved, ...p],
       );
       resetForm();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -588,8 +588,8 @@ export default function StudentsPage() {
         p.map((s) => (s._id === id ? { ...s, status: "inactive" } : s)),
       );
       toast({ title: "Student deactivated" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -639,7 +639,7 @@ export default function StudentsPage() {
             });
           }
         })
-        .catch(() => {});
+        .catch(notifyError);
     }
     setShowForm(true);
     setFormTab(0);

@@ -1,9 +1,13 @@
+// Coaching plans (web): the plan catalogue students subscribe to — sport,
+// price, weekly schedule/timings — with CRUD and Excel bulk import
+// (PLAN_IMPORT_HEADERS). Backend: sportsPlanAPI.
+
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { sportsPlanAPI } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   ImportExportModal,
   type ImportHeader,
@@ -182,8 +186,8 @@ export default function PlansPage() {
       setPage(1);
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -198,8 +202,8 @@ export default function PlansPage() {
       setPlans((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setLoadingMore(false);
   };
@@ -267,8 +271,8 @@ export default function PlansPage() {
         toast({ title: "Plan created" });
       }
       resetForm();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -280,8 +284,8 @@ export default function PlansPage() {
       await sportsPlanAPI.delete(id);
       setPlans((p) => p.filter((x) => x._id !== id));
       toast({ title: "Plan deactivated" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -313,7 +317,7 @@ export default function PlansPage() {
           ).sort(),
         ),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const displayed = plans;

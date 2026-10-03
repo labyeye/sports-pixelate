@@ -14,6 +14,7 @@ import { Card, SearchBar, EmptyState, LoadingView } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { fetchAllPages } from '../utils/fetchAllPages';
+import { notifyError } from '../utils/notifyError';
 
 // Slots guardians into Father / Mother / Guardian 1 / Guardian 2, mirroring
 // the web app's slotting rule: father and mother get dedicated slots; any
@@ -50,7 +51,7 @@ export default function GuardianContactListScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -65,7 +66,7 @@ export default function GuardianContactListScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

@@ -5,7 +5,7 @@ import {
   studentAPI,
   PersonType,
 } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, notifyError } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FaceEnrollModal } from "@/components/biometric/FaceEnrollModal";
 import { FingerprintEnrollModal } from "@/components/biometric/FingerprintEnrollModal";
@@ -40,8 +40,9 @@ import {
   Clock,
   Camera,
   Fingerprint,
+  RotateCcw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 
 type Tab = "locations_devices" | "logs" | "adms";
@@ -162,10 +163,10 @@ export default function BiometricPage() {
     try {
       const res = await biometricAPI.getLocations();
       setLocations(res.data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toastRef.current({
         title: "Error",
-        description: e.message,
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
@@ -178,10 +179,10 @@ export default function BiometricPage() {
     try {
       const res = await biometricAPI.getDevices();
       setDevices(res.data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toastRef.current({
         title: "Error",
-        description: e.message,
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
@@ -197,10 +198,10 @@ export default function BiometricPage() {
       if (logFilter.date) params.date = logFilter.date;
       const res = await biometricAPI.getLogs(params);
       setLogs(res.data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toastRef.current({
         title: "Error",
-        description: e.message,
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
@@ -239,7 +240,9 @@ export default function BiometricPage() {
         deviceFaceTemplate: s.deviceFaceTemplate,
       }));
       setPeople([...emps, ...stus]);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
   }, []);
 
   useEffect(() => {
@@ -259,7 +262,11 @@ export default function BiometricPage() {
   }, [tab, fetchLogs, fetchDevices]);
 
   const handleSaveLocation = async () => {
-    if (!locForm.name.trim() || locSaving) return;
+    if (locSaving) return;
+    if (!locForm.name.trim()) {
+      toast({ title: "Missing information", description: "Please enter a name for the location.", variant: "destructive" });
+      return;
+    }
     const ok = window.confirm(
       editingLoc ? "Save changes to this location?" : "Create this location?",
     );
@@ -280,8 +287,8 @@ export default function BiometricPage() {
       setLocForm({ name: "", address: "", description: "" });
       setEditingLoc(null);
       setShowLocForm(false);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLocSaving(false);
     }
@@ -296,8 +303,8 @@ export default function BiometricPage() {
       await biometricAPI.deleteLocation(id);
       setLocations((prev) => prev.filter((l) => l._id !== id));
       toast({ title: "Location deleted" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -312,7 +319,11 @@ export default function BiometricPage() {
   };
 
   const handleCreateDevice = async () => {
-    if (!devForm.name.trim() || !devForm.location || devSaving) return;
+    if (devSaving) return;
+    if (!devForm.name.trim() || !devForm.location) {
+      toast({ title: "Missing information", description: "Please enter the device name and choose its location.", variant: "destructive" });
+      return;
+    }
     const ok = window.confirm("Create this device?");
     if (!ok) return;
     setDevSaving(true);
@@ -325,8 +336,8 @@ export default function BiometricPage() {
         title: "Device created",
         description: "Save the device token to open the device page.",
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setDevSaving(false);
     }
@@ -365,8 +376,8 @@ export default function BiometricPage() {
         title: "Token regenerated",
         description: "New activation code is ready.",
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -380,8 +391,8 @@ export default function BiometricPage() {
           d._id === device._id ? { ...d, isActive: res.data.isActive } : d,
         ),
       );
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -395,13 +406,17 @@ export default function BiometricPage() {
       setDevices((prev) => prev.filter((d) => d._id !== id));
       if (selectedDevice?._id === id) setSelectedDevice(null);
       toast({ title: "Device deleted" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
   const handleAssignNfc = async () => {
-    if (!selectedDevice || !nfcForm.uid.trim() || !nfcForm.personId) return;
+    if (!selectedDevice) return;
+    if (!nfcForm.uid.trim() || !nfcForm.personId) {
+      toast({ title: "Missing information", description: "Please enter the card number and choose the person.", variant: "destructive" });
+      return;
+    }
     try {
       const res = await biometricAPI.assignNfcCard(
         selectedDevice._id,
@@ -416,8 +431,8 @@ export default function BiometricPage() {
       setSelectedDevice(res.data);
       setNfcForm({ uid: "", personType: "employee", personId: "", label: "" });
       toast({ title: "NFC card assigned" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -430,8 +445,8 @@ export default function BiometricPage() {
       );
       setSelectedDevice(res.data);
       toast({ title: "NFC card removed" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -470,7 +485,9 @@ export default function BiometricPage() {
     try {
       const res = await biometricAPI.getDeviceCommands(deviceId);
       setCommands(res.data || []);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setCmdLoading(false);
   }, []);
 
@@ -491,7 +508,11 @@ export default function BiometricPage() {
   }, [admsDevice, fetchCommands]);
 
   const handleSaveSerial = async () => {
-    if (!admsDevice || !admsSerial.trim() || serialSaving) return;
+    if (!admsDevice || serialSaving) return;
+    if (!admsSerial.trim()) {
+      toast({ title: "Missing information", description: "Please enter the device serial number.", variant: "destructive" });
+      return;
+    }
     setSerialSaving(true);
     try {
       const res = await biometricAPI.setDeviceSerial(
@@ -503,8 +524,8 @@ export default function BiometricPage() {
         title: "Serial number saved",
         description: `Device linked to SN: ${admsSerial.toUpperCase()}`,
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setSerialSaving(false);
   };
@@ -524,8 +545,8 @@ export default function BiometricPage() {
         description: `${person.firstName} will sync on next device poll`,
       });
       fetchCommands(admsDevice._id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setSyncingId(null);
   };
@@ -537,10 +558,34 @@ export default function BiometricPage() {
       const res = await biometricAPI.syncAllToDevice(admsDevice._id);
       toast({ title: "Bulk sync queued", description: res.message });
       fetchCommands(admsDevice._id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setSyncingAll(false);
+  };
+
+  // Clears the enrolled face so the person can be enrolled again (wrong or poor photo).
+  const handleResetFace = async (person: Person) => {
+    const ok = window.confirm(
+      `Reset face for ${person.firstName} ${person.lastName}? They will need to enroll their face again before face attendance works.`,
+    );
+    if (!ok) return;
+    try {
+      await biometricAPI.resetFace(person.personType, person._id);
+      setPeople((prev) =>
+        prev.map((p) =>
+          p._id === person._id && p.personType === person.personType
+            ? { ...p, faceDescriptor: [] }
+            : p,
+        ),
+      );
+      toast({
+        title: "Face reset",
+        description: "Enroll the face again to use face attendance.",
+      });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+    }
   };
 
   const handleTriggerFaceEnroll = async (person: Person) => {
@@ -553,8 +598,8 @@ export default function BiometricPage() {
       );
       toast({ title: "Face enrollment queued", description: res.message });
       fetchCommands(admsDevice._id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -568,8 +613,8 @@ export default function BiometricPage() {
       );
       toast({ title: "Face template push queued", description: res.message });
       fetchCommands(admsDevice._id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -590,8 +635,8 @@ export default function BiometricPage() {
       );
       setEditBioId(null);
       toast({ title: "Biometric ID saved" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -629,8 +674,8 @@ export default function BiometricPage() {
         description: `Card ${card} linked to ${rfidModalPerson.firstName}`,
       });
       setRfidModalPerson(null);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setRfidSaving(false);
   };
@@ -1996,6 +2041,18 @@ export default function BiometricPage() {
                                         ? "Re-enroll Face"
                                         : "Face"}
                                     </button>
+
+                                    {/* Clear the enrolled face (staff and students) */}
+                                    {person.faceDescriptor?.length === 128 && (
+                                      <button
+                                        onClick={() => handleResetFace(person)}
+                                        title="Reset enrolled face"
+                                        className=" px-2 py-1.5 text-[10px] font-bold flex items-center gap-1 bg-red-50 border-2 border-red-500 text-red-700 hover:bg-red-100"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                        Reset Face
+                                      </button>
+                                    )}
 
                                     {/* Fingerprint enroll trigger */}
                                     {person.biometricUserId && admsDevice && (

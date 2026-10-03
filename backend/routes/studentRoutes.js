@@ -9,12 +9,15 @@ const {
   uploadStudentAvatar,
   uploadGuardianPhotoHandler,
   enrollStudentFace,
+  getStudentFaceStatus,
+  bulkEnrollStudentFaces,
 } = require("../controllers/studentController");
 const { protect, authorize } = require("../middleware/auth");
 const {
   uploadAvatar,
   uploadGuardianPhoto,
   uploadFaceEnrollPhoto,
+  uploadFaceEnrollPhotos,
 } = require("../middleware/upload");
 const { validateMongoId } = require("../middleware/validate");
 const router = express.Router();
@@ -26,6 +29,21 @@ router
   .route("/")
   .get(protect, getStudents)
   .post(protect, authorize("super_admin", "hr_manager"), createStudent);
+
+router.get(
+  "/face-status",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  getStudentFaceStatus,
+);
+
+router.post(
+  "/face-enroll/bulk",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  uploadFaceEnrollPhotos,
+  bulkEnrollStudentFaces,
+);
 
 router
   .route("/:id")

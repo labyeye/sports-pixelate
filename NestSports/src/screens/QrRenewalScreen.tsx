@@ -22,12 +22,10 @@ import {
   EmptyState,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { formatCurrency, getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const ASSET_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
 
 export default function QrRenewalScreen({ route, navigation }: any) {
   const { subscription } = route.params;
@@ -59,7 +57,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -104,10 +102,10 @@ export default function QrRenewalScreen({ route, navigation }: any) {
       Alert.alert('Payment successful', 'Your subscription is now active.', [
         { text: 'OK', onPress: goToNextScreen },
       ]);
-    } catch (e: any) {
-      if (e?.code !== 0) {
+    } catch (e: unknown) {
+      if ((e as { code?: string | number })?.code !== 0) {
         // code 0 = user cancelled the Razorpay sheet, nothing to report
-        Alert.alert('Payment failed', e?.description || e?.message || 'Please try again.');
+        Alert.alert('Payment failed', (e as { description?: string })?.description || (e as Error)?.message || 'Please try again.');
       }
     } finally {
       setPayingOnline(false);
@@ -194,8 +192,8 @@ export default function QrRenewalScreen({ route, navigation }: any) {
                 }),
         },
       ]);
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to submit renewal request');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to submit renewal request');
     } finally {
       setSubmitting(false);
     }

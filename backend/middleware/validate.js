@@ -6,6 +6,18 @@ function escapeRegex(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Fields a client must never be able to set through a create/update body —
+// especially `company`, which would let a record be moved to another tenant.
+const PROTECTED_FIELDS = ["_id", "__v", "company", "createdAt", "updatedAt"];
+
+// Shallow copy of `body` without protected fields (plus any `extra` ones the
+// caller wants immutable, e.g. `employee` on a loan).
+function stripProtected(body, extra = []) {
+  const out = { ...(body || {}) };
+  for (const f of [...PROTECTED_FIELDS, ...extra]) delete out[f];
+  return out;
+}
+
 function safePagination(query, defaultLimit = 20, maxLimit = 100) {
   const page = Math.max(1, parseInt(query.page) || 1);
   const limit = Math.min(
@@ -114,6 +126,7 @@ module.exports = {
   validateQuery,
   validateMongoId,
   escapeRegex,
+  stripProtected,
   safePagination,
   safeSort,
 };

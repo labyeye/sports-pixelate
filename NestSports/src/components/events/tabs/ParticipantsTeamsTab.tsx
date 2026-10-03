@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { Plus, Trash2, UserPlus, UserMinus } from 'lucide-react-native';
 import { Card, SectionTitle, useToast } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI, studentAPI } from '../../../api/client';
 import { useAuth } from '../../../contexts/AuthContext';
+import { notifyError } from '../../../utils/notifyError';
 
 // Parent-facing: register/unregister their own children. Only requires the
 // child's `sport` match the event's activity when the event is a sports
@@ -19,7 +20,7 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
     studentAPI
       .getAll()
       .then((res: any) => setChildren(res.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,8 +38,8 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
       if (isRegistered) await eventAPI.unregister(event._id, studentId);
       else await eventAPI.register(event._id, studentId);
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not update registration');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not update registration');
     } finally {
       setBusyId(null);
     }
@@ -101,14 +102,17 @@ function TeamsPanel({ event, onChanged }: { event: any; onChanged: () => void })
   const [adding, setAdding] = useState(false);
 
   const addTeam = async () => {
-    if (!newTeam.trim()) return;
+    if (!newTeam.trim()) {
+      Alert.alert('Missing information', 'Please enter the team name.');
+      return;
+    }
     setAdding(true);
     try {
       await eventAPI.addTeam(event._id, newTeam.trim());
       setNewTeam('');
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not add team');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not add team');
     } finally {
       setAdding(false);
     }
@@ -118,8 +122,8 @@ function TeamsPanel({ event, onChanged }: { event: any; onChanged: () => void })
     try {
       await eventAPI.removeTeam(event._id, teamId);
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not remove team');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not remove team');
     }
   };
 

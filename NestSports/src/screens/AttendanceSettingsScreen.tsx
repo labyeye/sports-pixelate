@@ -1,3 +1,6 @@
+// Attendance rules (mobile): late/leave allowances and auto-mark settings
+// (attendanceSettingsAPI). Web counterpart: AttendanceSettingsPage.tsx.
+
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -13,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart2, Percent, CalendarDays, Users } from 'lucide-react-native';
-import { attendanceSettingsAPI, employeeAPI } from '../api/client';
+import { attendanceSettingsAPI, employeeAPI, studentAPI } from '../api/client';
 import {
   Card,
   SectionTitle,
@@ -22,6 +25,8 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 interface AttendanceSettings {
   shiftStartHour: number;
@@ -34,6 +39,10 @@ interface AttendanceSettings {
   halfDayThresholdMinutes: number;
   earlyCheckoutThresholdMinutes: number;
   earlyCheckoutDeductionEnabled: boolean;
+  feeLockEnabled: boolean;
+  feeDueDay: number;
+  feeGraceDays: number;
+  studentFaceAttendanceEnabled: boolean;
 }
 
 const DEFAULT: AttendanceSettings = {
@@ -47,6 +56,10 @@ const DEFAULT: AttendanceSettings = {
   halfDayThresholdMinutes: 120,
   earlyCheckoutThresholdMinutes: 15,
   earlyCheckoutDeductionEnabled: false,
+  feeLockEnabled: false,
+  feeDueDay: 0,
+  feeGraceDays: 7,
+  studentFaceAttendanceEnabled: false,
 };
 
 const LEAVE_TYPES = [
@@ -126,11 +139,20 @@ export default function AttendanceSettingsScreen() {
   const [summary, setSummary] = useState<any[]>([]);
   const [showSummary, setShowSummary] = useState(false);
 
+  const [faceStatus, setFaceStatus] = useState<{
+    total: number;
+    enrolled: number;
+  } | null>(null);
+
   const load = async () => {
     const [settingsRes, empRes] = await Promise.all([
       attendanceSettingsAPI.get(),
       employeeAPI.getAll(),
     ]);
+    studentAPI
+      .getFaceStatus()
+      .then((r: any) => setFaceStatus(r?.data || null))
+      .catch(notifyError);
     if ((settingsRes as any)?.data) {
       setRules({ ...DEFAULT, ...(settingsRes as any).data });
     }
@@ -145,7 +167,7 @@ export default function AttendanceSettingsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -157,8 +179,8 @@ export default function AttendanceSettingsScreen() {
     try {
       await attendanceSettingsAPI.update(rules);
       Alert.alert('Saved', 'Attendance settings updated successfully');
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -181,8 +203,8 @@ export default function AttendanceSettingsScreen() {
             },
       );
       Alert.alert('Saved', 'Late allowance updated');
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setSavingLate(false);
     }
@@ -206,8 +228,8 @@ export default function AttendanceSettingsScreen() {
             },
       );
       Alert.alert('Saved', `Leave allowance updated for ${leaveType}`);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setSavingLeave(false);
     }
@@ -219,8 +241,8 @@ export default function AttendanceSettingsScreen() {
       try {
         const res = await attendanceSettingsAPI.getBalanceSummary();
         setSummary((res as any)?.data || []);
-      } catch (e: any) {
-        Alert.alert('Error', e.message);
+      } catch (e: unknown) {
+        Alert.alert('Error', getErrorMessage(e));
       }
     }
   };
@@ -413,6 +435,71 @@ export default function AttendanceSettingsScreen() {
                   hint="Minutes before shift end that triggers deduction"
                   suffix="min"
                 />
+              ) : null}
+            </Card>
+
+            <Card>
+              <SectionTitle title="Student Fee Lock" />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>
+                    Block attendance for unpaid students
+                  </Text>
+                  <Text style={styles.toggleDesc}>
+                    Staff see a pop-up that the student has not paid
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.feeLockEnabled}
+                  onValueChange={v => set('feeLockEnabled', v)}
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
+                />
+              </View>
+              {rules.feeLockEnabled ? (
+                <>
+                  <NumField
+                    label="Fee Due Day of Month"
+                    value={rules.feeDueDay}
+                    onChange={v => set('feeDueDay', Math.min(28, v))}
+                    hint="1-28. 0 = use each student's subscription renewal date"
+                  />
+                  <NumField
+                    label="Block After Overdue"
+                    value={rules.feeGraceDays}
+                    onChange={v => set('feeGraceDays', v)}
+                    hint="Attendance stops this many days after the due date"
+                    suffix="days"
+                  />
+                </>
+              ) : null}
+            </Card>
+
+            <Card>
+              <SectionTitle title="Student Face Attendance" />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>
+                    Enable face attendance for students
+                  </Text>
+                  <Text style={styles.toggleDesc}>
+                    Students are marked present by face at the kiosk. Save
+                    settings after changing.
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.studentFaceAttendanceEnabled}
+                  onValueChange={v => set('studentFaceAttendanceEnabled', v)}
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
+                />
+              </View>
+              {rules.studentFaceAttendanceEnabled && faceStatus ? (
+                <Text style={styles.toggleDesc}>
+                  {faceStatus.enrolled} / {faceStatus.total} students have a
+                  face enrolled. Enroll faces from a student's profile, or use
+                  the web dashboard to upload photos for everyone at once.
+                </Text>
               ) : null}
             </Card>
 

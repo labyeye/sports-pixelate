@@ -3,6 +3,7 @@ import { Image as ImageIcon, Trash2, Loader2 } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/ui/FileUpload";
+import { getErrorMessage } from "@/lib/utils";
 
 interface GalleryItem {
   _id: string;
@@ -28,8 +29,8 @@ export function GalleryTab({ eventId }: Props) {
     try {
       const res = await eventAPI.getGallery(eventId);
       setItems(res.data || []);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -45,8 +46,8 @@ export function GalleryTab({ eventId }: Props) {
     try {
       await eventAPI.addGalleryItem(eventId, file, "");
       await load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -57,8 +58,8 @@ export function GalleryTab({ eventId }: Props) {
     try {
       await eventAPI.deleteGalleryItem(eventId, itemId);
       setItems((prev) => prev.filter((i) => i._id !== itemId));
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setBusyId(null);
     }

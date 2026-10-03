@@ -23,6 +23,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { Event } from "@/types/hrms";
+import { getErrorMessage } from "@/lib/utils";
 
 type SortKey = "name" | "startDate" | "createdAt";
 
@@ -81,8 +82,8 @@ export default function EventsPage() {
       setPage(1);
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -97,8 +98,8 @@ export default function EventsPage() {
       setEvents((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setLoadingMore(false);
   };
@@ -128,8 +129,8 @@ export default function EventsPage() {
       });
       setShowCreateModal(false);
       navigate(`/events/${id}`);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setCreating(false);
     }

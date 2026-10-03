@@ -13,6 +13,7 @@ import {
   LoadMoreFooter,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 function actionLabel(action: string) {
   return action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -73,7 +74,7 @@ export default function AuditLogScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -85,7 +86,7 @@ export default function AuditLogScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

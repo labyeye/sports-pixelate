@@ -4,6 +4,7 @@ import { Shuffle, RotateCcw, Check, X } from 'lucide-react-native';
 import { Card, useToast } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
+import { notifyError } from '../../../utils/notifyError';
 
 function knockoutRoundLabel(roundIndex: number, totalRounds: number): string {
   const fromEnd = totalRounds - roundIndex;
@@ -124,7 +125,7 @@ export default function FixturesTab({ event, onChanged }: { event: any; onChange
     eventAPI
       .getFixtures(event._id)
       .then((r: any) => setFixtures(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   };
 
@@ -150,8 +151,8 @@ export default function FixturesTab({ event, onChanged }: { event: any; onChange
         const res: any = await eventAPI.generateFixtures(event._id, { regenerate, shuffle: true });
         setFixtures(res.data || []);
         onChanged();
-      } catch (e: any) {
-        toast.error(e?.message || 'Could not generate fixtures');
+      } catch (e: unknown) {
+        toast.error((e as Error)?.message || 'Could not generate fixtures');
       } finally {
         setGenerating(false);
       }
@@ -170,8 +171,8 @@ export default function FixturesTab({ event, onChanged }: { event: any; onChange
     try {
       await eventAPI.recordResult(fixtureId, { scoreA, scoreB });
       load();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not save result');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not save result');
     }
   };
 

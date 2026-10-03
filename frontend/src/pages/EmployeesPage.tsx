@@ -16,13 +16,14 @@ import {
   transactionAPI,
   shiftAPI,
   payrollAPI,
+  biometricAPI,
 } from "@/services/api";
 import { Employee, Department } from "@/types/hrms";
 import {
   INDIA_STATES,
   INDIA_STATES_AND_CITIES,
 } from "@/data/indiaStatesAndCities";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   Plus,
   Search,
@@ -72,6 +73,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
+import { notifyError } from "@/hooks/use-toast";
 
 const STATUS_COLORS: Record<string, string> = {
   active:
@@ -350,7 +352,9 @@ export default function EmployeesPage() {
         }
         setPayrollNetMap(map);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, [empParams]);
 
@@ -394,9 +398,9 @@ export default function EmployeesPage() {
       email: emp.email,
       phone: emp.phone || "",
       designation: emp.designation,
-      department: (emp.department as any)?._id || "",
-      role: (emp as any).role || "staff",
-      sport: (emp as any).sport || "",
+      department: emp.department?._id || "",
+      role: emp.role || "staff",
+      sport: emp.sport || "",
       employmentType: emp.employmentType,
       joinDate: emp.joinDate?.split("T")[0] || "",
       salary: String(emp.salary || ""),
@@ -404,70 +408,100 @@ export default function EmployeesPage() {
       status: emp.status,
       password: "",
       avatar: emp.avatar || "",
-      panNumber: (emp as any).panNumber || "",
-      aadharNumber: (emp as any).aadharNumber || "",
-      address: (emp as any).address || "",
-      dateOfBirth: (emp as any).dateOfBirth?.split("T")[0] || "",
-      emergencyContact: (emp as any).emergencyContact || "",
-      bankAccount: (emp as any).bankAccount || "",
-      accountHolderName: (emp as any).accountHolderName || "",
-      ifscCode: (emp as any).ifscCode || "",
-      bankName: (emp as any).bankName || "",
-      uanNumber: (emp as any).uanNumber || "",
-      esicNumber: (emp as any).esicNumber || "",
-      pfNumber: (emp as any).pfNumber || "",
-      workDaysPerWeek: String((emp as any).workDaysPerWeek || 6),
-      workScheduleType: (emp as any).workScheduleType || "standard",
-      customWorkDays: (emp as any).customWorkDays || [],
-      otRate: String((emp as any).otRate || ""),
-      otEnabled: (emp as any).otEnabled === true,
+      panNumber: emp.panNumber || "",
+      aadharNumber: emp.aadharNumber || "",
+      address: emp.address || "",
+      dateOfBirth: emp.dateOfBirth?.split("T")[0] || "",
+      emergencyContact: emp.emergencyContact || "",
+      bankAccount: emp.bankAccount || "",
+      accountHolderName: emp.accountHolderName || "",
+      ifscCode: emp.ifscCode || "",
+      bankName: emp.bankName || "",
+      uanNumber: emp.uanNumber || "",
+      esicNumber: emp.esicNumber || "",
+      pfNumber: emp.pfNumber || "",
+      workDaysPerWeek: String(emp.workDaysPerWeek || 6),
+      workScheduleType: emp.workScheduleType || "standard",
+      customWorkDays: emp.customWorkDays || [],
+      otRate: String(emp.otRate || ""),
+      otEnabled: emp.otEnabled === true,
       geofenceAttendanceEnabled:
-        (emp as any).geofenceAttendanceEnabled === true,
-      geofenceMode: (emp as any).geofenceMode === "any" ? "any" : "specific",
+        emp.geofenceAttendanceEnabled === true,
+      geofenceMode: emp.geofenceMode === "any" ? "any" : "specific",
       geofenceLat:
-        (emp as any).geofenceLat != null
-          ? String((emp as any).geofenceLat)
+        emp.geofenceLat != null
+          ? String(emp.geofenceLat)
           : "",
       geofenceLng:
-        (emp as any).geofenceLng != null
-          ? String((emp as any).geofenceLng)
+        emp.geofenceLng != null
+          ? String(emp.geofenceLng)
           : "",
-      geofenceRadiusMeters: String((emp as any).geofenceRadiusMeters || 200),
-      shift: (emp as any).shift?._id || (emp as any).shift || "",
-      shiftName: (emp as any).shiftName || "",
-      isCustomShift: (emp as any).isCustomShift === true,
+      geofenceRadiusMeters: String(emp.geofenceRadiusMeters || 200),
+      shift: (typeof emp.shift === "object" ? emp.shift?._id : emp.shift) || "",
+      shiftName: emp.shiftName || "",
+      isCustomShift: emp.isCustomShift === true,
       customShift: {
-        startTime: (emp as any).customShift?.startTime || "",
-        endTime: (emp as any).customShift?.endTime || "",
-        breakMinutes: String((emp as any).customShift?.breakMinutes ?? 30),
-        workingHours: String((emp as any).customShift?.workingHours ?? 8),
-        otAfterHours: String((emp as any).customShift?.otAfterHours ?? 9),
+        startTime: emp.customShift?.startTime || "",
+        endTime: emp.customShift?.endTime || "",
+        breakMinutes: String(emp.customShift?.breakMinutes ?? 30),
+        workingHours: String(emp.customShift?.workingHours ?? 8),
+        otAfterHours: String(emp.customShift?.otAfterHours ?? 9),
       },
-      permanentAddress: (emp as any).permanentAddress || "",
-      city: (emp as any).city || "",
-      state: (emp as any).state || "",
-      pincode: (emp as any).pincode || "",
-      fatherName: (emp as any).fatherName || "",
-      motherName: (emp as any).motherName || "",
-      spouseName: (emp as any).spouseName || "",
-      maritalStatus: (emp as any).maritalStatus || "",
-      bloodGroup: (emp as any).bloodGroup || "",
-      nationality: (emp as any).nationality || "Indian",
-      religion: (emp as any).religion || "",
-      personalEmail: (emp as any).personalEmail || "",
-      alternatePhone: (emp as any).alternatePhone || "",
-      qualification: (emp as any).qualification || "",
-      totalExperience: (emp as any).totalExperience || "",
-      previousCompany: (emp as any).previousCompany || "",
+      permanentAddress: emp.permanentAddress || "",
+      city: emp.city || "",
+      state: emp.state || "",
+      pincode: emp.pincode || "",
+      fatherName: emp.fatherName || "",
+      motherName: emp.motherName || "",
+      spouseName: emp.spouseName || "",
+      maritalStatus: emp.maritalStatus || "",
+      bloodGroup: emp.bloodGroup || "",
+      nationality: emp.nationality || "Indian",
+      religion: emp.religion || "",
+      personalEmail: emp.personalEmail || "",
+      alternatePhone: emp.alternatePhone || "",
+      qualification: emp.qualification || "",
+      totalExperience: emp.totalExperience || "",
+      previousCompany: emp.previousCompany || "",
     });
-    const empState = (emp as any).state || "";
-    const empCity = (emp as any).city || "";
+    const empState = emp.state || "";
+    const empCity = emp.city || "";
     setCityIsOther(
       !!empCity && !(INDIA_STATES_AND_CITIES[empState] || []).includes(empCity),
     );
     setDocFiles({});
     setFormTab(0);
     setShowModal(true);
+  };
+
+  // Clears the enrolled face so the employee can enroll again.
+  const handleResetFace = async () => {
+    if (!editEmp) return;
+    if (
+      !window.confirm(
+        "Reset this employee's face? They must enroll again before they can check in with face verification.",
+      )
+    )
+      return;
+    setFaceEnrolling(true);
+    try {
+      await biometricAPI.resetFace("employee", editEmp._id);
+      setActionModal({
+        show: true,
+        type: "success",
+        title: "Face Reset",
+        message: "Face cleared — enroll the employee's face again.",
+      });
+    } catch (err: unknown) {
+      setActionModal({
+        show: true,
+        type: "error",
+        title: "Reset Failed",
+        message: getErrorMessage(err),
+      });
+    } finally {
+      setFaceEnrolling(false);
+    }
   };
 
   const handleEnrollFace = async (file: File) => {
@@ -482,13 +516,13 @@ export default function EmployeesPage() {
         message:
           "Face captured — this employee can now check in via the mobile app.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Enrollment Failed",
         message:
-          err.message ||
+          getErrorMessage(err) ||
           "Could not enroll face. Use a clear, single-face photo.",
       });
     } finally {
@@ -537,7 +571,7 @@ export default function EmployeesPage() {
 
       // Upload documents if any were selected
       if (savedId && (docFiles.aadhaarDoc || docFiles.panDoc)) {
-        await employeeAPI.uploadDocuments(savedId, docFiles).catch(() => {});
+        await employeeAPI.uploadDocuments(savedId, docFiles).catch(notifyError);
         setDocFiles({});
       }
 
@@ -553,12 +587,12 @@ export default function EmployeesPage() {
         setShowModal(false);
         load();
       }, 500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to save employee",
+        message: getErrorMessage(err) || "Failed to save employee",
       });
     }
     setSaving(false);
@@ -575,12 +609,12 @@ export default function EmployeesPage() {
         message: "Employee has been terminated successfully.",
       });
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to delete employee",
+        message: getErrorMessage(err) || "Failed to delete employee",
       });
     }
   };
@@ -754,8 +788,8 @@ export default function EmployeesPage() {
     if (sortKey === "firstName")
       cmp = (a.firstName ?? "").localeCompare(b.firstName ?? "");
     else if (sortKey === "department")
-      cmp = ((a.department as any)?.name ?? "").localeCompare(
-        (b.department as any)?.name ?? "",
+      cmp = (a.department?.name ?? "").localeCompare(
+        b.department?.name ?? "",
       );
     else if (sortKey === "joinDate")
       cmp =
@@ -765,21 +799,21 @@ export default function EmployeesPage() {
   });
 
   const totalSalary = employees.reduce(
-    (s, e) => s + ((e as any).salary ?? 0),
+    (s, e) => s + (e.salary ?? 0),
     0,
   );
   const totalLoan = employees.reduce(
-    (s, e) => s + ((e as any).loanBalance ?? 0),
+    (s, e) => s + (e.loanBalance ?? 0),
     0,
   );
   const totalEstBalance = employees.reduce((s, e) => {
-    const id = (e as any)._id;
+    const id = e._id;
     const net = payrollNetMap[id];
     return (
       s +
       (net != null
         ? net
-        : ((e as any).salary ?? 0) - ((e as any).loanBalance ?? 0))
+        : (e.salary ?? 0) - (e.loanBalance ?? 0))
     );
   }, 0);
 
@@ -951,9 +985,9 @@ export default function EmployeesPage() {
           {/* Mobile cards */}
           <div className="grid grid-cols-1 gap-3 sm:hidden">
             {displayedEmployees.map((emp) => {
-              const sal = (emp as any).salary ?? 0;
-              const loan = (emp as any).loanBalance ?? 0;
-              const processedNet = payrollNetMap[(emp as any)._id];
+              const sal = emp.salary ?? 0;
+              const loan = emp.loanBalance ?? 0;
+              const processedNet = payrollNetMap[emp._id];
               const bal = processedNet != null ? processedNet : sal - loan;
               return (
                 <div
@@ -997,7 +1031,7 @@ export default function EmployeesPage() {
                     <div>
                       <span className="text-muted-foreground">Dept: </span>
                       <span className="font-bold text-black">
-                        {(emp.department as any)?.name || "—"}
+                        {emp.department?.name || "—"}
                       </span>
                     </div>
                     <div>
@@ -1146,14 +1180,14 @@ export default function EmployeesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-black font-medium">
-                      {(emp.department as any)?.name || "—"}
+                      {emp.department?.name || "—"}
                     </td>
                     <td className="px-4 py-3 text-black">{emp.designation}</td>
                     <td className="px-4 py-3 text-xs font-bold">
                       {(() => {
-                        const sal = (emp as any).salary ?? 0;
-                        const loan = (emp as any).loanBalance ?? 0;
-                        const processedNet = payrollNetMap[(emp as any)._id];
+                        const sal = emp.salary ?? 0;
+                        const loan = emp.loanBalance ?? 0;
+                        const processedNet = payrollNetMap[emp._id];
                         const bal =
                           processedNet != null ? processedNet : sal - loan;
                         if (!sal)
@@ -1182,9 +1216,9 @@ export default function EmployeesPage() {
                       {formatDate(emp.joinDate)}
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      {(emp as any).loanBalance > 0 ? (
+                      {(emp.loanBalance ?? 0) > 0 ? (
                         <span className="font-bold text-[#EF4444]">
-                          ₹{(emp as any).loanBalance.toLocaleString()}
+                          ₹{(emp.loanBalance ?? 0).toLocaleString()}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -2048,6 +2082,14 @@ export default function EmployeesPage() {
                                   ? "Enrolling…"
                                   : "Upload Face Photo"}
                               </button>
+                              <button
+                                type="button"
+                                disabled={faceEnrolling}
+                                onClick={handleResetFace}
+                                className="ml-2 text-xs font-bold text-[#EF4444] bg-white border-2 border-[#EF4444] px-3 py-2 disabled:opacity-50"
+                              >
+                                Reset Face
+                              </button>
                             </div>
                           ) : (
                             <p className="mt-4 pt-4 border-t border-black/10 text-xs text-muted-foreground">
@@ -2802,13 +2844,13 @@ export default function EmployeesPage() {
                               <div className="border-2 border-dashed border-gray-300 hover:border-[#024BAB] px-3 py-2 text-xs text-gray-500 hover:text-[#024BAB] transition-colors text-center">
                                 {docFiles.panDoc
                                   ? docFiles.panDoc.name
-                                  : editEmp && (editEmp as any).panDoc
+                                  : editEmp && editEmp.panDoc
                                     ? "✅ Uploaded — click to replace"
                                     : "Click to upload PAN document"}
                               </div>
                             </label>
                             {(docFiles.panDoc ||
-                              (editEmp && (editEmp as any).panDoc)) && (
+                              (editEmp && editEmp.panDoc)) && (
                               <div className="flex gap-1">
                                 {docFiles.panDoc && (
                                   <button
@@ -2826,7 +2868,7 @@ export default function EmployeesPage() {
                                   </button>
                                 )}
                                 {editEmp &&
-                                  (editEmp as any).panDoc &&
+                                  editEmp.panDoc &&
                                   !docFiles.panDoc && (
                                     <a
                                       href={employeeAPI.getDocumentUrl(
@@ -2897,13 +2939,13 @@ export default function EmployeesPage() {
                               <div className="border-2 border-dashed border-gray-300 hover:border-[#024BAB] px-3 py-2 text-xs text-gray-500 hover:text-[#024BAB] transition-colors text-center">
                                 {docFiles.aadhaarDoc
                                   ? docFiles.aadhaarDoc.name
-                                  : editEmp && (editEmp as any).aadhaarDoc
+                                  : editEmp && editEmp.aadhaarDoc
                                     ? "✅ Uploaded — click to replace"
                                     : "Click to upload Aadhaar document"}
                               </div>
                             </label>
                             {(docFiles.aadhaarDoc ||
-                              (editEmp && (editEmp as any).aadhaarDoc)) && (
+                              (editEmp && editEmp.aadhaarDoc)) && (
                               <div className="flex gap-1">
                                 {docFiles.aadhaarDoc && (
                                   <button
@@ -2921,7 +2963,7 @@ export default function EmployeesPage() {
                                   </button>
                                 )}
                                 {editEmp &&
-                                  (editEmp as any).aadhaarDoc &&
+                                  editEmp.aadhaarDoc &&
                                   !docFiles.aadhaarDoc && (
                                     <a
                                       href={employeeAPI.getDocumentUrl(
@@ -3176,11 +3218,11 @@ export default function EmployeesPage() {
                         </span>
                       </div>
                     )}
-                    {(viewEmp.department as any)?.name && (
+                    {viewEmp.department?.name && (
                       <div className="flex items-center gap-1.5 text-xs text-black">
                         <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                         <span className="font-medium">
-                          {(viewEmp.department as any)?.name}
+                          {viewEmp.department?.name}
                         </span>
                       </div>
                     )}
@@ -3231,12 +3273,12 @@ export default function EmployeesPage() {
                 <p
                   className={cn(
                     "text-2xl font-bold",
-                    (viewEmp as any).loanBalance > 0
+                    (viewEmp.loanBalance ?? 0) > 0
                       ? "text-[#EF4444]"
                       : "text-black",
                   )}
                 >
-                  ₹{((viewEmp as any).loanBalance || 0).toLocaleString("en-IN")}
+                  ₹{(viewEmp.loanBalance || 0).toLocaleString("en-IN")}
                 </p>
                 <span className="inline-block mt-1.5 text-[10px] font-bold bg-[#FA731C]/15 text-[#FA731C] px-2 py-0.5 border border-[#FA731C]">
                   Pending
@@ -3421,40 +3463,40 @@ export default function EmployeesPage() {
                   {[
                     ["Email", viewEmp.email],
                     ["Phone", viewEmp.phone || "—"],
-                    ["Alt Phone", (viewEmp as any).alternatePhone || "—"],
-                    ["Personal Email", (viewEmp as any).personalEmail || "—"],
+                    ["Alt Phone", viewEmp.alternatePhone || "—"],
+                    ["Personal Email", viewEmp.personalEmail || "—"],
                     ["Gender", viewEmp.gender || "—"],
                     [
                       "Date of Birth",
-                      (viewEmp as any).dateOfBirth
-                        ? formatDate((viewEmp as any).dateOfBirth)
+                      viewEmp.dateOfBirth
+                        ? formatDate(viewEmp.dateOfBirth)
                         : "—",
                     ],
-                    ["Blood Group", (viewEmp as any).bloodGroup || "—"],
-                    ["Marital Status", (viewEmp as any).maritalStatus || "—"],
-                    ["Father", (viewEmp as any).fatherName || "—"],
-                    ["Mother", (viewEmp as any).motherName || "—"],
-                    ...((viewEmp as any).maritalStatus === "married"
-                      ? [["Spouse", (viewEmp as any).spouseName || "—"]]
+                    ["Blood Group", viewEmp.bloodGroup || "—"],
+                    ["Marital Status", viewEmp.maritalStatus || "—"],
+                    ["Father", viewEmp.fatherName || "—"],
+                    ["Mother", viewEmp.motherName || "—"],
+                    ...(viewEmp.maritalStatus === "married"
+                      ? [["Spouse", viewEmp.spouseName || "—"]]
                       : []),
-                    ["Nationality", (viewEmp as any).nationality || "—"],
-                    ["Religion", (viewEmp as any).religion || "—"],
+                    ["Nationality", viewEmp.nationality || "—"],
+                    ["Religion", viewEmp.religion || "—"],
                     [
                       "Emergency Contact",
-                      (viewEmp as any).emergencyContact || "—",
+                      viewEmp.emergencyContact || "—",
                     ],
-                    ["Current Address", (viewEmp as any).address || "—"],
+                    ["Current Address", viewEmp.address || "—"],
                     [
                       "Permanent Address",
-                      (viewEmp as any).permanentAddress || "—",
+                      viewEmp.permanentAddress || "—",
                     ],
                     [
                       "City / State",
-                      [(viewEmp as any).city, (viewEmp as any).state]
+                      [viewEmp.city, viewEmp.state]
                         .filter(Boolean)
                         .join(", ") || "—",
                     ],
-                    ["Pincode", (viewEmp as any).pincode || "—"],
+                    ["Pincode", viewEmp.pincode || "—"],
                   ].map(([label, value]) => (
                     <div
                       key={label as string}
@@ -3480,18 +3522,18 @@ export default function EmployeesPage() {
                 </div>
                 <div className="p-4 space-y-2">
                   {[
-                    ["Bank", (viewEmp as any).bankName || "—"],
-                    ["Account No.", (viewEmp as any).bankAccount || "—"],
+                    ["Bank", viewEmp.bankName || "—"],
+                    ["Account No.", viewEmp.bankAccount || "—"],
                     [
                       "Account Holder",
-                      (viewEmp as any).accountHolderName || "—",
+                      viewEmp.accountHolderName || "—",
                     ],
-                    ["IFSC", (viewEmp as any).ifscCode || "—"],
-                    ["PAN", (viewEmp as any).panNumber || "—"],
-                    ["Aadhar", (viewEmp as any).aadharNumber || "—"],
-                    ["PF No.", (viewEmp as any).pfNumber || "—"],
-                    ["UAN", (viewEmp as any).uanNumber || "—"],
-                    ["ESIC", (viewEmp as any).esicNumber || "—"],
+                    ["IFSC", viewEmp.ifscCode || "—"],
+                    ["PAN", viewEmp.panNumber || "—"],
+                    ["Aadhar", viewEmp.aadharNumber || "—"],
+                    ["PF No.", viewEmp.pfNumber || "—"],
+                    ["UAN", viewEmp.uanNumber || "—"],
+                    ["ESIC", viewEmp.esicNumber || "—"],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -3507,11 +3549,11 @@ export default function EmployeesPage() {
                   ))}
 
                   {/* Document links */}
-                  {((viewEmp as any).panDoc ||
-                    (viewEmp as any).aadhaarDoc ||
-                    (viewEmp as any).resumeDoc) && (
+                  {(viewEmp.panDoc ||
+                    viewEmp.aadhaarDoc ||
+                    viewEmp.resumeDoc) && (
                     <div className="pt-2 flex flex-wrap gap-2">
-                      {(viewEmp as any).panDoc && (
+                      {viewEmp.panDoc && (
                         <a
                           href={employeeAPI.getDocumentUrl(viewEmp._id, "pan")}
                           target="_blank"
@@ -3521,7 +3563,7 @@ export default function EmployeesPage() {
                           📄 PAN Doc
                         </a>
                       )}
-                      {(viewEmp as any).aadhaarDoc && (
+                      {viewEmp.aadhaarDoc && (
                         <a
                           href={employeeAPI.getDocumentUrl(
                             viewEmp._id,
@@ -3534,7 +3576,7 @@ export default function EmployeesPage() {
                           📄 Aadhaar Doc
                         </a>
                       )}
-                      {(viewEmp as any).resumeDoc && (
+                      {viewEmp.resumeDoc && (
                         <a
                           href={employeeAPI.getDocumentUrl(
                             viewEmp._id,
@@ -3553,9 +3595,9 @@ export default function EmployeesPage() {
               </div>
 
               {/* Professional Background */}
-              {((viewEmp as any).qualification ||
-                (viewEmp as any).totalExperience ||
-                (viewEmp as any).previousCompany) && (
+              {(viewEmp.qualification ||
+                viewEmp.totalExperience ||
+                viewEmp.previousCompany) && (
                 <div className="border-2 border-black bg-white">
                   <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black bg-[#024BAB]/5">
                     <span className="text-xs font-bold uppercase tracking-wider text-black">
@@ -3564,9 +3606,9 @@ export default function EmployeesPage() {
                   </div>
                   <div className="p-4 space-y-2">
                     {[
-                      ["Qualification", (viewEmp as any).qualification],
-                      ["Experience", (viewEmp as any).totalExperience],
-                      ["Previous SportsClub", (viewEmp as any).previousCompany],
+                      ["Qualification", viewEmp.qualification],
+                      ["Experience", viewEmp.totalExperience],
+                      ["Previous SportsClub", viewEmp.previousCompany],
                     ]
                       .filter(([, v]) => v)
                       .map(([label, value]) => (
@@ -3639,12 +3681,12 @@ export default function EmployeesPage() {
                   });
                   setLoanModal(false);
                   load();
-                } catch (err: any) {
+                } catch (err: unknown) {
                   setActionModal({
                     show: true,
                     type: "error",
                     title: "Error",
-                    message: err.message || "Failed to create loan entry.",
+                    message: getErrorMessage(err) || "Failed to create loan entry.",
                   });
                 }
                 setSavingLoan(false);
@@ -3818,12 +3860,12 @@ export default function EmployeesPage() {
                     title: `${label} Added`,
                     message: `${label} of ${detail} saved successfully.`,
                   });
-                } catch (err: any) {
+                } catch (err: unknown) {
                   setActionModal({
                     show: true,
                     type: "error",
                     title: "Error",
-                    message: err.message || "Failed to save",
+                    message: getErrorMessage(err) || "Failed to save",
                   });
                 }
                 setSavingTx(false);

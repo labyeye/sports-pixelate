@@ -44,4 +44,8 @@ const inventoryItemSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+inventoryItemSchema.index({ company: 1, category: 1 });
+inventoryItemSchema.index({ company: 1, name: 1 });
+
 module.exports = mongoose.model("InventoryItem", inventoryItemSchema);

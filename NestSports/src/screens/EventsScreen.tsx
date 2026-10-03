@@ -39,6 +39,7 @@ import {
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { eventTypes } from '../config/eventTypeConfig';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: colors.muted,
@@ -109,7 +110,7 @@ export default function EventsScreen({ navigation }: any) {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -136,7 +137,7 @@ export default function EventsScreen({ navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

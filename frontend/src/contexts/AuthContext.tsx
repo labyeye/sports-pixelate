@@ -7,6 +7,8 @@ import React, {
 } from "react";
 import { User } from "@/types/hrms";
 import { authAPI, setToken, removeToken, getToken } from "@/services/api";
+import { resetDisabledFeatures } from "@/hooks/useDisabledFeatures";
+import { getErrorMessage } from "@/lib/utils";
 
 interface AuthContextType {
   user: User | null;
@@ -88,8 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const res = await authAPI.getMe();
           setUser(mapUser(res.data));
-        } catch (err: any) {
-          if (err.status === 401) {
+        } catch (err: unknown) {
+          if ((err as { status?: number }).status === 401) {
             removeToken();
             setUser(null);
           }
@@ -110,8 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(token);
       setUser(mapUser(userData));
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message || "Login failed" };
+    } catch (err: unknown) {
+      return { success: false, error: getErrorMessage(err) || "Login failed" };
     }
   }, []);
 
@@ -128,8 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(token);
         setUser(mapUser(userData));
         return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message || "Registration failed" };
+      } catch (err: unknown) {
+        return { success: false, error: getErrorMessage(err) || "Registration failed" };
       }
     },
     [],
@@ -137,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     removeToken();
+    resetDisabledFeatures();
     setUser(null);
   }, []);
 

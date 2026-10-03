@@ -26,6 +26,16 @@ const {
   notifyUsers,
 } = require("../services/inAppNotify");
 const { getEffectiveCheckOut } = require("../utils/shiftUtils");
+const { logAudit } = require("../utils/auditLogger");
+const {
+  findNearestFace,
+  invalidateFaceIndex,
+  warmFaceIndex,
+} = require("../services/faceIndex");
+
+// Minimum seconds between two face scans of the same person (see faceAttendance).
+const FACE_RESCAN_GAP_MS =
+  parseInt(process.env.FACE_RESCAN_GAP_SECONDS || "60", 10) * 1000;
 const { toDateOnly } = require("../utils/dateOnly");
 const {
   personModelFor,
@@ -404,6 +414,7 @@ const getDeviceInfo = asyncHandler(async (req, res) => {
   }
   device.lastSeenAt = new Date();
   await device.save();
+  warmFaceIndex(device.company);
 
   res.json({
     success: true,
@@ -418,6 +429,10 @@ const getDeviceInfo = asyncHandler(async (req, res) => {
 
 const recordBiometric = asyncHandler(async (req, res) => {
   const { deviceToken, method, nfcUid, personType, personId, type } = req.body;
+  if (typeof deviceToken !== "string" || !/^[a-f0-9]{64}$/.test(deviceToken)) {
+    res.status(403);
+    throw new Error("Invalid device token");
+  }
 
   const device = await BiometricDevice.findOne({
     deviceToken,
@@ -678,7 +693,7 @@ const recordBiometric = asyncHandler(async (req, res) => {
 });
 
 const getDeviceEmployees = asyncHandler(async (req, res) => {
-  const { token } = req.params;
+  const token = String(req.params.token);
   const device = await BiometricDevice.findOne({
     deviceToken: token,
     isActive: true,
@@ -728,6 +743,10 @@ const getDeviceEmployees = asyncHandler(async (req, res) => {
 
 const enrollFaceFromDevice = asyncHandler(async (req, res) => {
   const { deviceToken, personType, personId, descriptor } = req.body;
+  if (typeof deviceToken !== "string" || !/^[a-f0-9]{64}$/.test(deviceToken)) {
+    res.status(403);
+    throw new Error("Invalid device token");
+  }
 
   const device = await BiometricDevice.findOne({ deviceToken, isActive: true });
   if (!device) {
@@ -1091,6 +1110,33 @@ const saveFaceDescriptor = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Face descriptor saved" });
 });
 
+/**
+ * DELETE /biometric/people/:personType/:id/face (owner/HR) — clears a staff
+ * member's or student's enrolled face so they can be enrolled again (e.g. after
+ * a wrong or poor photo). Only the app/kiosk face data is cleared; a template
+ * stored on a physical biometric device is untouched.
+ */
+const resetFaceDescriptor = asyncHandler(async (req, res) => {
+  const { personType, id } = req.params;
+  const person = await findPerson(personType, id, req.user.company);
+  if (!person) {
+    res.status(404);
+    throw new Error("Employee/student not found");
+  }
+
+  person.faceDescriptor = [];
+  await person.save();
+  await logAudit(
+    req,
+    "face_reset",
+    personType === "student" ? "Student" : "Employee",
+    person._id,
+    { name: `${person.firstName} ${person.lastName}` },
+  );
+
+  res.json({ success: true, message: "Face reset — enroll again to use face attendance" });
+});
+
 const getFaceDescriptors = asyncHandler(async (req, res) => {
   const employees = await Employee.find({
     company: req.user.company,
@@ -1131,6 +1177,13 @@ const faceAttendance = asyncHandler(async (req, res) => {
     throw new Error("Invalid face descriptor");
   }
 
+  if (
+    deviceToken !== undefined &&
+    (typeof deviceToken !== "string" || !/^[a-f0-9]{64}$/.test(deviceToken))
+  ) {
+    res.status(403);
+    throw new Error("Invalid device token");
+  }
   const device = deviceToken
     ? await BiometricDevice.findOne({ deviceToken, isActive: true }).populate(
         "location",
@@ -1141,51 +1194,39 @@ const faceAttendance = asyncHandler(async (req, res) => {
     throw new Error("Device not found");
   }
 
-  const companyFilter = device ? { company: device.company } : {};
-  const employees = await Employee.find({
-    ...companyFilter,
-    faceDescriptor: { $exists: true, $not: { $size: 0 } },
-    status: { $nin: ["terminated", "exited"] },
-  })
-    .select("_id firstName lastName employeeId phone faceDescriptor company")
-    .lean();
-  const students = await Student.find({
-    ...companyFilter,
-    faceDescriptor: { $exists: true, $not: { $size: 0 } },
-    status: { $ne: "inactive" },
-  })
-    .select("_id firstName lastName studentId guardians faceDescriptor company")
-    .lean();
-
-  const candidates = [
-    ...employees.map((e) => ({ ...e, personType: "employee" })),
-    ...students.map((s) => ({ ...s, personType: "student" })),
-  ];
-
   const THRESHOLD = 0.5;
-  let bestMatch = null;
-  let bestDist = Infinity;
+  const nearest = await findNearestFace(device?.company, descriptor);
+  const bestDist = nearest ? nearest.distance : Infinity;
 
-  for (const cand of candidates) {
-    const stored = cand.faceDescriptor;
-    let dist = 0;
-    for (let i = 0; i < 128; i++) {
-      const d = (descriptor[i] || 0) - (stored[i] || 0);
-      dist += d * d;
-    }
-    dist = Math.sqrt(dist);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestMatch = cand;
-    }
-  }
-
-  if (!bestMatch || bestDist > THRESHOLD) {
+  if (!nearest || bestDist > THRESHOLD) {
     res.status(404);
     throw new Error(
       `No matching person found (best dist: ${bestDist.toFixed(3)})`,
     );
   }
+
+  // The index only holds descriptors; fetch the matched person fresh so status
+  // changes take effect immediately and we have the contact fields to notify.
+  const bestMatch =
+    nearest.personType === "employee"
+      ? await Employee.findOne({
+          _id: nearest.personId,
+          status: { $nin: ["terminated", "exited"] },
+        })
+          .select("_id firstName lastName employeeId phone company")
+          .lean()
+      : await Student.findOne({
+          _id: nearest.personId,
+          status: { $ne: "inactive" },
+        })
+          .select("_id firstName lastName studentId guardians company")
+          .lean();
+  if (!bestMatch) {
+    invalidateFaceIndex();
+    res.status(404);
+    throw new Error("No matching person found");
+  }
+  bestMatch.personType = nearest.personType;
 
   const now = new Date();
   const today = new Date(now);
@@ -1204,6 +1245,25 @@ const faceAttendance = asyncHandler(async (req, res) => {
         ? bestMatch.employeeId
         : bestMatch.studentId,
   };
+
+  // Continuous kiosk scanning re-detects the same face every few hundred ms;
+  // without this a check-in would be flipped to a check-out by the next frame.
+  if (
+    lastTodayLog &&
+    lastTodayLog.type !== "check_out" &&
+    now - lastTodayLog.timestamp < FACE_RESCAN_GAP_MS
+  ) {
+    return res.json({
+      success: true,
+      locked: true,
+      data: {
+        person: personLabel,
+        type: lastTodayLog.type,
+        message: "Already recorded",
+        checkedInAt: lastTodayLog.timestamp,
+      },
+    });
+  }
 
   if (lastTodayLog?.type === "check_out") {
     return res.json({
@@ -1235,6 +1295,9 @@ const faceAttendance = asyncHandler(async (req, res) => {
 
   let attendance;
   let workHours;
+  // Push/WhatsApp/in-app notifications are slow network calls; they run after
+  // the response so the kiosk shows the result immediately.
+  let afterResponse = async () => {};
 
   if (bestMatch.personType === "employee") {
     const attendanceUpdate = {
@@ -1267,55 +1330,57 @@ const faceAttendance = asyncHandler(async (req, res) => {
       { upsert: true, new: true },
     );
 
-    try {
-      const timeStr = now.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      if (logType === "check_in") {
-        await sendPushToEmployee(bestMatch._id, {
-          title: "Punch In Recorded",
-          body: `Hi ${bestMatch.firstName}, you punched in at ${timeStr}.`,
-          tag: "attendance-checkin",
-          url: "/dashboard",
+    afterResponse = async () => {
+      try {
+        const timeStr = now.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
         });
-      } else {
-        const hrs = workHours ? `${workHours.toFixed(1)} hrs` : "";
-        await sendPushToEmployee(bestMatch._id, {
-          title: "Punch Out Recorded",
-          body: `Hi ${bestMatch.firstName}, you punched out at ${timeStr}${hrs ? ` · ${hrs} worked` : ""}.`,
-          tag: "attendance-checkout",
-          url: "/dashboard",
-        });
+        if (logType === "check_in") {
+          await sendPushToEmployee(bestMatch._id, {
+            title: "Punch In Recorded",
+            body: `Hi ${bestMatch.firstName}, you punched in at ${timeStr}.`,
+            tag: "attendance-checkin",
+            url: "/dashboard",
+          });
+        } else {
+          const hrs = workHours ? `${workHours.toFixed(1)} hrs` : "";
+          await sendPushToEmployee(bestMatch._id, {
+            title: "Punch Out Recorded",
+            body: `Hi ${bestMatch.firstName}, you punched out at ${timeStr}${hrs ? ` · ${hrs} worked` : ""}.`,
+            tag: "attendance-checkout",
+            url: "/dashboard",
+          });
+        }
+        await notifyHR(
+          bestMatch,
+          logType,
+          device?.location?.name || "Office",
+          now,
+          workHours,
+          bestMatch.company,
+        );
+      } catch (err) {
+        console.error("[Biometric] faceAttendance notify error:", err.message);
       }
-      await notifyHR(
-        bestMatch,
-        logType,
-        device?.location?.name || "Office",
-        now,
-        workHours,
-        bestMatch.company,
-      );
-    } catch (err) {
-      console.error("[Biometric] faceAttendance notify error:", err.message);
-    }
-    try {
-      const empName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
-      const inAppPayload = {
-        type: "employee_attendance",
-        title: "Attendance recorded",
-        message: `${empName} ${logType === "check_in" ? "checked in" : "checked out"} via face recognition.`,
-        employee: bestMatch._id,
-      };
-      await Promise.all([
-        notifyOwners(bestMatch.company, inAppPayload),
-        bestMatch.user
-          ? notifyUsers(bestMatch.company, [bestMatch.user], inAppPayload)
-          : null,
-      ]);
-    } catch (err) {
-      console.error("[Biometric] faceAttendance employee in-app notify error:", err.message);
-    }
+      try {
+        const empName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
+        const inAppPayload = {
+          type: "employee_attendance",
+          title: "Attendance recorded",
+          message: `${empName} ${logType === "check_in" ? "checked in" : "checked out"} via face recognition.`,
+          employee: bestMatch._id,
+        };
+        await Promise.all([
+          notifyOwners(bestMatch.company, inAppPayload),
+          bestMatch.user
+            ? notifyUsers(bestMatch.company, [bestMatch.user], inAppPayload)
+            : null,
+        ]);
+      } catch (err) {
+        console.error("[Biometric] faceAttendance employee in-app notify error:", err.message);
+      }
+    };
   } else {
     const studentDate = toDateOnly(now);
     const attendanceUpdate = {
@@ -1337,34 +1402,36 @@ const faceAttendance = asyncHandler(async (req, res) => {
       { upsert: true, new: true },
     );
 
-    try {
-      await notifyGuardians(
-        bestMatch,
-        logType,
-        device?.location?.name || "Office",
-        now,
-      );
-    } catch (err) {
-      console.error(
-        "[Biometric] faceAttendance notifyGuardians error:",
-        err.message,
-      );
-    }
-    try {
-      const studentName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
-      const inAppPayload = {
-        type: "student_attendance",
-        title: "Student attendance marked",
-        message: `${studentName} was marked ${logType === "check_in" ? "present (check-in)" : "checked out"} via face recognition.`,
-        student: bestMatch._id,
-      };
-      await Promise.all([
-        notifyOwners(bestMatch.company, inAppPayload),
-        notifyParentsOfStudent(bestMatch._id, bestMatch.company, inAppPayload),
-      ]);
-    } catch (err) {
-      console.error("[Biometric] faceAttendance student in-app notify error:", err.message);
-    }
+    afterResponse = async () => {
+      try {
+        await notifyGuardians(
+          bestMatch,
+          logType,
+          device?.location?.name || "Office",
+          now,
+        );
+      } catch (err) {
+        console.error(
+          "[Biometric] faceAttendance notifyGuardians error:",
+          err.message,
+        );
+      }
+      try {
+        const studentName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
+        const inAppPayload = {
+          type: "student_attendance",
+          title: "Student attendance marked",
+          message: `${studentName} was marked ${logType === "check_in" ? "present (check-in)" : "checked out"} via face recognition.`,
+          student: bestMatch._id,
+        };
+        await Promise.all([
+          notifyOwners(bestMatch.company, inAppPayload),
+          notifyParentsOfStudent(bestMatch._id, bestMatch.company, inAppPayload),
+        ]);
+      } catch (err) {
+        console.error("[Biometric] faceAttendance student in-app notify error:", err.message);
+      }
+    };
   }
 
   if (device) {
@@ -1396,6 +1463,10 @@ const faceAttendance = asyncHandler(async (req, res) => {
       location: device?.location?.name,
     },
   });
+
+  afterResponse().catch((err) =>
+    console.error("[Biometric] faceAttendance notify error:", err.message),
+  );
 });
 
 const triggerFaceEnroll = asyncHandler(async (req, res) => {
@@ -1607,6 +1678,7 @@ module.exports = {
   getDeviceCommands,
   saveRfidCard,
   saveFaceDescriptor,
+  resetFaceDescriptor,
   getFaceDescriptors,
   faceAttendance,
   triggerFingerprintEnroll,

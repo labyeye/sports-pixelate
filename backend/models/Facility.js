@@ -23,4 +23,7 @@ const facilitySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+facilitySchema.index({ company: 1, active: 1 });
+
 module.exports = mongoose.model("Facility", facilitySchema);

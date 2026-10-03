@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 export interface EnrollPerson {
   _id: string;
@@ -55,8 +55,8 @@ export function FaceEnrollModal({ person, onClose, onSaved }: Props) {
     try {
       await startCamera();
       setStep("capture");
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     }
   }, [startCamera]);
 
@@ -76,8 +76,8 @@ export function FaceEnrollModal({ person, onClose, onSaved }: Props) {
       const descriptor = await captureFaceDescriptor();
       setCapturedDescriptor(descriptor);
       stopCamera();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     }
   };
 
@@ -96,8 +96,8 @@ export function FaceEnrollModal({ person, onClose, onSaved }: Props) {
         description: `${person.firstName}'s face is saved`,
       });
       onSaved(person._id);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
       setStep("capture");
     }
   };

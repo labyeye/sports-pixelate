@@ -31,8 +31,8 @@ export async function cropFile(
     const uri = /^[a-z]+:\/\//i.test(r.path) ? r.path : `file://${r.path}`;
     const base = file.name.replace(/\.[^.]+$/, '') || 'photo';
     return { uri, name: `${base}.jpg`, type: r.mime || 'image/jpeg' };
-  } catch (e: any) {
-    if (e?.code === 'E_PICKER_CANCELLED') return null;
+  } catch (e: unknown) {
+    if ((e as { code?: string | number })?.code === 'E_PICKER_CANCELLED') return null;
     return file;
   }
 }

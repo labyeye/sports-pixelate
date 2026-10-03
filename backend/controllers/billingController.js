@@ -13,8 +13,15 @@ const { sendPaymentConfirmations } = require("../services/notificationService");
 const { RATE_INAPP, RATE_WHATSAPP, calculatePricing } = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 
+// Company-level SaaS billing (what an academy pays NestPlay). Priced per user
+// (students + employees) per month, + 18% GST — see utils/pricing.js.
+//
+// New signup: createOrder stores a PendingOrder; the Company, Subscription and
+// Invoice are created only after the gateway payment is verified.
+// Existing company: createOrder updates its Subscription, which is activated on verify.
 const PLAN_NAME = "NestPlay";
 
+/** GET /billing/plans — public; the single plan and its per-user monthly rates. */
 const getPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
@@ -28,6 +35,7 @@ const getPlans = asyncHandler(async (req, res) => {
   });
 });
 
+/** GET /billing/subscription — the logged-in owner's company subscription. */
 const getSubscription = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ createdBy: req.user._id });
   if (!company)
@@ -51,6 +59,7 @@ const getSubscription = asyncHandler(async (req, res) => {
   });
 });
 
+/** GET /billing/invoices — the company's 20 most recent invoices, newest first. */
 const getInvoices = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ createdBy: req.user._id });
   if (!company)
@@ -83,11 +92,15 @@ function _offerMessage(offer) {
     return `Offer code applied! You will get ${offer.bonusMonths} bonus month(s) added to your subscription.`;
   }
   if (offer.discountType === "flat_rate") {
-    return `Offer code applied! Your rate is now ₹${offer.flatRate}/student/month.`;
+    return `Offer code applied! Your rate is now ₹${offer.flatRate}/user/month.`;
   }
   return `Offer code applied! ${offer.percentOff}% off your order.`;
 }
 
+/**
+ * POST /billing/validate-offer — checks an offer code and returns a price
+ * preview for the given headcount. Creates nothing and does not consume a use.
+ */
 const validateOfferCode = asyncHandler(async (req, res) => {
   const { code, studentCount, employeeCount, wantsWhatsapp } = req.body;
   if (!code) {
@@ -120,6 +133,12 @@ const validateOfferCode = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * POST /billing/create-order — prices the order server-side (never trusts a
+ * client total) and opens a payment order on Razorpay or HDFC.
+ * Body: studentCount, employeeCount, wantsWhatsapp, billingCycle, gateway, offerCode,
+ * and `company` details for a first-time signup.
+ */
 const createOrder = asyncHandler(async (req, res) => {
   const {
     studentCount,
@@ -424,6 +443,10 @@ const createOrder = asyncHandler(async (req, res) => {
   res.json({ success: true, data: orderData });
 });
 
+/**
+ * POST /billing/verify-razorpay — verifies the Razorpay signature, then
+ * activates the subscription (creating the company on first purchase).
+ */
 const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
 
@@ -523,6 +546,9 @@ const verifyHdfcPayment = asyncHandler(async (req, res) => {
   });
 });
 
+// First purchase: turns a verified PendingOrder into a Company + Subscription
+// + Invoice. Guards against a foreign order, a second company for the same
+// user, or a duplicate company email; consumes the offer code if one was used.
 async function _createCompanyAndActivate({
   pendingOrder,
   req,
@@ -699,6 +725,8 @@ async function _createCompanyAndActivate({
   });
 }
 
+// Renewal / upgrade: activates the existing Subscription located by `lookup`,
+// applies `update`, extends the period (plus any bonus months) and issues the Invoice.
 async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
   const subscription = await Subscription.findOne(lookup);
   if (!subscription) {
@@ -822,6 +850,7 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
   });
 }
 
+/** POST /billing/verify-payment — routes to the Razorpay or HDFC verifier by payload. */
 const verifyPayment = asyncHandler(async (req, res) => {
   if (req.body.razorpayOrderId) {
     return verifyRazorpayPayment(req, res);

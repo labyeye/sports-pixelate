@@ -48,4 +48,8 @@ const biometricLogSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+biometricLogSchema.index({ company: 1, timestamp: -1 });
+biometricLogSchema.index({ person: 1, timestamp: -1 });
+
 module.exports = mongoose.model("BiometricLog", biometricLogSchema);

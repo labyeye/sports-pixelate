@@ -20,7 +20,7 @@ import {
   Check,
   AlertTriangle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 type Mode = "nfc" | "face" | "pin" | "enroll";
 type ScanState = "idle" | "scanning" | "success" | "error";
@@ -75,8 +75,14 @@ export default function BiometricDevicePage() {
     startCamera: faceStartCamera,
     stopCamera: faceStopCamera,
     captureFaceDescriptor: captureFaceForVerify,
+    detectFaceDescriptor,
   } = useFaceRecognition();
   const [faceVerifying, setFaceVerifying] = useState(false);
+  const faceVerifyingRef = useRef(false);
+  const scanStateRef = useRef<ScanState>("idle");
+  useEffect(() => {
+    scanStateRef.current = scanState;
+  }, [scanState]);
   const [faceStatus, setFaceStatus] = useState("");
 
   const {
@@ -133,8 +139,8 @@ export default function BiometricDevicePage() {
     try {
       const res = await biometricAPI.getDeviceInfo(token);
       setDevice(res.data);
-    } catch (e: any) {
-      setError(e.message || "Device not found");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e) || "Device not found");
     } finally {
       setLoading(false);
     }
@@ -181,8 +187,8 @@ export default function BiometricDevicePage() {
         personId: opts.personId,
       });
       showResult(res.data);
-    } catch (e: any) {
-      showScanError(e.message || "Scan failed");
+    } catch (e: unknown) {
+      showScanError(getErrorMessage(e) || "Scan failed");
     }
   };
 
@@ -200,17 +206,17 @@ export default function BiometricDevicePage() {
           doRecord({ method: "nfc", nfcUid: uid });
         },
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       setNfcReading(false);
-      showScanError("NFC scan failed: " + e.message);
+      showScanError("NFC scan failed: " + getErrorMessage(e));
     }
   };
 
   const startCamera = async () => {
     try {
       await faceStartCamera();
-    } catch (e: any) {
-      showScanError(e.message || "Camera access denied");
+    } catch (e: unknown) {
+      showScanError(getErrorMessage(e) || "Camera access denied");
     }
   };
 
@@ -223,22 +229,50 @@ export default function BiometricDevicePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  const doFaceVerify = async () => {
-    if (!token || faceVerifying) return;
+  const doFaceVerify = async (probe?: number[]) => {
+    if (!token || faceVerifyingRef.current) return;
+    faceVerifyingRef.current = true;
     setFaceVerifying(true);
-    setFaceStatus("Look at the camera…");
+    setFaceStatus(probe ? "Verifying…" : "Look at the camera…");
     try {
-      const descriptor = await captureFaceForVerify();
+      const descriptor = probe ?? (await captureFaceForVerify());
       setFaceStatus("Verifying…");
       const res = await biometricAPI.faceAttendance(descriptor, token);
       showResult(res.data);
-    } catch (e: any) {
-      showScanError(e.message || "Face verification failed");
+    } catch (e: unknown) {
+      showScanError(getErrorMessage(e) || "Face verification failed");
     } finally {
+      faceVerifyingRef.current = false;
       setFaceVerifying(false);
       setFaceStatus("");
     }
   };
+
+  // Hands-free: while the camera is on, probe frames continuously and submit
+  // as soon as a face is found. Pauses while a result/error is on screen.
+  useEffect(() => {
+    if (mode !== "face" || !cameraActive || faceLoadState !== "ready") return;
+    let cancelled = false;
+    let timer: number | undefined;
+    const tick = async () => {
+      if (cancelled) return;
+      if (scanStateRef.current === "idle" && !faceVerifyingRef.current) {
+        try {
+          const descriptor = await detectFaceDescriptor();
+          if (descriptor && !cancelled) await doFaceVerify(descriptor);
+        } catch {
+          // a bad frame shouldn't stop the loop
+        }
+      }
+      if (!cancelled) timer = window.setTimeout(tick, 120);
+    };
+    tick();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, cameraActive, faceLoadState, detectFaceDescriptor, token]);
 
   const fetchDevicePeople = useCallback(async () => {
     if (!token) return;
@@ -279,8 +313,8 @@ export default function BiometricDevicePage() {
     try {
       await enrollStartCamera();
       setEnrollStep("capture");
-    } catch (e: any) {
-      setEnrollError(e.message);
+    } catch (e: unknown) {
+      setEnrollError(getErrorMessage(e));
     }
   };
 
@@ -291,8 +325,8 @@ export default function BiometricDevicePage() {
       setEnrollDescriptor(descriptor);
       enrollStopCamera();
       setEnrollStep("preview");
-    } catch (e: any) {
-      setEnrollError(e.message);
+    } catch (e: unknown) {
+      setEnrollError(getErrorMessage(e));
     }
   };
 
@@ -313,8 +347,8 @@ export default function BiometricDevicePage() {
       );
       setEnrollStep("done");
       fetchDevicePeople();
-    } catch (e: any) {
-      setEnrollError(e.message);
+    } catch (e: unknown) {
+      setEnrollError(getErrorMessage(e));
       setEnrollStep("preview");
     }
   };
@@ -597,7 +631,7 @@ export default function BiometricDevicePage() {
                   ) : (
                     <>
                       <button
-                        onClick={doFaceVerify}
+                        onClick={() => doFaceVerify()}
                         disabled={faceVerifying || faceLoadState !== "ready"}
                         className="w-full bg-[#024BAB] border-2 border-white/20 text-white font-bold uppercase py-3 mb-2 disabled:opacity-40"
                       >

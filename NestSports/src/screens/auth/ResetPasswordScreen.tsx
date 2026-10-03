@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { authAPI } from '../../api/client';
 import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
+import { getErrorMessage } from '../../utils/format';
 
 export default function ResetPasswordScreen({ navigation }: any) {
   const [token, setToken] = useState('');
@@ -30,8 +31,8 @@ export default function ResetPasswordScreen({ navigation }: any) {
     try {
       await authAPI.resetPassword(token.trim(), password);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to reset password');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to reset password');
     } finally {
       setLoading(false);
     }

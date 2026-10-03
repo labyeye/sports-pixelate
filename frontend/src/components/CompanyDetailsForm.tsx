@@ -1,3 +1,7 @@
+// Shared company details form (name, contact, address, GST/PAN) used during
+// onboarding and in Settings. State/city pickers come from data/indiaStatesAndCities;
+// OTHER_CITY lets the user type a city that is not in the list.
+
 import { useState } from "react";
 import {
   Loader2,

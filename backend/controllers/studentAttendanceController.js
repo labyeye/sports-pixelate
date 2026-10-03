@@ -6,8 +6,11 @@ const Employee = require("../models/Employee");
 const BiometricLog = require("../models/BiometricLog");
 const { safePagination } = require("../middleware/validate");
 const { verifyFace } = require("../services/faceService");
+const { isStudentFaceEnabled } = require("../services/faceIndex");
 const { validateMagicBytes } = require("../middleware/upload");
+const { readDecrypted } = require("../utils/fileCrypto");
 const { toDateOnly } = require("../utils/dateOnly");
+const { getOverdueStudents, studentName } = require("../utils/feeOverdue");
 const {
   notifyOwners,
   notifyParentsOfStudent,
@@ -40,6 +43,25 @@ async function coachEmployeeId(user) {
   );
   if (!employee || employee.role !== "coach") return null;
   return employee._id;
+}
+
+// Refuses (403, code FEE_OVERDUE) when the owner's fee lock is on and the
+// student's fee is overdue past the grace period. Marking someone absent is
+// still allowed in bulk (see bulkMark) but a single "present" is blocked.
+async function assertFeesCleared(req, res, studentDoc) {
+  const { overdue } = await getOverdueStudents(req.user.company, [studentDoc._id]);
+  const info = overdue.get(String(studentDoc._id));
+  if (!info) return;
+  const name = studentName(studentDoc);
+  res.status(403);
+  const err = new Error(
+    `${name} has not paid the fee (overdue by ${info.overdueDays} days). Attendance cannot be taken.`,
+  );
+  err.code = "FEE_OVERDUE";
+  err.details = {
+    students: [{ _id: studentDoc._id, name, studentId: studentDoc.studentId, ...info }],
+  };
+  throw err;
 }
 
 // owner/staff: whole roster (optionally filtered by student/sport/coach/batch/date range).
@@ -137,6 +159,8 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
     throw new Error("Student not found");
   }
 
+  await assertFeesCleared(req, res, studentDoc);
+
   const d = toDateOnly(date || Date.now());
   const record = await StudentAttendance.findOneAndUpdate(
     { student, date: d },
@@ -182,12 +206,21 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
   const validStudents = await Student.find({
     _id: { $in: studentIds },
     company: req.user.company,
-  }).select("_id firstName lastName");
+  }).select("_id firstName lastName studentId");
   const validMap = new Map(validStudents.map((s) => [s._id.toString(), s]));
 
-  const validRecords = records.filter(
-    (r) => r.student && validMap.has(r.student.toString()),
-  );
+  const { overdue } = await getOverdueStudents(req.user.company, [...validMap.keys()]);
+  const blocked = [];
+  const validRecords = records.filter((r) => {
+    if (!r.student || !validMap.has(r.student.toString())) return false;
+    const info = overdue.get(r.student.toString());
+    if (info) {
+      const sd = validMap.get(r.student.toString());
+      blocked.push({ _id: sd._id, name: studentName(sd), ...info });
+      return false;
+    }
+    return true;
+  });
   const ops = validRecords.map((r) => ({
     updateOne: {
       filter: { student: r.student, date: d },
@@ -220,6 +253,7 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: `Marked attendance for ${ops.length} student(s)`,
+    blocked,
   });
 });
 
@@ -255,6 +289,21 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
     throw new Error("Student not found");
   }
 
+  try {
+    await assertFeesCleared(req, res, studentDoc);
+  } catch (err) {
+    cleanup();
+    throw err;
+  }
+
+  if (!(await isStudentFaceEnabled(req.user.company))) {
+    cleanup();
+    res.status(403);
+    throw new Error(
+      "Face attendance for students is not enabled. Ask the owner to turn it on in Attendance Settings.",
+    );
+  }
+
   if (
     !Array.isArray(studentDoc.faceDescriptor) ||
     studentDoc.faceDescriptor.length !== 128
@@ -265,7 +314,7 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
   }
 
   const { match, distance } = await verifyFace(
-    fs.readFileSync(req.file.path),
+    readDecrypted(req.file.path),
     req.file.filename,
     req.file.mimetype,
     studentDoc.faceDescriptor,

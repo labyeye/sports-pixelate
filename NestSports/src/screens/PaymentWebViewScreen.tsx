@@ -55,10 +55,10 @@ export default function PaymentWebViewScreen({ route, navigation }: any) {
       Alert.alert('Payment successful', 'Your subscription is now active.', [
         { text: 'OK', onPress: () => navigation.popToTop() },
       ]);
-    } catch (e: any) {
+    } catch (e: unknown) {
       Alert.alert(
         'Payment could not be verified',
-        e?.message || 'Please check your subscription status in a moment.',
+        (e as Error)?.message || 'Please check your subscription status in a moment.',
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     } finally {

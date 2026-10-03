@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2 } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Payment {
   _id: string;
@@ -33,10 +34,10 @@ export function PaymentsTab({ eventId }: Props) {
       try {
         const res = await eventAPI.getPayments(eventId);
         setItems(res.data || []);
-      } catch (e: any) {
+      } catch (e: unknown) {
         toast({
           title: "Error",
-          description: e.message,
+          description: getErrorMessage(e),
           variant: "destructive",
         });
       } finally {

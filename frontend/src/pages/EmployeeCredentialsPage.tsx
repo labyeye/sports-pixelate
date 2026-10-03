@@ -1,10 +1,14 @@
+// Login credentials (web): owner/HR reset employee passwords
+// (employeeAPI.resetPassword) and manage parent logins (parentAPI) and own
+// profile credentials (authAPI.updateProfile).
+
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { employeeAPI, parentAPI, authAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Employee } from "@/types/hrms";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   Search,
   Lock,
@@ -19,7 +23,7 @@ import {
   Users,
   Mail,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, notifyError } from "@/hooks/use-toast";
 
 interface Parent {
   _id: string;
@@ -80,7 +84,9 @@ export default function EmployeeCredentialsPage() {
         const res = await parentAPI.getAll(params);
         if (res.success) setParents(res.data);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, [search, companyId, tab]);
 
@@ -108,7 +114,9 @@ export default function EmployeeCredentialsPage() {
           role: user.role,
         });
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
   };
 
   const handleResetPassword = async () => {
@@ -152,12 +160,12 @@ export default function EmployeeCredentialsPage() {
           message: res.error || "Failed to reset password",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to reset password",
+        message: getErrorMessage(err) || "Failed to reset password",
       });
     }
     setUpdating(false);
@@ -230,12 +238,12 @@ export default function EmployeeCredentialsPage() {
           setParentPassword("");
         }, 1500);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to update credentials",
+        message: getErrorMessage(err) || "Failed to update credentials",
       });
     }
     setUpdating(false);
@@ -284,12 +292,12 @@ export default function EmployeeCredentialsPage() {
           message: res.error || "Failed to create credential",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to create credential",
+        message: getErrorMessage(err) || "Failed to create credential",
       });
     }
     setUpdating(false);
@@ -336,12 +344,12 @@ export default function EmployeeCredentialsPage() {
           message: res.error || "Failed to update account",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to update account",
+        message: getErrorMessage(err) || "Failed to update account",
       });
     }
     setUpdating(false);

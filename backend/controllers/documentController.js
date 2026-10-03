@@ -4,6 +4,7 @@ const asyncHandler = require("express-async-handler");
 const EmployeeDocument = require("../models/EmployeeDocument");
 const Employee = require("../models/Employee");
 const { validateMagicBytes } = require("../middleware/upload");
+const { readDecrypted, writeEncrypted } = require("../utils/fileCrypto");
 const {
   escapeRegex,
   safePagination,
@@ -12,7 +13,10 @@ const {
 
 const DOCUMENT_SORT_FIELDS = ["name", "createdAt"];
 
-const UPLOADS_ROOT = path.resolve(__dirname, "../uploads/employee-docs");
+const UPLOADS_ROOT = path.join(
+  require("../config/paths").UPLOAD_DIR,
+  "employee-docs",
+);
 
 const uploadDocument = asyncHandler(async (req, res) => {
   let fileData = req.body.fileData;
@@ -55,7 +59,7 @@ const uploadDocument = asyncHandler(async (req, res) => {
     const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const absPath = path.resolve(UPLOADS_ROOT, filename);
 
-    fs.writeFileSync(absPath, fileBuffer);
+    writeEncrypted(absPath, fileBuffer);
 
     finalFile = {
       path: absPath,
@@ -182,7 +186,7 @@ const downloadDocument = asyncHandler(async (req, res) => {
     throw new Error("File missing on server");
   }
 
-  const fileBuffer = fs.readFileSync(abs);
+  const fileBuffer = readDecrypted(abs);
   const base64 = fileBuffer.toString("base64");
 
   res.json({

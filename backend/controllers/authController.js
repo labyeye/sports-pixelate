@@ -487,15 +487,10 @@ const sendOtp = asyncHandler(async (req, res) => {
     throw new Error("Phone number is required");
   }
 
-  console.log(`[WA-OTP] controller entered, raw phone=${phone}`);
   const normalised = to10(phone);
   const user = await findUserByPhone(normalised);
-  console.log(`[WA-OTP] lookup phone=${normalised} found=${!!user}`);
   if (!user) {
     // Return generic success to avoid user enumeration
-    console.warn(
-      `[WA-OTP] ABORT: no user matched phone=${normalised} (raw=${phone})`,
-    );
     return res.json({
       success: true,
       message: "If that phone number is registered, an OTP has been sent.",
@@ -510,6 +505,7 @@ const sendOtp = asyncHandler(async (req, res) => {
   const otp = generateOtp();
   user.phoneOtp = hashOtp(otp);
   user.phoneOtpExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+  user.phoneOtpAttempts = 0;
   await user.save();
 
   await sendPhoneOtp(normalised, { otp });
@@ -536,6 +532,20 @@ const verifyOtp = asyncHandler(async (req, res) => {
     throw new Error("Invalid or expired OTP");
   }
 
+  // Per-account guess limit (the IP rate limit alone can be sidestepped).
+  const MAX_OTP_ATTEMPTS = 5;
+  const attemptsDoc = await User.findById(target._id).select(
+    "+phoneOtpAttempts",
+  );
+  if ((attemptsDoc?.phoneOtpAttempts || 0) >= MAX_OTP_ATTEMPTS) {
+    await User.updateOne(
+      { _id: target._id },
+      { $unset: { phoneOtp: 1, phoneOtpExpire: 1 } },
+    );
+    res.status(429);
+    throw new Error("Too many wrong codes. Please request a new OTP.");
+  }
+
   const user = await User.findOne({
     _id: target._id,
     phoneOtp: hashOtp(otp),
@@ -551,6 +561,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
+    await User.updateOne({ _id: target._id }, { $inc: { phoneOtpAttempts: 1 } });
     res.status(401);
     throw new Error("Invalid or expired OTP");
   }
@@ -585,6 +596,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
   user.phoneOtp = undefined;
   user.phoneOtpExpire = undefined;
+  user.phoneOtpAttempts = 0;
   user.lastLogin = new Date();
   await user.save();
 

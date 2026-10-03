@@ -1,3 +1,6 @@
+// Expenses (mobile): record and review expenses by category and date
+// (expenseAPI). Web counterpart: ExpensesPage.tsx.
+
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -37,6 +40,8 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const CATEGORIES = [
   'equipment',
@@ -59,10 +64,6 @@ const EMPTY_FORM = {
   date: toDateStr(new Date()),
   description: '',
 };
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
 
 export default function ExpensesScreen() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -87,13 +88,13 @@ export default function ExpensesScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -136,8 +137,8 @@ export default function ExpensesScreen() {
       }
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save expense');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save expense');
     } finally {
       setSaving(false);
     }
@@ -153,8 +154,8 @@ export default function ExpensesScreen() {
           try {
             await expenseAPI.delete(e._id);
             await load();
-          } catch (err: any) {
-            Alert.alert('Error', err?.message || 'Could not delete expense');
+          } catch (err: unknown) {
+            Alert.alert('Error', (err as Error)?.message || 'Could not delete expense');
           }
         },
       },

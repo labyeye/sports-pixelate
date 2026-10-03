@@ -25,6 +25,7 @@ import {
   Badge,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 function uriToBase64(uri: string): Promise<string> {
   return fetch(uri)
@@ -94,7 +95,7 @@ function PhoneVerifyCard({ phone }: { phone: string }) {
     authAPI
       .getMe()
       .then((r: any) => setVerified(!!r?.data?.phoneVerified))
-      .catch(() => {});
+      .catch(notifyError);
   }, [phone]);
 
   if (!phone) return null;
@@ -105,8 +106,8 @@ function PhoneVerifyCard({ phone }: { phone: string }) {
       await authAPI.sendPhoneVerifyOtp();
       setSent(true);
       Alert.alert('Code sent', 'Check WhatsApp for your 6-digit code');
-    } catch (e: any) {
-      Alert.alert('Failed', e?.message || 'Could not send code');
+    } catch (e: unknown) {
+      Alert.alert('Failed', (e as Error)?.message || 'Could not send code');
     } finally {
       setBusy(false);
     }
@@ -120,8 +121,8 @@ function PhoneVerifyCard({ phone }: { phone: string }) {
       setSent(false);
       setOtp('');
       Alert.alert('Verified', 'WhatsApp number verified');
-    } catch (e: any) {
-      Alert.alert('Verification failed', e?.message || 'Invalid code');
+    } catch (e: unknown) {
+      Alert.alert('Verification failed', (e as Error)?.message || 'Invalid code');
     } finally {
       setBusy(false);
     }
@@ -176,8 +177,8 @@ export default function ProfileScreen({ navigation }: any) {
           setAvatar(res.data.avatar || base64);
           updateUser({ avatar: res.data.avatar || base64 });
         }
-      } catch (e: any) {
-        Alert.alert('Upload failed', e?.message || 'Could not update photo');
+      } catch (e: unknown) {
+        Alert.alert('Upload failed', (e as Error)?.message || 'Could not update photo');
       } finally {
         setUploadingAvatar(false);
       }
@@ -194,8 +195,8 @@ export default function ProfileScreen({ navigation }: any) {
       await authAPI.updateProfile({ name, phone });
       updateUser({ name, phone });
       Alert.alert('Saved', 'Profile updated successfully');
-    } catch (e: any) {
-      Alert.alert('Save failed', e?.message || 'Could not update profile');
+    } catch (e: unknown) {
+      Alert.alert('Save failed', (e as Error)?.message || 'Could not update profile');
     } finally {
       setSavingProfile(false);
     }
@@ -223,8 +224,8 @@ export default function ProfileScreen({ navigation }: any) {
       setNextPassword('');
       setConfirmPassword('');
       Alert.alert('Success', 'Password changed successfully');
-    } catch (e: any) {
-      Alert.alert('Change failed', e?.message || 'Could not change password');
+    } catch (e: unknown) {
+      Alert.alert('Change failed', (e as Error)?.message || 'Could not change password');
     } finally {
       setChangingPassword(false);
     }

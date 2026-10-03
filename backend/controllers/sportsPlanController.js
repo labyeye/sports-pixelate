@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const SportsPlan = require("../models/SportsPlan");
 const {
   escapeRegex,
@@ -126,7 +127,7 @@ const createPlan = [
 ];
 
 const updatePlan = asyncHandler(async (req, res) => {
-  const update = { ...req.body };
+  const update = stripProtected(req.body);
   // Same 12x-monthly default as createPlan when yearlyPrice is left blank.
   if (update.monthlyPrice !== undefined && update.yearlyPrice === undefined) {
     update.yearlyPrice = update.monthlyPrice * 12;

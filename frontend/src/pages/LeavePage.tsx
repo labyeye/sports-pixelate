@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { leaveAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveRequest, Employee } from "@/types/hrms";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   Plus,
   CalendarDays,
@@ -24,6 +24,7 @@ import {
   FileText,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
+import { notifyError } from "@/hooks/use-toast";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-[#FA731C]/10 text-[#FA731C] border-[#FA731C] px-2 py-0.5",
@@ -279,7 +280,9 @@ export default function LeavePage() {
         if (leavesRes.success) setLeaves(leavesRes.data);
         if (empRes.success) setEmployees(empRes.data);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, [filter, isEmployee]);
 
@@ -301,12 +304,12 @@ export default function LeavePage() {
       setShowModal(false);
       setForm(EMPTY_FORM);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to submit leave request.",
+        message: getErrorMessage(err) || "Failed to submit leave request.",
       });
     }
     setSaving(false);
@@ -342,12 +345,12 @@ export default function LeavePage() {
       });
       setEditLeave(null);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to update leave request.",
+        message: getErrorMessage(err) || "Failed to update leave request.",
       });
     }
     setEditSaving(false);
@@ -361,12 +364,12 @@ export default function LeavePage() {
     try {
       await leaveAPI.updateStatus(id, { status, ...extra });
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Action failed.",
+        message: getErrorMessage(err) || "Action failed.",
       });
     }
   };
@@ -380,12 +383,12 @@ export default function LeavePage() {
     try {
       await leaveAPI.delete(leave._id);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to delete leave.",
+        message: getErrorMessage(err) || "Failed to delete leave.",
       });
     }
   };
@@ -405,7 +408,15 @@ export default function LeavePage() {
   };
 
   const confirmReject = async () => {
-    if (!rejectModal.reason.trim()) return;
+    if (!rejectModal.reason.trim()) {
+      setActionModal({
+        show: true,
+        type: "error",
+        title: "Reason Required",
+        message: "Please enter a reason for rejecting this leave.",
+      });
+      return;
+    }
     await handleStatus(rejectModal.leaveId, "rejected", {
       rejectionReason: rejectModal.reason,
     });
@@ -413,19 +424,27 @@ export default function LeavePage() {
   };
 
   const confirmCancel = async () => {
-    if (!cancelModal.reason.trim()) return;
+    if (!cancelModal.reason.trim()) {
+      setActionModal({
+        show: true,
+        type: "error",
+        title: "Reason Required",
+        message: "Please enter a reason for cancelling this leave.",
+      });
+      return;
+    }
     try {
       await leaveAPI.delete(cancelModal.leaveId, {
         cancellationReason: cancelModal.reason,
       });
       setCancelModal({ show: false, leaveId: "", reason: "" });
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to cancel leave.",
+        message: getErrorMessage(err) || "Failed to cancel leave.",
       });
     }
   };

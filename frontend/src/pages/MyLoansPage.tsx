@@ -3,7 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { loanAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, getErrorMessage } from "@/lib/utils";
 import {
   Banknote,
   Plus,
@@ -66,12 +66,6 @@ const EMPTY_FORM = {
   reason: "",
 };
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n || 0);
 
 export default function MyLoansPage() {
   const { toast } = useToast();
@@ -125,10 +119,10 @@ export default function MyLoansPage() {
       });
       setModal(false);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -164,7 +158,7 @@ export default function MyLoansPage() {
           {[
             {
               label: "Outstanding Balance",
-              value: fmt(activeBalance),
+              value: formatCurrency(activeBalance),
               icon: IndianRupee,
               color: "text-red-600",
             },
@@ -245,7 +239,7 @@ export default function MyLoansPage() {
                         Amount
                       </p>
                       <p className="text-sm font-bold text-black">
-                        {fmt(l.amount)}
+                        {formatCurrency(l.amount)}
                       </p>
                     </div>
                     {l.tenureMonths ? (
@@ -264,7 +258,7 @@ export default function MyLoansPage() {
                           Balance
                         </p>
                         <p className="text-sm font-bold text-red-500">
-                          {fmt(l.remainingBalance)}
+                          {formatCurrency(l.remainingBalance)}
                         </p>
                       </div>
                     )}

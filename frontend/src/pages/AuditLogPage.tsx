@@ -92,7 +92,7 @@ export default function AuditLogPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <AppLayout>
+    <AppLayout title="Audit Log">
       <div className="space-y-6">
         {/* Header */}
         <div>

@@ -30,4 +30,7 @@ const transactionSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+transactionSchema.index({ company: 1, date: -1 });
+
 module.exports = mongoose.model("Transaction", transactionSchema);

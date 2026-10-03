@@ -17,6 +17,7 @@ import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
 import LottieView from 'lottie-react-native';
 import { Smartphone, Eye, EyeOff, Fingerprint } from 'lucide-react-native';
+import { getErrorMessage } from '../../utils/format';
 export default function LoginScreen({ navigation }: any) {
   const { login, completeLogin } = useAuth();
   const [email, setEmail] = useState('');
@@ -44,8 +45,8 @@ export default function LoginScreen({ navigation }: any) {
       const res: any = await authAPI.verify2FA(pending2FA || '', tfaCode.trim());
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
-    } catch (err: any) {
-      setError(err.message || 'Invalid authentication code');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Invalid authentication code');
     }
     setLoading(false);
   };
@@ -216,7 +217,7 @@ export default function LoginScreen({ navigation }: any) {
                   width: 50,
                   height: 50,
                   borderRadius: 25,
-                  backgroundColor: '#10B981',
+                  backgroundColor: colors.blue,
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginTop: 8,

@@ -8,15 +8,19 @@ const {
   deleteLoan,
   bulkImportLoans,
 } = require("../controllers/loanController");
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
 const router = express.Router();
 
+const owner = authorize("super_admin", "hr_manager");
+
+// Anyone can see their own loans and request one; only the owner/HR can
+// create, approve, edit, delete or import loans.
 router.get("/", protect, getLoans);
-router.post("/", protect, createLoan);
-router.post("/bulk-import", protect, bulkImportLoans);
 router.post("/request", protect, requestLoan);
-router.put("/:id/status", protect, updateLoanStatus);
-router.put("/:id", protect, updateLoan);
-router.delete("/:id", protect, deleteLoan);
+router.post("/", protect, owner, createLoan);
+router.post("/bulk-import", protect, owner, bulkImportLoans);
+router.put("/:id/status", protect, owner, updateLoanStatus);
+router.put("/:id", protect, owner, updateLoan);
+router.delete("/:id", protect, owner, deleteLoan);
 
 module.exports = router;

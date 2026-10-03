@@ -4,6 +4,7 @@ import { CreditCard } from 'lucide-react-native';
 import { Card, SectionTitle, EmptyState } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
+import { notifyError } from '../../../utils/notifyError';
 
 const STATUS_COLOR: Record<string, string> = { paid: colors.green, pending: colors.yellow, failed: colors.red };
 
@@ -16,7 +17,7 @@ export default function PaymentsTab({ eventId }: { eventId: string }) {
     eventAPI
       .getPayments(eventId)
       .then((r: any) => setItems(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [eventId]);
 

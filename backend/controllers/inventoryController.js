@@ -1,5 +1,9 @@
 const asyncHandler = require("express-async-handler");
+const { removeStoredUpload } = require("../utils/uploadFiles");
+const { stripProtected } = require("../middleware/validate");
 const InventoryItem = require("../models/InventoryItem");
+const Student = require("../models/Student");
+const Employee = require("../models/Employee");
 const InventoryTransaction = require("../models/InventoryTransaction");
 const {
   escapeRegex,
@@ -99,7 +103,7 @@ const createItem = [
 const updateItem = asyncHandler(async (req, res) => {
   const item = await InventoryItem.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
-    req.body,
+    stripProtected(req.body, ["assignments"]),
     { new: true, runValidators: true },
   );
   if (!item) {
@@ -129,15 +133,18 @@ const uploadItemPhoto = asyncHandler(async (req, res) => {
   }
   const baseUrl = `${req.protocol}://${req.get("host")}`;
   const photoUrl = `${baseUrl}/uploads/inventory-photos/${req.file.filename}`;
-  const item = await InventoryItem.findOneAndUpdate(
+  const previous = await InventoryItem.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
     { photo: photoUrl },
-    { new: true },
+    { new: false },
   );
-  if (!item) {
+  if (!previous) {
+    removeStoredUpload(photoUrl);
     res.status(404);
     throw new Error("Item not found");
   }
+  removeStoredUpload(previous.photo, req.file.path);
+  const item = await InventoryItem.findById(previous._id);
   res.json({ success: true, photo: photoUrl, data: item });
 });
 
@@ -202,6 +209,22 @@ const assignItem = asyncHandler(async (req, res) => {
     throw new Error("assignedToModel must be Student or Employee");
   }
 
+  const qty = Math.floor(Number(quantity));
+  if (!qty || qty < 1) {
+    res.status(400);
+    throw new Error("quantity must be a positive whole number");
+  }
+  // The person being handed the gear must belong to this academy.
+  const PersonModel = assignedToModel === "Student" ? Student : Employee;
+  const person = await PersonModel.findOne({
+    _id: assignedTo,
+    company: req.user.company,
+  }).select("_id");
+  if (!person) {
+    res.status(404);
+    throw new Error(`${assignedToModel} not found`);
+  }
+
   const item = await InventoryItem.findOne({
     _id: req.params.id,
     company: req.user.company,
@@ -210,13 +233,13 @@ const assignItem = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Item not found");
   }
-  if (item.availableQuantity < quantity) {
+  if (item.availableQuantity < qty) {
     res.status(400);
     throw new Error("Not enough stock available to assign");
   }
 
-  item.availableQuantity -= quantity;
-  item.assignments.push({ assignedTo, assignedToModel, quantity, notes });
+  item.availableQuantity -= qty;
+  item.assignments.push({ assignedTo, assignedToModel, quantity: qty, notes });
   await item.save();
 
   res.json({ success: true, data: item });

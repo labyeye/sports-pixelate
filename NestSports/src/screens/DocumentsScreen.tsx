@@ -41,6 +41,7 @@ import {
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
+import { notifyError } from '../utils/notifyError';
 
 const DOC_TYPES = [
   'id_proof',
@@ -127,7 +128,7 @@ export default function DocumentsScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -139,7 +140,7 @@ export default function DocumentsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -174,8 +175,8 @@ export default function DocumentsScreen() {
             try {
               await documentAPI.delete(doc._id);
               setDocuments(prev => prev.filter(d => d._id !== doc._id));
-            } catch (e: any) {
-              Alert.alert('Error', e?.message || 'Could not delete document');
+            } catch (e: unknown) {
+              Alert.alert('Error', (e as Error)?.message || 'Could not delete document');
             }
           },
         },
@@ -191,7 +192,7 @@ export default function DocumentsScreen() {
       employeeAPI
         .getAll({ limit: '500' })
         .then((r: any) => setEmployees(r.data || []))
-        .catch(() => {});
+        .catch(notifyError);
     }
   };
 
@@ -235,8 +236,8 @@ export default function DocumentsScreen() {
       });
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not upload document');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not upload document');
     } finally {
       setUploading(false);
     }
@@ -251,8 +252,8 @@ export default function DocumentsScreen() {
         ? fileData
         : `data:${mimeType || 'application/octet-stream'};base64,${fileData}`;
       await Share.share({ url: uri, title: name || doc.name });
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not download document');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not download document');
     } finally {
       setDownloadingId(null);
     }

@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Info,
 } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 const FINGER_NAMES = [
   "Right Thumb (0)",
@@ -56,8 +57,8 @@ export function FingerprintEnrollModal({ device, person, onClose }: Props) {
       );
       setQueued(true);
       toast({ title: "Enrollment command sent", description: res.message });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setSending(false);
   };

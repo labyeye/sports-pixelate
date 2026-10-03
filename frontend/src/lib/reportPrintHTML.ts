@@ -1,4 +1,5 @@
 import { NESTHR_LOGO_B64 } from "./nesthrLogoB64";
+import { escapeHtml as esc } from "./escapeHtml";
 
 export interface ReportCompany {
   name: string;
@@ -66,18 +67,18 @@ function cellHTML(
   if (isStatusCol) {
     const style = getStatusStyle(val);
     if (style) {
-      return `<span style="display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;${style}">${val}</span>`;
+      return `<span style="display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;${style}">${esc(val)}</span>`;
     }
   }
   if (isNameCol && val && val !== "—") {
     const initials = getInitials(val);
     const bg = avatarColor(val);
     return `<span style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:700;flex-shrink:0;">${initials}</span>
-      <span>${val}</span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:700;flex-shrink:0;">${esc(initials)}</span>
+      <span>${esc(val)}</span>
     </span>`;
   }
-  return val;
+  return esc(val);
 }
 
 export function buildReportHTML(
@@ -103,7 +104,7 @@ export function buildReportHTML(
   const thCells = headers
     .map(
       (h) =>
-        `<th style="background:#024BAB;color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">${h}</th>`,
+        `<th style="background:#024BAB;color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">${esc(h)}</th>`,
     )
     .join("");
 
@@ -138,18 +139,18 @@ export function buildReportHTML(
   const companyName = company?.name || "NestPlay";
 
   const categoryBadge = reportCategory
-    ? `<span style="display:inline-block;background:#EFF6FF;color:#024BAB;border:1px solid #BFDBFE;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 7px;margin-bottom:4px;">${reportCategory}</span>`
+    ? `<span style="display:inline-block;background:#EFF6FF;color:#024BAB;border:1px solid #BFDBFE;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 7px;margin-bottom:4px;">${esc(reportCategory)}</span>`
     : "";
 
   const generatedForLine = generatedFor
-    ? `<div style="font-size:10px;color:#6B7280;margin-top:3px;">Employee: <b style="color:#111;">${generatedFor}</b></div>`
+    ? `<div style="font-size:10px;color:#6B7280;margin-top:3px;">Employee: <b style="color:#111;">${esc(generatedFor)}</b></div>`
     : "";
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>${title}</title>
+  <title>${esc(title)}</title>
   <style>
     @page {
       size: A4 landscape;
@@ -279,9 +280,9 @@ export function buildReportHTML(
   <div class="report-header">
     <!-- Left: Company -->
     <div class="header-company">
-      <img src="${companyLogo}" alt="${companyName}" />
+      <img src="${esc(companyLogo)}" alt="${esc(companyName)}" />
       <div>
-        <div class="company-name">${companyName}</div>
+        <div class="company-name">${esc(companyName)}</div>
         <div class="company-sub">Human Resource Management System</div>
       </div>
     </div>
@@ -289,15 +290,15 @@ export function buildReportHTML(
     <!-- Center: Report type + name -->
     <div class="header-center">
       ${categoryBadge}
-      <div class="report-title">${title}</div>
-      <div class="report-period">${period}</div>
+      <div class="report-title">${esc(title)}</div>
+      <div class="report-period">${esc(period)}</div>
     </div>
 
     <!-- Right: Generated date + for whom -->
     <div class="header-right">
       <div class="generated-label">Report Generated</div>
-      <div class="generated-date">${now}</div>
-      ${generatedFor ? `<div class="generated-for">For: <b>${generatedFor}</b></div>` : ""}
+      <div class="generated-date">${esc(now)}</div>
+      ${generatedFor ? `<div class="generated-for">For: <b>${esc(generatedFor)}</b></div>` : ""}
     </div>
   </div>
 
@@ -316,8 +317,8 @@ export function buildReportHTML(
   </table>
 
   <div class="footer-bar">
-    <span>${companyName} — Confidential HR Report</span>
-    <span>${title} · ${period}</span>
+    <span>${esc(companyName)} — Confidential HR Report</span>
+    <span>${esc(title)} · ${esc(period)}</span>
   </div>
 
   <script>window.onload = function() { window.print(); }</script>

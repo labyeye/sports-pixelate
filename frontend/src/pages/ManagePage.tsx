@@ -1,3 +1,9 @@
+// Manage hub (web): settings-style master data for the academy, each in its own
+// section component — shifts, salary heads, designations, offer letters and
+// roles. The page shell at the bottom (MANAGE_ITEMS) shows a tile grid and
+// swaps in the selected section; every section receives `onBack` to return.
+// Mobile counterpart: NestSports ManageScreen.
+
 import { useState, useEffect } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -8,7 +14,7 @@ import {
   offerLetterAPI,
   departmentAPI,
 } from "@/services/api";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   Clock,
   IndianRupee,
@@ -28,6 +34,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+// Neo-brutalist styled select used across the Manage sections.
 function NbSelect({
   value,
   onChange,
@@ -53,6 +60,7 @@ function NbSelect({
   );
 }
 
+// Neo-brutalist styled text input used across the Manage sections.
 function NbInput({
   label,
   value,
@@ -85,6 +93,7 @@ function NbInput({
   );
 }
 
+// Section header with a back button, shared by every Manage section.
 function SubHeader({
   title,
   icon,
@@ -127,6 +136,7 @@ function SubHeader({
   );
 }
 
+// Simple styled table used by the Manage sections.
 function NbTable({
   headers,
   rows,
@@ -171,6 +181,7 @@ function NbTable({
   );
 }
 
+// Shift timings: create/edit/delete work shifts (shiftAPI).
 function ShiftsSection({ onBack }: { onBack: () => void }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -248,8 +259,8 @@ function ShiftsSection({ onBack }: { onBack: () => void }) {
       else await shiftAPI.create(payload);
       setModal(false);
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -476,6 +487,7 @@ function ShiftsSection({ onBack }: { onBack: () => void }) {
   );
 }
 
+// Salary heads: earning/deduction components used in payroll (salaryHeadAPI).
 function SalaryHeadsSection({ onBack }: { onBack: () => void }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -536,8 +548,8 @@ function SalaryHeadsSection({ onBack }: { onBack: () => void }) {
       else await salaryHeadAPI.create(payload);
       setModal(false);
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -727,6 +739,7 @@ function SalaryHeadsSection({ onBack }: { onBack: () => void }) {
   );
 }
 
+// Designations: job titles employees can be assigned (designationAPI).
 function DesignationsSection({ onBack }: { onBack: () => void }) {
   const [data, setData] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -792,8 +805,8 @@ function DesignationsSection({ onBack }: { onBack: () => void }) {
       else await designationAPI.create(payload);
       setModal(false);
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -955,6 +968,7 @@ function DesignationsSection({ onBack }: { onBack: () => void }) {
   );
 }
 
+// Offer letter templates (offerLetterAPI).
 function OfferLettersSection({ onBack }: { onBack: () => void }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -994,8 +1008,8 @@ function OfferLettersSection({ onBack }: { onBack: () => void }) {
       else await offerLetterAPI.create(form);
       setModal(false);
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -1136,6 +1150,7 @@ function OfferLettersSection({ onBack }: { onBack: () => void }) {
   );
 }
 
+// Roles section.
 function RolesSection({ onBack }: { onBack: () => void }) {
   const ROLES = [
     {

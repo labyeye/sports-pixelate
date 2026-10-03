@@ -42,6 +42,7 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 function uriToBase64(uri: string): Promise<string> {
   return fetch(uri)
@@ -174,13 +175,13 @@ export default function MyProfileScreen({ navigation }: any) {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -199,8 +200,8 @@ export default function MyProfileScreen({ navigation }: any) {
         const res: any = await authAPI.updateProfile({ avatar: base64 });
         const avatar = res?.data?.avatar || base64;
         updateUser({ avatar });
-      } catch (e: any) {
-        Alert.alert('Upload failed', e?.message || 'Could not update photo');
+      } catch (e: unknown) {
+        Alert.alert('Upload failed', (e as Error)?.message || 'Could not update photo');
       } finally {
         setUploadingAvatar(false);
       }

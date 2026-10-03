@@ -1,3 +1,15 @@
+import { escapeHtml } from "@/lib/escapeHtml";
+// Reports hub (web): a catalogue of payroll, attendance, employee and student
+// reports. Each report card in REPORTS opens a `*Gen` component below that
+// loads its own data (payrollAPI / attendanceAPI / studentAPI / employeeAPI /
+// leaveAPI / reportAPI), filters it, and exports to PDF (reportPDF), Excel
+// (xlsx) or a print view (reportPrintHTML).
+//
+// Layout of this file: shared UI helpers -> ReportTable -> one Gen component per
+// report -> the page shell that lists REPORTS and renders the selected Gen.
+// The mobile counterpart is NestSports/src/reports/catalog.ts + the *ReportScreen
+// screens; keep report names and columns aligned.
+
 import { useState, useEffect, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -52,6 +64,7 @@ import {
   Building2,
   X,
 } from "lucide-react";
+import { notifyError } from "@/hooks/use-toast";
 
 const MONTHS = [
   "Jan",
@@ -693,6 +706,7 @@ function ReportTable({
   );
 }
 
+// Pay Report: datewise present/absent/half-day status with attendance summary and payment details.
 function PayReportGen({
   departments,
   company,
@@ -718,7 +732,9 @@ function PayReportGen({
         limit: "500",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -833,6 +849,7 @@ function PayReportGen({
   );
 }
 
+// Salary Register: all salary components (basic, HRA, allowances, deductions, net pay).
 function SalaryRegisterGen({
   departments,
   company,
@@ -858,7 +875,9 @@ function SalaryRegisterGen({
         limit: "500",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -997,6 +1016,7 @@ function SalaryRegisterGen({
   );
 }
 
+// Net Salary report: take-home pay per employee after all deductions.
 function NetSalaryGen({
   departments,
   company,
@@ -1022,7 +1042,9 @@ function NetSalaryGen({
         limit: "500",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1100,6 +1122,7 @@ function NetSalaryGen({
   );
 }
 
+// Salary Slip: printable/downloadable payslip per employee for a month.
 function SalarySlipGen({
   departments,
   company,
@@ -1127,7 +1150,9 @@ function SalarySlipGen({
         limit: "500",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1137,9 +1162,11 @@ function SalarySlipGen({
     const emp = p.employee || {};
     const win = window.open("", "_blank");
     if (!win) return;
-    const companyName = company?.name || "NestPlay";
-    const companyLogo = company?.logo || "";
-    const empName = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
+    const companyName = escapeHtml(company?.name || "NestPlay");
+    const companyLogo = escapeHtml(company?.logo || "");
+    const empName = escapeHtml(
+      `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
+    );
     const now = new Date().toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -1199,9 +1226,9 @@ function SalarySlipGen({
 
   <div class="emp-grid">
     <div><span style="color:#6B7280;">Employee: </span><b>${empName}</b></div>
-    <div><span style="color:#6B7280;">Emp ID: </span><b>${emp.employeeId || "—"}</b></div>
-    <div><span style="color:#6B7280;">Department: </span><b>${emp.department?.name || "—"}</b></div>
-    <div><span style="color:#6B7280;">Designation: </span><b>${emp.designation || "—"}</b></div>
+    <div><span style="color:#6B7280;">Emp ID: </span><b>${escapeHtml(emp.employeeId || "—")}</b></div>
+    <div><span style="color:#6B7280;">Department: </span><b>${escapeHtml(emp.department?.name || "—")}</b></div>
+    <div><span style="color:#6B7280;">Designation: </span><b>${escapeHtml(emp.designation || "—")}</b></div>
   </div>
 
   <div class="section">Earnings</div>
@@ -1210,14 +1237,14 @@ function SalarySlipGen({
   <div class="row"><span class="lbl">DA</span><span class="amt">₹${(p.da || 0).toLocaleString("en-IN")}</span></div>
   <div class="row"><span class="lbl">TA</span><span class="amt">₹${(p.ta || 0).toLocaleString("en-IN")}</span></div>
   <div class="row"><span class="lbl">Medical Allowance</span><span class="amt">₹${(p.medicalAllowance || 0).toLocaleString("en-IN")}</span></div>
-  ${(p.allowances || []).map((a: any) => `<div class="row"><span class="lbl">${a.label}</span><span class="amt">₹${Number(a.amount || 0).toLocaleString("en-IN")}</span></div>`).join("")}
+  ${(p.allowances || []).map((a: any) => `<div class="row"><span class="lbl">${escapeHtml(a.label)}</span><span class="amt">₹${Number(a.amount || 0).toLocaleString("en-IN")}</span></div>`).join("")}
   <div class="row total"><span>Gross Salary</span><span>₹${(p.grossSalary || 0).toLocaleString("en-IN")}</span></div>
 
   <div class="section">Deductions</div>
   <div class="row"><span class="lbl">Provident Fund (PF)</span><span class="amt">₹${(p.pf || 0).toLocaleString("en-IN")}</span></div>
   <div class="row"><span class="lbl">ESI</span><span class="amt">₹${(p.esi || 0).toLocaleString("en-IN")}</span></div>
   <div class="row"><span class="lbl">TDS</span><span class="amt">₹${(p.tds || 0).toLocaleString("en-IN")}</span></div>
-  ${(p.deductions || []).map((d: any) => `<div class="row"><span class="lbl">${d.label}</span><span class="amt">₹${Number(d.amount || 0).toLocaleString("en-IN")}</span></div>`).join("")}
+  ${(p.deductions || []).map((d: any) => `<div class="row"><span class="lbl">${escapeHtml(d.label)}</span><span class="amt">₹${Number(d.amount || 0).toLocaleString("en-IN")}</span></div>`).join("")}
   <div class="row total"><span>Total Deductions</span><span>₹${(p.totalDeductions || 0).toLocaleString("en-IN")}</span></div>
 
   <div class="row net"><span>NET PAY</span><span>₹${(p.netSalary || 0).toLocaleString("en-IN")}</span></div>
@@ -1396,6 +1423,7 @@ function SalarySlipGen({
   );
 }
 
+// PF Register: employee and employer provident-fund contributions.
 function PFRegisterGen({
   departments,
   company,
@@ -1421,7 +1449,9 @@ function PFRegisterGen({
         limit: "500",
       });
       if (r.success) setData(r.data.filter((p: any) => (p.pf || 0) > 0));
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1499,6 +1529,7 @@ function PFRegisterGen({
   );
 }
 
+// ESIC Register: ESI contributions per employee.
 function ESICRegisterGen({
   departments,
   company,
@@ -1524,7 +1555,9 @@ function ESICRegisterGen({
         limit: "500",
       });
       if (r.success) setData(r.data.filter((p: any) => (p.esi || 0) > 0));
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1602,6 +1635,7 @@ function ESICRegisterGen({
   );
 }
 
+// Bank Upload: bank transfer file (account numbers + net pay) for bulk salary payment.
 function BankUploadGen({
   departments,
   company,
@@ -1627,7 +1661,9 @@ function BankUploadGen({
         limit: "500",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1703,6 +1739,7 @@ function BankUploadGen({
   );
 }
 
+// Absent & Leave Summary: paid and unpaid leave totals per employee.
 function AbsentLeaveSummaryGen({
   departments,
   company,
@@ -1727,7 +1764,9 @@ function AbsentLeaveSummaryGen({
       if (dept !== "all") params.department = dept;
       const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1843,6 +1882,7 @@ function AbsentLeaveSummaryGen({
   );
 }
 
+// Late Coming report: late arrivals per employee for the selected period.
 function LateComingGen({
   departments,
   company,
@@ -1868,7 +1908,9 @@ function LateComingGen({
       const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success)
         setData(r.data.filter((rec: any) => rec.status === "late"));
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -1967,6 +2009,7 @@ function LateComingGen({
   );
 }
 
+// Designation Summary: monthly employee counts and payroll grouped by designation.
 function DesignationSummaryGen({
   departments,
   company,
@@ -1988,7 +2031,9 @@ function DesignationSummaryGen({
         status: "active",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2057,6 +2102,7 @@ function DesignationSummaryGen({
   );
 }
 
+// Attendance Report: daily attendance status per employee for a period.
 function AttendanceReportGen({
   departments,
   company,
@@ -2081,7 +2127,9 @@ function AttendanceReportGen({
       if (dept !== "all") params.department = dept;
       const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2191,6 +2239,7 @@ function AttendanceReportGen({
   );
 }
 
+// Attendance In/Out: check-in and check-out time per employee for each date.
 function AttendanceInOutGen({
   departments,
   company,
@@ -2215,7 +2264,9 @@ function AttendanceInOutGen({
       if (dept !== "all") params.department = dept;
       const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data.filter((rec: any) => rec.checkIn));
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2311,6 +2362,7 @@ function AttendanceInOutGen({
   );
 }
 
+// Attendance Summary: datewise present/absent/half-day status for all employees.
 function AttendanceSummaryGen({
   departments,
   company,
@@ -2335,7 +2387,9 @@ function AttendanceSummaryGen({
       if (dept !== "all") params.department = dept;
       const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2450,6 +2504,7 @@ function AttendanceSummaryGen({
   );
 }
 
+// Leave Report: datewise leave per employee with leave types and days.
 function LeaveReportGen({
   departments,
   company,
@@ -2475,7 +2530,9 @@ function LeaveReportGen({
       if (status !== "all") params.status = status;
       const r = await fetchAllPages(leaveAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2566,6 +2623,7 @@ function LeaveReportGen({
   );
 }
 
+// Miss Punch report: employees with a missing punch-in or punch-out on a date.
 function MissPunchGen({
   departments,
   company,
@@ -2591,7 +2649,9 @@ function MissPunchGen({
       const r = await fetchAllPages(attendanceAPI.getAll, params);
       if (r.success)
         setData(r.data.filter((rec: any) => rec.checkIn && !rec.checkOut));
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2680,6 +2740,7 @@ function MissPunchGen({
   );
 }
 
+// Employee Directory: full employee list with contact, department, designation, salary.
 function EmployeeDirectoryGen({
   departments,
   company,
@@ -2703,7 +2764,9 @@ function EmployeeDirectoryGen({
       if (status !== "all") params.status = status;
       const r = await fetchAllPages(employeeAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -2822,6 +2885,7 @@ const EMP_REPORT_TYPES = [
   },
 ];
 
+// Employee Report: pick an employee and a type (attendance, salary slip, leave, profile).
 function EmployeeReportGen({
   departments: _departments,
   company,
@@ -2890,7 +2954,9 @@ function EmployeeReportGen({
       } else if (reportType === "profile") {
         setData([selectedEmp]);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
     setGenerated(true);
   }
@@ -3231,6 +3297,7 @@ function EmployeeReportGen({
   );
 }
 
+// Student Attendance report: datewise status per student, filterable by month, batch and sport.
 function StudentAttendanceReportGen({
   company,
 }: {
@@ -3259,14 +3326,14 @@ function StudentAttendanceReportGen({
           );
         }
       })
-      .catch(() => {});
+      .catch(notifyError);
     sportAPI
       .getAll()
       .then(
         (r) =>
           r.success && setSportOptions(r.data.map((s: any) => s.name || s)),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -3280,7 +3347,9 @@ function StudentAttendanceReportGen({
       if (sport !== "all") params.sport = sport;
       const r = await fetchAllPages(studentAttendanceAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -3417,6 +3486,7 @@ function StudentAttendanceReportGen({
   );
 }
 
+// Student Subscription report: plan, billing cycle, renewal date and payment status per student.
 function StudentSubscriptionReportGen({
   company,
 }: {
@@ -3431,7 +3501,7 @@ function StudentSubscriptionReportGen({
     reportAPI
       .studentFees({ limit: "1000" })
       .then((r) => r.success && setData(r.data))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -3535,6 +3605,7 @@ function StudentSubscriptionReportGen({
   );
 }
 
+// Student Fee report: fee charges, invoices and payment status.
 function StudentFeeReportGen({
   company,
 }: {
@@ -3560,7 +3631,9 @@ function StudentFeeReportGen({
       if (to) params.to = to;
       const r = await reportAPI.studentFees(params);
       if (r.success) setData(r.data);
-    } catch (e) {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -3660,6 +3733,7 @@ function StudentFeeReportGen({
   );
 }
 
+// Student Outstanding Dues: students with unpaid or overdue amounts.
 function StudentOutstandingDuesGen({
   company,
 }: {
@@ -3681,7 +3755,9 @@ function StudentOutstandingDuesGen({
       if (minAmount) params.minAmount = String(minAmount);
       const r = await reportAPI.studentOutstanding(params);
       if (r.success) setData(r.data);
-    } catch (e) {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -3771,6 +3847,7 @@ function StudentOutstandingDuesGen({
   );
 }
 
+// Tournament report: fixtures, scores and winners, round by round.
 function TournamentReportGen({
   company,
 }: {
@@ -3797,7 +3874,7 @@ function TournamentReportGen({
     eventAPI
       .getFixtures(tournamentId)
       .then((r) => r.success && setFixtures(r.data))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [tournamentId]);
 
@@ -3914,14 +3991,14 @@ function useSportBatchOptions() {
           );
         }
       })
-      .catch(() => {});
+      .catch(notifyError);
     sportAPI
       .getAll()
       .then(
         (r) =>
           r.success && setSportOptions(r.data.map((s: any) => s.name || s)),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
   return { sportOptions, batchOptions };
 }
@@ -3933,6 +4010,7 @@ function guardianRelationName(guardians: any[] | undefined): string {
   return g?.name || "—";
 }
 
+// Student Directory: full student list with contact, batch, sport and guardian details.
 function StudentDirectoryGen({
   company,
 }: {
@@ -3965,7 +4043,9 @@ function StudentDirectoryGen({
       if (status !== "all") params.status = status;
       const r = await fetchAllPages(studentAPI.getAll, params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -3997,7 +4077,9 @@ function StudentDirectoryGen({
     try {
       const r = await reportAPI.studentProfile(selectedId);
       if (r.success) setProfile(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setProfileLoading(false);
     setProfileGenerated(true);
   }
@@ -4215,6 +4297,7 @@ function StudentDirectoryGen({
   );
 }
 
+// Student Performance report: progress and assessment records.
 function StudentPerformanceGen({
   company,
 }: {
@@ -4239,7 +4322,9 @@ function StudentPerformanceGen({
       if (batch !== "all") params.batch = batch;
       const r = await reportAPI.studentPerformance(params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -4323,6 +4408,7 @@ function StudentPerformanceGen({
   );
 }
 
+// Student Enrollment report: new enrolments over a period.
 function StudentEnrollmentGen({
   company,
 }: {
@@ -4354,7 +4440,9 @@ function StudentEnrollmentGen({
         setData(r.data);
         if (r.summary) setSummary(r.summary);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -4437,6 +4525,7 @@ function StudentEnrollmentGen({
   );
 }
 
+// Batch Summary: students and attendance grouped by batch.
 function BatchSummaryGen({
   company,
 }: {
@@ -4457,7 +4546,9 @@ function BatchSummaryGen({
     try {
       const r = await reportAPI.batchSummary(batch ? { batch } : undefined);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -4540,6 +4631,7 @@ function BatchSummaryGen({
   );
 }
 
+// Sport Summary: students and fees grouped by sport.
 function SportSummaryGen({
   company,
 }: {
@@ -4558,7 +4650,7 @@ function SportSummaryGen({
         (r) =>
           r.success && setSportOptions(r.data.map((s: any) => s.name || s)),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -4570,7 +4662,9 @@ function SportSummaryGen({
     try {
       const r = await reportAPI.sportSummary(sport ? { sport } : undefined);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -4652,6 +4746,7 @@ function SportSummaryGen({
   );
 }
 
+// Guardian Contact List: guardian names and phone numbers per student.
 function GuardianContactListGen({
   company,
 }: {
@@ -4664,7 +4759,7 @@ function GuardianContactListGen({
   useEffect(() => {
     fetchAllPages(studentAPI.getAll, { limit: "1000" })
       .then((r) => r.success && setData(r.data))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -4748,6 +4843,7 @@ function GuardianContactListGen({
   );
 }
 
+// Student Payment History: every payment made per student.
 function StudentPaymentHistoryGen({
   company,
 }: {
@@ -4762,7 +4858,7 @@ function StudentPaymentHistoryGen({
   useEffect(() => {
     fetchAllPages(studentAPI.getAll, { limit: "1000" })
       .then((r) => r.success && setStudents(r.data))
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -4776,7 +4872,9 @@ function StudentPaymentHistoryGen({
       if (selectedId) params.student = selectedId;
       const r = await reportAPI.studentFees(params);
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -4873,7 +4971,8 @@ function StudentPaymentHistoryGen({
   );
 }
 
-function ComingSoonGen({}: { departments?: any[]; company: ReportCompany }) {
+// Placeholder shown for reports that are listed but not yet available.
+function ComingSoonGen(_props: { departments?: any[]; company: ReportCompany }) {
   return (
     <div className="border-2 bg-white p-12 flex flex-col items-center gap-4">
       <div className="w-16 h-16 border-2 border-black bg-[#024BAB]/10 flex items-center justify-center">
@@ -4891,6 +4990,7 @@ function ComingSoonGen({}: { departments?: any[]; company: ReportCompany }) {
   );
 }
 
+// Tally Export: monthly payroll data as CSV for import into Tally ERP.
 function TallyExportGen({
   departments: _d,
   company: _c,
@@ -4916,7 +5016,9 @@ function TallyExportGen({
         limit: "500",
       });
       if (r.success) setData(r.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }
 
@@ -5655,7 +5757,7 @@ export default function ReportsPage() {
     departmentAPI
       .getAll()
       .then((r) => r.success && setDepartments(r.data))
-      .catch(() => {});
+      .catch(notifyError);
     settingsAPI
       .get()
       .then((r) => {
@@ -5666,7 +5768,7 @@ export default function ReportsPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const filtered = REPORTS.filter((r) => {

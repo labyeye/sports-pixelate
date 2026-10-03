@@ -1,3 +1,6 @@
+// Loans & advances (mobile): HR view — create, edit, approve/reject (loanAPI)
+// and Excel import. Web counterpart: LoansPage.tsx.
+
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -44,6 +47,8 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { formatCurrency, getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const LOAN_IMPORT_HEADERS: ImportHeader[] = [
   {
@@ -76,10 +81,6 @@ const LOAN_IMPORT_HEADERS: ImportHeader[] = [
   },
   { key: 'status', label: 'Status', required: false, example: 'active' },
 ];
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: colors.orange,
@@ -126,13 +127,13 @@ export default function LoansScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -141,8 +142,8 @@ export default function LoansScreen() {
     try {
       await loanAPI.updateStatus(id, { status });
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to update loan status');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to update loan status');
     } finally {
       setUpdatingId(null);
     }
@@ -195,8 +196,8 @@ export default function LoansScreen() {
       }
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save loan');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save loan');
     } finally {
       setSaving(false);
     }
@@ -212,8 +213,8 @@ export default function LoansScreen() {
           try {
             await loanAPI.delete(l._id);
             await load();
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not delete loan');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Could not delete loan');
           }
         },
       },

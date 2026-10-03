@@ -4,6 +4,7 @@ import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/ui/FileUpload";
 import type { Event, EventDocument } from "@/types/hrms";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Props {
   event: Event;
@@ -33,8 +34,8 @@ export function DocumentsTab({ event, onChanged }: Props) {
       await eventAPI.addDocument(event._id, file, kind, label.trim());
       setLabel("");
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -45,8 +46,8 @@ export function DocumentsTab({ event, onChanged }: Props) {
     try {
       await eventAPI.removeDocument(event._id, docId);
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setBusyId(null);
     }

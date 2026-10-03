@@ -44,6 +44,8 @@ import {
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
 import { Button, ChipSelect, LoadingView, KpiTile } from '../components/ui';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 interface Location {
   _id: string;
@@ -135,8 +137,8 @@ export default function BiometricDeviceScreen() {
       ]);
       setLocations((locRes as any)?.data || []);
       setDevices((devRes as any)?.data || []);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -155,7 +157,9 @@ export default function BiometricDeviceScreen() {
           (p: Person) => p.status !== 'terminated' && p.status !== 'inactive',
         ),
       );
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setPeopleLoading(false);
   }, []);
 
@@ -164,7 +168,9 @@ export default function BiometricDeviceScreen() {
     try {
       const res = await biometricAPI.getDeviceCommands(deviceId);
       setCommands((res as any)?.data || []);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setCmdLoading(false);
   }, []);
 
@@ -194,7 +200,11 @@ export default function BiometricDeviceScreen() {
 
   // ── Sync handlers ────────────────────────────────────────────────────────
   const handleSaveSerial = async () => {
-    if (!syncDevice || !syncSerial.trim() || serialSaving) return;
+    if (!syncDevice || serialSaving) return;
+    if (!syncSerial.trim()) {
+      Alert.alert('Missing information', 'Please enter the device serial number.');
+      return;
+    }
     setSerialSaving(true);
     try {
       const res = await biometricAPI.setDeviceSerial(
@@ -203,8 +213,8 @@ export default function BiometricDeviceScreen() {
       );
       setSyncDevice((res as any)?.data);
       Alert.alert('Saved', `Device linked to SN: ${syncSerial.toUpperCase()}`);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
     setSerialSaving(false);
   };
@@ -226,8 +236,8 @@ export default function BiometricDeviceScreen() {
         `${person.firstName} will sync on next device poll`,
       );
       fetchCommands(syncDevice._id);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
     setSyncingId(null);
   };
@@ -243,8 +253,8 @@ export default function BiometricDeviceScreen() {
       await biometricAPI.syncAllToDevice(syncDevice._id);
       Alert.alert('Queued', 'All people queued for sync');
       fetchCommands(syncDevice._id);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
     setSyncingAll(false);
   };
@@ -263,8 +273,8 @@ export default function BiometricDeviceScreen() {
         'Fingerprint enrollment queued — person should place finger on device',
       );
       fetchCommands(syncDevice._id);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
     setFpEnrollingId(null);
   };
@@ -283,8 +293,8 @@ export default function BiometricDeviceScreen() {
         'Face enrollment queued — person should look at device',
       );
       fetchCommands(syncDevice._id);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
     setFaceEnrollingId(null);
   };
@@ -308,13 +318,17 @@ export default function BiometricDeviceScreen() {
         ),
       );
       setEditBioIdPerson(null);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
   };
 
   const handleSaveRfid = async () => {
-    if (!rfidModal || !rfidVal.trim() || rfidSaving) return;
+    if (!rfidModal || rfidSaving) return;
+    if (!rfidVal.trim()) {
+      Alert.alert('Missing information', 'Please enter the RFID card number.');
+      return;
+    }
     setRfidSaving(true);
     try {
       await biometricAPI.saveRfidCard(
@@ -329,8 +343,8 @@ export default function BiometricDeviceScreen() {
       );
       setRfidModal(null);
       setRfidVal('');
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     }
     setRfidSaving(false);
   };
@@ -366,8 +380,8 @@ export default function BiometricDeviceScreen() {
       }
       setLocModal(false);
       fetchAll();
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setLocSaving(false);
     }
@@ -383,8 +397,8 @@ export default function BiometricDeviceScreen() {
           try {
             await biometricAPI.deleteLocation(loc._id);
             fetchAll();
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
+          } catch (e: unknown) {
+            Alert.alert('Error', getErrorMessage(e));
           }
         },
       },
@@ -423,8 +437,8 @@ export default function BiometricDeviceScreen() {
       }
       setDevModal(false);
       fetchAll();
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setDevSaving(false);
     }
@@ -440,8 +454,8 @@ export default function BiometricDeviceScreen() {
           try {
             await biometricAPI.deleteDevice(dev._id);
             fetchAll();
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
+          } catch (e: unknown) {
+            Alert.alert('Error', getErrorMessage(e));
           }
         },
       },
@@ -457,8 +471,8 @@ export default function BiometricDeviceScreen() {
           try {
             await biometricAPI.syncAllToDevice(deviceId);
             Alert.alert('Success', 'People queued for sync successfully');
-          } catch (e: any) {
-            Alert.alert('Error', e.message);
+          } catch (e: unknown) {
+            Alert.alert('Error', getErrorMessage(e));
           }
         },
       },

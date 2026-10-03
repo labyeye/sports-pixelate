@@ -209,8 +209,8 @@ export default function EventFormScreen({ route, navigation }: any) {
 
       toast.success(isEdit ? 'Event updated' : 'Event created');
       navigation.replace('EventDetail', { id: eventId });
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not save event');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not save event');
     } finally {
       setSaving(false);
     }

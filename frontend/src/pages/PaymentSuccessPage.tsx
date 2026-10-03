@@ -56,7 +56,7 @@ export default function PaymentSuccessPage() {
         setStatus("success");
 
         updateUser({
-          company: { ...user?.company!, status: "active" },
+          company: { ...user!.company!, status: "active" },
           subscription: { status: "active" },
         });
       })

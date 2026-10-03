@@ -3,7 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { lateApprovalAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import { AlarmClock, CheckCircle, Clock3, XCircle, Timer } from "lucide-react";
 
 interface LateApproval {
@@ -67,8 +67,8 @@ export default function LateApprovalsPage() {
     try {
       const res = await lateApprovalAPI.getAll();
       setItems(res.data ?? []);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -88,8 +88,8 @@ export default function LateApprovalsPage() {
         variant: "success",
       });
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setResolvingId(null);
     }

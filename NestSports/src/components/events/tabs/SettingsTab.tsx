@@ -23,8 +23,8 @@ export default function SettingsTab({ event, navigation, canManage }: { event: a
             await eventAPI.delete(event._id);
             toast.success('Event deleted');
             navigation.goBack();
-          } catch (e: any) {
-            toast.error(e?.message || 'Could not delete event');
+          } catch (e: unknown) {
+            toast.error((e as Error)?.message || 'Could not delete event');
             setDeleting(false);
           }
         },

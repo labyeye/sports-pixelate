@@ -38,6 +38,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const SORT_OPTIONS: SortOption[] = [
   { key: 'name', label: 'Name' },
@@ -97,7 +98,7 @@ export default function DepartmentsScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -109,7 +110,7 @@ export default function DepartmentsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -166,8 +167,8 @@ export default function DepartmentsScreen() {
       }
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save department');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save department');
     } finally {
       setSaving(false);
     }
@@ -186,8 +187,8 @@ export default function DepartmentsScreen() {
             try {
               await departmentAPI.delete(d._id);
               setDepartments(prev => prev.filter(x => x._id !== d._id));
-            } catch (e: any) {
-              Alert.alert('Error', e?.message || 'Could not delete department');
+            } catch (e: unknown) {
+              Alert.alert('Error', (e as Error)?.message || 'Could not delete department');
             }
           },
         },

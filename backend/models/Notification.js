@@ -22,6 +22,7 @@ const notificationSchema = new mongoose.Schema(
       enum: [
         "student_attendance",
         "employee_attendance",
+        "fee_reminder",
         "general",
       ],
       default: "general",
@@ -37,5 +38,8 @@ const notificationSchema = new mongoose.Schema(
 
 notificationSchema.index({ recipient: 1, createdAt: -1 });
 notificationSchema.index({ recipient: 1, read: 1 });
+
+// Tenant-first indexes: every query is scoped by company.
+notificationSchema.index({ company: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

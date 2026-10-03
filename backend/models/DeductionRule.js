@@ -28,6 +28,18 @@ const deductionRuleSchema = new mongoose.Schema(
     earlyCheckoutThresholdMinutes: { type: Number, default: 15 },
     earlyCheckoutDeductionEnabled: { type: Boolean, default: false },
 
+    // Fee lock: when enabled, student attendance is refused for students whose
+    // subscription fee is overdue by more than `feeGraceDays`.
+    // feeDueDay 1-28 = fee due on that day of the month; 0 = use the
+    // subscription's own renewal date as the due date.
+    feeLockEnabled: { type: Boolean, default: false },
+    feeDueDay: { type: Number, default: 0, min: 0, max: 28 },
+    feeGraceDays: { type: Number, default: 7, min: 0 },
+
+    // Owner opt-in: when on, the face kiosk and coach face check-in recognise
+    // and mark students (employees are unaffected). Off by default.
+    studentFaceAttendanceEnabled: { type: Boolean, default: false },
+
     lateAllowance: {
       mode: { type: String, enum: ["bulk", "custom"], default: "bulk" },
       bulkCount: { type: Number, default: 0 },

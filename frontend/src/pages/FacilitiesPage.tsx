@@ -1,9 +1,12 @@
+// Facilities (web): courts/grounds/rooms with capacity and hourly fee.
+// Bookings are handled in BookingsPage. Backend: facilityAPI.
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { facilityAPI } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   MapPin,
   Plus,
@@ -83,8 +86,8 @@ export default function FacilitiesPage() {
       setPage(1);
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -99,8 +102,8 @@ export default function FacilitiesPage() {
       setFacilities((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setLoadingMore(false);
   };
@@ -156,8 +159,8 @@ export default function FacilitiesPage() {
         toast({ title: "Facility added" });
       }
       resetForm();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -169,8 +172,8 @@ export default function FacilitiesPage() {
       await facilityAPI.delete(id);
       setFacilities((p) => p.filter((f) => f._id !== id));
       toast({ title: "Facility deactivated" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -185,7 +188,7 @@ export default function FacilitiesPage() {
           ).sort(),
         ),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const displayed = facilities;

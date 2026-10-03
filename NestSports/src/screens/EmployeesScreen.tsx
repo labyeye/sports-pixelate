@@ -37,6 +37,7 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const EMPLOYEE_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Rahul' },
@@ -116,7 +117,7 @@ export default function EmployeesScreen({ navigation }: any) {
     departmentAPI
       .getAll({ limit: '200' })
       .then((r: any) => setDepartments(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const fetchPage = useCallback(
@@ -147,7 +148,7 @@ export default function EmployeesScreen({ navigation }: any) {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -159,7 +160,7 @@ export default function EmployeesScreen({ navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -194,10 +195,10 @@ export default function EmployeesScreen({ navigation }: any) {
             try {
               await employeeAPI.delete(emp._id);
               setEmployees(prev => prev.filter(e => e._id !== emp._id));
-            } catch (e: any) {
+            } catch (e: unknown) {
               Alert.alert(
                 'Error',
-                e?.message || 'Could not delete staff member',
+                (e as Error)?.message || 'Could not delete staff member',
               );
             }
           },

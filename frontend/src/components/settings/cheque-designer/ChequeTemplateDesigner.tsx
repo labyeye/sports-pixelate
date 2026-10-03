@@ -4,7 +4,7 @@ import { defaultTemplate, FIELD_LABEL, newImageField, newTextField, normalizeTem
 import { useHistoryState } from "@/hooks/useHistoryState";
 import { settingsAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { DesignerCanvas, type Selection } from "./DesignerCanvas";
 import { Inspector } from "./Inspector";
 import { fileToDataUrl } from "./imageUtil";
@@ -85,8 +85,8 @@ export default function ChequeTemplateDesigner({ settings, active, onSaved }: { 
       savedRef.current = { tpl, background };
       onSaved(tpl, background);
       toast({ title: "Payslip design saved", description: "New payslips will print using this layout." });
-    } catch (e: any) {
-      toast({ title: "Could not save", description: e.message || "Try again.", variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Could not save", description: getErrorMessage(e) || "Try again.", variant: "destructive" });
     } finally {
       setSaving(false);
     }

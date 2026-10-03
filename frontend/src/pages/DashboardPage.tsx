@@ -1,9 +1,13 @@
+// Owner/HR dashboard (web): KPI cards (headcount, payroll, subscription income),
+// department chart and a subscriptions table with balance due. Currency and
+// dates use the lib/utils formatters.
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link } from "react-router-dom";
 import { dashboardAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatDateOrDash } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -41,6 +45,7 @@ import {
   Wallet,
 } from "lucide-react";
 import nesthrlogo from "../../assets/nesthr.png";
+import { notifyError } from "@/hooks/use-toast";
 function KpiCard({
   title,
   value,
@@ -129,7 +134,7 @@ export default function DashboardPage() {
       .then((res) => {
         if (res.success) setData(res.data);
       })
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -726,14 +731,6 @@ export default function DashboardPage() {
                     (sub.amount || 0) - (sub.amountPaid || 0),
                   );
                   const guardian = sub.student?.guardians?.[0];
-                  const fmtDate = (d?: string) =>
-                    d
-                      ? new Date(d).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "—";
                   return (
                     <tr
                       key={sub._id}
@@ -777,9 +774,9 @@ export default function DashboardPage() {
                         </p>
                       </td>
                       <td className="py-2.5 pr-4 whitespace-nowrap text-xs">
-                        <p>{fmtDate(sub.startDate)}</p>
+                        <p>{formatDateOrDash(sub.startDate)}</p>
                         <p className="font-bold text-black">
-                          → {fmtDate(sub.renewalDate)}
+                          → {formatDateOrDash(sub.renewalDate)}
                         </p>
                       </td>
                       <td className="py-2.5 pr-4 whitespace-nowrap">

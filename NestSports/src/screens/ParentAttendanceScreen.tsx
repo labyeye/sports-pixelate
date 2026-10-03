@@ -31,6 +31,7 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const MONTHS = [
   'January',
@@ -99,19 +100,19 @@ export default function ParentAttendanceScreen() {
   }, [monthCursor.month, monthCursor.year]);
 
   useEffect(() => {
-    loadChildren().catch(() => {});
+    loadChildren().catch(notifyError);
   }, [loadChildren]);
 
   useEffect(() => {
     setLoading(true);
     loadAttendance()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [loadAttendance]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadChildren(), loadAttendance()]).catch(() => {});
+    await Promise.all([loadChildren(), loadAttendance()]).catch(notifyError);
     setRefreshing(false);
   };
 

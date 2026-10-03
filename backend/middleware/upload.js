@@ -1,7 +1,8 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const { fromFile } = require("file-type");
+const { fromBuffer } = require("file-type");
+const { readDecrypted, encryptUploadedFiles } = require("../utils/fileCrypto");
 
 // Allowed MIME types matched against actual file magic bytes
 const ALLOWED_MAGIC_MIME = new Set([
@@ -12,7 +13,8 @@ const ALLOWED_MAGIC_MIME = new Set([
 ]);
 
 async function validateMagicBytes(filePath) {
-  const result = await fromFile(filePath);
+  // Files are encrypted at rest right after upload, so read the plaintext back.
+  const result = await fromBuffer(readDecrypted(filePath));
   // result is undefined for plain text files — reject those too
   if (!result || !ALLOWED_MAGIC_MIME.has(result.mime)) {
     fs.unlinkSync(filePath);
@@ -24,7 +26,7 @@ async function validateMagicBytes(filePath) {
 
 module.exports.validateMagicBytes = validateMagicBytes;
 
-const UPLOAD_BASE = path.join(__dirname, "../uploads");
+const { UPLOAD_DIR: UPLOAD_BASE } = require("../config/paths");
 
 // Ensure upload dirs exist on startup
 [
@@ -262,6 +264,17 @@ const uploadFaceEnrollPhoto = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("photo");
 
+// Many face photos at once (bulk student enrollment); each file is named after
+// the student's ID. Memory only, same as the single-photo upload.
+const uploadFaceEnrollPhotos = multer({
+  storage: multer.memoryStorage(),
+  fileFilter(_req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024, files: 100 },
+}).array("photos", 100);
+
 // Event cover + banner image upload (two optional fields in one request)
 const eventImageStorage = multer.diskStorage({
   destination(req, file, cb) {
@@ -333,19 +346,43 @@ const uploadEventDocument = multer({
   limits: { fileSize: MAX_SIZE },
 }).single("file");
 
+// Runs a multer middleware, then encrypts whatever it wrote to disk before the
+// route handler sees it. Memory-storage uploads (face photos) have no path and
+// are left alone — they are never persisted. If encryption fails the saved
+// plaintext is removed and the request errors, so nothing is left unencrypted.
+function encrypted(multerMiddleware) {
+  return (req, res, next) => {
+    multerMiddleware(req, res, (err) => {
+      if (err) return next(err);
+      try {
+        encryptUploadedFiles(req);
+        next();
+      } catch (e) {
+        const files = [
+          ...(req.file ? [req.file] : []),
+          ...(Array.isArray(req.files) ? req.files : Object.values(req.files || {}).flat()),
+        ];
+        files.forEach((f) => f.path && fs.rmSync(f.path, { force: true }));
+        next(e);
+      }
+    });
+  };
+}
+
 module.exports = {
-  uploadEmployeeDocs,
-  uploadCompanyLogo,
-  uploadPaymentQr,
-  uploadPaymentScreenshot,
-  uploadDocumentVault,
-  uploadAvatar,
-  uploadGuardianPhoto,
-  uploadAttendanceSelfie,
+  uploadEmployeeDocs: encrypted(uploadEmployeeDocs),
+  uploadCompanyLogo: encrypted(uploadCompanyLogo),
+  uploadPaymentQr: encrypted(uploadPaymentQr),
+  uploadPaymentScreenshot: encrypted(uploadPaymentScreenshot),
+  uploadDocumentVault: encrypted(uploadDocumentVault),
+  uploadAvatar: encrypted(uploadAvatar),
+  uploadGuardianPhoto: encrypted(uploadGuardianPhoto),
+  uploadAttendanceSelfie: encrypted(uploadAttendanceSelfie),
   uploadFaceEnrollPhoto,
-  uploadInventoryPhoto,
-  uploadEventImages,
-  uploadEventGalleryPhoto,
-  uploadEventDocument,
+  uploadFaceEnrollPhotos,
+  uploadInventoryPhoto: encrypted(uploadInventoryPhoto),
+  uploadEventImages: encrypted(uploadEventImages),
+  uploadEventGalleryPhoto: encrypted(uploadEventGalleryPhoto),
+  uploadEventDocument: encrypted(uploadEventDocument),
   validateMagicBytes,
 };

@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 import * as faceapi from "@vladmandic/face-api";
+import { getErrorMessage } from "@/lib/utils";
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
@@ -58,8 +59,8 @@ export function useFaceRecognition() {
         await videoRef.current.play();
         setCameraActive(true);
       }
-    } catch (e: any) {
-      throw new Error("Camera access denied: " + e.message);
+    } catch (e: unknown) {
+      throw new Error("Camera access denied: " + getErrorMessage(e));
     }
   }, [loadModels]);
 
@@ -97,6 +98,35 @@ export function useFaceRecognition() {
         `Face confidence too low (${(score * 100).toFixed(0)}%) — improve lighting`,
       );
 
+    return Array.from(detection.descriptor);
+  }, [loadState]);
+
+  // Non-throwing single-frame probe for continuous scanning. Detection runs
+  // first and landmarks/descriptor only run once a usable face is found, so an
+  // empty frame costs just the tiny detector.
+  const detectFaceDescriptor = useCallback(async (): Promise<number[] | null> => {
+    const video = videoRef.current;
+    // The <video> remounts when the kiosk swaps in a result panel; re-attach
+    // the live stream to the fresh element.
+    if (video && !video.srcObject && streamRef.current) {
+      video.srcObject = streamRef.current;
+      video.play().catch(() => {});
+    }
+    if (!video || !video.videoWidth || loadState !== "ready") return null;
+    const detection = await faceapi
+      .detectSingleFace(
+        video,
+        new faceapi.TinyFaceDetectorOptions({
+          inputSize: 224,
+          scoreThreshold: 0.7,
+        }),
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    // Ignore faces too far from the camera — descriptors from tiny faces are
+    // unreliable and would only produce false "no match" errors.
+    if (!detection || detection.detection.box.width < video.videoWidth * 0.15)
+      return null;
     return Array.from(detection.descriptor);
   }, [loadState]);
 
@@ -168,6 +198,7 @@ export function useFaceRecognition() {
     stopCamera,
     loadModels,
     captureFaceDescriptor,
+    detectFaceDescriptor,
     startLiveDetection,
     matchDescriptor,
   };

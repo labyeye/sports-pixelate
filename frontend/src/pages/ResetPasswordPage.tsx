@@ -8,6 +8,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import nesthrlogo from "../../assets/logo.png";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
@@ -46,8 +47,8 @@ export default function ResetPasswordPage() {
       if (!res.ok) throw new Error(data.message || "Reset failed");
       setDone(true);
       setTimeout(() => navigate("/login"), 3000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

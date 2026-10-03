@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { removeStoredUpload } = require("../utils/uploadFiles");
 const Event = require("../models/Event");
 const Fixture = require("../models/Fixture");
 const Student = require("../models/Student");
@@ -314,15 +315,19 @@ const updateEventImages = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("No image uploaded");
   }
-  const event = await Event.findOneAndUpdate(
+  const previous = await Event.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
     update,
-    { new: true },
+    { new: false },
   );
-  if (!event) {
+  if (!previous) {
+    Object.values(update).forEach((u) => removeStoredUpload(u));
     res.status(404);
     throw new Error("Event not found");
   }
+  if (update.coverImageUrl) removeStoredUpload(previous.coverImageUrl);
+  if (update.bannerImageUrl) removeStoredUpload(previous.bannerImageUrl);
+  const event = await Event.findById(previous._id);
   res.json({ success: true, data: event });
 });
 
@@ -755,10 +760,14 @@ const removeDocument = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Event not found");
   }
+  const removed = event.documents.find(
+    (d) => d._id.toString() === req.params.docId,
+  );
   event.documents = event.documents.filter(
     (d) => d._id.toString() !== req.params.docId,
   );
   await event.save();
+  removeStoredUpload(removed?.url);
   res.json({ success: true, data: event });
 });
 

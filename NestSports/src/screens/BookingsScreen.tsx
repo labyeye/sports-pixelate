@@ -45,6 +45,8 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -123,13 +125,13 @@ export default function BookingsScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -156,15 +158,15 @@ export default function BookingsScreen() {
     inventoryAPI
       .getAll({ limit: '200' })
       .then((r: any) => setInventory(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
     facilityAPI
       .getAll()
       .then((r: any) => setFacilities(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
     studentAPI
       .getAll({ limit: '500' })
       .then((r: any) => setStudents(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
   };
 
   const submitBooking = async () => {
@@ -186,8 +188,8 @@ export default function BookingsScreen() {
       }
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not create booking');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not create booking');
     } finally {
       setCreating(false);
     }
@@ -198,8 +200,8 @@ export default function BookingsScreen() {
     try {
       await bookingAPI.returnItems(id);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not record return');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not record return');
     } finally {
       setReturningId(null);
     }
@@ -219,8 +221,8 @@ export default function BookingsScreen() {
             try {
               await bookingAPI.cancel(id);
               await load();
-            } catch (e: any) {
-              Alert.alert('Error', e.message || 'Failed to cancel booking');
+            } catch (e: unknown) {
+              Alert.alert('Error', getErrorMessage(e) || 'Failed to cancel booking');
             } finally {
               setCancellingId(null);
             }

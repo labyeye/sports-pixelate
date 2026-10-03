@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface Props {
   toast: any;
@@ -95,10 +95,10 @@ export function AttendanceCorrectionPane({ toast }: Props) {
         });
         await loadRequests();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed",
-        description: err.message || "Failed to raise request",
+        description: getErrorMessage(err) || "Failed to raise request",
         variant: "destructive",
       });
     } finally {

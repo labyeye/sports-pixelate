@@ -29,6 +29,7 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { fetchAllPages } from '../utils/fetchAllPages';
+import { notifyError } from '../utils/notifyError';
 
 // Mirrors StudentAttendanceScreen's STATUS_CONFIG so status colors read the
 // same across the app.
@@ -129,13 +130,13 @@ export default function StudentAttendanceReportScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

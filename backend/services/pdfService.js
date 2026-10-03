@@ -206,9 +206,11 @@ async function generatePayslipPdf(payroll, employee, company) {
         logoBytes = await fetchBuffer(company.logo);
       } else if (company.logo.startsWith("/uploads/")) {
         // Logo stored as /uploads/... → served from backend/uploads/
-        const absPath = path.join(__dirname, "..", company.logo);
+        const absPath = require("../config/paths").resolveStoredPath(
+          company.logo,
+        );
         if (fs.existsSync(absPath)) {
-          logoBytes = fs.readFileSync(absPath);
+          logoBytes = require("../utils/fileCrypto").readDecrypted(absPath);
         } else {
           console.warn("[pdfService] Logo file not found at:", absPath);
         }
@@ -356,9 +358,11 @@ async function generatePaymentReceiptPdf({ subscription, payment, company }) {
       ) {
         logoBytes = await fetchBuffer(company.logo);
       } else if (company.logo.startsWith("/uploads/")) {
-        const absPath = path.join(__dirname, "..", company.logo);
+        const absPath = require("../config/paths").resolveStoredPath(
+          company.logo,
+        );
         if (fs.existsSync(absPath)) {
-          logoBytes = fs.readFileSync(absPath);
+          logoBytes = require("../utils/fileCrypto").readDecrypted(absPath);
         }
       } else if (company.logo.startsWith("data:")) {
         const base64 = company.logo.split(",")[1];

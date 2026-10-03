@@ -39,6 +39,7 @@ import {
   ToggleRow,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: colors.yellow,
@@ -97,13 +98,13 @@ export default function LeaveScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -146,8 +147,8 @@ export default function LeaveScreen() {
     try {
       await leaveAPI.updateStatus(id, { status, ...extra });
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to update leave');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Failed to update leave');
     } finally {
       setActingId(null);
     }
@@ -164,7 +165,7 @@ export default function LeaveScreen() {
     employeeAPI
       .getAll({ status: 'active', limit: '300' })
       .then((r: any) => setEmployees(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
 
   const openEdit = (l: any) => {
     setEditId(l._id);
@@ -197,8 +198,8 @@ export default function LeaveScreen() {
           try {
             await leaveAPI.delete(l._id);
             await load();
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Failed to delete leave');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Failed to delete leave');
           }
         },
       },
@@ -214,8 +215,8 @@ export default function LeaveScreen() {
       await leaveAPI.delete(cancelId, { cancellationReason: cancelReason.trim() });
       setCancelId(null);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to cancel leave');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Failed to cancel leave');
     }
   };
 
@@ -235,8 +236,8 @@ export default function LeaveScreen() {
       else await leaveAPI.create(body);
       setApplyVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not submit leave request');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not submit leave request');
     } finally {
       setSaving(false);
     }

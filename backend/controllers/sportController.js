@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const Sport = require("../models/Sport");
 const Student = require("../models/Student");
 const Employee = require("../models/Employee");
@@ -69,7 +70,7 @@ const createSport = [
 const updateSport = [
   validateBody(updateSchema),
   asyncHandler(async (req, res) => {
-    const update = { ...req.body };
+    const update = stripProtected(req.body);
     if (typeof update.name === "string") update.name = update.name.trim();
     const sport = await Sport.findOneAndUpdate(
       { _id: req.params.id, company: req.user.company },

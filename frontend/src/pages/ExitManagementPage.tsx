@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { exitAPI, employeeAPI, studentAPI } from "@/services/api";
 import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatDateOrDash, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import {
   UserMinus,
@@ -58,14 +58,6 @@ const STATUS_META: Record<string, { bg: string; text: string; label: string }> =
     reinstated: { bg: "bg-[#A855F7]", text: "text-white", label: "Reinstated" },
   };
 
-const fmtDate = (d?: string) =>
-  d
-    ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
 const toInput = (d?: string) =>
   d ? new Date(d).toISOString().slice(0, 10) : "";
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -142,8 +134,8 @@ export default function ExitManagementPage() {
       const res = await fetchAllPages(exitAPI.getAll, params);
       setExits(res.data || []);
       if (res.summary) setSummary(res.summary);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -320,10 +312,10 @@ export default function ExitManagementPage() {
                       {labelOf(x.exitType)}
                     </td>
                     <td className="px-4 py-3 text-black whitespace-nowrap">
-                      {fmtDate(x.noticeDate)}
+                      {formatDateOrDash(x.noticeDate)}
                     </td>
                     <td className="px-4 py-3 font-bold text-black whitespace-nowrap">
-                      {fmtDate(x.exitDate)}
+                      {formatDateOrDash(x.exitDate)}
                     </td>
                     <td className="px-4 py-3 min-w-36">
                       <div className="flex items-center gap-2">
@@ -483,8 +475,8 @@ function InitiateModal({
       });
       toast({ title: "Exit initiated" });
       onCreated(res.data._id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -689,8 +681,8 @@ function ExitDetailModal({
         eligibleForRehire: res.data.eligibleForRehire !== false,
         notes: res.data.notes || "",
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
       onClose();
     }
   }, [id]);
@@ -720,8 +712,8 @@ function ExitDetailModal({
       toast({ title: ok });
       await load();
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setBusy(null);
     }
@@ -783,12 +775,12 @@ function ExitDetailModal({
           <StatusBadge status={rec.status} />
           <TypeBadge type={rec.personType} />
           <span className="text-xs text-muted-foreground">
-            Exit date <b className="text-black">{fmtDate(rec.exitDate)}</b>
+            Exit date <b className="text-black">{formatDateOrDash(rec.exitDate)}</b>
             {rec.completedAt && (
               <>
                 {" "}
                 · Completed{" "}
-                <b className="text-black">{fmtDate(rec.completedAt)}</b>
+                <b className="text-black">{formatDateOrDash(rec.completedAt)}</b>
               </>
             )}
           </span>
@@ -863,7 +855,7 @@ function ExitDetailModal({
                 </span>
                 {c.done && c.doneAt && (
                   <span className="text-[11px] text-muted-foreground">
-                    {fmtDate(c.doneAt)}
+                    {formatDateOrDash(c.doneAt)}
                   </span>
                 )}
               </label>

@@ -58,4 +58,8 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+bookingSchema.index({ company: 1, date: -1 });
+bookingSchema.index({ facility: 1, date: 1, status: 1 });
+
 module.exports = mongoose.model("Booking", bookingSchema);

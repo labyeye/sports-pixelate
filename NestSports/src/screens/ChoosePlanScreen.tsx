@@ -4,15 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { studentAPI, sportsPlanAPI } from '../api/client';
 import { Card, SectionTitle, Button, LoadingView, EmptyState, ChipSelect } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 const WEEKDAY_LABELS: Record<Weekday, string> = {
   mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun',
 };
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
 
 function scheduleLabel(p: any): string {
   if (p.scheduleType === 'custom_days') {
@@ -50,7 +48,7 @@ export default function ChoosePlanScreen({ navigation }: any) {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 

@@ -1,6 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getNavGroupsForRole } from "@/config/navigation";
+import { useDisabledFeatures } from "@/hooks/useDisabledFeatures";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, LogOut, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -20,6 +21,7 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  const disabledFeatures = useDisabledFeatures(!!user);
 
   useLayoutEffect(() => {
     if (navRef.current) navRef.current.scrollTop = navScrollTop;
@@ -27,7 +29,7 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
 
   if (!user) return null;
 
-  const groups = getNavGroupsForRole(user.role);
+  const groups = getNavGroupsForRole(user.role, disabledFeatures);
 
   return (
     <>

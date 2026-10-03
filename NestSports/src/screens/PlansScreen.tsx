@@ -40,6 +40,8 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const PLAN_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'name', label: 'Plan Name', required: true, example: 'Elite Tennis' },
@@ -105,10 +107,6 @@ function timingLabel(p: any): string {
     : formatTime12(p.startTime);
 }
 
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
-
 const SORT_OPTIONS: SortOption[] = [
   { key: 'name', label: 'Name' },
   { key: 'sport', label: 'Sport' },
@@ -159,7 +157,7 @@ export default function PlansScreen({ navigation }: any) {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -171,14 +169,14 @@ export default function PlansScreen({ navigation }: any) {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      load().catch(() => {});
+      load().catch(notifyError);
     });
     return unsubscribe;
   }, [navigation, load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -208,8 +206,8 @@ export default function PlansScreen({ navigation }: any) {
           try {
             await sportsPlanAPI.delete(plan._id);
             setPlans(prev => prev.filter(p => p._id !== plan._id));
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not delete plan');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Could not delete plan');
           }
         },
       },

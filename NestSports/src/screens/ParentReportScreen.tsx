@@ -22,6 +22,8 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   active: { color: colors.green, label: 'Active' },
@@ -58,8 +60,8 @@ export default function ParentReportScreen() {
     try {
       const res: any = await reportAPI.studentProfile(studentId);
       setProfile(res.data);
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not load report');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Could not load report');
       setProfile(null);
     } finally {
       setProfileLoading(false);
@@ -68,7 +70,7 @@ export default function ParentReportScreen() {
 
   useEffect(() => {
     loadChildren()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [loadChildren]);
 
@@ -78,8 +80,8 @@ export default function ParentReportScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadChildren().catch(() => {});
-    if (selectedChild) await loadProfile(selectedChild).catch(() => {});
+    await loadChildren().catch(notifyError);
+    if (selectedChild) await loadProfile(selectedChild).catch(notifyError);
     setRefreshing(false);
   };
 

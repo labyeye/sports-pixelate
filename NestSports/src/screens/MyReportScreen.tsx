@@ -19,6 +19,7 @@ import { employeeAPI, attendanceAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { KpiTile, LoadingView, EmptyState } from '../components/ui';
 import { colors } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 export default function MyReportScreen() {
   const { user } = useAuth();
@@ -70,7 +71,7 @@ export default function MyReportScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

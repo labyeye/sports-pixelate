@@ -22,6 +22,7 @@ import {
   ToggleRow,
 } from './ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 // One list + add/edit/delete form driven by a config object — used for the
 // small "configuration" entities (shifts, salary heads, designations, offer
@@ -102,7 +103,7 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -138,8 +139,8 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
       else await config.api.create(payload);
       setFormOpen(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || `Could not save ${config.title}`);
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || `Could not save ${config.title}`);
     } finally {
       setSaving(false);
     }
@@ -155,8 +156,8 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
           try {
             await config.api.delete(item._id);
             setItems(prev => prev.filter(x => x._id !== item._id));
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || `Could not delete ${config.title}`);
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || `Could not delete ${config.title}`);
           }
         },
       },

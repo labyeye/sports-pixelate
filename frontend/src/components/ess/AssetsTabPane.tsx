@@ -9,7 +9,7 @@ import {
   Laptop,
   Check,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface Props {
   toast: any;
@@ -54,10 +54,10 @@ export function AssetsTabPane({ toast }: Props) {
         });
         await loadAssets();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {

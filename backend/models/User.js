@@ -41,6 +41,8 @@ const userSchema = new mongoose.Schema(
     pendingTwoFactor: { type: Boolean, default: false },
     phoneOtp: { type: String, select: false },
     phoneOtpExpire: { type: Date, select: false },
+    // Wrong guesses against the current login OTP; 5 strikes burns the code.
+    phoneOtpAttempts: { type: Number, default: 0, select: false },
     twoFactorFailedAttempts: { type: Number, default: 0 },
     twoFactorLockUntil: { type: Date },
     // Set once the user proves they own `phone` via a WhatsApp code; reset

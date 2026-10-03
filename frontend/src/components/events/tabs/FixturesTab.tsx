@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Shuffle, RotateCcw, Loader2, Check, X, Trophy } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import type { Event, EventFixture } from "@/types/hrms";
 
 interface Props {
@@ -229,8 +229,8 @@ export function FixturesTab({ event, onChanged }: Props) {
       setFixtures(r.data || []);
       onChanged();
       toast({ title: "Fixtures generated" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -246,8 +246,8 @@ export function FixturesTab({ event, onChanged }: Props) {
       await load();
       onChanged();
       toast({ title: "Result saved" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 

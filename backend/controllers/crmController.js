@@ -14,9 +14,19 @@ const PLAN_NAME = "NestPlay";
 
 // Same static-key guard as /internal/stats (statsRoutes.js), reusing
 // CRM_API_SECRET so the CRM only needs one secret per product.
+const safeEqual = (a, b) => {
+  const x = Buffer.from(String(a || ""));
+  const y = Buffer.from(String(b || ""));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+};
+
 const crmAuth = (req, res) => {
   const apiKey = req.headers["x-api-key"];
-  if (!apiKey || apiKey !== process.env.CRM_API_SECRET) {
+  if (
+    !process.env.CRM_API_SECRET ||
+    !apiKey ||
+    !safeEqual(apiKey, process.env.CRM_API_SECRET)
+  ) {
     res.status(401).json({ success: false, message: "Unauthorized" });
     return false;
   }

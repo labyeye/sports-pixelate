@@ -3,6 +3,7 @@ import { Shield, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Event } from "@/types/hrms";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Props {
   event: Event;
@@ -34,7 +35,11 @@ export function JudgesTab({ event, onChanged }: Props) {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const add = async () => {
-    if (!draft.name.trim() || adding) return;
+    if (adding) return;
+    if (!draft.name.trim()) {
+      toast({ title: "Missing information", description: "Please enter the name.", variant: "destructive" });
+      return;
+    }
     setAdding(true);
     try {
       await eventAPI.addOfficial(event._id, {
@@ -43,8 +48,8 @@ export function JudgesTab({ event, onChanged }: Props) {
       });
       setDraft({ name: "", role: "", phone: "", email: "" });
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setAdding(false);
     }
@@ -66,8 +71,8 @@ export function JudgesTab({ event, onChanged }: Props) {
       await eventAPI.updateOfficial(event._id, id, editDraft);
       setEditingId(null);
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setBusyId(null);
     }
@@ -78,8 +83,8 @@ export function JudgesTab({ event, onChanged }: Props) {
     try {
       await eventAPI.removeOfficial(event._id, id);
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setBusyId(null);
     }

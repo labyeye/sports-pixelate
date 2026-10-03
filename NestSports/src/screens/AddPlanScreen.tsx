@@ -134,8 +134,8 @@ export default function AddPlanScreen({ navigation, route }: any) {
         isEditing ? 'Plan updated successfully' : 'Plan added successfully',
       );
       navigation.goBack();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save coaching plan');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save coaching plan');
     } finally {
       setSaving(false);
     }

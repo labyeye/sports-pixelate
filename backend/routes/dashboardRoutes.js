@@ -3,7 +3,7 @@ const {
   getStats,
   getEmployeeStats,
 } = require("../controllers/dashboardController");
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
 const router = express.Router();
 
 const noCache = (_req, res, next) => {
@@ -13,6 +13,14 @@ const noCache = (_req, res, next) => {
   next();
 };
 
-router.get("/stats", protect, noCache, getStats);
+// Company-wide numbers (payroll, revenue …) — managers only. Employees and
+// parents use /employee and their own portals.
+router.get(
+  "/stats",
+  protect,
+  authorize("super_admin", "hr_manager", "hr_executive", "department_head"),
+  noCache,
+  getStats,
+);
 router.get("/employee", protect, noCache, getEmployeeStats);
 module.exports = router;

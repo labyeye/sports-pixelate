@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Megaphone, Loader2 } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Announcement {
   _id: string;
@@ -31,8 +32,8 @@ export function AnnouncementsTab({ eventId }: Props) {
     try {
       const res = await eventAPI.getAnnouncements(eventId);
       setItems(res.data || []);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,11 @@ export function AnnouncementsTab({ eventId }: Props) {
   }, [eventId]);
 
   const post = async () => {
-    if (!title.trim() || !message.trim() || posting) return;
+    if (posting) return;
+    if (!title.trim() || !message.trim()) {
+      toast({ title: "Missing information", description: "Please enter both a title and a message.", variant: "destructive" });
+      return;
+    }
     setPosting(true);
     try {
       await eventAPI.createAnnouncement(eventId, {
@@ -54,8 +59,8 @@ export function AnnouncementsTab({ eventId }: Props) {
       setTitle("");
       setMessage("");
       await load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setPosting(false);
     }

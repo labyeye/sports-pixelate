@@ -18,8 +18,9 @@ import {
   User,
   Tag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast, notifyError } from "@/hooks/use-toast";
 
 const DOC_TYPES = [
   { value: "id_proof", label: "ID Proof", icon: Shield },
@@ -41,6 +42,7 @@ function formatBytes(bytes: number) {
 }
 
 export default function DocumentVaultPage() {
+  const { toast } = useToast();
   const { user } = useAuth();
   const isEmployee = user?.role === "employee";
   const [docs, setDocs] = useState<any[]>([]);
@@ -88,7 +90,9 @@ export default function DocumentVaultPage() {
         setPages(res.pages || 1);
         setTotal(res.total ?? res.data.length);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   };
 
@@ -103,7 +107,9 @@ export default function DocumentVaultPage() {
         setPage(next);
         setPages(res.pages || 1);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoadingMore(false);
   };
 
@@ -114,7 +120,7 @@ export default function DocumentVaultPage() {
         .then((r) => {
           if (r.success) setEmployees(r.data);
         })
-        .catch(() => {});
+        .catch(notifyError);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -138,8 +144,19 @@ export default function DocumentVaultPage() {
   };
 
   const handleUpload = async () => {
-    if (!fileObj || !form.name || !form.docType) return;
-    if (!isEmployee && !form.employeeId) return;
+    const missing = !fileObj
+      ? "Please choose a file to upload."
+      : !form.name
+        ? "Please enter a document name."
+        : !form.docType
+          ? "Please choose the document type."
+          : !isEmployee && !form.employeeId
+            ? "Please choose the employee this document belongs to."
+            : "";
+    if (missing || !fileObj) {
+      toast({ title: "Missing information", description: missing, variant: "destructive" });
+      return;
+    }
 
     setUploading(true);
     try {
@@ -159,8 +176,8 @@ export default function DocumentVaultPage() {
         load(form.employeeId || undefined);
       };
       reader.readAsDataURL(fileObj);
-    } catch (err: any) {
-      alert(err.message || "Upload failed");
+    } catch (err: unknown) {
+      alert(getErrorMessage(err) || "Upload failed");
     }
     setUploading(false);
   };
@@ -181,8 +198,8 @@ export default function DocumentVaultPage() {
       a.download = name;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      alert(err.message || "Download failed");
+    } catch (err: unknown) {
+      alert(getErrorMessage(err) || "Download failed");
     }
   };
 
@@ -191,8 +208,8 @@ export default function DocumentVaultPage() {
     try {
       await documentAPI.delete(id);
       setDocs((prev) => prev.filter((d) => d._id !== id));
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 

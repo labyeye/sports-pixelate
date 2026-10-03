@@ -19,6 +19,7 @@ const {
   sendStudentCheckOut,
 } = require("../services/whatsappService");
 const User = require("../models/User");
+const logger = require("../utils/logger");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
@@ -217,7 +218,7 @@ async function processEmployeePunch(
       approvalPending,
       verifyMode,
     });
-    console.log(
+    logger.info(
       `[ADMS] Created attendance checkIn=${punchTime.toISOString()} status=${status} verifyMode=${verifyMode} for ${employee.firstName}`,
     );
     await notifyEmployeeCheckIn(employee, loc, punchTime, companyId);
@@ -225,7 +226,7 @@ async function processEmployeePunch(
   }
 
   if (existing.checkOut) {
-    console.log(
+    logger.info(
       `[ADMS] Attendance locked (already checked out) for ${employee.firstName} ${employee.lastName}`,
     );
     return;
@@ -300,7 +301,7 @@ async function processStudentPunch(student, punchTime, verifyMode, loc) {
       checkIn: punchTime,
       verifyMode,
     });
-    console.log(
+    logger.info(
       `[ADMS] Created student attendance checkIn=${punchTime.toISOString()} for ${student.firstName}`,
     );
     await notifyGuardians(student, sendStudentCheckIn, loc, punchTime);
@@ -308,7 +309,7 @@ async function processStudentPunch(student, punchTime, verifyMode, loc) {
   }
 
   if (existing.checkOut) {
-    console.log(
+    logger.info(
       `[ADMS] Student attendance locked (already checked out) for ${student.firstName} ${student.lastName}`,
     );
     return;
@@ -336,7 +337,7 @@ async function processLog(
 ) {
   const punchTime = new Date(datetime.replace(" ", "T") + "+05:30");
   if (isNaN(punchTime.getTime())) {
-    console.log(`[ADMS] Invalid datetime for userId=${userId}: "${datetime}"`);
+    logger.info(`[ADMS] Invalid datetime for userId=${userId}: "${datetime}"`);
     return;
   }
 
@@ -349,7 +350,7 @@ async function processLog(
     status: { $ne: "terminated" },
   });
   if (employee) {
-    console.log(
+    logger.info(
       `[ADMS] Punch: employee=${employee.firstName} ${employee.lastName} uid=${userId} time=${punchTime.toISOString()}`,
     );
     await processEmployeePunch(employee, punchTime, verifyMode, loc, companyId);
@@ -362,20 +363,20 @@ async function processLog(
     status: { $ne: "inactive" },
   });
   if (student) {
-    console.log(
+    logger.info(
       `[ADMS] Punch: student=${student.firstName} ${student.lastName} uid=${userId} time=${punchTime.toISOString()}`,
     );
     await processStudentPunch(student, punchTime, verifyMode, loc);
     return;
   }
 
-  console.log(
+  logger.info(
     `[ADMS] No employee or student found for biometricUserId=${userId} company=${companyId}`,
   );
 }
 
 async function resolveDevice(sn) {
-  if (!sn) return null;
+  if (typeof sn !== "string" || !sn) return null;
   // Find by SN regardless of isActive — if the device is polling, it IS active.
   // Auto-heal isActive so admin routes also see it correctly.
   return BiometricDevice.findOneAndUpdate(
@@ -386,7 +387,7 @@ async function resolveDevice(sn) {
 }
 
 router.get(["/cdata", "/cdata.aspx"], async (req, res) => {
-  const { SN } = req.query;
+  const SN = typeof req.query.SN === "string" ? req.query.SN : undefined;
   res.set("Content-Type", "text/plain");
 
   let attlogStamp = "None";
@@ -425,7 +426,8 @@ router.post(
   ["/cdata", "/cdata.aspx"],
   express.text({ type: "*/*" }),
   async (req, res) => {
-    const { SN, table } = req.query;
+    const { table } = req.query;
+    const SN = typeof req.query.SN === "string" ? req.query.SN : undefined;
     res.set("Content-Type", "text/plain");
 
     const body = req.body;
@@ -435,7 +437,7 @@ router.post(
     if (table === "BIODATA") {
       try {
         const device = await resolveDevice(SN);
-        console.log(
+        logger.info(
           `[ADMS] BIODATA from SN=${SN} body="${body.slice(0, 200)}"`,
         );
 
@@ -463,7 +465,7 @@ router.post(
               person.deviceFaceTemplate = Buffer.from(body).toString("hex");
               person.deviceFaceEnrolledAt = new Date();
               await person.save();
-              console.log(
+              logger.info(
                 `[ADMS] BIODATA: stored face template for ${person.firstName} ${person.lastName} (PIN=${pin})`,
               );
             } else {
@@ -487,7 +489,7 @@ router.post(
       const device = await resolveDevice(SN);
       const companyId = device?.company || null;
 
-      console.log(`[ADMS] ATTLOG from SN=${SN} stamp=${stamp}`);
+      logger.info(`[ADMS] ATTLOG from SN=${SN} stamp=${stamp}`);
       const logs = parseAttLog(body);
 
       let devLocationName = "Office";
@@ -518,7 +520,7 @@ router.post(
 );
 
 router.get(["/getrequest", "/getrequest.aspx"], async (req, res) => {
-  const { SN } = req.query;
+  const SN = typeof req.query.SN === "string" ? req.query.SN : undefined;
   res.set("Content-Type", "text/plain");
 
   try {
@@ -541,7 +543,7 @@ router.get(["/getrequest", "/getrequest.aspx"], async (req, res) => {
 
     if (!cmd) return res.send("OK");
 
-    console.log(
+    logger.info(
       `[ADMS] getrequest: SN=${SN} → C:${cmd.cmdId}:${cmd.command.replace(/\t/g, "\\t")}`,
     );
     res.send(`C:${cmd.cmdId}:${cmd.command}\n`);
@@ -555,7 +557,8 @@ router.post(
   ["/devicecmd", "/devicecmd.aspx"],
   express.text({ type: "*/*" }),
   async (req, res) => {
-    const { SN, ID } = req.query;
+    const SN = typeof req.query.SN === "string" ? req.query.SN : undefined;
+    const ID = typeof req.query.ID === "string" ? req.query.ID : undefined;
     res.set("Content-Type", "text/plain");
 
     try {
@@ -563,7 +566,7 @@ router.post(
       const bodyIdMatch = body.match(/\bID=(\d+)/);
       const cmdId = ID || (bodyIdMatch ? bodyIdMatch[1] : null);
 
-      console.log(
+      logger.info(
         `[ADMS] devicecmd SN=${SN} ID=${cmdId} body="${body.trim()}"`,
       );
 

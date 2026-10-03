@@ -13,7 +13,7 @@ import {
   Briefcase,
   PlusCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface Props {
   employee: any;
@@ -122,10 +122,10 @@ export function ProfileDetailsTabPane({ employee, toast, onRefresh }: Props) {
         });
         onRefresh();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Update Failed",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {

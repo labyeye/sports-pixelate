@@ -74,9 +74,9 @@ export function ImportExportModal({
       }
       setRows(parsed);
       setStep('preview');
-    } catch (err: any) {
-      if (err?.code !== 'DOCUMENT_PICKER_CANCELED' && err?.code !== 'OPERATION_CANCELED') {
-        Alert.alert('Could not read file', err?.message || 'Please try a valid .xlsx/.xls file.');
+    } catch (err: unknown) {
+      if ((err as { code?: string | number })?.code !== 'DOCUMENT_PICKER_CANCELED' && (err as { code?: string | number })?.code !== 'OPERATION_CANCELED') {
+        Alert.alert('Could not read file', (err as Error)?.message || 'Please try a valid .xlsx/.xls file.');
       }
     } finally {
       setPicking(false);
@@ -90,8 +90,8 @@ export function ImportExportModal({
       setResult(res);
       setStep('result');
       if (res.imported > 0) onImported?.();
-    } catch (err: any) {
-      Alert.alert('Import failed', err?.message || 'Something went wrong.');
+    } catch (err: unknown) {
+      Alert.alert('Import failed', (err as Error)?.message || 'Something went wrong.');
     } finally {
       setImporting(false);
     }

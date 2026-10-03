@@ -2,6 +2,7 @@ const https = require("https");
 const FormData = require("form-data");
 const Setting = require("../models/Setting");
 const { getCompanyFeatures } = require("../utils/planFeatures");
+const logger = require("../utils/logger");
 
 // ─── Internal: upload a buffer to Meta Media API → returns media_id ──────────
 
@@ -68,7 +69,7 @@ async function sendTemplate(
 ) {
   const accessToken = process.env.META_WA_TOKEN;
   const phoneNumberId = process.env.META_WA_PHONE_ID;
-  console.log(
+  logger.debug(
     `[WA-DEBUG] sendTemplate → phone=${phone} template=${templateName} META_WA_TOKEN=${accessToken ? "SET" : "MISSING"} META_WA_PHONE_ID=${phoneNumberId ? "SET" : "MISSING"}`,
   );
   if (!accessToken || !phoneNumberId) {
@@ -164,7 +165,7 @@ async function getCompanySetting(eventKey, companyId) {
     );
     return null;
   }
-  console.log(
+  logger.debug(
     `[WA-DEBUG] getCompanySetting: OK — whatsappEnabled=true, ${eventKey}=${setting[eventKey]}`,
   );
   return setting;
@@ -195,7 +196,7 @@ async function sendCheckIn(
       [firstName, locationName, t],
       s.whatsappLang || "en",
     );
-    console.log(`[WA-DEBUG] ✅ Staff check-in message DELIVERED to ${phone}`);
+    logger.debug(`[WA-DEBUG] ✅ Staff check-in message DELIVERED to ${phone}`);
   } catch (err) {
     console.error(
       `[WA-DEBUG] ❌ Staff check-in FAILED to ${phone}:`,
@@ -601,7 +602,7 @@ async function sendSalaryPaid(
       s.whatsappLang || "en",
       extraComponents,
     );
-    console.log(`[WA-DEBUG] ✅ Salary paid notification sent to ${phone}`);
+    logger.debug(`[WA-DEBUG] ✅ Salary paid notification sent to ${phone}`);
   } catch (err) {
     console.error("[WhatsApp] sendSalaryPaid:", err.message);
   }
@@ -696,7 +697,7 @@ async function sendPaymentVerified(
       s.whatsappLang || "en",
       extraComponents,
     );
-    console.log(`[WA-DEBUG] ✅ Payment verified notification sent to ${phone}`);
+    logger.debug(`[WA-DEBUG] ✅ Payment verified notification sent to ${phone}`);
   } catch (err) {
     console.error("[WhatsApp] sendPaymentVerified:", err.message);
   }
@@ -793,7 +794,7 @@ async function sendPaymentVerifiedAdmin(
       s.whatsappLang || "en",
       extraComponents,
     );
-    console.log(
+    logger.debug(
       `[WA-DEBUG] ✅ Payment verified (admin copy) sent to ${phone}`,
     );
   } catch (err) {
@@ -847,7 +848,7 @@ async function sendPaymentRejected(
       ],
       s.whatsappLang || "en",
     );
-    console.log(`[WA-DEBUG] ✅ Payment rejected notification sent to ${phone}`);
+    logger.debug(`[WA-DEBUG] ✅ Payment rejected notification sent to ${phone}`);
   } catch (err) {
     console.error("[WhatsApp] sendPaymentRejected:", err.message);
   }
@@ -890,7 +891,7 @@ async function sendAttendanceStatus(
       [firstName, d, statusLabel],
       s.whatsappLang || "en",
     );
-    console.log(
+    logger.debug(
       `[WA-DEBUG] ✅ Attendance status (${statusLabel}) sent to ${phone}`,
     );
   } catch (err) {
@@ -1012,7 +1013,7 @@ async function sendLoanAppliedHR(
 async function sendPhoneOtp(phone, { otp }) {
   const accessToken = process.env.META_WA_TOKEN;
   const phoneNumberId = process.env.META_WA_PHONE_ID;
-  console.log(
+  logger.info(
     `[WA-OTP] token=${accessToken ? accessToken.slice(0, 8) + "..." : "MISSING"} phoneId=${phoneNumberId || "MISSING"} to=${phone}`,
   );
   if (!accessToken || !phoneNumberId) {
@@ -1063,7 +1064,7 @@ async function sendPhoneOtp(phone, { otp }) {
           let data = "";
           res.on("data", (chunk) => (data += chunk));
           res.on("end", () => {
-            console.log(
+            logger.info(
               `[WA-OTP] Meta API status=${res.statusCode} body=${data}`,
             );
             if (res.statusCode >= 200 && res.statusCode < 300)
@@ -1076,7 +1077,7 @@ async function sendPhoneOtp(phone, { otp }) {
       req.write(body);
       req.end();
     });
-    console.log(`[WA-DEBUG] ✅ OTP sent to ${phone}`);
+    logger.debug(`[WA-DEBUG] ✅ OTP sent to ${phone}`);
   } catch (err) {
     console.error(`[WA-DEBUG] ❌ OTP FAILED to ${phone}:`, err.message);
     throw err;

@@ -1,7 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ImageCropHost } from "@/components/ui/ImageCropper";
+import { useDisabledFeatures } from "@/hooks/useDisabledFeatures";
+import { isPathDisabled } from "@/config/features";
 import { ToastProvider } from "@/hooks/use-toast";
 import { usePushNotification } from "@/hooks/usePushNotification";
 import DashboardPage from "./pages/DashboardPage";
@@ -71,17 +79,61 @@ function LoadingScreen() {
   );
 }
 
+// Pages that only the owner/HR may open. The API enforces the same rule; this
+// just stops other roles landing on a half-broken screen by typing the URL.
+const OWNER_ONLY_PATHS = [
+  "/loans",
+  "/payroll",
+  "/employee-credentials",
+  "/departments",
+  "/attendance-settings",
+  "/biometric",
+  "/late-approvals",
+  "/audit-log",
+  "/manage",
+  "/reports",
+  "/plans",
+  "/expenses",
+  "/exits",
+];
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { pathname } = useLocation();
+  const disabledFeatures = useDisabledFeatures(isAuthenticated);
   if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (isPathDisabled(pathname, disabledFeatures)) {
+    return <Navigate to="/" replace />;
+  }
 
   const hasCompany = user?.company;
   if (!hasCompany) return <Navigate to="/onboarding" replace />;
 
+  const isOwnerRole =
+    user?.role === "super_admin" || user?.role === "hr_manager";
+  if (
+    !isOwnerRole &&
+    OWNER_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+  ) {
+    return <Navigate to="/" replace />;
+  }
+
+  const sub: any = user?.subscription;
+  const now = Date.now();
+  const GRACE_MS = 7 * 86400000; // keep in sync with backend GRACE_DAYS
   const hasActiveSubscription =
-    user?.subscription?.status === "active" ||
-    user?.subscription?.status === "pending_renewal";
+    (sub?.status === "active" || sub?.status === "pending_renewal") &&
+    !(
+      sub?.isTrial &&
+      sub?.trialEndDate &&
+      new Date(sub.trialEndDate).getTime() < now
+    ) &&
+    !(
+      !sub?.isTrial &&
+      sub?.renewalDate &&
+      new Date(sub.renewalDate).getTime() + GRACE_MS < now
+    );
   if (!hasActiveSubscription) {
     if (user?.role === "super_admin") return <Navigate to="/billing" replace />;
     return <Navigate to="/login" replace />;

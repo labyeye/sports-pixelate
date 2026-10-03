@@ -20,6 +20,7 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { fetchAllPages } from '../utils/fetchAllPages';
+import { notifyError } from '../utils/notifyError';
 
 const FEE_STATUS_COLORS: Record<string, string> = {
   paid: colors.green,
@@ -66,13 +67,13 @@ export default function BatchSummaryReportScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

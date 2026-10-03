@@ -15,6 +15,7 @@ import {
   Minus,
   Sun,
 } from "lucide-react";
+import { notifyError } from "@/hooks/use-toast";
 
 const MONTHS = [
   "January",
@@ -93,7 +94,7 @@ export default function EmployeeReportPage() {
       .then((res) => {
         if (res.success && res.data?.length > 0) setEmpId(res.data[0]._id);
       })
-      .catch(() => {});
+      .catch(notifyError);
   }, [user]);
 
   const load = useCallback(async () => {

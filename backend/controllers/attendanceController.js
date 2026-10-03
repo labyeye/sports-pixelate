@@ -10,6 +10,7 @@ const { isHolidayDate } = require("./holidayController");
 const { safePagination } = require("../middleware/validate");
 const { sendAttendanceStatus } = require("../services/whatsappService");
 const { validateMagicBytes } = require("../middleware/upload");
+const { readDecrypted } = require("../utils/fileCrypto");
 const { verifyFace } = require("../services/faceService");
 const { notifyOwners, notifyUsers } = require("../services/inAppNotify");
 
@@ -490,7 +491,7 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
   }
 
   const { match, distance } = await verifyFace(
-    fs.readFileSync(req.file.path),
+    readDecrypted(req.file.path),
     req.file.filename,
     req.file.mimetype,
     emp.faceDescriptor,

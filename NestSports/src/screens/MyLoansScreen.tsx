@@ -24,6 +24,8 @@ import {
   TextField,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: colors.yellow,
@@ -32,10 +34,6 @@ const STATUS_COLORS: Record<string, string> = {
   cleared: colors.green,
   paused: colors.muted,
 };
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
 
 export default function MyLoansScreen() {
   const [loans, setLoans] = useState<any[]>([]);
@@ -58,13 +56,13 @@ export default function MyLoansScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -87,8 +85,8 @@ export default function MyLoansScreen() {
       setReason('');
       Alert.alert('Request sent', 'Your request is pending approval.');
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not submit the request');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not submit the request');
     } finally {
       setSaving(false);
     }

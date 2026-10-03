@@ -4,6 +4,7 @@ import { Image as ImageIcon, Trash2 } from 'lucide-react-native';
 import { Card, SectionTitle, EmptyState, ImagePicker, useToast, type PickedImage } from '../../ui';
 import { colors } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
+import { notifyError } from '../../../utils/notifyError';
 
 // Shell tab: basic grid + upload wired to a real endpoint, no albums/reorder.
 export default function GalleryTab({ eventId }: { eventId: string }) {
@@ -17,7 +18,7 @@ export default function GalleryTab({ eventId }: { eventId: string }) {
     eventAPI
       .getGallery(eventId)
       .then((r: any) => setItems(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   };
 
@@ -27,8 +28,8 @@ export default function GalleryTab({ eventId }: { eventId: string }) {
     try {
       await eventAPI.addGalleryPhoto(eventId, file);
       load();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not upload photo');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not upload photo');
     }
   };
 
@@ -37,8 +38,8 @@ export default function GalleryTab({ eventId }: { eventId: string }) {
     try {
       await eventAPI.removeGalleryItem(eventId, itemId);
       setItems(prev => prev.filter(i => i._id !== itemId));
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not remove photo');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not remove photo');
     } finally {
       setBusyId(null);
     }

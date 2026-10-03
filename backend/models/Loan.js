@@ -34,4 +34,8 @@ const loanSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+loanSchema.index({ company: 1, status: 1 });
+loanSchema.index({ employee: 1, status: 1 });
+
 module.exports = mongoose.model("Loan", loanSchema);

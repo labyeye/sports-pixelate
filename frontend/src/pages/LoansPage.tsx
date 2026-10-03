@@ -1,9 +1,13 @@
+// Loans & advances (web): HR view of employee loan/advance requests —
+// create, edit, approve/reject (loanAPI.updateStatus), delete and Excel import.
+// Approved loans are recovered as EMIs by payroll (backend utils/payrollCalc).
+
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { loanAPI, employeeAPI } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, formatCurrency, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import {
   ImportExportModal,
@@ -75,6 +79,7 @@ interface Loan {
     lastName: string;
     employeeId: string;
     department?: any;
+    avatar?: string;
   };
   type: "loan" | "advance";
   amount: number;
@@ -96,7 +101,7 @@ const EMPTY_FORM = {
   monthlyEmi: "",
   reason: "",
   disbursedOn: new Date().toISOString().split("T")[0],
-  status: "active" as "active" | "cleared" | "paused",
+  status: "active" as Loan["status"],
   remarks: "",
 };
 
@@ -140,7 +145,9 @@ export default function LoansPage() {
       ]);
       setLoans(loanRes.data || []);
       setEmployees(empRes.data || []);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, []);
 
@@ -196,10 +203,10 @@ export default function LoansPage() {
       }
       setModal(false);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -211,10 +218,10 @@ export default function LoansPage() {
       await loanAPI.updateStatus(id, { status: "approved" });
       toast({ title: "Approved", description: "Loan/advance approved." });
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -230,10 +237,10 @@ export default function LoansPage() {
         description: "Loan/advance request rejected.",
       });
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -245,10 +252,10 @@ export default function LoansPage() {
       toast({ title: "Deleted" });
       setDeleteConfirm(null);
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -295,12 +302,6 @@ export default function LoansPage() {
     (l) => l.status === "cleared",
   ).length;
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(n);
 
   return (
     <AppLayout title="Loans & Advances">
@@ -394,13 +395,13 @@ export default function LoansPage() {
         {[
           {
             label: "Total Disbursed",
-            value: fmt(totalDisbursed),
+            value: formatCurrency(totalDisbursed),
             icon: Banknote,
             color: "#024BAB",
           },
           {
             label: "Outstanding",
-            value: fmt(totalOutstanding),
+            value: formatCurrency(totalOutstanding),
             icon: TrendingDown,
             color: "#EF4444",
           },
@@ -513,7 +514,7 @@ export default function LoansPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 font-bold text-xs">
-                    {fmt(loan.amount)}
+                    {formatCurrency(loan.amount)}
                   </td>
                   <td className="px-4 py-3 text-xs">
                     <span
@@ -524,11 +525,11 @@ export default function LoansPage() {
                           : "text-green-600",
                       )}
                     >
-                      {fmt(loan.remainingBalance)}
+                      {formatCurrency(loan.remainingBalance)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-700">
-                    {loan.monthlyEmi > 0 ? fmt(loan.monthlyEmi) : "—"}
+                    {loan.monthlyEmi > 0 ? formatCurrency(loan.monthlyEmi) : "—"}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-700">
                     {loan.disbursedOn

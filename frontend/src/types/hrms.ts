@@ -82,6 +82,59 @@ export interface Employee {
   gender?: "male" | "female" | "other";
   dateOfBirth?: string;
   reportingTo?: { firstName: string; lastName: string };
+  // Personal & statutory details
+  address?: string;
+  permanentAddress?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  alternatePhone?: string;
+  personalEmail?: string;
+  emergencyContact?: string;
+  fatherName?: string;
+  motherName?: string;
+  spouseName?: string;
+  maritalStatus?: string;
+  bloodGroup?: string;
+  nationality?: string;
+  religion?: string;
+  qualification?: string;
+  totalExperience?: string;
+  previousCompany?: string;
+  panNumber?: string;
+  aadharNumber?: string;
+  uanNumber?: string;
+  esicNumber?: string;
+  pfNumber?: string;
+  // Bank
+  bankAccount?: string;
+  accountHolderName?: string;
+  ifscCode?: string;
+  bankName?: string;
+  loanBalance?: number;
+  // Uploaded documents (file paths)
+  panDoc?: string;
+  aadhaarDoc?: string;
+  resumeDoc?: string;
+  // Work schedule & shift
+  workScheduleType?: string;
+  customWorkDays?: number[];
+  shift?: string | { _id: string; name?: string };
+  shiftName?: string;
+  isCustomShift?: boolean;
+  customShift?: {
+    startTime?: string;
+    endTime?: string;
+    breakMinutes?: number;
+    workingHours?: number;
+    otAfterHours?: number;
+  };
+  // Geofenced attendance
+  geofenceAttendanceEnabled?: boolean;
+  geofenceMode?: "specific" | "any";
+  geofenceLat?: number;
+  geofenceLng?: number;
+  geofenceRadiusMeters?: number;
 }
 
 export interface AttendanceRecord {

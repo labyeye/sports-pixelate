@@ -33,8 +33,8 @@ export default function LateApprovalsScreen() {
     try {
       const res = await lateApprovalAPI.getAll();
       setItems(res?.data || []);
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not load late approvals');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not load late approvals');
     } finally {
       setLoading(false);
     }
@@ -57,8 +57,8 @@ export default function LateApprovalsScreen() {
     try {
       await lateApprovalAPI.resolve(id, resolvedStatus);
       setItems(prev => prev.filter(i => i._id !== id));
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not resolve this approval');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not resolve this approval');
     } finally {
       setResolvingId(null);
     }

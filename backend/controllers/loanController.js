@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const mongoose = require("mongoose");
 const Loan = require("../models/Loan");
 const Employee = require("../models/Employee");
@@ -56,10 +57,26 @@ const getLoans = asyncHandler(async (req, res) => {
 });
 
 const createLoan = asyncHandler(async (req, res) => {
-  const loan = await Loan.create({
-    ...req.body,
+  // The employee must belong to this academy — never trust a body-supplied id.
+  const borrower = await Employee.findOne({
+    _id: req.body.employee,
     company: req.user.company,
-    remainingBalance: req.body.amount,
+  }).select("_id");
+  if (!borrower) {
+    res.status(404);
+    throw new Error("Employee not found");
+  }
+  const amount = Number(req.body.amount);
+  if (!amount || amount <= 0) {
+    res.status(400);
+    throw new Error("A valid amount is required");
+  }
+  const loan = await Loan.create({
+    ...stripProtected(req.body, ["remainingBalance", "approvedBy"]),
+    employee: borrower._id,
+    company: req.user.company,
+    amount,
+    remainingBalance: amount,
   });
   await syncLoanBalance(loan.employee);
   const populated = await Loan.findById(loan._id).populate(
@@ -225,7 +242,7 @@ const updateLoanStatus = asyncHandler(async (req, res) => {
 const updateLoan = asyncHandler(async (req, res) => {
   const loan = await Loan.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
-    req.body,
+    stripProtected(req.body, ["employee"]),
     { new: true },
   ).populate("employee", "firstName lastName employeeId avatar");
   if (!loan)

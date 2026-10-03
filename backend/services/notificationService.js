@@ -1,6 +1,12 @@
+// Outbound email (SMTP via nodemailer) plus the WhatsApp half of the
+// subscription confirmation. WhatsApp-only messages live in whatsappService.js.
+// Email is optional: with SMTP_HOST / SMTP_USER / SMTP_PASS unset,
+// getTransporter() returns null and every send below is skipped.
 const nodemailer = require("nodemailer");
 const { sendSubscriptionWA } = require("./whatsappService");
+const logger = require("../utils/logger");
 
+// SMTP transport built from env vars, or null when email is not configured.
 function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || "587", 10);
@@ -19,6 +25,7 @@ function getTransporter() {
   });
 }
 
+// Rupee amount for email bodies.
 function formatCurrency(amount) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -27,6 +34,7 @@ function formatCurrency(amount) {
   }).format(amount);
 }
 
+// Human-readable date for email bodies.
 function formatDate(date) {
   return new Date(date).toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -35,6 +43,7 @@ function formatDate(date) {
   });
 }
 
+// Subscription/payment confirmation email (with invoice details) to the account owner.
 async function sendSubscriptionConfirmationEmail(opts) {
   const transporter = getTransporter();
   if (!transporter) {
@@ -136,12 +145,13 @@ async function sendSubscriptionConfirmationEmail(opts) {
       subject: `✅ Welcome to NestPlay — ${opts.planName} Plan Activated`,
       html,
     });
-    console.log(`[Email] Confirmation sent to ${opts.toEmail}`);
+    logger.info(`[Email] Confirmation sent to ${opts.toEmail}`);
   } catch (err) {
     console.error("[Email] Failed to send confirmation:", err.message);
   }
 }
 
+// Same confirmation over WhatsApp (delegates to whatsappService.sendSubscriptionWA).
 async function sendSubscriptionConfirmationWhatsApp(opts) {
   await sendSubscriptionWA(opts.toPhone, {
     toName: opts.toName,
@@ -153,6 +163,8 @@ async function sendSubscriptionConfirmationWhatsApp(opts) {
   });
 }
 
+// Sends the email and, when a phone is given, the WhatsApp message together;
+// a failure in one never blocks the other (allSettled).
 async function sendPaymentConfirmations(opts) {
   await Promise.allSettled([
     sendSubscriptionConfirmationEmail(opts),
@@ -162,6 +174,7 @@ async function sendPaymentConfirmations(opts) {
   ]);
 }
 
+// Email sent when an account is created for a user from the CRM.
 async function sendCrmAccountCreatedEmail({
   toEmail,
   toName,
@@ -283,12 +296,13 @@ async function sendCrmAccountCreatedEmail({
       subject: `✅ Welcome to NestPlay — ${companyName} Account Created`,
       html,
     });
-    console.log(`[Email] CRM account email sent to ${toEmail}`);
+    logger.info(`[Email] CRM account email sent to ${toEmail}`);
   } catch (err) {
     console.error("[Email] Failed to send CRM account email:", err.message);
   }
 }
 
+// Password-reset link email.
 async function sendPasswordResetEmail({ toEmail, toName, resetUrl }) {
   const transporter = getTransporter();
   if (!transporter) return;
@@ -331,6 +345,7 @@ async function sendPasswordResetEmail({ toEmail, toName, resetUrl }) {
   }
 }
 
+// Tells an employee their leave request was approved or rejected.
 async function sendLeaveStatusEmail({
   toEmail,
   toName,
@@ -395,6 +410,7 @@ async function sendLeaveStatusEmail({
   }
 }
 
+// Tells HR/approvers that an employee applied for leave.
 async function sendLeaveAppliedEmail({
   toEmail,
   toName,

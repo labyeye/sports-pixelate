@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const Expense = require("../models/Expense");
 const { safePagination, validateBody } = require("../middleware/validate");
 
@@ -68,7 +69,7 @@ const createExpense = [
 const updateExpense = asyncHandler(async (req, res) => {
   const expense = await Expense.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
-    req.body,
+    stripProtected(req.body),
     { new: true, runValidators: true },
   );
   if (!expense) {

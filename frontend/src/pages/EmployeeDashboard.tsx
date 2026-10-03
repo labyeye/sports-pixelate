@@ -1,3 +1,7 @@
+// Employee self-service dashboard (web): what a logged-in employee sees —
+// their profile (editable via authAPI.updateProfile), attendance, payslips,
+// leave requests (leaveAPI.create) and related tabs listed in TABS.
+
 import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useRef, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
@@ -21,8 +25,8 @@ import {
   documentAPI,
   supportAPI,
 } from "@/services/api";
-import { cn, formatDate, formatCurrency } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { cn, formatDate, formatCurrency, getErrorMessage } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
 import {
   AlertCircle,
   Loader2,
@@ -223,23 +227,23 @@ export default function EmployeeDashboard() {
                 });
               }
             })
-            .catch(() => {}),
+            .catch(notifyError),
           leaveAPI
             .getAll({ employeeId: emp._id })
             .then((r) => r.success && setLeaves(r.data))
-            .catch(() => {}),
+            .catch(notifyError),
           payrollAPI
             .getMy({ limit: "6" })
             .then((r) => r.success && setPayrolls(r.data))
-            .catch(() => {}),
+            .catch(notifyError),
           performanceAPI
             .getAll({ employeeId: emp._id })
             .then((r) => r.success && setPerformance(r.data))
-            .catch(() => {}),
+            .catch(notifyError),
           dashboardAPI
             .getEmployeeStats()
             .then((r) => r.success && setEssStats(r.data))
-            .catch(() => {}),
+            .catch(notifyError),
         ]);
       }
     } catch (err) {
@@ -297,10 +301,10 @@ export default function EmployeeDashboard() {
         title: "Photo updated",
         description: "Your profile photo has been saved.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Upload failed",
-        description: err.message || "Could not save photo",
+        description: getErrorMessage(err) || "Could not save photo",
         variant: "destructive",
       });
     } finally {
@@ -315,10 +319,10 @@ export default function EmployeeDashboard() {
       await authAPI.updateProfile({ avatar: "" });
       updateUser({ avatar: "" });
       toast({ title: "Photo removed" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -338,10 +342,10 @@ export default function EmployeeDashboard() {
         phone: res.data?.phone || editPhone.trim(),
       });
       toast({ title: "Profile saved", description: "Name and phone updated." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message || "Failed to save profile",
+        description: getErrorMessage(err) || "Failed to save profile",
         variant: "destructive",
       });
     } finally {
@@ -366,10 +370,10 @@ export default function EmployeeDashboard() {
         title: "Password changed",
         description: "Your new password is active.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message || "Failed to change password",
+        description: getErrorMessage(err) || "Failed to change password",
         variant: "destructive",
       });
     } finally {
@@ -442,12 +446,12 @@ export default function EmployeeDashboard() {
         leaveAPI
           .getAll({ employeeId: emp._id })
           .then((r: any) => r.success && setLeaves(r.data))
-          .catch(() => {});
+          .catch(notifyError);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message || "Failed to submit leave",
+        description: getErrorMessage(err) || "Failed to submit leave",
         variant: "destructive",
       });
     } finally {

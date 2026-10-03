@@ -48,7 +48,7 @@ NestPlay brings together staff/HR management, coaching operations, student enrol
 
 ### 3. Parent Portal
 
-- A dedicated, simplified view for parents to check their child's attendance, active subscription, and upcoming/past facility bo₹okings — no admin clutter, just what matters to them.
+- A dedicated, simplified view for parents to check their child's attendance, active subscription, and upcoming/past facility bookings — no admin clutter, just what matters to them.
 
 ### 4. Payments & Billing
 
@@ -73,8 +73,8 @@ NestPlay brings together staff/HR management, coaching operations, student enrol
 
 ### 7. Built for Growing Academies (SaaS Platform)
 
-- Tiered subscription plans — **Starter, Professional, and Enterprise** — each with its own employee limits and feature set
-- Feature-gated access so academies only pay for what they use, with a clear upgrade path
+- **Simple per-user pricing** — ₹30 per user per month (students + staff) with in-app notifications, ₹50 with WhatsApp notifications; GST extra. Yearly = 12× monthly. Offer codes supported.
+- **Subscription enforced end-to-end** — the API (not just the UI) rejects requests from academies whose plan has lapsed (7-day grace), and WhatsApp only sends if the academy bought it
 - Guided onboarding wizard — company setup → initial staff import → plan selection → payment, in a few guided steps
 - Multi-tenant architecture designed to serve many academies independently and securely
 
@@ -99,3 +99,40 @@ NestPlay brings together staff/HR management, coaching operations, student enrol
 - **Biometrics**: Face recognition, fingerprint/device enrollment
 - **Communication**: WhatsApp Business API, email, web push notifications
 - **Security**: JWT authentication, two-factor authentication, geofencing, audit logging
+
+
+---
+
+## Local setup
+
+```bash
+# 1. API (needs MongoDB)
+cd backend
+cp .env.example .env        # fill MONGO_URI and JWT_SECRET at minimum
+npm install
+npm run dev                 # http://localhost:5002
+npm test                    # route-guard, pricing & subscription tests (no DB needed)
+
+# 2. Web
+cd ../frontend
+cp .env.example .env        # VITE_API_URL=http://localhost:5002/api
+npm install
+npm run dev                 # http://localhost:5174
+npm run lint && npm run typecheck && npm run build
+
+# 3. Mobile (React Native)
+cd ../NestSports
+npm install --legacy-peer-deps
+cd ios && pod install && cd ..
+npm run ios                 # or: npm run android
+```
+
+CI (`.github/workflows/ci.yml`) runs the API tests + dependency audit, web lint/typecheck/build and mobile typecheck on every push and pull request.
+
+### Production checklist
+- `NODE_ENV=production` and `ALLOWED_ORIGINS` set (the API refuses to start otherwise).
+- `UPLOAD_DIR` on a persistent volume — uploaded files are not stored in the database or git.
+- `META_APP_SECRET` + `META_WA_VERIFY_TOKEN` set — the WhatsApp webhook rejects unsigned requests.
+- `SENTRY_DSN` / `VITE_SENTRY_DSN` for error monitoring (optional but recommended).
+- Android release: create your own keystore and pass it via `NESTPLAY_UPLOAD_*` Gradle properties (see `NestSports/android/app/build.gradle`).
+- Take regular MongoDB backups.

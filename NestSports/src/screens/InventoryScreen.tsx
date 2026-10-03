@@ -66,6 +66,7 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
+import { notifyError } from '../utils/notifyError';
 
 const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'name', label: 'Item Name', required: true, example: 'Tennis Racket' },
@@ -249,7 +250,7 @@ export default function InventoryScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -261,7 +262,7 @@ export default function InventoryScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -329,8 +330,8 @@ export default function InventoryScreen() {
       setTxnItem(null);
       setTxnQty('1');
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not record movement');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not record movement');
     } finally {
       setTxnSaving(null);
     }
@@ -352,7 +353,7 @@ export default function InventoryScreen() {
     api
       .getAll({ limit: '500' })
       .then((r: any) => setAssignPeople(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setAssignPeopleLoading(false));
   }, [assignItem, assignModel]);
 
@@ -380,8 +381,8 @@ export default function InventoryScreen() {
       setAssignQty('1');
       setAssignNotes('');
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not record check-out');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not record check-out');
     } finally {
       setAssigning(false);
     }
@@ -396,8 +397,8 @@ export default function InventoryScreen() {
       );
       setAssignItem(res.data);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not mark item returned');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not mark item returned');
     }
   };
 
@@ -411,8 +412,8 @@ export default function InventoryScreen() {
           try {
             await inventoryAPI.delete(item._id);
             await load();
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not delete item');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Could not delete item');
           }
         },
       },
@@ -442,12 +443,12 @@ export default function InventoryScreen() {
         itemId = res.data._id;
       }
       if (photoFile && itemId) {
-        await inventoryAPI.uploadPhoto(itemId, photoFile).catch(() => {});
+        await inventoryAPI.uploadPhoto(itemId, photoFile).catch(notifyError);
       }
       setShowModal(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save item');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save item');
     } finally {
       setSaving(false);
     }

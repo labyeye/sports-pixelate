@@ -21,10 +21,8 @@ import { dashboardAPI, payrollAPI } from '../api/client';
 import { Card, KpiTile, LoadingView, Row, SectionTitle } from '../components/ui';
 import { CATEGORY_LABELS, REPORTS, ReportCategory } from '../reports/catalog';
 import { colors } from '../theme/colors';
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 export default function ReportsScreen({ navigation }: any) {
   const [stats, setStats] = useState<any>(null);
@@ -50,13 +48,13 @@ export default function ReportsScreen({ navigation }: any) {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

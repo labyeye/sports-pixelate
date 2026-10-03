@@ -31,6 +31,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const TYPE_OPTIONS = ['national', 'optional', 'restricted'] as const;
 
@@ -69,13 +70,13 @@ export default function HolidaysScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -116,8 +117,8 @@ export default function HolidaysScreen() {
       }
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save holiday');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save holiday');
     } finally {
       setSaving(false);
     }
@@ -133,8 +134,8 @@ export default function HolidaysScreen() {
           try {
             await holidayAPI.delete(h._id);
             setHolidays(prev => prev.filter(x => x._id !== h._id));
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not delete holiday');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Could not delete holiday');
           }
         },
       },

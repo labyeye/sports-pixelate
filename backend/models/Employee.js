@@ -165,4 +165,18 @@ const employeeSchema = new mongoose.Schema(
 
 employeeSchema.index({ employeeId: 1, company: 1 }, { unique: true });
 
+// Tenant-first indexes: every query is scoped by company.
+employeeSchema.index({ company: 1, status: 1 });
+
+// Keep the kiosk face index (services/faceIndex.js) in step with face/status edits.
+employeeSchema.pre("save", function (next) {
+  this.$locals.faceIndexStale =
+    this.isNew || this.isModified("faceDescriptor") || this.isModified("status");
+  next();
+});
+employeeSchema.post("save", function () {
+  if (this.$locals.faceIndexStale)
+    require("../services/faceIndex").invalidateFaceIndex();
+});
+
 module.exports = mongoose.model("Employee", employeeSchema);

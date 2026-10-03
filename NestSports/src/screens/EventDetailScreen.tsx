@@ -29,6 +29,7 @@ import GalleryTab from '../components/events/tabs/GalleryTab';
 import AnnouncementsTab from '../components/events/tabs/AnnouncementsTab';
 import PaymentsTab from '../components/events/tabs/PaymentsTab';
 import AttendanceTab from '../components/events/tabs/AttendanceTab';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: colors.muted,
@@ -56,13 +57,13 @@ export default function EventDetailScreen({ route, navigation }: any) {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

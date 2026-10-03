@@ -4,6 +4,7 @@ import { Card, SectionTitle, EmptyState } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
 import { ListOrdered } from 'lucide-react-native';
+import { notifyError } from '../../../utils/notifyError';
 
 // Sports + round_robin only — derived client-side from fixtures, no new
 // endpoint needed. Knockout has no points table.
@@ -14,7 +15,7 @@ export default function PointsTableTab({ event }: { event: any }) {
     eventAPI
       .getFixtures(event._id)
       .then((r: any) => setFixtures(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
   }, [event._id]);
 
   const table = useMemo(() => {

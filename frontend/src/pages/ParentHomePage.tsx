@@ -11,7 +11,7 @@ import {
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   GraduationCap,
   Wallet,
@@ -82,10 +82,10 @@ export default function ParentHomePage() {
         title: "Photo updated",
         description: "Your profile photo has been saved.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Upload failed",
-        description: err.message || "Could not save photo",
+        description: getErrorMessage(err) || "Could not save photo",
         variant: "destructive",
       });
     } finally {
@@ -109,8 +109,8 @@ export default function ParentHomePage() {
       setChildren(studRes.data);
       setAttendance(attRes.data);
       setSubscriptions(subRes.data);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }

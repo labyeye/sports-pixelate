@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/escapeHtml";
 import { StatCard } from "@/components/ui/StatCard";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
@@ -16,7 +17,7 @@ import {
   settingsAPI,
 } from "@/services/api";
 import { Payroll } from "@/types/hrms";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, getErrorMessage } from "@/lib/utils";
 import {
   IndianRupee,
   Play,
@@ -31,6 +32,7 @@ import {
 import { ActionModal } from "@/components/ui/ActionModal";
 import { fillVars, normalizeTemplate, type VarCtx } from "@/lib/chequeTemplate";
 import { imageNaturalSize } from "@/components/settings/cheque-designer/imageUtil";
+import { notifyError } from "@/hooks/use-toast";
 
 // ── Indian number to words ───────────────────────────────────────────────────
 function toIndianWords(n: number): string {
@@ -438,7 +440,7 @@ export default function PayrollPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const load = useCallback(async () => {
@@ -450,7 +452,9 @@ export default function PayrollPage() {
         limit: "200",
       });
       if (res.success) setPayrolls(res.data);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, [month, year]);
 
@@ -481,12 +485,12 @@ export default function PayrollPage() {
         setProcessMode("all");
         load();
       }, 500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message || "Failed to process payroll",
+        message: getErrorMessage(err) || "Failed to process payroll",
       });
     }
     setProcessing(false);
@@ -514,10 +518,8 @@ export default function PayrollPage() {
     id: string,
     status: "received" | "not_received",
   ) => {
-    console.log("[Payroll] markSlipReceived →", id, status);
     try {
       const res = await payrollAPI.markSlipReceived(id, status);
-      console.log("[Payroll] markSlipReceived response →", res);
       if (res.success) {
         setPayrolls((prev) =>
           prev.map((p) =>
@@ -531,9 +533,9 @@ export default function PayrollPage() {
           ),
         );
       }
-    } catch (e: any) {
-      console.error("[Payroll] markSlipReceived error →", e.message);
-      alert(e.message);
+    } catch (e: unknown) {
+      console.error("[Payroll] markSlipReceived error →", getErrorMessage(e));
+      alert(getErrorMessage(e));
     }
   };
 
@@ -550,12 +552,12 @@ export default function PayrollPage() {
         await payrollAPI.markPaid(paidModal.payrollId!, paymentMode);
       }
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: err.message,
+        message: getErrorMessage(err),
       });
     } finally {
       setPaidModal({ show: false, payrollId: null, isBulk: false });
@@ -574,12 +576,12 @@ export default function PayrollPage() {
       });
       setPreviewData(res.data || []);
       setPreviewStep("preview");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Preview Failed",
-        message: err.message,
+        message: getErrorMessage(err),
       });
     }
     setPreviewing(false);
@@ -666,7 +668,7 @@ export default function PayrollPage() {
               const rows = payrolls
                 .map(
                   (p) =>
-                    `<tr><td>${(p.employee as any)?.firstName} ${(p.employee as any)?.lastName}</td><td>${(p.employee as any)?.designation}</td><td>₹${p.basicSalary.toLocaleString()}</td><td>₹${p.grossSalary.toLocaleString()}</td><td>-₹${p.totalDeductions.toLocaleString()}</td><td>₹${p.netSalary.toLocaleString()}</td><td>${p.status}</td></tr>`,
+                    `<tr><td>${escapeHtml((p.employee as any)?.firstName)} ${escapeHtml((p.employee as any)?.lastName)}</td><td>${escapeHtml((p.employee as any)?.designation)}</td><td>₹${p.basicSalary.toLocaleString()}</td><td>₹${p.grossSalary.toLocaleString()}</td><td>-₹${p.totalDeductions.toLocaleString()}</td><td>₹${p.netSalary.toLocaleString()}</td><td>${escapeHtml(p.status)}</td></tr>`,
                 )
                 .join("");
               win.document.write(
@@ -687,7 +689,7 @@ export default function PayrollPage() {
                 .then((res) => {
                   if (res.success) setActiveEmployees(res.data);
                 })
-                .catch(() => {});
+                .catch(notifyError);
             }}
             className="border-2 bg-[#FA731C] text-white px-4 py-2 text-sm flex items-center gap-1.5"
           >
@@ -872,7 +874,7 @@ export default function PayrollPage() {
                 .then((res) => {
                   if (res.success) setActiveEmployees(res.data);
                 })
-                .catch(() => {});
+                .catch(notifyError);
             }}
             className="border-2 bg-[#FA731C] text-white px-4 py-2 text-sm mt-4"
           >

@@ -31,6 +31,8 @@ import {
   UserMinus,
 } from "lucide-react";
 
+import { isPathDisabled } from "@/config/features";
+
 export interface NavItem {
   title: string;
   href: string;
@@ -272,11 +274,18 @@ export function getNavForRole(role: UserRole) {
   return navItems.filter((item) => item.roles.includes(role));
 }
 
-export function getNavGroupsForRole(role: UserRole): NavGroup[] {
+export function getNavGroupsForRole(
+  role: UserRole,
+  disabledFeatures: string[] = [],
+): NavGroup[] {
   return allGroups
     .map((g) => ({
       ...g,
-      items: g.items.filter((item) => item.roles.includes(role)),
+      items: g.items.filter(
+        (item) =>
+          item.roles.includes(role) &&
+          !isPathDisabled(item.href, disabledFeatures),
+      ),
     }))
     .filter((g) => g.items.length > 0);
 }

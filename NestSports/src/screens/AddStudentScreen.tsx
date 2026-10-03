@@ -44,6 +44,7 @@ import {
   INDIA_STATES,
   INDIA_STATES_AND_CITIES,
 } from '../data/indiaStatesAndCities';
+import { notifyError } from '../utils/notifyError';
 
 const GENDERS = ['male', 'female', 'other'] as const;
 const RELATIONS = ['father', 'mother', 'guardian', 'other'] as const;
@@ -200,11 +201,11 @@ export default function AddStudentScreen({ navigation, route }: any) {
     employeeAPI
       .getAll({ role: 'coach' })
       .then((res: any) => setCoaches(res.data || []))
-      .catch(() => {});
+      .catch(notifyError);
     sportsPlanAPI
       .getAll()
       .then((res: any) => setPlans(res.data || []))
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -220,7 +221,7 @@ export default function AddStudentScreen({ navigation, route }: any) {
           setBillingCycle(active.billingCycle || 'monthly');
         }
       })
-      .catch(() => {});
+      .catch(notifyError);
   }, [isEditing, editingStudent?._id]);
 
   useEffect(() => {
@@ -341,10 +342,10 @@ export default function AddStudentScreen({ navigation, route }: any) {
       const student = res.data;
 
       if (avatarFile) {
-        await studentAPI.uploadAvatar(student._id, avatarFile).catch(() => {});
+        await studentAPI.uploadAvatar(student._id, avatarFile).catch(notifyError);
       }
       if (faceFile) {
-        await studentAPI.enrollFace(student._id, faceFile).catch(() => {});
+        await studentAPI.enrollFace(student._id, faceFile).catch(notifyError);
       }
       for (let i = 0; i < guardians.length; i++) {
         const file = guardians[i].photo;
@@ -352,14 +353,14 @@ export default function AddStudentScreen({ navigation, route }: any) {
         if (file && guardianId) {
           await studentAPI
             .uploadGuardianPhoto(student._id, guardianId, file)
-            .catch(() => {});
+            .catch(notifyError);
         }
       }
 
       if (planId) {
         await subscriptionAPI
           .assign({ studentId: student._id, planId, billingCycle })
-          .catch(() => {});
+          .catch(notifyError);
       }
 
       Alert.alert(
@@ -369,8 +370,8 @@ export default function AddStudentScreen({ navigation, route }: any) {
           : 'Student added successfully',
       );
       navigation.goBack();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save student');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save student');
     } finally {
       setSaving(false);
     }

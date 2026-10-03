@@ -6,11 +6,11 @@ const {
   deletePaymentMethod,
   getDefaultPaymentMethod,
 } = require("../controllers/paymentMethodController");
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protect, authorize("super_admin", "hr_manager"));
 
 router.get("/", getPaymentMethods);
 

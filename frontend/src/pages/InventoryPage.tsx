@@ -1,11 +1,15 @@
+// Inventory (web): items with photos, stock-in/out transactions, equipment
+// assignment to students/coaches with return tracking, and Excel bulk import
+// (INVENTORY_IMPORT_HEADERS). Backend: inventoryAPI.
+
 import { cropImage } from "@/components/ui/ImageCropper";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { inventoryAPI, studentAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   ImportExportModal,
   type ImportHeader,
@@ -205,8 +209,8 @@ export default function InventoryPage() {
       setPage(1);
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -221,8 +225,8 @@ export default function InventoryPage() {
       setItems((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setLoadingMore(false);
   };
@@ -304,10 +308,10 @@ export default function InventoryPage() {
         try {
           const up = await inventoryAPI.uploadPhoto(saved._id, photoFile);
           saved = up.data || { ...saved, photo: up.photo };
-        } catch (e: any) {
+        } catch (e: unknown) {
           toast({
             title: "Item saved, but photo upload failed",
-            description: e.message,
+            description: getErrorMessage(e),
             variant: "destructive",
           });
         }
@@ -320,8 +324,8 @@ export default function InventoryPage() {
         toast({ title: "Item added" });
       }
       resetForm();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -333,8 +337,8 @@ export default function InventoryPage() {
       await inventoryAPI.delete(id);
       setItems((p) => p.filter((x) => x._id !== id));
       toast({ title: "Item deleted" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -356,8 +360,8 @@ export default function InventoryPage() {
       toast({ title: `Recorded ${type}` });
       setTxnFor(null);
       setTxnQty("1");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -380,7 +384,7 @@ export default function InventoryPage() {
     api
       .getAll({ limit: "500" })
       .then((r: any) => setAssignPeople(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setAssignPeopleLoading(false));
   }, [assignFor, assignForm.assignedToModel]);
 
@@ -412,8 +416,8 @@ export default function InventoryPage() {
         notes: "",
       }));
       toast({ title: "Item checked out" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setAssignSaving(false);
     }
@@ -429,8 +433,8 @@ export default function InventoryPage() {
       setItems((p) => p.map((i) => (i._id === assignFor._id ? r.data : i)));
       setAssignFor(r.data);
       toast({ title: "Item returned" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -445,7 +449,7 @@ export default function InventoryPage() {
           ).sort(),
         ),
       )
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const displayed = items;

@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { logAudit } = require("../utils/auditLogger");
 const fs = require("fs");
 const StudentSubscription = require("../models/StudentSubscription");
 const SportsPlan = require("../models/SportsPlan");
@@ -685,6 +686,10 @@ async function handleCashPayment(req, res, { subscription }) {
   await updated.populate("student", "firstName lastName");
 
   const payment = updated.payments[updated.payments.length - 1];
+  await logAudit(req, "payment_verified", "StudentSubscription", subscription._id, {
+    paymentId: payment._id,
+    amount: payment.amount,
+  });
   notifyPaymentVerified(updated, payment, req.user.company, req.user.name);
 
   res.json({ success: true, message: "Cash payment recorded", data: updated });
@@ -882,6 +887,11 @@ const rejectQrPayment = asyncHandler(async (req, res) => {
 
   await subscription.populate("student", "firstName lastName");
 
+  await logAudit(req, "payment_rejected", "StudentSubscription", subscription._id, {
+    paymentId: payment._id,
+    amount: payment.amount,
+    reason: payment.rejectionReason,
+  });
   notifyPaymentRejected(subscription, payment, req.user.company);
 
   res.json({
@@ -925,6 +935,7 @@ const getPaymentReceipt = asyncHandler(async (req, res) => {
   res.send(Buffer.from(pdfBytes));
 });
 
+/** POST /subscriptions/:id/cancel — cancels a student subscription. */
 const cancelSubscription = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id, company: req.user.company };
   if (req.user.role === "parent")
@@ -939,6 +950,7 @@ const cancelSubscription = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Subscription not found");
   }
+  await logAudit(req, "subscription_cancelled", "StudentSubscription", subscription._id);
   res.json({ success: true, data: subscription });
 });
 

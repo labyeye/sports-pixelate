@@ -10,7 +10,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface Props {
   employee: any;
@@ -38,7 +38,7 @@ export function DocumentsTabPane({ employee, toast }: Props) {
       if (res.success) {
         setDocs(res.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
     } finally {
       setLoading(false);
@@ -92,10 +92,10 @@ export function DocumentsTabPane({ employee, toast }: Props) {
             variant: "destructive",
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast({
           title: "Error",
-          description: err.message || "Something went wrong",
+          description: getErrorMessage(err) || "Something went wrong",
           variant: "destructive",
         });
       } finally {
@@ -131,10 +131,10 @@ export function DocumentsTabPane({ employee, toast }: Props) {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -149,10 +149,10 @@ export function DocumentsTabPane({ employee, toast }: Props) {
         toast({ title: "Success", description: "Document deleted." });
         await loadDocs();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }

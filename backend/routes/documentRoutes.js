@@ -9,8 +9,15 @@ const { protect, authorize } = require("../middleware/auth");
 const { uploadDocumentVault } = require("../middleware/upload");
 
 const router = express.Router();
+const NON_PARENT = [
+  "super_admin",
+  "hr_manager",
+  "hr_executive",
+  "department_head",
+  "employee",
+];
 
-router.get("/", protect, getDocuments);
+router.get("/", protect, authorize(...NON_PARENT), getDocuments);
 router.post(
   "/",
   protect,
@@ -18,7 +25,12 @@ router.post(
   uploadDocumentVault,
   uploadDocument,
 );
-router.get("/:id/download", protect, downloadDocument);
+router.get(
+  "/:id/download",
+  protect,
+  authorize(...NON_PARENT),
+  downloadDocument,
+);
 router.delete(
   "/:id",
   protect,

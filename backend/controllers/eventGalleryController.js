@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { removeStoredUpload } = require("../utils/uploadFiles");
 const EventGalleryItem = require("../models/EventGalleryItem");
 const Event = require("../models/Event");
 
@@ -51,6 +52,7 @@ const deleteGalleryItem = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Gallery item not found");
   }
+  removeStoredUpload(item.url);
   res.json({ success: true, message: "Gallery item deleted" });
 });
 

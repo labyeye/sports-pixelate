@@ -51,6 +51,8 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
+import { formatCurrency, getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'studentId', label: 'Student ID', required: true, example: 'STU0001' },
@@ -95,10 +97,6 @@ const PAYMENT_ENTRY_COLORS: Record<string, string> = {
   pending: colors.orange,
   rejected: colors.red,
 };
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
 
 const STATUS_COLORS: Record<string, string> = {
   active: colors.green,
@@ -186,13 +184,13 @@ export default function SubscriptionsScreen({ navigation }: any) {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -226,10 +224,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
             try {
               await subscriptionAPI.cancel(id);
               await load();
-            } catch (e: any) {
+            } catch (e: unknown) {
               Alert.alert(
                 'Error',
-                e.message || 'Failed to cancel subscription',
+                getErrorMessage(e) || 'Failed to cancel subscription',
               );
             } finally {
               setCancellingId(null);
@@ -247,8 +245,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
       await subscriptionAPI.verifyQrPayment(reviewSub._id, reviewPayment._id);
       setReviewSub(null);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to verify payment');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to verify payment');
     } finally {
       setReviewing(false);
     }
@@ -261,8 +259,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
       await subscriptionAPI.rejectQrPayment(reviewSub._id, reviewPayment._id);
       setReviewSub(null);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to reject payment');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to reject payment');
     } finally {
       setReviewing(false);
     }
@@ -283,8 +281,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
       ]);
       setCashStudents((studRes as any).data || []);
       setCashPlans((planRes as any).data || []);
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to load students/plans');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to load students/plans');
     } finally {
       setLoadingCashOptions(false);
     }
@@ -335,8 +333,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
       setShowCashModal(false);
       setCashTopUpSub(null);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to record cash payment');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to record cash payment');
     } finally {
       setSubmittingCash(false);
     }
@@ -349,8 +347,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
         subscriptionAPI.receiptUrl(subId, paymentId),
         `receipt_${paymentId}.pdf`,
       );
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to download receipt');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to download receipt');
     } finally {
       setDownloadingId(null);
     }

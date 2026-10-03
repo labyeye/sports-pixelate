@@ -41,8 +41,8 @@ export async function getCurrentPosition(): Promise<{
       timeout: 20000,
       maximumAge: 30000,
     });
-  } catch (err: any) {
-    if (err?.code === 3 /* TIMEOUT */) {
+  } catch (err: unknown) {
+    if ((err as { code?: string | number })?.code === 3 /* TIMEOUT */) {
       // GPS took too long (common indoors) — fall back to a
       // faster, lower-accuracy network-based location.
       try {
@@ -58,11 +58,11 @@ export async function getCurrentPosition(): Promise<{
         );
       }
     }
-    if (err?.code === 2 /* POSITION_UNAVAILABLE */) {
+    if ((err as { code?: string | number })?.code === 2 /* POSITION_UNAVAILABLE */) {
       throw new Error(
         'Location services are turned off on your device. Please enable Location/GPS and try again.',
       );
     }
-    throw new Error(err?.message || 'Could not get your location');
+    throw new Error((err as Error)?.message || 'Could not get your location');
   }
 }

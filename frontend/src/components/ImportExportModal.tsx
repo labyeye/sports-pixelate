@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Download, FileSpreadsheet, Loader2, Upload, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   downloadImportTemplate,
   parseImportFile,
@@ -86,8 +86,8 @@ export function ImportExportModal({
       setResult(res);
       setStep("result");
       if (res.imported > 0) onImported?.();
-    } catch (err: any) {
-      alert(err.message || "Import failed");
+    } catch (err: unknown) {
+      alert(getErrorMessage(err) || "Import failed");
     }
     setImporting(false);
   };

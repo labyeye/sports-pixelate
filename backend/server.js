@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("./utils/monitoring").init();
 
 const REQUIRED_ENV = ["JWT_SECRET", "MONGO_URI"];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
@@ -20,11 +21,17 @@ const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const timeout = require("connect-timeout");
 const errorHandler = require("./middleware/errorHandler");
+const { uploadGuard } = require("./middleware/uploadGuard");
+const { serveEncryptedUpload } = require("./middleware/serveEncryptedUpload");
 
 connectDB();
 
 const { startAttendanceAutoMarkJob } = require("./jobs/attendanceAutoMark");
+const {
+  startSubscriptionLifecycleJob,
+} = require("./jobs/subscriptionLifecycle");
 startAttendanceAutoMarkJob();
+startSubscriptionLifecycleJob();
 
 const app = express();
 
@@ -68,7 +75,15 @@ app.use(
 );
 app.use(timeout("30s"));
 app.use(morgan("dev"));
-app.use(express.json({ limit: "5mb" }));
+app.use(
+  express.json({
+    limit: "5mb",
+    // Keep the exact bytes — the WhatsApp webhook signature is computed over them.
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 // Uploaded images (avatars, guardian photos, etc.) are embedded via absolute
 // URL from the frontend, which runs on a different origin/port than this API.
 // Helmet's default same-origin Cross-Origin-Resource-Policy blocks that
@@ -76,11 +91,13 @@ app.use(express.json({ limit: "5mb" }));
 // everything else (the JSON API) keeps the stricter default.
 app.use(
   "/uploads",
+  uploadGuard,
   (req, res, next) => {
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   },
-  express.static(path.join(__dirname, "uploads")),
+  serveEncryptedUpload,
+  express.static(require("./config/paths").UPLOAD_DIR),
 );
 
 app.use("/iclock", require("./routes/admsRoutes"));
@@ -103,10 +120,9 @@ app.use(
   "/api/hrms/whatsapp-webhook",
   require("./routes/whatsappWebhookRoutes"),
 );
-app.use("/api/company", require("./routes/companyRoutes"));
-
 app.use("/api/auth", authRateLimit, require("./routes/authRoutes"));
 app.use(apiRateLimit);
+app.use("/api/company", require("./routes/companyRoutes"));
 app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
@@ -161,6 +177,8 @@ app.get("/api/health", (req, res) =>
   res.json({ status: "ok", service: "NestPlay API" }),
 );
 
+// Sentry must see the error before our handler turns it into a JSON reply.
+require("./utils/monitoring").attachExpress(app);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5002;

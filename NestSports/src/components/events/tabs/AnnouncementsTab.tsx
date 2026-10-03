@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { Megaphone } from 'lucide-react-native';
 import { Card, SectionTitle, EmptyState, useToast } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
+import { notifyError } from '../../../utils/notifyError';
 
 // Shell tab: list + simple create, no edit/delete/scheduling yet.
 export default function AnnouncementsTab({ eventId }: { eventId: string }) {
@@ -19,22 +20,26 @@ export default function AnnouncementsTab({ eventId }: { eventId: string }) {
     eventAPI
       .getAnnouncements(eventId)
       .then((r: any) => setItems(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [eventId]);
 
   const post = async () => {
-    if (!title.trim() || !message.trim() || posting) return;
+    if (posting) return;
+    if (!title.trim() || !message.trim()) {
+      Alert.alert('Missing information', 'Please enter both a title and a message.');
+      return;
+    }
     setPosting(true);
     try {
       await eventAPI.addAnnouncement(eventId, { title: title.trim(), message: message.trim() });
       setTitle('');
       setMessage('');
       load();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not post announcement');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not post announcement');
     } finally {
       setPosting(false);
     }

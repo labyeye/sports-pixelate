@@ -10,7 +10,7 @@ import {
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   loadRazorpayScript,
   loadCashfreeScript,
@@ -138,6 +138,12 @@ const PAYMENT_STATUS_META: Record<
 
 type SortKey = "student" | "plan" | "amount" | "renewalDate";
 
+// Payment screenshots are private files: <img>/<a> can't send an auth header,
+// so the owner's session token rides along as a query param.
+const withToken = (url?: string) =>
+  url
+    ? `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(getToken() || "")}`
+    : "";
 
 export default function SubscriptionsPage() {
   const { user } = useAuth();
@@ -249,8 +255,8 @@ export default function SubscriptionsPage() {
             : "",
         );
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -265,8 +271,8 @@ export default function SubscriptionsPage() {
       setSubscriptions((p) => [...p, ...r.data]);
       setPage(next);
       setPages(r.pages || 1);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     setLoadingMore(false);
   };
@@ -316,9 +322,12 @@ export default function SubscriptionsPage() {
             }
             try {
               await subscriptionAPI.verifyPayment({ orderId: order.orderId });
-              toast({ title: "Subscribed!", description: "Payment successful." });
+              toast({
+                title: "Subscribed!",
+                description: "Payment successful.",
+              });
               resolve();
-            } catch (err: any) {
+            } catch (err: unknown) {
               reject(err);
             }
           });
@@ -354,7 +363,7 @@ export default function SubscriptionsPage() {
               description: "Payment successful.",
             });
             resolve();
-          } catch (err: any) {
+          } catch (err: unknown) {
             reject(err);
           }
         },
@@ -373,11 +382,11 @@ export default function SubscriptionsPage() {
     try {
       await payOnline(selectedChild, selectedPlan, billingCycle);
       load();
-    } catch (e: any) {
-      if (e.message !== "Payment cancelled") {
+    } catch (e: unknown) {
+      if (getErrorMessage(e) !== "Payment cancelled") {
         toast({
           title: "Payment failed",
-          description: e.message,
+          description: getErrorMessage(e),
           variant: "destructive",
         });
       }
@@ -395,11 +404,11 @@ export default function SubscriptionsPage() {
         s.billingCycle as "monthly" | "yearly",
       );
       load();
-    } catch (e: any) {
-      if (e.message !== "Payment cancelled") {
+    } catch (e: unknown) {
+      if (getErrorMessage(e) !== "Payment cancelled") {
         toast({
           title: "Payment failed",
-          description: e.message,
+          description: getErrorMessage(e),
           variant: "destructive",
         });
       }
@@ -476,8 +485,8 @@ export default function SubscriptionsPage() {
       setQrTransactionNumber("");
       setQrScreenshot(null);
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSubmittingQr(false);
     }
@@ -498,8 +507,8 @@ export default function SubscriptionsPage() {
       toast({ title: "Payment verified" });
       setReviewSub(null);
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setReviewing(false);
     }
@@ -516,8 +525,8 @@ export default function SubscriptionsPage() {
       });
       setReviewSub(null);
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setReviewing(false);
     }
@@ -538,8 +547,8 @@ export default function SubscriptionsPage() {
       a.download = `receipt_${paymentId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setDownloadingId(null);
     }
@@ -608,8 +617,8 @@ export default function SubscriptionsPage() {
       setShowCashModal(false);
       setCashTopUpSub(null);
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSubmittingCash(false);
     }
@@ -621,8 +630,8 @@ export default function SubscriptionsPage() {
       await subscriptionAPI.cancel(id);
       toast({ title: "Subscription cancelled" });
       load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -1184,12 +1193,12 @@ export default function SubscriptionsPage() {
             </div>
             {reviewPayment.method !== "cash" && reviewPayment.screenshot ? (
               <a
-                href={reviewPayment.screenshot}
+                href={withToken(reviewPayment.screenshot)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img
-                  src={reviewPayment.screenshot}
+                  src={withToken(reviewPayment.screenshot)}
                   alt="Payment screenshot"
                   className="w-full max-h-72 object-contain border-2 border-black mb-4"
                 />

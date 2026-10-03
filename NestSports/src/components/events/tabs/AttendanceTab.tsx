@@ -4,6 +4,7 @@ import { ClipboardCheck } from 'lucide-react-native';
 import { Card, SectionTitle, EmptyState } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
+import { notifyError } from '../../../utils/notifyError';
 
 // Read-only shell — no QR check-in / attendance-marking subsystem yet.
 export default function AttendanceTab({ eventId }: { eventId: string }) {
@@ -14,7 +15,7 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
     eventAPI
       .getAttendance(eventId)
       .then((r: any) => setItems(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [eventId]);
 

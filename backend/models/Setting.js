@@ -165,6 +165,10 @@ const settingSchema = new mongoose.Schema(
     showCTC: { type: Boolean, default: false },
     branchwise: { type: Boolean, default: false },
 
+    // Feature keys (see frontend/src/config/features.ts) the owner has
+    // switched off; their screens are hidden from navigation.
+    disabledFeatures: { type: [String], default: [] },
+
     essEnabled: { type: Boolean, default: true },
     essAllowPunch: { type: Boolean, default: false },
     essAllowSalarySlip: { type: Boolean, default: true },

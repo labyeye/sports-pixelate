@@ -3,7 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { studentAPI, studentAttendanceAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   GraduationCap,
   Clock,
@@ -91,8 +91,8 @@ export default function ParentAttendancePage() {
       const res = await studentAPI.getAll();
       setChildren(res.data || []);
       if (res.data?.length && !selectedChild) setSelectedChild(res.data[0]._id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -110,8 +110,8 @@ export default function ParentAttendancePage() {
         limit: "200",
       });
       setRecords(res.data || []);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }

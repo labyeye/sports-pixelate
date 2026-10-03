@@ -29,11 +29,23 @@ import {
   Pencil,
   Trophy,
   ScanFace,
+  RotateCcw,
 } from 'lucide-react-native';
-import { studentAttendanceAPI, studentAPI, RNFile } from '../api/client';
+import {
+  studentAttendanceAPI,
+  studentAPI,
+  biometricAPI,
+  RNFile,
+} from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
 import { DateTimeField, FilterPills } from '../components/ui';
+import FeeOverdueModal, {
+  FeeOverdueStudent,
+} from '../components/FeeOverdueModal';
 import { requestSelfMarkPermissions } from '../utils/location';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 // Mirrors AttendanceScreen's (staff) STATUS_CONFIG 1:1 — same colors, same
 // bg tints, same icon set — so the two attendance screens read as one
@@ -88,6 +100,9 @@ function isoToTime(iso: string | undefined): string {
 }
 
 export default function StudentAttendanceScreen() {
+  const { user } = useAuth();
+  // Only owner/HR may clear a student's enrolled face (backend enforces this too).
+  const canResetFace = user?.role === 'super_admin' || user?.role === 'hr_manager';
   const [records, setRecords] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,8 +155,8 @@ export default function StudentAttendanceScreen() {
           r.date ? toDateStr(new Date(r.date)) === dateFilter : false,
         );
         setRecords(forDate);
-      } catch (e: any) {
-        Alert.alert('Error', e.message);
+      } catch (e: unknown) {
+        Alert.alert('Error', getErrorMessage(e));
       } finally {
         setLoading(false);
       }
@@ -153,7 +168,9 @@ export default function StudentAttendanceScreen() {
     try {
       const res: any = await studentAPI.getAll({ status: 'active' });
       setStudents(res.data || []);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
   }, []);
 
   useEffect(() => {
@@ -183,6 +200,14 @@ export default function StudentAttendanceScreen() {
     setShowModal(true);
   };
 
+  const [feeBlock, setFeeBlock] = useState<FeeOverdueStudent[] | null>(null);
+  // Returns true when the error was a fee-overdue refusal (modal shown).
+  const handleFeeBlock = (err: any) => {
+    if (err?.code !== 'FEE_OVERDUE') return false;
+    setFeeBlock(err.details?.students || []);
+    return true;
+  };
+
   const markAbsent = (studentId: string) => {
     Alert.alert(
       'Mark Absent',
@@ -200,8 +225,34 @@ export default function StudentAttendanceScreen() {
                 status: 'absent',
               });
               await load();
-            } catch (e: any) {
-              Alert.alert('Error', e.message);
+            } catch (e: unknown) {
+              if (handleFeeBlock(e)) return;
+              Alert.alert('Error', getErrorMessage(e));
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Clears a student's enrolled face so they can be enrolled again
+  // (e.g. when the face scan keeps failing to match).
+  const resetStudentFace = (student: any) => {
+    Alert.alert(
+      'Reset Face',
+      `Reset face for ${student.firstName} ${student.lastName}? They must be enrolled again before face attendance works.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await biometricAPI.resetFace('student', student._id);
+              await loadStudents();
+              Alert.alert('Face Reset', 'Enroll the student\'s face again.');
+            } catch (e: unknown) {
+              Alert.alert('Error', getErrorMessage(e));
             }
           },
         },
@@ -243,8 +294,9 @@ export default function StudentAttendanceScreen() {
           );
           Alert.alert('Success', `${student.firstName} marked present.`);
           await load();
-        } catch (e: any) {
-          Alert.alert('Face Mismatch', e.message || 'Could not verify face');
+        } catch (e: unknown) {
+          if (handleFeeBlock(e)) return;
+          Alert.alert('Face Mismatch', getErrorMessage(e) || 'Could not verify face');
         } finally {
           setMarkingByFaceId(null);
         }
@@ -311,8 +363,12 @@ export default function StudentAttendanceScreen() {
       });
       closeModal();
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      if (handleFeeBlock(e)) {
+        closeModal();
+        return;
+      }
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -609,6 +665,21 @@ export default function StudentAttendanceScreen() {
                                   strokeWidth={2.5}
                                 />
                               )}
+                            </TouchableOpacity>
+                          )}
+                        {canResetFace &&
+                          Array.isArray(st?.faceDescriptor) &&
+                          st.faceDescriptor.length === 128 && (
+                            <TouchableOpacity
+                              style={styles.faceResetBtn}
+                              onPress={() => resetStudentFace(st)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <RotateCcw
+                                size={13}
+                                color={colors.white}
+                                strokeWidth={2.5}
+                              />
                             </TouchableOpacity>
                           )}
                         <TouchableOpacity
@@ -932,7 +1003,7 @@ export default function StudentAttendanceScreen() {
                 if (bulkSelected.length === 0) return;
                 setBulkSaving(true);
                 try {
-                  await studentAttendanceAPI.bulkMark({
+                  const res: any = await studentAttendanceAPI.bulkMark({
                     date: dateFilter,
                     records: bulkSelected.map(id => ({
                       student: id,
@@ -940,9 +1011,10 @@ export default function StudentAttendanceScreen() {
                     })),
                   });
                   setShowBulkModal(false);
+                  if (res?.blocked?.length) setFeeBlock(res.blocked);
                   await load();
-                } catch (e: any) {
-                  Alert.alert('Error', e.message);
+                } catch (e: unknown) {
+                  Alert.alert('Error', getErrorMessage(e));
                 } finally {
                   setBulkSaving(false);
                 }
@@ -1105,6 +1177,7 @@ export default function StudentAttendanceScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+      <FeeOverdueModal students={feeBlock} onClose={() => setFeeBlock(null)} />
     </SafeAreaView>
   );
 }
@@ -1366,6 +1439,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 7,
     backgroundColor: colors.green,
+    minWidth: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faceResetBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.red,
+    borderRadius: 8,
+    padding: 7,
+    backgroundColor: colors.red,
     minWidth: 27,
     alignItems: 'center',
     justifyContent: 'center',

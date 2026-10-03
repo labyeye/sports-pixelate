@@ -334,7 +334,9 @@ export function EventForm({
               </label>
               <select
                 value={visibility}
-                onChange={(e) => setVisibility(e.target.value)}
+                onChange={(e) =>
+                  setVisibility(e.target.value as typeof visibility)
+                }
                 className={inputClass}
               >
                 <option value="public">Public</option>
@@ -516,7 +518,7 @@ export function EventForm({
                 value={sportFields}
                 onChange={(p) => setSportFields((v) => ({ ...v, ...p }))}
                 format={format}
-                onFormatChange={setFormat}
+                onFormatChange={(f) => setFormat(f as typeof format)}
               />
             )}
             {sections.includes("danceFields") && (

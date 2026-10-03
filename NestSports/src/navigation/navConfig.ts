@@ -1,4 +1,5 @@
 import { UserRole } from '../types';
+import { isScreenDisabled } from '../config/features';
 import {
   Users,
   Clock,
@@ -379,11 +380,18 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-export function getNavGroupsForRole(role: UserRole): NavGroup[] {
+export function getNavGroupsForRole(
+  role: UserRole,
+  disabledFeatures: string[] = [],
+): NavGroup[] {
   return navGroups
     .map(g => ({
       ...g,
-      items: g.items.filter(item => item.roles.includes(role)),
+      items: g.items.filter(
+        item =>
+          item.roles.includes(role) &&
+          !isScreenDisabled(item.screen, disabledFeatures),
+      ),
     }))
     .filter(g => g.items.length > 0);
 }

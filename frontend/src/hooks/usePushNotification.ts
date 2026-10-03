@@ -58,7 +58,7 @@ async function registerPush(): Promise<void> {
 
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey,
+    applicationServerKey: applicationServerKey as unknown as BufferSource,
   });
 
   await apiPost("/push/subscribe", {

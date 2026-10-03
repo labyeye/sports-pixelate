@@ -57,9 +57,25 @@ router.post(
   uploadPaymentScreenshot,
   submitInstallmentPayment,
 );
-router.post("/:id/payments/:paymentId/verify", protect, verifyQrPayment);
-router.post("/:id/payments/:paymentId/reject", protect, rejectQrPayment);
+router.post(
+  "/:id/payments/:paymentId/verify",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  verifyQrPayment,
+);
+router.post(
+  "/:id/payments/:paymentId/reject",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  rejectQrPayment,
+);
 router.get("/:id/payments/:paymentId/receipt", protect, getPaymentReceipt);
-router.post("/:id/cancel", protect, cancelSubscription);
+// Parents may cancel only their own child's subscription (scoped in the handler).
+router.post(
+  "/:id/cancel",
+  protect,
+  authorize("super_admin", "hr_manager", "parent"),
+  cancelSubscription,
+);
 
 module.exports = router;

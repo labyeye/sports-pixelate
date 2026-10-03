@@ -15,6 +15,7 @@ import { Button, Card, EmptyState, FilterPills, PickerField, TextField } from '.
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { findReport, Filters, ReportDef, ReportTable } from '../reports/catalog';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const NAME_HEADERS = ['employee', 'name', 'employee name', 'student', 'team a', 'designation', 'round'];
@@ -66,7 +67,7 @@ export default function ReportViewerScreen({ route, navigation }: any) {
       departmentAPI
         .getAll()
         .then((r: any) => setDepts(r.data || []))
-        .catch(() => {});
+        .catch(notifyError);
     def.filters.forEach(x => {
       if (x.kind !== 'ref') return;
       x.load()
@@ -75,7 +76,7 @@ export default function ReportViewerScreen({ route, navigation }: any) {
           // Default to the first record, as the web report does.
           setFilters(f => (f[x.key] || !list.length ? f : { ...f, [x.key]: list[0]._id }));
         })
-        .catch(() => {});
+        .catch(notifyError);
     });
   }, [def]);
 
@@ -89,8 +90,8 @@ export default function ReportViewerScreen({ route, navigation }: any) {
       try {
         const result = await def.run(filters);
         if (alive) setTable(result);
-      } catch (e: any) {
-        if (alive) setError(e?.message || 'Could not load report');
+      } catch (e: unknown) {
+        if (alive) setError((e as Error)?.message || 'Could not load report');
       } finally {
         if (alive) setLoading(false);
       }
@@ -126,8 +127,8 @@ export default function ReportViewerScreen({ route, navigation }: any) {
         `${def.id}_${period}.xlsx`,
         def.name.slice(0, 31),
       );
-    } catch (e: any) {
-      Alert.alert('Export failed', e?.message || 'Could not export the report');
+    } catch (e: unknown) {
+      Alert.alert('Export failed', (e as Error)?.message || 'Could not export the report');
     }
   };
 

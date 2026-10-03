@@ -3,7 +3,7 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { billingAPI } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, notifyError } from "@/hooks/use-toast";
 import { buildInvoiceHTML } from "@/lib/buildInvoiceHTML";
 import {
   Check,
@@ -22,7 +22,7 @@ import {
   Briefcase,
   Tag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -64,13 +64,13 @@ export default function BillingPage() {
             setWantsWhatsapp(!!r.data.wantsWhatsapp);
           }
         })
-        .catch(() => {}),
+        .catch(notifyError),
       billingAPI
         .getInvoices()
         .then((r) => {
           if (r.success) setInvoices(r.data);
         })
-        .catch(() => {}),
+        .catch(notifyError),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -143,7 +143,14 @@ export default function BillingPage() {
   };
 
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+    if (!couponCode.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please enter an offer code first.",
+        variant: "destructive",
+      });
+      return;
+    }
     setCouponChecking(true);
     setCouponError("");
     try {
@@ -153,9 +160,9 @@ export default function BillingPage() {
       );
       setAppliedCoupon(res.data);
       toast({ title: "Coupon applied", description: res.message });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAppliedCoupon(null);
-      setCouponError(err.message || "Invalid coupon code");
+      setCouponError(getErrorMessage(err) || "Invalid coupon code");
     } finally {
       setCouponChecking(false);
     }
@@ -245,7 +252,7 @@ export default function BillingPage() {
                   description: "Subscription updated.",
                 });
                 resolve();
-              } catch (err: any) {
+              } catch (err: unknown) {
                 reject(err);
               }
             },
@@ -260,11 +267,11 @@ export default function BillingPage() {
           throw new Error("HDFC did not return a payment URL.");
         window.location.href = order.paymentUrl;
       }
-    } catch (err: any) {
-      if (err.message !== "Payment cancelled") {
+    } catch (err: unknown) {
+      if (getErrorMessage(err) !== "Payment cancelled") {
         toast({
           title: "Payment Error",
-          description: err.message || "Failed to process payment",
+          description: getErrorMessage(err) || "Failed to process payment",
           variant: "destructive",
         });
       }

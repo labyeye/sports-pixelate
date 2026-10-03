@@ -40,6 +40,7 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Aarav' },
@@ -196,7 +197,7 @@ export default function StudentsScreen({ navigation }: any) {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -208,7 +209,7 @@ export default function StudentsScreen({ navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -243,8 +244,8 @@ export default function StudentsScreen({ navigation }: any) {
             try {
               await studentAPI.delete(student._id);
               setStudents(prev => prev.filter(s => s._id !== student._id));
-            } catch (e: any) {
-              Alert.alert('Error', e?.message || 'Could not delete student');
+            } catch (e: unknown) {
+              Alert.alert('Error', (e as Error)?.message || 'Could not delete student');
             }
           },
         },

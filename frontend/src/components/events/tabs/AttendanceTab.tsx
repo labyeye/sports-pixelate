@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ClipboardCheck, Loader2 } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface AttendanceRecord {
   _id: string;
@@ -26,10 +27,10 @@ export function AttendanceTab({ eventId }: Props) {
       try {
         const res = await eventAPI.getAttendance(eventId);
         setItems(res.data || []);
-      } catch (e: any) {
+      } catch (e: unknown) {
         toast({
           title: "Error",
-          description: e.message,
+          description: getErrorMessage(e),
           variant: "destructive",
         });
       } finally {

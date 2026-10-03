@@ -16,12 +16,14 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { getNavGroupsForRole } from '../navigation/navConfig';
+import { useDisabledFeatures } from '../utils/disabledFeatures';
 import { colors } from '../theme/colors';
 
 export default function MenuScreen({ navigation }: any) {
   const { user, logout } = useAuth();
+  const disabledFeatures = useDisabledFeatures(!!user);
   if (!user) return null;
-  const groups = getNavGroupsForRole(user.role);
+  const groups = getNavGroupsForRole(user.role, disabledFeatures);
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>

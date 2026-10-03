@@ -91,4 +91,19 @@ const studentSchema = new mongoose.Schema(
 
 studentSchema.index({ studentId: 1, company: 1 }, { unique: true });
 
+// Tenant-first indexes: every query is scoped by company.
+guardianSchema.index({ company: 1, status: 1 });
+guardianSchema.index({ company: 1, batch: 1 });
+
+// Keep the kiosk face index (services/faceIndex.js) in step with face/status edits.
+studentSchema.pre("save", function (next) {
+  this.$locals.faceIndexStale =
+    this.isNew || this.isModified("faceDescriptor") || this.isModified("status");
+  next();
+});
+studentSchema.post("save", function () {
+  if (this.$locals.faceIndexStale)
+    require("../services/faceIndex").invalidateFaceIndex();
+});
+
 module.exports = mongoose.model("Student", studentSchema);

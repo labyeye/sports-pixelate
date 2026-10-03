@@ -1,9 +1,12 @@
+// Expenses (web): record and review academy expenses by category and date
+// (expenseAPI).
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { expenseAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import {
   Receipt,
   Plus,
@@ -79,8 +82,8 @@ export default function ExpensesPage() {
       });
       setExpenses(r.data);
       setTotalAmount(r.totalAmount || 0);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -121,8 +124,8 @@ export default function ExpensesPage() {
       setTotalAmount((t) => t + Number(form.amount));
       toast({ title: "Expense recorded" });
       resetForm();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -135,8 +138,8 @@ export default function ExpensesPage() {
       setExpenses((p) => p.filter((e) => e._id !== id));
       setTotalAmount((t) => t - amount);
       toast({ title: "Expense deleted" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 

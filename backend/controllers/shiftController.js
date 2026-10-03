@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const Shift = require("../models/Shift");
 
 const getShifts = asyncHandler(async (req, res) => {
@@ -17,7 +18,7 @@ const createShift = asyncHandler(async (req, res) => {
 const updateShift = asyncHandler(async (req, res) => {
   const shift = await Shift.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
-    req.body,
+    stripProtected(req.body),
     { new: true },
   );
   if (!shift)

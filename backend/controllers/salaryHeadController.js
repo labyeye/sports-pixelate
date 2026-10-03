@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const SalaryHead = require("../models/SalaryHead");
 
 const DEFAULT_HEADS = [
@@ -116,7 +117,7 @@ const createSalaryHead = asyncHandler(async (req, res) => {
 const updateSalaryHead = asyncHandler(async (req, res) => {
   const head = await SalaryHead.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
-    req.body,
+    stripProtected(req.body),
     { new: true },
   );
   if (!head)

@@ -1,31 +1,23 @@
-const Company = require("../models/Company");
+const { getCompanyAccess } = require("./subscriptionStatus");
 
-// Single plan (see utils/pricing.js): ₹30/student/month, every feature
-// included (WhatsApp notifications too).
-const ALL_FEATURES = {
-  mobileApp: true,
-  payroll: true,
-  performanceReviews: true,
-  exitManagement: true,
-  whatsapp: true,
-  twoFactor: true,
-  auditLog: true,
-  recruitment: true,
-};
+// One plan (see utils/pricing.js): every feature is included, except
+// WhatsApp, which is the paid ₹50/user tier — it is only on when the academy
+// actually bought it (`wantsWhatsapp`), and nothing works once the
+// subscription has lapsed.
+const FEATURE_KEYS = ["mobileApp", "whatsapp", "twoFactor", "auditLog"];
 
-// No feature at all — used when a company has no active subscription.
-const NO_FEATURES = Object.fromEntries(
-  Object.keys(ALL_FEATURES).map((key) => [key, false]),
-);
+const NO_FEATURES = Object.fromEntries(FEATURE_KEYS.map((k) => [k, false]));
 
-// Fail-closed: no company doc or no subscription at all → no features.
+// Fail-closed: no company, no subscription or a lapsed one → no features.
 async function getCompanyFeatures(companyId) {
-  const company = companyId
-    ? await Company.findById(companyId).select("subscription")
-    : null;
-  if (!company?.subscription) return NO_FEATURES;
-
-  return ALL_FEATURES;
+  const access = await getCompanyAccess(companyId);
+  if (!access.live) return NO_FEATURES;
+  return {
+    mobileApp: true,
+    twoFactor: true,
+    auditLog: true,
+    whatsapp: access.whatsapp,
+  };
 }
 
-module.exports = { ALL_FEATURES, getCompanyFeatures };
+module.exports = { FEATURE_KEYS, getCompanyFeatures };

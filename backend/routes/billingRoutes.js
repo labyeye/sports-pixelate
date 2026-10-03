@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
+const owner = authorize("super_admin", "hr_manager");
 const {
   getPlans,
   getSubscription,
@@ -13,12 +14,12 @@ const {
 } = require("../controllers/billingController");
 
 router.get("/plans", getPlans);
-router.get("/subscription", protect, getSubscription);
-router.get("/invoices", protect, getInvoices);
-router.post("/validate-offer", protect, validateOfferCode);
-router.post("/create-order", protect, createOrder);
-router.post("/verify-payment", protect, verifyPayment);
-router.post("/verify-razorpay", protect, verifyRazorpayPayment);
-router.post("/verify-hdfc", protect, verifyHdfcPayment);
+router.get("/subscription", protect, owner, getSubscription);
+router.get("/invoices", protect, owner, getInvoices);
+router.post("/validate-offer", protect, owner, validateOfferCode);
+router.post("/create-order", protect, owner, createOrder);
+router.post("/verify-payment", protect, owner, verifyPayment);
+router.post("/verify-razorpay", protect, owner, verifyRazorpayPayment);
+router.post("/verify-hdfc", protect, owner, verifyHdfcPayment);
 
 module.exports = router;

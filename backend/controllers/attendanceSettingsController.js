@@ -3,6 +3,8 @@ const DeductionRule = require("../models/DeductionRule");
 const LeaveAllowance = require("../models/LeaveAllowance");
 const AttendanceBalance = require("../models/AttendanceBalance");
 const Employee = require("../models/Employee");
+const { invalidateFeeRule } = require("../utils/feeOverdue");
+const { invalidateFaceIndex } = require("../services/faceIndex");
 
 const getMyBalance = asyncHandler(async (req, res) => {
   const employee = await Employee.findOne({ user: req.user._id }).select("_id");
@@ -41,7 +43,25 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
     halfDayThresholdMinutes,
     earlyCheckoutThresholdMinutes,
     earlyCheckoutDeductionEnabled,
+    feeLockEnabled,
+    feeDueDay,
+    feeGraceDays,
+    studentFaceAttendanceEnabled,
   } = req.body;
+
+  // Fee-lock fields are optional so older clients that don't send them
+  // can't reset the owner's configuration.
+  const feeLock = {};
+  if (feeLockEnabled !== undefined) feeLock.feeLockEnabled = Boolean(feeLockEnabled);
+  if (feeDueDay !== undefined)
+    feeLock.feeDueDay = Math.min(28, Math.max(0, Math.floor(Number(feeDueDay) || 0)));
+  if (feeGraceDays !== undefined)
+    feeLock.feeGraceDays = Math.max(0, Math.floor(Number(feeGraceDays) || 0));
+
+  const faceFlag =
+    studentFaceAttendanceEnabled !== undefined
+      ? { studentFaceAttendanceEnabled: Boolean(studentFaceAttendanceEnabled) }
+      : {};
 
   const rule = await DeductionRule.findOneAndUpdate(
     { company: req.user.company },
@@ -59,10 +79,15 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
         earlyCheckoutThresholdMinutes:
           Number(earlyCheckoutThresholdMinutes) ?? 15,
         earlyCheckoutDeductionEnabled: Boolean(earlyCheckoutDeductionEnabled),
+        ...feeLock,
+        ...faceFlag,
       },
     },
     { upsert: true, new: true },
   );
+  invalidateFaceIndex();
+
+  invalidateFeeRule(req.user.company);
 
   res.json({ success: true, data: rule });
 });

@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { removeStoredUpload } = require("../utils/uploadFiles");
 const fs = require("fs");
 const path = require("path");
 const asyncHandler = require("express-async-handler");
@@ -22,6 +23,7 @@ const EMPLOYEE_SORT_FIELDS = [
 ];
 const { logAudit } = require("../utils/auditLogger");
 const { validateMagicBytes } = require("../middleware/upload");
+const { readDecrypted } = require("../utils/fileCrypto");
 const { enrollFace } = require("../services/faceService");
 
 const createSchema = {
@@ -59,6 +61,13 @@ async function assertWithinEmployeeLimit(companyId, res, additionalCount = 1) {
   }
 }
 
+// Only these roles may see pay, bank, identity and biometric fields. Everyone
+// else who can reach the directory gets a minimal, non-sensitive projection.
+const FULL_VIEW_ROLES = ["super_admin", "hr_manager", "hr_executive"];
+const DIRECTORY_FIELDS =
+  "firstName lastName employeeId designation department avatar status employmentType role shift";
+const hasFullView = (req) => FULL_VIEW_ROLES.includes(req.user.role);
+
 const getEmployees = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
   const { search, department, status, type, role } = req.query;
@@ -94,6 +103,7 @@ const getEmployees = asyncHandler(async (req, res) => {
   const sort = safeSort(req.query, EMPLOYEE_SORT_FIELDS, { createdAt: -1 });
   const total = await Employee.countDocuments(filter);
   const employees = await Employee.find(filter)
+    .select(hasFullView(req) ? "" : DIRECTORY_FIELDS)
     .populate("department", "name code")
     .populate("reportingTo", "firstName lastName")
     .populate("shift", "name startTime endTime")
@@ -123,6 +133,7 @@ const getEmployee = asyncHandler(async (req, res) => {
     _id: req.params.id,
     company: req.user.company,
   })
+    .select(hasFullView(req) ? "" : `${DIRECTORY_FIELDS} reportingTo`)
     .populate("department", "name code")
     .populate("reportingTo", "firstName lastName designation");
   if (!employee) {
@@ -222,6 +233,13 @@ const createEmployee = [
     let userId;
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
+      if (
+        String(existingUser.company) !== String(req.user.company) ||
+        existingUser.role !== "employee"
+      ) {
+        res.status(409);
+        throw new Error("This email is already registered to another account");
+      }
       userId = existingUser._id;
     } else {
       const { password: providedPassword } = req.body;
@@ -461,7 +479,11 @@ const resetEmployeePassword = asyncHandler(async (req, res) => {
     throw new Error("Password too long");
   }
 
-  const linkedUser = await User.findOne({ email: employee.email });
+  const linkedUser = await User.findOne({
+    email: employee.email,
+    company: req.user.company,
+    role: "employee",
+  });
   if (!linkedUser) {
     res.status(404);
     throw new Error("No login account found for this employee");
@@ -614,10 +636,9 @@ const uploadEmployeeDocuments = asyncHandler(async (req, res) => {
   const saveDoc = async (field, empField) => {
     if (!files[field]?.[0]) return;
     await validateMagicBytes(files[field][0].path); // throws + deletes file if invalid
-    if (employee[empField]) {
-      const old = path.join(__dirname, "../", employee[empField]);
-      if (fs.existsSync(old)) fs.unlinkSync(old);
-    }
+    // Remove the previous file — unless the new upload reused the same name
+    // (same extension), in which case it was already overwritten in place.
+    removeStoredUpload(employee[empField], files[field][0].path);
     employee[empField] = path
       .relative(path.join(__dirname, "../"), files[field][0].path)
       .replace(/\\/g, "/");
@@ -664,8 +685,9 @@ const downloadEmployeeDocument = asyncHandler(async (req, res) => {
     throw new Error("Document not found");
   }
 
-  const uploadsRoot = path.resolve(__dirname, "../uploads");
-  const abs = path.resolve(__dirname, "../", docPath);
+  const { UPLOAD_DIR, resolveStoredPath } = require("../config/paths");
+  const uploadsRoot = UPLOAD_DIR;
+  const abs = resolveStoredPath(docPath);
 
   if (!abs.startsWith(uploadsRoot + path.sep) && abs !== uploadsRoot) {
     res.status(403);
@@ -677,7 +699,10 @@ const downloadEmployeeDocument = asyncHandler(async (req, res) => {
     throw new Error("File missing on server");
   }
 
-  res.download(abs);
+  // Stored encrypted: decrypt in memory and send as an attachment.
+  res.setHeader("Content-Disposition", `attachment; filename="${path.basename(abs)}"`);
+  res.type(path.extname(abs) || "application/octet-stream");
+  res.send(readDecrypted(abs));
 });
 
 // Enrolls (or re-enrolls) the employee's face embedding for mobile geofenced
@@ -742,6 +767,30 @@ const enrollMyFace = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Face enrolled successfully" });
 });
 
+/**
+ * DELETE /employees/me/face — the logged-in employee clears their own enrolled
+ * face (e.g. after a bad enrolment photo) and enrolls again from the app.
+ */
+const resetMyFace = asyncHandler(async (req, res) => {
+  let employee = await Employee.findOne({ user: req.user._id });
+  if (!employee && req.user.email && req.user.company) {
+    employee = await Employee.findOne({
+      email: req.user.email.toLowerCase(),
+      company: req.user.company,
+    });
+  }
+  if (!employee) {
+    res.status(404);
+    throw new Error("Employee record not found");
+  }
+
+  employee.faceDescriptor = [];
+  await employee.save();
+  await logAudit(req, "face_reset", "Employee", employee._id, { self: true });
+
+  res.json({ success: true, message: "Face reset — enroll again to check in" });
+});
+
 module.exports = {
   getEmployees,
   getEmployee,
@@ -755,4 +804,5 @@ module.exports = {
   downloadEmployeeDocument,
   enrollEmployeeFace,
   enrollMyFace,
+  resetMyFace,
 };

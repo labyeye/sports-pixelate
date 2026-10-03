@@ -25,6 +25,7 @@ import {
 import { INDIA_STATES, INDIA_STATES_AND_CITIES } from '../data/indiaStatesAndCities';
 import { getCurrentPosition } from '../utils/location';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const ROLES = ['coach', 'staff'] as const;
 const EMPLOYMENT_TYPES = ['full_time', 'part_time', 'contract', 'intern'] as const;
@@ -104,8 +105,8 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
   );
 
   useEffect(() => {
-    departmentAPI.getAll().then((r: any) => setDepartments(r.data || [])).catch(() => {});
-    shiftAPI.getAll().then((r: any) => setShifts(r.data || [])).catch(() => {});
+    departmentAPI.getAll().then((r: any) => setDepartments(r.data || [])).catch(notifyError);
+    shiftAPI.getAll().then((r: any) => setShifts(r.data || [])).catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -121,8 +122,8 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
       }
       const p = await getCurrentPosition();
       setForm(f => ({ ...f, geofenceLat: String(p.latitude), geofenceLng: String(p.longitude) }));
-    } catch (e: any) {
-      Alert.alert('Location unavailable', e?.message || 'Could not read your location');
+    } catch (e: unknown) {
+      Alert.alert('Location unavailable', (e as Error)?.message || 'Could not read your location');
     } finally {
       setLocating(false);
     }
@@ -213,8 +214,8 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
       }
       Alert.alert('Success', isEditing ? 'Staff updated successfully' : 'Staff added successfully');
       navigation.goBack();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save staff member');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save staff member');
     } finally {
       setSaving(false);
     }

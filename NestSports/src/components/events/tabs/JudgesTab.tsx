@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { Card, SectionTitle, useToast } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
@@ -13,14 +13,18 @@ export default function JudgesTab({ event, onChanged }: { event: any; onChanged:
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const add = async () => {
-    if (!draft.name.trim() || adding) return;
+    if (adding) return;
+    if (!draft.name.trim()) {
+      Alert.alert('Missing information', 'Please enter the name.');
+      return;
+    }
     setAdding(true);
     try {
       await eventAPI.addOfficial(event._id, { ...draft, name: draft.name.trim() });
       setDraft({ name: '', role: '', phone: '', email: '' });
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not add official');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not add official');
     } finally {
       setAdding(false);
     }
@@ -31,8 +35,8 @@ export default function JudgesTab({ event, onChanged }: { event: any; onChanged:
     try {
       await eventAPI.removeOfficial(event._id, id);
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not remove official');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not remove official');
     } finally {
       setBusyId(null);
     }

@@ -24,6 +24,7 @@ import { AttendanceTab } from "@/components/events/tabs/AttendanceTab";
 import { eventTypes } from "@/config/eventTypeConfig";
 import type { Event } from "@/types/hrms";
 import { Loader2 } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 const STATUS_COLOR: Record<Event["status"], string> = {
   draft: "#6B7280",
@@ -51,8 +52,8 @@ export default function EventDetailPage() {
     try {
       const res = await eventAPI.getOne(id);
       setEvent(res.data);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
       navigate("/events");
     } finally {
       setLoading(false);

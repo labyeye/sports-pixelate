@@ -25,10 +25,8 @@ import {
   SearchBar,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -83,13 +81,13 @@ export default function PayrollScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -129,8 +127,8 @@ export default function PayrollScreen() {
         employeeIds: employeeIds(),
       });
       setPreview(res.data || []);
-    } catch (e: any) {
-      Alert.alert('Preview Failed', e?.message || 'Could not build preview');
+    } catch (e: unknown) {
+      Alert.alert('Preview Failed', (e as Error)?.message || 'Could not build preview');
     } finally {
       setBusy(null);
     }
@@ -148,8 +146,8 @@ export default function PayrollScreen() {
       setProcessOpen(false);
       Alert.alert('Payroll Processed', res.message || 'Payroll processed successfully.');
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to process payroll');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Failed to process payroll');
     } finally {
       setBusy(null);
     }
@@ -163,8 +161,8 @@ export default function PayrollScreen() {
       else await payrollAPI.markPaid(paid.id!, payMode);
       setPaid(null);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to mark as paid');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Failed to mark as paid');
     } finally {
       setPaying(false);
     }
@@ -176,8 +174,8 @@ export default function PayrollScreen() {
       setPayrolls(prev =>
         prev.map(p => (p._id === id ? { ...p, slipReceived: s, slipReceivedAt: res.data?.slipReceivedAt } : p)),
       );
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not update slip status');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not update slip status');
     }
   };
 

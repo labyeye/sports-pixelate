@@ -8,6 +8,7 @@ import {
   type EventFormPayload,
 } from "@/components/events/EventForm";
 import type { Event } from "@/types/hrms";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Props {
   event: Event;
@@ -35,8 +36,8 @@ export function SettingsTab({ event, onChanged, canManage }: Props) {
       }
       toast({ title: "Saved", description: "Event updated successfully" });
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -50,8 +51,8 @@ export function SettingsTab({ event, onChanged, canManage }: Props) {
       await eventAPI.delete(event._id);
       toast({ title: "Deleted", description: "Event deleted" });
       navigate("/events");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
       setDeleting(false);
     }
   };

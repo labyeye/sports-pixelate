@@ -6,6 +6,37 @@ export const getToken = () => localStorage.getItem("hrms_token");
 export const setToken = (t: string) => localStorage.setItem("hrms_token", t);
 export const removeToken = () => localStorage.removeItem("hrms_token");
 
+const NETWORK_MESSAGE =
+  "Can't connect right now. Please check your internet connection and try again.";
+
+// Plain-language text for an HTTP failure. The server's own message wins when it
+// has one (it is already written for users); otherwise fall back by status code.
+export function statusMessage(status: number, serverMessage?: string): string {
+  if (serverMessage && serverMessage !== "Request failed") return serverMessage;
+  if (status === 400 || status === 422)
+    return "Please check the information you entered and try again.";
+  if (status === 401) return "Your session has expired. Please log in again.";
+  if (status === 403) return "You don't have permission to do this.";
+  if (status === 404) return "We couldn't find what you were looking for.";
+  if (status === 413) return "That file is too large. Please choose a smaller one.";
+  if (status === 429) return "Too many attempts. Please wait a moment and try again.";
+  if (status >= 500)
+    return "Something went wrong on our side. Please try again in a moment.";
+  return "Something went wrong. Please try again.";
+}
+
+// fetch() that turns a network failure (offline, DNS, CORS, server down) into a
+// readable error instead of the browser's "Failed to fetch".
+async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    const err: any = new Error(NETWORK_MESSAGE);
+    err.status = 0;
+    throw err;
+  }
+}
+
 async function request<T = any>(
   endpoint: string,
   options: RequestInit = {},
@@ -13,7 +44,7 @@ async function request<T = any>(
   const token = getToken();
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData;
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  const res = await apiFetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       // FormData bodies must NOT get a manual Content-Type — the browser
@@ -26,14 +57,25 @@ async function request<T = any>(
   const data = await res.json().catch(() => null);
   if (data === null) {
     const err: any = new Error(
-      "Cannot reach the server (got a non-JSON response). Please check the API URL configuration or try again shortly.",
+      "We couldn't reach the server. Please try again in a moment.",
     );
     err.status = res.status;
     throw err;
   }
   if (!res.ok) {
-    const err: any = new Error(data.message || "Request failed");
+    // 402 = the academy's NestPlay subscription has lapsed. Owners are sent to
+    // Billing to renew; everyone else just sees the server's message.
+    if (
+      res.status === 402 &&
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/billing")
+    ) {
+      window.location.assign("/billing");
+    }
+    const err: any = new Error(statusMessage(res.status, data.message));
     err.status = res.status;
+    err.code = data.code;
+    err.details = data.details;
     throw err;
   }
   return data;
@@ -175,7 +217,7 @@ export const employeeAPI = {
     if (files.panDoc) form.append("panDoc", files.panDoc);
     if (files.resumeDoc) form.append("resumeDoc", files.resumeDoc);
     const token = getToken();
-    return fetch(`${BASE_URL}/employees/${id}/documents`, {
+    return apiFetch(`${BASE_URL}/employees/${id}/documents`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -187,7 +229,7 @@ export const employeeAPI = {
     const form = new FormData();
     form.append("photo", photo);
     const token = getToken();
-    return fetch(`${BASE_URL}/employees/${id}/face-enroll`, {
+    return apiFetch(`${BASE_URL}/employees/${id}/face-enroll`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -328,7 +370,7 @@ export const settingsAPI = {
     const compressed = await compressImageFile(file);
     const form = new FormData();
     form.append("logo", compressed);
-    return fetch(`${BASE_URL}/settings/logo`, {
+    return apiFetch(`${BASE_URL}/settings/logo`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -343,7 +385,7 @@ export const settingsAPI = {
     const compressed = await compressImageFile(file);
     const form = new FormData();
     form.append("qrCode", compressed);
-    return fetch(`${BASE_URL}/settings/payment-qr`, {
+    return apiFetch(`${BASE_URL}/settings/payment-qr`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -526,13 +568,13 @@ export const biometricAPI = {
     request(`/biometric/devices/${deviceId}/nfc/${uid}`, { method: "DELETE" }),
 
   getDeviceInfo: (token: string) =>
-    fetch(`${BASE_URL}/biometric/device/${token}`).then(async (r) => {
+    apiFetch(`${BASE_URL}/biometric/device/${token}`).then(async (r) => {
       const d = await r.json();
       if (!r.ok) throw new Error(d.message || "Device error");
       return d;
     }),
   recordBiometric: (body: object) =>
-    fetch(`${BASE_URL}/biometric/record`, {
+    apiFetch(`${BASE_URL}/biometric/record`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -600,6 +642,10 @@ export const biometricAPI = {
     request(`/biometric/people/${personType}/${personId}/face`, {
       method: "POST",
       body: JSON.stringify({ descriptor }),
+    }),
+  resetFace: (personType: PersonType, personId: string) =>
+    request(`/biometric/people/${personType}/${personId}/face`, {
+      method: "DELETE",
     }),
   getFaceDescriptors: () => request("/biometric/face-descriptors"),
   faceAttendance: (descriptor: number[], deviceToken?: string) =>
@@ -727,6 +773,9 @@ export const loanAPI = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+  // Employee self-service: asks for a loan/advance (owner approves it later).
+  request: (body: object) =>
+    request("/loans/request", { method: "POST", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/loans/${id}`, { method: "DELETE" }),
   bulkImport: (loans: object[]) =>
     request("/loans/bulk-import", {
@@ -916,7 +965,7 @@ export const studentAPI = {
     const form = new FormData();
     form.append("avatar", compressed);
     const token = getToken();
-    return fetch(`${BASE_URL}/students/${id}/avatar`, {
+    return apiFetch(`${BASE_URL}/students/${id}/avatar`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -935,7 +984,7 @@ export const studentAPI = {
     const form = new FormData();
     form.append("photo", compressed);
     const token = getToken();
-    return fetch(
+    return apiFetch(
       `${BASE_URL}/students/${studentId}/guardians/${guardianId}/photo`,
       {
         method: "POST",
@@ -953,6 +1002,22 @@ export const studentAPI = {
       method: "POST",
       body: JSON.stringify({ students }),
     }),
+  getFaceStatus: () => request("/students/face-status"),
+  // Photos must be named after each student's ID (e.g. STU-0012.jpg).
+  bulkEnrollFaces: (photos: File[]) => {
+    const form = new FormData();
+    photos.forEach((p) => form.append("photos", p));
+    const token = getToken();
+    return apiFetch(`${BASE_URL}/students/face-enroll/bulk`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || "Bulk enrollment failed");
+      return data;
+    });
+  },
 };
 
 export const studentAttendanceAPI = {
@@ -1191,7 +1256,7 @@ export const subscriptionAPI = {
     if (body.amount !== undefined) form.append("amount", String(body.amount));
     if (body.screenshot) form.append("screenshot", body.screenshot);
     const token = getToken();
-    return fetch(`${BASE_URL}/subscriptions/qr-renewal`, {
+    return apiFetch(`${BASE_URL}/subscriptions/qr-renewal`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -1221,7 +1286,7 @@ export const subscriptionAPI = {
     form.append("amount", String(body.amount));
     if (body.screenshot) form.append("screenshot", body.screenshot);
     const token = getToken();
-    return fetch(`${BASE_URL}/subscriptions/${id}/payments`, {
+    return apiFetch(`${BASE_URL}/subscriptions/${id}/payments`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -1284,7 +1349,7 @@ export const inventoryAPI = {
     const form = new FormData();
     form.append("photo", compressed);
     const token = getToken();
-    return fetch(`${BASE_URL}/inventory/${id}/photo`, {
+    return apiFetch(`${BASE_URL}/inventory/${id}/photo`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,

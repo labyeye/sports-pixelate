@@ -1,3 +1,4 @@
+import { escapeHtml as esc } from "./escapeHtml";
 import { PIXELATE_NEST_LOGO } from "./invoiceLogo";
 
 function numToWords(n: number): string {
@@ -106,16 +107,16 @@ export function buildInvoiceHTML(inv: any): string {
   const taxAmt = cgst + sgst + igst;
 
   const planName = inv.plan
-    ? inv.plan.charAt(0).toUpperCase() + inv.plan.slice(1) + " Plan"
+    ? esc(String(inv.plan).charAt(0).toUpperCase() + String(inv.plan).slice(1)) + " Plan"
     : "Subscription Plan";
   const cycle = inv.billingCycle === "yearly" ? "Annual" : "Monthly";
   const description = `${planName} — ${cycle} Subscription`;
 
   const invoiceDate = fmtDate(inv.paidAt || inv.createdAt);
   const invoiceNumber =
-    inv.invoiceNumber || inv._id?.toString().slice(-8).toUpperCase() || "—";
+    esc(inv.invoiceNumber || inv._id?.toString().slice(-8).toUpperCase() || "—");
 
-  const clientName = company.name || "—";
+  const clientName = esc(company.name || "—");
   const clientAddress = [
     company.address,
     company.city,
@@ -123,11 +124,12 @@ export function buildInvoiceHTML(inv: any): string {
     company.pincode,
   ]
     .filter(Boolean)
+    .map(esc)
     .join(", ");
-  const clientGST = company.gstNumber || "";
-  const clientPAN = company.panNumber || "";
-  const clientEmail = company.email || "";
-  const clientPhone = company.phone || "";
+  const clientGST = esc(company.gstNumber || "");
+  const clientPAN = esc(company.panNumber || "");
+  const clientEmail = esc(company.email || "");
+  const clientPhone = esc(company.phone || "");
 
   const taxRows = isInterState
     ? `<tr><td>998314</td><td style="text-align:right">${fmt(base)}</td><td style="text-align:right">18%</td><td style="text-align:right">${fmt(igst)}</td><td style="text-align:right">${fmt(igst)}</td></tr>`
@@ -241,7 +243,7 @@ td { padding: 7px 5px; font-size: 8pt; color: #111; border-bottom: 0.5pt solid #
       <div class="meta-row"><span class="meta-label">Invoice No.</span><span class="meta-value">: ${invoiceNumber}</span></div>
       <div class="meta-row"><span class="meta-label">Invoice Date</span><span class="meta-value">: ${invoiceDate}</span></div>
       <div class="meta-row"><span class="meta-label">Due Date</span><span class="meta-value">: ${invoiceDate}</span></div>
-      <div class="meta-row"><span class="meta-label">Place of Service</span><span class="meta-value">: ${company.state || "Bihar"}</span></div>
+      <div class="meta-row"><span class="meta-label">Place of Service</span><span class="meta-value">: ${esc(company.state || "Bihar")}</span></div>
       <div class="meta-row"><span class="meta-label">Supply Type</span><span class="meta-value">: ${isInterState ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)"}</span></div>
     </div>
   </div>

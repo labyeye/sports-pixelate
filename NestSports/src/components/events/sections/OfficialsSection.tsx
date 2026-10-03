@@ -31,7 +31,11 @@ export default function OfficialsSection({
   const [saving, setSaving] = useState(false);
 
   const add = async () => {
-    if (!eventId || !name.trim()) return;
+    if (!eventId) return;
+    if (!name.trim()) {
+      Alert.alert('Missing information', 'Please enter the name.');
+      return;
+    }
     setSaving(true);
     try {
       const res: any = await eventAPI.addOfficial(eventId, {
@@ -41,8 +45,8 @@ export default function OfficialsSection({
       onChanged(res.data?.officials || []);
       setName('');
       setRole('');
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not add official');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not add official');
     } finally {
       setSaving(false);
     }
@@ -53,8 +57,8 @@ export default function OfficialsSection({
     try {
       const res: any = await eventAPI.removeOfficial(eventId, officialId);
       onChanged(res.data?.officials || []);
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not remove official');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not remove official');
     }
   };
 

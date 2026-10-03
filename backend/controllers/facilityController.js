@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const Facility = require("../models/Facility");
 const {
   escapeRegex,
@@ -64,7 +65,7 @@ const createFacility = [
 const updateFacility = asyncHandler(async (req, res) => {
   const facility = await Facility.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
-    req.body,
+    stripProtected(req.body),
     { new: true, runValidators: true },
   );
   if (!facility) {

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
 const {
   getTransactions,
   createTransaction,
@@ -8,7 +8,7 @@ const {
   deleteTransaction,
 } = require("../controllers/transactionController");
 
-router.use(protect);
+router.use(protect, authorize("super_admin", "hr_manager"));
 router.get("/", getTransactions);
 router.post("/", createTransaction);
 router.put("/:id", updateTransaction);

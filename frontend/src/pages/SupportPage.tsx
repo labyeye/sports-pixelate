@@ -1,9 +1,12 @@
+// Support (web): raise and track support tickets — issue type, priority,
+// replies and closing (supportAPI).
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supportAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   Plus,
   TicketCheck,
@@ -138,7 +141,11 @@ export default function SupportPage() {
   }, []);
 
   const handleSendReply = async () => {
-    if (!replyMessage.trim() || !selectedTicket) return;
+    if (!selectedTicket) return;
+    if (!replyMessage.trim()) {
+      toast({ title: "Missing information", description: "Please type your reply before sending.", variant: "destructive" });
+      return;
+    }
     setSendingReply(true);
     try {
       const res = await supportAPI.reply(selectedTicket._id, replyMessage);
@@ -148,10 +155,10 @@ export default function SupportPage() {
         toast({ title: "Reply sent successfully." });
         fetchTickets();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed to send reply",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -169,10 +176,10 @@ export default function SupportPage() {
         toast({ title: "Ticket closed" });
         fetchTickets();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed to close ticket",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     }
@@ -194,9 +201,9 @@ export default function SupportPage() {
       setForm(EMPTY_FORM);
       setShowModal(false);
       fetchTickets();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
-        title: err.message || "Failed to submit ticket",
+        title: getErrorMessage(err) || "Failed to submit ticket",
         variant: "destructive",
       });
     } finally {

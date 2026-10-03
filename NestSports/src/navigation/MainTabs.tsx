@@ -24,6 +24,7 @@ import StudentAttendanceScreen from '../screens/StudentAttendanceScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import InventoryScreen from '../screens/InventoryScreen';
 import MenuScreen from '../screens/MenuScreen';
+import { useDisabledFeatures } from '../utils/disabledFeatures';
 import { colors, FONT } from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -47,6 +48,7 @@ function HomeTabScreen({ navigation }: any) {
 export default function MainTabs() {
   const { user } = useAuth();
   const role = user?.role;
+  const disabledFeatures = useDisabledFeatures(!!user);
   const insets = useSafeAreaInsets();
   const tabBarHeight = 64 + insets.bottom;
 
@@ -104,7 +106,9 @@ export default function MainTabs() {
           }}
         />
       )}
-      {role && PARENT.includes(role) && (
+      {role &&
+        PARENT.includes(role) &&
+        !disabledFeatures.includes('bookings') && (
         <Tab.Screen
           name="BookingsTab"
           component={BookingsScreen}
@@ -149,7 +153,9 @@ export default function MainTabs() {
           }}
         />
       )}
-      {role && OWNER_STAFF.includes(role) && (
+      {role &&
+        OWNER_STAFF.includes(role) &&
+        !disabledFeatures.includes('inventory') && (
         <Tab.Screen
           name="InventoryTab"
           component={InventoryScreen}

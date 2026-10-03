@@ -46,6 +46,7 @@ import {
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
+import { notifyError } from '../utils/notifyError';
 
 const TYPES = ['court', 'pool', 'turf', 'gym', 'equipment', 'other'] as const;
 
@@ -113,7 +114,7 @@ export default function FacilitiesScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -125,7 +126,7 @@ export default function FacilitiesScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -184,8 +185,8 @@ export default function FacilitiesScreen() {
       }
       setFormVisible(false);
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not save facility');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not save facility');
     } finally {
       setSaving(false);
     }
@@ -201,8 +202,8 @@ export default function FacilitiesScreen() {
           try {
             await facilityAPI.delete(f._id);
             setFacilities(prev => prev.filter(x => x._id !== f._id));
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not delete facility');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Could not delete facility');
           }
         },
       },

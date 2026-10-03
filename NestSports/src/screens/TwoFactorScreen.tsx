@@ -41,8 +41,8 @@ export default function TwoFactorScreen() {
       const res: any = await authAPI.setup2FA();
       setQrCode(res?.data?.qr || null);
       setSecret(res?.data?.secret || null);
-    } catch (e: any) {
-      Alert.alert('Setup failed', e?.message || 'Could not start 2FA setup');
+    } catch (e: unknown) {
+      Alert.alert('Setup failed', (e as Error)?.message || 'Could not start 2FA setup');
     } finally {
       setSettingUp(false);
     }
@@ -64,10 +64,10 @@ export default function TwoFactorScreen() {
       setQrCode(null);
       setSecret(null);
       setConfirmCode('');
-    } catch (e: any) {
+    } catch (e: unknown) {
       Alert.alert(
         'Verification failed',
-        e?.message || 'Invalid code, please try again',
+        (e as Error)?.message || 'Invalid code, please try again',
       );
     } finally {
       setConfirming(false);
@@ -89,10 +89,10 @@ export default function TwoFactorScreen() {
       setDisableCode('');
       setBackupCodes(null);
       Alert.alert('Disabled', 'Two-factor authentication has been disabled');
-    } catch (e: any) {
+    } catch (e: unknown) {
       Alert.alert(
         'Disable failed',
-        e?.message || 'Invalid code, please try again',
+        (e as Error)?.message || 'Invalid code, please try again',
       );
     } finally {
       setDisabling(false);

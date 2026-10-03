@@ -29,6 +29,7 @@ import {
   SectionTitle,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { notifyError } from '../utils/notifyError';
 
 const SORT_OPTIONS: SortOption[] = [
   { key: 'firstName', label: 'Name' },
@@ -114,7 +115,7 @@ export default function EmployeeCredentialsScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -126,7 +127,7 @@ export default function EmployeeCredentialsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -170,8 +171,8 @@ export default function EmployeeCredentialsScreen() {
         done.email,
         newPassword,
       );
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not reset password');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not reset password');
     } finally {
       setSaving(false);
     }
@@ -182,7 +183,7 @@ export default function EmployeeCredentialsScreen() {
     parentAPI
       .getAll(search ? { search } : undefined)
       .then((res: any) => res.success && setParents(res.data || []))
-      .catch(() => {});
+      .catch(notifyError);
   }, [tab, search]);
 
   const openParent = (p: any) => {
@@ -217,8 +218,8 @@ export default function EmployeeCredentialsScreen() {
         body.email || done.email,
         parentPassword || '(unchanged)',
       );
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not update credentials');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not update credentials');
     } finally {
       setSaving(false);
     }

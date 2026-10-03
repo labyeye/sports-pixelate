@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { settingsAPI, authAPI } from "@/services/api";
 import { compressImageFile } from "@/lib/imageCompress";
 import { INDIAN_BANKS } from "@/lib/indianBanks";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, notifyError } from "@/hooks/use-toast";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
   Building2,
@@ -44,8 +44,10 @@ import {
   Clock,
   Palette,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
+import { FEATURES } from "@/config/features";
+import { setDisabledFeatures } from "@/hooks/useDisabledFeatures";
 import ChequeTemplateDesigner from "@/components/settings/cheque-designer/ChequeTemplateDesigner";
 
 type CrudOp = "create" | "read" | "update" | "delete";
@@ -344,9 +346,9 @@ function PhoneVerifyPanel() {
       await authAPI.sendPhoneVerifyOtp();
       setSent(true);
       toast({ title: "Code sent via WhatsApp" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
-        title: err.message || "Failed to send code",
+        title: getErrorMessage(err) || "Failed to send code",
         variant: "destructive",
       });
     } finally {
@@ -363,8 +365,8 @@ function PhoneVerifyPanel() {
       setSent(false);
       setOtp("");
       toast({ title: "Phone number verified" });
-    } catch (err: any) {
-      toast({ title: err.message || "Invalid code", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: getErrorMessage(err) || "Invalid code", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -453,7 +455,7 @@ function TwoFactorPanel() {
       .then((r: any) => {
         setEnabled(!!r.data?.twoFactorEnabled);
       })
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   const handleSetup = async () => {
@@ -463,9 +465,9 @@ function TwoFactorPanel() {
       setQr(res.data.qr);
       setSecret(res.data.secret);
       setStep("setup");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
-        title: err.message || "Failed to start 2FA setup",
+        title: getErrorMessage(err) || "Failed to start 2FA setup",
         variant: "destructive",
       });
     } finally {
@@ -482,8 +484,8 @@ function TwoFactorPanel() {
       setEnabled(true);
       setStep("backup");
       toast({ title: "2FA enabled successfully" });
-    } catch (err: any) {
-      toast({ title: err.message || "Invalid code", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: getErrorMessage(err) || "Invalid code", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -498,8 +500,8 @@ function TwoFactorPanel() {
       setStep("idle");
       setDisableCode("");
       toast({ title: "2FA disabled" });
-    } catch (err: any) {
-      toast({ title: err.message || "Invalid code", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: getErrorMessage(err) || "Invalid code", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -890,10 +892,10 @@ export default function SettingsPage() {
         phone: res.data?.phone || profilePhone.trim(),
       });
       toast({ title: "Profile saved", description: "Name and phone updated." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message || "Failed to save",
+        description: getErrorMessage(err) || "Failed to save",
         variant: "destructive",
       });
     } finally {
@@ -921,10 +923,10 @@ export default function SettingsPage() {
       await authAPI.updateProfile({ avatar: finalBase64 });
       updateUser({ avatar: finalBase64 });
       toast({ title: "Photo updated" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Upload failed",
-        description: err.message || "Could not save photo",
+        description: getErrorMessage(err) || "Could not save photo",
         variant: "destructive",
       });
     } finally {
@@ -939,10 +941,10 @@ export default function SettingsPage() {
       await authAPI.updateProfile({ avatar: "" });
       updateUser({ avatar: "" });
       toast({ title: "Photo removed" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -966,10 +968,10 @@ export default function SettingsPage() {
         title: "Password changed",
         description: "Your new password is active.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
-        description: err.message || "Failed to change password",
+        description: getErrorMessage(err) || "Failed to change password",
         variant: "destructive",
       });
     } finally {
@@ -982,10 +984,10 @@ export default function SettingsPage() {
       setLoading(true);
       const res = await settingsAPI.get();
       setSettings(res.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
       setSettings({
@@ -1050,10 +1052,10 @@ export default function SettingsPage() {
         title: "Logo uploaded",
         description: "Club logo saved to server.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Upload failed",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -1123,18 +1125,19 @@ export default function SettingsPage() {
     try {
       setSaving(true);
       await settingsAPI.update(settings);
+      setDisabledFeatures(settings.disabledFeatures || []);
       setActionModal({
         show: true,
         type: "success",
         title: "Settings Saved",
         message: "Settings saved successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionModal({
         show: true,
         type: "error",
         title: "Error",
-        message: error.message || "Failed to save settings",
+        message: getErrorMessage(error) || "Failed to save settings",
       });
     } finally {
       setSaving(false);
@@ -1176,6 +1179,7 @@ export default function SettingsPage() {
       group: "System",
       items: [
         { id: "system", label: "System", icon: Settings2 },
+        { id: "features", label: "Features", icon: Settings2 },
         { id: "preferences", label: "Preferences", icon: LayoutDashboard },
         { id: "permissions", label: "Permissions", icon: ShieldCheck },
       ],
@@ -2409,6 +2413,62 @@ export default function SettingsPage() {
               )}
 
               {}
+              {activeTab === "features" && (
+                <div className="space-y-5">
+                  <p className="text-xs text-muted-foreground">
+                    Switch off features your academy doesn't use. They are
+                    hidden from the menu for everyone. Your data is kept, and
+                    you can turn a feature back on any time.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {FEATURES.map((f) => {
+                      const off = (settings.disabledFeatures || []).includes(
+                        f.key,
+                      );
+                      return (
+                        <div
+                          key={f.key}
+                          className="flex items-center justify-between border-2 border-black p-3"
+                        >
+                          <div>
+                            <p className="text-sm font-bold">{f.label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {f.description}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSettings((p: any) => {
+                                const cur: string[] = p.disabledFeatures || [];
+                                return {
+                                  ...p,
+                                  disabledFeatures: off
+                                    ? cur.filter((k) => k !== f.key)
+                                    : [...cur, f.key],
+                                };
+                              })
+                            }
+                            className={cn(
+                              "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-black transition-colors",
+                              off ? "bg-gray-200" : "bg-[#024BAB]",
+                            )}
+                            aria-label={`${f.label} ${off ? "off" : "on"}`}
+                          >
+                            <span
+                              className={cn(
+                                "inline-block h-4 w-4 transform rounded-full bg-white border border-black transition-transform",
+                                off ? "translate-x-1" : "translate-x-5",
+                              )}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {activeTab === "preferences" && (
                 <div className="space-y-5">
                   <p className="text-xs text-muted-foreground">

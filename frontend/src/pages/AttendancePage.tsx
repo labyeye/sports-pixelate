@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { attendanceAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { AttendanceRecord, Employee } from "@/types/hrms";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import {
   Clock,
@@ -29,6 +29,7 @@ import {
   Palmtree,
   MapPin,
 } from "lucide-react";
+import { notifyError } from "@/hooks/use-toast";
 
 const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -176,7 +177,9 @@ export default function AttendancePage() {
         });
         if (empRes.success) setEmployees(empRes.data);
       }
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
     setLoading(false);
   }, [month, year, isEmployee]);
 
@@ -213,8 +216,8 @@ export default function AttendancePage() {
         verifyMode: "manual",
       });
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
   };
 
@@ -279,8 +282,8 @@ export default function AttendancePage() {
       setMarkModal(false);
       setEditingId(null);
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
     setSaving(false);
   };
@@ -299,8 +302,8 @@ export default function AttendancePage() {
         ),
       );
       load();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert(getErrorMessage(err));
     }
     setMarkingAbsent(false);
   };

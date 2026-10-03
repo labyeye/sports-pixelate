@@ -14,6 +14,7 @@ import { KpiTile, Card, SectionTitle, Row } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
 import { Text } from 'react-native';
+import { notifyError } from '../../../utils/notifyError';
 
 export default function OverviewTab({ event }: { event: any }) {
   const [stats, setStats] = useState<any>(null);
@@ -25,7 +26,7 @@ export default function OverviewTab({ event }: { event: any }) {
       .then((res: any) => {
         if (alive) setStats(res.data || {});
       })
-      .catch(() => {});
+      .catch(notifyError);
     return () => {
       alive = false;
     };

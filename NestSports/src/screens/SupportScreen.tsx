@@ -24,6 +24,8 @@ import {
   ChipSelect,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const PRIORITY_COLORS: Record<string, string> = {
   low: colors.green,
@@ -77,13 +79,13 @@ export default function SupportScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -105,8 +107,8 @@ export default function SupportScreen() {
       setPriority('medium');
       setDescription('');
       await load();
-    } catch (err: any) {
-      Alert.alert('Failed to submit ticket', err.message || 'Please try again');
+    } catch (err: unknown) {
+      Alert.alert('Failed to submit ticket', getErrorMessage(err) || 'Please try again');
     } finally {
       setSubmitting(false);
     }
@@ -127,7 +129,11 @@ export default function SupportScreen() {
   };
 
   const sendReply = async () => {
-    if (!replyMessage.trim() || !selectedTicket) return;
+    if (!selectedTicket) return;
+    if (!replyMessage.trim()) {
+      Alert.alert('Missing information', 'Please type your reply before sending.');
+      return;
+    }
     setReplying(true);
     try {
       await supportAPI.reply(selectedTicket._id, replyMessage.trim());
@@ -135,8 +141,8 @@ export default function SupportScreen() {
       setSelectedTicket(res.data || selectedTicket);
       setReplyMessage('');
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not send reply');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not send reply');
     } finally {
       setReplying(false);
     }
@@ -155,8 +161,8 @@ export default function SupportScreen() {
             const res: any = await supportAPI.getOne(selectedTicket._id);
             setSelectedTicket(res.data || selectedTicket);
             await load();
-          } catch (e: any) {
-            Alert.alert('Error', e?.message || 'Could not close ticket');
+          } catch (e: unknown) {
+            Alert.alert('Error', (e as Error)?.message || 'Could not close ticket');
           } finally {
             setClosing(false);
           }

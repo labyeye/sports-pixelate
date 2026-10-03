@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { removeStoredUpload } = require("../utils/uploadFiles");
 const path = require("path");
 const Setting = require("../models/Setting");
 const Company = require("../models/Company");
@@ -56,6 +57,12 @@ const updateSettings = asyncHandler(async (req, res) => {
     if (!body[field]) delete body[field];
   }
 
+  if (body.disabledFeatures !== undefined) {
+    body.disabledFeatures = Array.isArray(body.disabledFeatures)
+      ? [...new Set(body.disabledFeatures.map(String))]
+      : [];
+  }
+
   const setting = await Setting.findOneAndUpdate(
     { company },
     { $set: { ...body, company } },
@@ -71,12 +78,17 @@ const uploadCompanyLogo = (req, res) => {
     throw new Error("No file uploaded");
   }
   const logoUrl = `/uploads/company-logos/${req.file.filename}`;
-  Setting.findOneAndUpdate(
-    { company: req.user.company },
-    { $set: { logoUrl, company: req.user.company } },
-    { new: true, upsert: true },
-  )
-    .then((setting) => res.json({ success: true, logoUrl, data: setting }))
+  Setting.findOne({ company: req.user.company })
+    .select("logoUrl")
+    .then(async (before) => {
+      const setting = await Setting.findOneAndUpdate(
+        { company: req.user.company },
+        { $set: { logoUrl, company: req.user.company } },
+        { new: true, upsert: true },
+      );
+      removeStoredUpload(before?.logoUrl, req.file.path);
+      res.json({ success: true, logoUrl, data: setting });
+    })
     .catch((err) => {
       res.status(500);
       throw err;
@@ -89,12 +101,17 @@ const uploadPaymentQr = (req, res) => {
     throw new Error("No file uploaded");
   }
   const paymentQrUrl = `/uploads/payment-qr/${req.file.filename}`;
-  Setting.findOneAndUpdate(
-    { company: req.user.company },
-    { $set: { paymentQrUrl, company: req.user.company } },
-    { new: true, upsert: true },
-  )
-    .then((setting) => res.json({ success: true, paymentQrUrl, data: setting }))
+  Setting.findOne({ company: req.user.company })
+    .select("paymentQrUrl")
+    .then(async (before) => {
+      const setting = await Setting.findOneAndUpdate(
+        { company: req.user.company },
+        { $set: { paymentQrUrl, company: req.user.company } },
+        { new: true, upsert: true },
+      );
+      removeStoredUpload(before?.paymentQrUrl, req.file.path);
+      res.json({ success: true, paymentQrUrl, data: setting });
+    })
     .catch((err) => {
       res.status(500);
       throw err;

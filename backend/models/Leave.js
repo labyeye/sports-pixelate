@@ -49,4 +49,8 @@ const leaveSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+leaveSchema.index({ company: 1, status: 1 });
+leaveSchema.index({ employee: 1, startDate: 1 });
+
 module.exports = mongoose.model("Leave", leaveSchema);

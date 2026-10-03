@@ -16,6 +16,7 @@ import { Button, TextField } from '../../components/ui';
 import { colors } from '../../theme/colors';
 import LottieView from 'lottie-react-native';
 import { Smartphone } from 'lucide-react-native';
+import { getErrorMessage } from '../../utils/format';
 
 type Step = 'email' | 'choose' | 'code' | 'done';
 
@@ -49,8 +50,8 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     setLoading(true);
     try {
       await fn();
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

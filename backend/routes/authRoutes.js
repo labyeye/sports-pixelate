@@ -57,8 +57,16 @@ router.post("/forgot-password", sensitiveLimit, forgotPassword);
 router.post("/reset-password/:token", sensitiveLimit, resetPassword);
 
 router.get("/forgot-password/methods", authLimit, forgotPasswordMethods);
-router.post("/forgot-password/whatsapp", sensitiveLimit, forgotPasswordWhatsapp);
-router.post("/reset-password/otp/whatsapp", sensitiveLimit, resetPasswordWithOtp);
+router.post(
+  "/forgot-password/whatsapp",
+  sensitiveLimit,
+  forgotPasswordWhatsapp,
+);
+router.post(
+  "/reset-password/otp/whatsapp",
+  sensitiveLimit,
+  resetPasswordWithOtp,
+);
 router.post("/reset-password/otp/totp", sensitiveLimit, resetPasswordWithTotp);
 
 router.post("/phone/send-otp", protect, authLimit, sendPhoneVerifyOtp);

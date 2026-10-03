@@ -39,6 +39,8 @@ import {
 } from '../components/ui';
 import { fetchAllPages } from '../utils/fetchAllPages';
 import { colors, FONT } from '../theme/colors';
+import { formatDateOrDash } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 type PersonType = 'employee' | 'student';
 
@@ -63,14 +65,6 @@ const labelOf = (v: string) =>
   v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 const today = () => new Date().toISOString().slice(0, 10);
 const toInput = (d?: string) => (d ? new Date(d).toISOString().slice(0, 10) : '');
-const fmt = (d?: string) =>
-  d
-    ? new Date(d).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '—';
 
 const STATUS_COLOR: Record<string, string> = {
   initiated: colors.yellow,
@@ -121,13 +115,13 @@ export default function ExitManagementScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -216,7 +210,7 @@ export default function ExitManagementScreen() {
                   />
                 </View>
                 <Text style={styles.line}>
-                  {labelOf(x.exitType)} · Exit {fmt(x.exitDate)}
+                  {labelOf(x.exitType)} · Exit {formatDateOrDash(x.exitDate)}
                 </Text>
                 <Text style={styles.line}>
                   Clearance {x.progress.done}/{x.progress.total}
@@ -246,14 +240,14 @@ export default function ExitManagementScreen() {
         onClose={() => setShowNew(false)}
         onCreated={async id => {
           setShowNew(false);
-          await load().catch(() => {});
+          await load().catch(notifyError);
           setOpenId(id);
         }}
       />
       <DetailModal
         id={openId}
         onClose={() => setOpenId(null)}
-        onChanged={() => load().catch(() => {})}
+        onChanged={() => load().catch(notifyError)}
       />
     </SafeAreaView>
   );
@@ -290,7 +284,7 @@ function InitiateModal({
     const fn = personType === 'employee' ? employeeAPI.getAll : studentAPI.getAll;
     fetchAllPages(fn as any, { status: 'active' })
       .then((r: any) => setPeople(r.data || []))
-      .catch(() => {});
+      .catch(notifyError);
   }, [visible, personType]);
 
   const options = useMemo(() => people.map(labelFor), [people]);
@@ -313,8 +307,8 @@ function InitiateModal({
       });
       setReason('');
       onCreated(res.data._id);
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Could not start the exit');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Could not start the exit');
     } finally {
       setSaving(false);
     }
@@ -439,8 +433,8 @@ function DetailModal({
       onChanged();
       if (closeAfter) onClose();
       else await load();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Action failed');
+    } catch (e: unknown) {
+      Alert.alert('Error', (e as Error)?.message || 'Action failed');
     } finally {
       setBusy(false);
     }
@@ -523,8 +517,8 @@ function DetailModal({
               />
             </View>
             <Text style={[styles.line, { marginBottom: 12 }]}>
-              Exit date {fmt(rec.exitDate)}
-              {rec.completedAt ? ` · Completed ${fmt(rec.completedAt)}` : ''}
+              Exit date {formatDateOrDash(rec.exitDate)}
+              {rec.completedAt ? ` · Completed ${formatDateOrDash(rec.completedAt)}` : ''}
             </Text>
 
             {editable && hasOutstanding ? (

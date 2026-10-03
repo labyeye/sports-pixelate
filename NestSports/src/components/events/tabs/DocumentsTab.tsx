@@ -27,8 +27,8 @@ export default function DocumentsTab({ event, onChanged }: { event: any; onChang
     try {
       await eventAPI.addDocument(event._id, file, { kind });
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not upload document');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not upload document');
     } finally {
       setUploading(false);
     }
@@ -39,8 +39,8 @@ export default function DocumentsTab({ event, onChanged }: { event: any; onChang
     try {
       await eventAPI.removeDocument(event._id, docId);
       onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || 'Could not remove document');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not remove document');
     } finally {
       setBusyId(null);
     }

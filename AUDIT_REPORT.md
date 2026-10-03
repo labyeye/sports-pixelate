@@ -236,3 +236,39 @@ grep -n "index(" backend/models/Student.js backend/models/Employee.js backend/mo
 # W-1
 (cd frontend && npm run lint)
 ```
+
+
+---
+
+## 12. Remediation status (updated after the fixes)
+
+| ID | Status | What changed |
+|---|---|---|
+| S-1 loans | **Fixed** | Create/approve/edit/delete/import are owner-only; employees can only request (`routes/loanRoutes.js`) |
+| S-2 shifts/designations/salary heads/transactions/payment methods | **Fixed** | Writes owner-only |
+| S-3 dashboard stats / billing | **Fixed** | Stats limited to manager roles; billing owner-only |
+| (new) aggregate student reports | **Fixed** | Fees/dues/enrolment/batch/sport reports were open to parents & coaches — now owner-only |
+| S-4 mass assignment | **Fixed** | `stripProtected()` on all update endpoints (blocks `company`, `_id`, `parents`, loan/transaction `employee`, inventory `assignments`) |
+| S-5 cross-tenant IDs | **Fixed** | Loan employee, transaction employee, inventory `assignedTo`, booking student verified against the academy |
+| S-6 public Aadhaar/PAN | **Fixed** | `/uploads` guard: identity folders closed; payment screenshots need owner token + same-academy filename |
+| S-7 subscription only in UI | **Fixed** | `protect` returns HTTP 402 for lapsed academies (7-day grace); web redirects owners to Billing |
+| S-8 OTP brute force | **Fixed** | 5 wrong guesses burn the code |
+| S-9 WhatsApp webhook | **Fixed** | HMAC signature check (`META_APP_SECRET`), no default token, PII debug logs removed |
+| S-12/S-13 | **Fixed** | Timing-safe secret compare; generic 5xx message in production |
+| S-15 Android signing | **Partly** | Release key now comes from `NESTPLAY_UPLOAD_*`; you must create the keystore. R8/Proguard still off |
+| S-16 deps | **Mostly** | Backend 9→1 (file-type is ESM-only upgrade), web 9→3 (xlsx has no fix) |
+| S-11 JWT | **Partly** | Mobile token moved to Keychain/Keystore. 30-day lifetime and no refresh token are unchanged |
+| S-10 ADMS serial-only | Open | Protocol limitation — add per-device secret / IP allow-list |
+| S-14 MIME sniffing | Open | |
+| B-1 fee reminders | **Fixed** | `jobs/subscriptionLifecycle.js`: in-app reminders to parents at 7/3/1 days before, due day, and overdue stages; daily owner digest. (WhatsApp templates still need Meta approval) |
+| B-2 expiry / autoRenew | **Fixed** | Active plans past renewal date become `pending_renewal` (overdue); `autoRenew` remains a flag with no payment mandate |
+| B-3 WhatsApp free | **Fixed** | `getCompanyFeatures` honours `wantsWhatsapp` and the live subscription; dead flags removed |
+| B-4 pricing copy | **Fixed** | README + mobile Billing now say ₹30 / ₹50 per user per month + GST |
+| E-1 indexes | **Fixed** | Company-first indexes on 12 core collections (built on next start) |
+| E-4 cron on many instances | **Fixed** | `JobLock` distributed lock for both jobs |
+| E-5 uploads | **Partly** | `UPLOAD_DIR` for a persistent volume; uploads untracked from git. Object storage (S3/R2) not done |
+| E-10 tests/CI/docs | **Fixed** | 13 backend tests (route-guard table, pricing, subscription, uploads), GitHub Actions CI, `.env.example`, README setup |
+| Monitoring | **Added** | Optional Sentry (backend + web ErrorBoundary) via `SENTRY_DSN` / `VITE_SENTRY_DSN` |
+| W-1 lint / W-2 types | **Fixed** | ESLint flat config works (0 errors), `tsc` 0 errors; found & fixed a real bug (`loanAPI.request` didn't exist, so staff loan requests crashed) |
+| W-4 role guard | **Fixed** | Owner-only pages redirect other roles |
+| E-2 reports unbounded, W-3 react-query, W-6 bundle split, W-8 modals, W-9 a11y | Open | Planned |

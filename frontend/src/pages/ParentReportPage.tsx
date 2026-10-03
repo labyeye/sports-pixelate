@@ -3,8 +3,8 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { studentAPI, reportAPI, settingsAPI } from "@/services/api";
 import { buildReportHTML, ReportCompany } from "@/lib/reportPrintHTML";
-import { useToast } from "@/hooks/use-toast";
-import { cn, formatDate } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   GraduationCap,
   Printer,
@@ -86,8 +86,8 @@ export default function ParentReportPage() {
       const data = res.data || [];
       setChildren(data);
       setSelectedChild((prev) => prev || data[0]?._id || "");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -102,10 +102,10 @@ export default function ParentReportPage() {
       try {
         const res = await reportAPI.studentProfile(studentId);
         if (res.success) setProfile(res.data);
-      } catch (e: any) {
+      } catch (e: unknown) {
         toast({
           title: "Error",
-          description: e.message,
+          description: getErrorMessage(e),
           variant: "destructive",
         });
       } finally {
@@ -127,7 +127,7 @@ export default function ParentReportPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(notifyError);
     loadChildren().finally(() => setLoading(false));
   }, [loadChildren]);
 

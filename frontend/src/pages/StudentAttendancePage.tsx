@@ -3,8 +3,12 @@ import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { studentAPI, studentAttendanceAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
+import {
+  FeeOverdueModal,
+  FeeOverdueStudent,
+} from "@/components/ui/FeeOverdueModal";
 import {
   Clock,
   CheckCircle,
@@ -202,8 +206,8 @@ export default function StudentAttendancePage() {
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         ),
       );
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -212,6 +216,14 @@ export default function StudentAttendancePage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const [feeBlock, setFeeBlock] = useState<FeeOverdueStudent[] | null>(null);
+  // Returns true when the error was a fee-overdue refusal (modal shown).
+  const handleFeeBlock = (err: any) => {
+    if (err?.code !== "FEE_OVERDUE") return false;
+    setFeeBlock(err.details?.students || []);
+    return true;
+  };
 
   const setStatus = (studentId: string, status: Status) => {
     setMarks((p) => ({ ...p, [studentId]: status }));
@@ -234,8 +246,9 @@ export default function StudentAttendancePage() {
       toast({
         title: action === "checkin" ? "Checked in" : "Checked out",
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      if (handleFeeBlock(e)) return;
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setPunchingId(null);
     }
@@ -288,10 +301,14 @@ export default function StudentAttendancePage() {
       toast({ title: "Attendance updated" });
       setEditModal(false);
       setEditingStudent(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (handleFeeBlock(err)) {
+        setEditModal(false);
+        return;
+      }
       toast({
         title: "Error",
-        description: err.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -312,11 +329,15 @@ export default function StudentAttendancePage() {
         });
         return;
       }
-      await studentAttendanceAPI.bulkMark({ date, records });
-      toast({ title: `Saved attendance for ${records.length} student(s)` });
+      const res = await studentAttendanceAPI.bulkMark({ date, records });
+      const blocked: FeeOverdueStudent[] = res.blocked || [];
+      toast({
+        title: `Saved attendance for ${records.length - blocked.length} student(s)`,
+      });
+      if (blocked.length) setFeeBlock(blocked);
       await load();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -846,6 +867,7 @@ export default function StudentAttendancePage() {
           </div>
         </div>
       )}
+      <FeeOverdueModal students={feeBlock} onClose={() => setFeeBlock(null)} />
     </AppLayout>
   );
 }

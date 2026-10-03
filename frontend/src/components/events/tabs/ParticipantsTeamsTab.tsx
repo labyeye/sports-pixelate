@@ -9,8 +9,8 @@ import {
 } from "lucide-react";
 import { eventAPI, studentAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { useToast, notifyError } from "@/hooks/use-toast";
+import { cn, getErrorMessage } from "@/lib/utils";
 import type { Event } from "@/types/hrms";
 
 interface Props {
@@ -32,7 +32,7 @@ function RegistrationPanel({ event, onChanged }: Props) {
     studentAPI
       .getAll()
       .then((r: any) => setChildren(r.data || []))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -52,8 +52,8 @@ function RegistrationPanel({ event, onChanged }: Props) {
       if (isRegistered) await eventAPI.unregister(event._id, studentId);
       else await eventAPI.register(event._id, studentId);
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setBusyId(null);
     }
@@ -127,8 +127,8 @@ function TeamsPanel({ event, onChanged }: Props) {
       await eventAPI.addTeam(event._id, newTeam.trim());
       setNewTeam("");
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setAddingTeam(false);
     }
@@ -138,8 +138,8 @@ function TeamsPanel({ event, onChanged }: Props) {
     try {
       await eventAPI.removeTeam(event._id, teamId);
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -217,7 +217,11 @@ function ParticipantsList({ event }: { event: Event }) {
                 className="flex items-center justify-between border-2 border-black/10 px-3 py-2"
               >
                 <span className="text-sm font-bold text-black">
-                  {s ? `${s.firstName} ${s.lastName}` : r.student}
+                  {s
+                    ? `${s.firstName} ${s.lastName}`
+                    : typeof r.student === "string"
+                      ? r.student
+                      : r.student?._id}
                 </span>
                 <span className="text-[10px] font-bold uppercase text-muted-foreground">
                   {r.status}

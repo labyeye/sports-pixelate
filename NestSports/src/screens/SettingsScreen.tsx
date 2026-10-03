@@ -1,3 +1,7 @@
+// Settings (mobile): tabbed company settings — profile, bank/payment gateway,
+// GST and IFSC validation (regexes below), logo and payment QR upload
+// (settingsAPI). Web counterpart: frontend/src/pages/SettingsPage.tsx.
+
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -49,6 +53,8 @@ import {
 import { settingsAPI, RNFile } from '../api/client';
 import { INDIAN_BANKS } from '../constants/indianBanks';
 import { useAuth } from '../contexts/AuthContext';
+import { FEATURES } from '../config/features';
+import { setDisabledFeatures } from '../utils/disabledFeatures';
 import {
   Card,
   SectionTitle,
@@ -67,6 +73,7 @@ type TabKey =
   | 'punch'
   | 'ess'
   | 'system'
+  | 'features'
   | 'preferences';
 
 const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
@@ -77,6 +84,7 @@ const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: 'punch', label: 'Punch Settings', icon: AlertCircle },
   { key: 'ess', label: 'Employee App', icon: Users },
   { key: 'system', label: 'System', icon: SlidersHorizontal },
+  { key: 'features', label: 'Features', icon: SlidersHorizontal },
   { key: 'preferences', label: 'Preferences', icon: Sliders },
 ];
 
@@ -278,8 +286,8 @@ export default function SettingsScreen() {
       try {
         const res: any = await settingsAPI.uploadLogo(file);
         if (res?.data?.logoUrl) set({ logoUrl: res.data.logoUrl });
-      } catch (e: any) {
-        Alert.alert('Upload failed', e?.message || 'Could not upload logo');
+      } catch (e: unknown) {
+        Alert.alert('Upload failed', (e as Error)?.message || 'Could not upload logo');
       } finally {
         setUploadingLogo(false);
       }
@@ -293,10 +301,10 @@ export default function SettingsScreen() {
         const res: any = await settingsAPI.uploadPaymentQr(file);
         if (res?.data?.paymentQrUrl)
           set({ paymentQrUrl: res.data.paymentQrUrl });
-      } catch (e: any) {
+      } catch (e: unknown) {
         Alert.alert(
           'Upload failed',
-          e?.message || 'Could not upload payment QR',
+          (e as Error)?.message || 'Could not upload payment QR',
         );
       } finally {
         setUploadingQr(false);
@@ -342,9 +350,10 @@ export default function SettingsScreen() {
     setSaving(true);
     try {
       await settingsAPI.update(settings);
+      setDisabledFeatures(settings?.disabledFeatures || []);
       Alert.alert('Saved', 'Settings updated successfully');
-    } catch (e: any) {
-      Alert.alert('Save failed', e?.message || 'Could not save settings');
+    } catch (e: unknown) {
+      Alert.alert('Save failed', (e as Error)?.message || 'Could not save settings');
     } finally {
       setSaving(false);
     }
@@ -819,6 +828,33 @@ export default function SettingsScreen() {
               value={settings?.emailNotif}
               onChange={v => set({ emailNotif: v })}
             />
+          </Card>
+        )}
+
+        {tab === 'features' && (
+          <Card>
+            <SectionTitle title="Features" />
+            <Text style={styles.toggleSub}>
+              Switch off features your academy doesn't use. They are hidden
+              from the menu for everyone. Your data is kept, and you can turn
+              a feature back on any time.
+            </Text>
+            {FEATURES.map(f => (
+              <ToggleRow
+                key={f.key}
+                label={f.label}
+                sub={f.description}
+                value={!(settings?.disabledFeatures || []).includes(f.key)}
+                onChange={on => {
+                  const cur: string[] = settings?.disabledFeatures || [];
+                  set({
+                    disabledFeatures: on
+                      ? cur.filter(k => k !== f.key)
+                      : [...cur, f.key],
+                  });
+                }}
+              />
+            ))}
           </Card>
         )}
 

@@ -5,12 +5,13 @@ const {
   updateSalaryHead,
   deleteSalaryHead,
 } = require("../controllers/salaryHeadController");
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
+const owner = authorize("super_admin", "hr_manager");
 const router = express.Router();
 
 router.get("/", protect, getSalaryHeads);
-router.post("/", protect, createSalaryHead);
-router.put("/:id", protect, updateSalaryHead);
-router.delete("/:id", protect, deleteSalaryHead);
+router.post("/", protect, owner, createSalaryHead);
+router.put("/:id", protect, owner, updateSalaryHead);
+router.delete("/:id", protect, owner, deleteSalaryHead);
 
 module.exports = router;

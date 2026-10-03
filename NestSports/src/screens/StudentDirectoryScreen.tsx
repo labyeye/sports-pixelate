@@ -27,6 +27,8 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { fetchAllPages } from '../utils/fetchAllPages';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   active: { color: colors.green, label: 'Active' },
@@ -86,7 +88,7 @@ export default function StudentDirectoryScreen() {
   useEffect(() => {
     setLoading(true);
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
@@ -98,7 +100,7 @@ export default function StudentDirectoryScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -109,8 +111,8 @@ export default function StudentDirectoryScreen() {
     try {
       const res: any = await reportAPI.studentProfile(studentId);
       setProfile(res.data);
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not load profile');
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Could not load profile');
       setSelectedId(null);
     } finally {
       setProfileLoading(false);

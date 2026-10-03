@@ -1,5 +1,8 @@
+const path = require("path");
+const { removeStoredUpload } = require("../utils/uploadFiles");
 const crypto = require("crypto");
 const asyncHandler = require("express-async-handler");
+const { stripProtected } = require("../middleware/validate");
 const Student = require("../models/Student");
 const User = require("../models/User");
 const Employee = require("../models/Employee");
@@ -20,6 +23,7 @@ const STUDENT_SORT_FIELDS = [
   "createdAt",
 ];
 const { enrollFace } = require("../services/faceService");
+const { invalidateFaceIndex } = require("../services/faceIndex");
 
 const createSchema = {
   firstName: { required: true, type: "string", minLength: 1, maxLength: 80 },
@@ -353,7 +357,8 @@ const createStudent = [
 const updateStudent = [
   validateBody(updateSchema),
   asyncHandler(async (req, res) => {
-    const update = { ...req.body };
+    // `parents` is derived from guardians; never client-settable.
+    const update = stripProtected(req.body, ["parents"]);
     let autoParentIds = [];
     if (Object.prototype.hasOwnProperty.call(update, "guardians")) {
       try {
@@ -405,15 +410,18 @@ const uploadStudentAvatar = asyncHandler(async (req, res) => {
   }
   const baseUrl = `${req.protocol}://${req.get("host")}`;
   const avatarUrl = `${baseUrl}/uploads/avatars/${req.file.filename}`;
-  const student = await Student.findOneAndUpdate(
+  // new:false returns the previous document so the old photo can be deleted.
+  const previous = await Student.findOneAndUpdate(
     { _id: req.params.id, company: req.user.company },
     { avatar: avatarUrl },
-    { new: true },
+    { new: false },
   );
-  if (!student) {
+  if (!previous) {
+    removeStoredUpload(avatarUrl);
     res.status(404);
     throw new Error("Student not found");
   }
+  removeStoredUpload(previous.avatar, req.file.path);
   res.json({ success: true, avatar: avatarUrl });
 });
 
@@ -426,6 +434,13 @@ const uploadGuardianPhotoHandler = asyncHandler(async (req, res) => {
   const baseUrl = `${req.protocol}://${req.get("host")}`;
   const photoUrl = `${baseUrl}/uploads/guardian-photos/${req.file.filename}`;
 
+  const before = await Student.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+    "guardians._id": req.params.guardianId,
+  }).select("guardians");
+  const oldPhoto = before?.guardians.id(req.params.guardianId)?.photo;
+
   const student = await Student.findOneAndUpdate(
     {
       _id: req.params.id,
@@ -436,9 +451,11 @@ const uploadGuardianPhotoHandler = asyncHandler(async (req, res) => {
     { new: true },
   );
   if (!student) {
+    removeStoredUpload(photoUrl);
     res.status(404);
     throw new Error("Student or guardian not found");
   }
+  removeStoredUpload(oldPhoto, req.file.path);
 
   // Mirror onto the guardian's linked parent login so their app avatar
   // (matched by phone, same as ensureParentAccounts) shows this photo too.
@@ -604,7 +621,91 @@ const deleteStudent = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Student deactivated" });
 });
 
+// Enrolled / missing counts so the owner can see how far a roll-out has got.
+const getStudentFaceStatus = asyncHandler(async (req, res) => {
+  const active = { company: req.user.company, status: { $ne: "inactive" } };
+  const noFace = {
+    $or: [
+      { faceDescriptor: { $exists: false } },
+      { faceDescriptor: { $size: 0 } },
+    ],
+  };
+  const [total, missingCount, missing] = await Promise.all([
+    Student.countDocuments(active),
+    Student.countDocuments({ ...active, ...noFace }),
+    Student.find({ ...active, ...noFace })
+      .select("_id studentId firstName lastName")
+      .sort({ firstName: 1 })
+      .limit(500)
+      .lean(),
+  ]);
+  res.json({
+    success: true,
+    data: { total, enrolled: total - missingCount, missingCount, missing },
+  });
+});
+
+// Bulk enrollment: each uploaded photo is named after the student's ID
+// (e.g. STU-0012.jpg). Photos are matched, embedded and discarded; a bad photo
+// fails only its own row.
+const bulkEnrollStudentFaces = asyncHandler(async (req, res) => {
+  const files = req.files || [];
+  if (!files.length) {
+    res.status(400);
+    throw new Error("Select at least one photo");
+  }
+
+  const codes = files.map((f) => path.parse(f.originalname).name.trim());
+  const students = await Student.find({
+    company: req.user.company,
+    studentId: { $in: codes },
+  }).select("_id studentId");
+  const byCode = new Map(students.map((s) => [s.studentId.toLowerCase(), s]));
+
+  const results = new Array(files.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < files.length) {
+      const i = next++;
+      const file = files[i];
+      const code = codes[i];
+      const student = byCode.get(code.toLowerCase());
+      if (!student) {
+        results[i] = { file: file.originalname, status: "failed", error: `No student with ID "${code}"` };
+        continue;
+      }
+      try {
+        const encoding = await enrollFace(
+          file.buffer,
+          file.originalname,
+          file.mimetype,
+        );
+        await Student.updateOne(
+          { _id: student._id },
+          { $set: { faceDescriptor: encoding } },
+        );
+        results[i] = { file: file.originalname, studentId: student.studentId, status: "enrolled" };
+      } catch (err) {
+        results[i] = { file: file.originalname, studentId: student.studentId, status: "failed", error: err.message };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: 3 }, worker));
+  invalidateFaceIndex();
+
+  res.json({
+    success: true,
+    data: {
+      enrolled: results.filter((r) => r.status === "enrolled").length,
+      failed: results.filter((r) => r.status === "failed").length,
+      results,
+    },
+  });
+});
+
 module.exports = {
+  getStudentFaceStatus,
+  bulkEnrollStudentFaces,
   getStudents,
   getStudent,
   createStudent,

@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/escapeHtml";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { payrollAPI } from "@/services/api";
@@ -114,7 +115,7 @@ export default function EmployeePayrollPage() {
       </head>
       <body>
         <h2>Salary Slip</h2>
-        <p class="subtitle">${MONTHS[p.month - 1]} ${p.year} · Status: ${p.status.toUpperCase()}</p>
+        <p class="subtitle">${MONTHS[p.month - 1]} ${p.year} · Status: ${escapeHtml(p.status.toUpperCase())}</p>
         <table>
           <tr><th>Component</th><th>Amount</th></tr>
           <tr><td>Basic Salary (Monthly)</td><td>${formatCurrency(p.basicSalary)}</td></tr>

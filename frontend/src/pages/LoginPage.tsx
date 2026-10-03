@@ -18,6 +18,7 @@ import {
 import nesthrlogo from "../../assets/logo.png";
 import { authAPI } from "@/services/api";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { getErrorMessage } from "@/lib/utils";
 
 function bufferToBase64Url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -104,8 +105,8 @@ export default function LoginPage() {
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
       navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Passkey login failed.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Passkey login failed.");
     } finally {
       setPasskeyLoading(false);
     }
@@ -141,8 +142,8 @@ export default function LoginPage() {
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
       navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Invalid code. Try again.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Invalid code. Try again.");
     } finally {
       setLoading(false);
     }
@@ -155,8 +156,8 @@ export default function LoginPage() {
     try {
       await authAPI.sendPhoneOtp(phone.trim());
       setOtpSent(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to send OTP. Please try again.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Failed to send OTP. Please try again.");
     } finally {
       setOtpLoading(false);
     }
@@ -171,8 +172,8 @@ export default function LoginPage() {
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
       navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Invalid or expired OTP.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Invalid or expired OTP.");
     } finally {
       setOtpLoading(false);
     }

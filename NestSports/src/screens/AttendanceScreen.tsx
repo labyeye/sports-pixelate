@@ -46,6 +46,8 @@ import {
 import { colors, FONT } from '../theme/colors';
 import { DateTimeField, FilterPills } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { getErrorMessage } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 function openLocationInMaps(loc: { lat: number; lng: number }) {
   Linking.openURL(
@@ -174,7 +176,7 @@ export default function AttendanceScreen() {
     employeeAPI
       .getMe()
       .then((res: any) => setMyEmployee(res.data || null))
-      .catch(() => {});
+      .catch(notifyError);
   }, [isEmployee]);
 
   useEffect(() => {
@@ -192,6 +194,30 @@ export default function AttendanceScreen() {
   // Snap-and-submit: this repo's established pattern for face capture,
   // rather than a separate live auto-detecting FaceCheckIn screen — same
   // verification result, simpler and consistent with what's already built here.
+  // Clears the employee's own enrolled face (e.g. after a bad enrolment photo);
+  // the card then shows "Enroll My Face" again.
+  const handleResetMyFace = () => {
+    Alert.alert(
+      'Reset My Face',
+      'You will need to enroll your face again before you can check in from the app.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await employeeAPI.resetMyFace();
+              loadMyEmployee();
+            } catch (e: unknown) {
+              Alert.alert('Error', getErrorMessage(e));
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleEnrollFace = async () => {
     const ok = await requestSelfMarkPermissions();
     if (!ok) {
@@ -228,10 +254,10 @@ export default function AttendanceScreen() {
             'Face enrolled — you can now check in via the app.',
           );
           loadMyEmployee();
-        } catch (e: any) {
+        } catch (e: unknown) {
           Alert.alert(
             'Error',
-            e.message || 'Face enrollment failed. Try a clear, well-lit photo.',
+            getErrorMessage(e) || 'Face enrollment failed. Try a clear, well-lit photo.',
           );
         } finally {
           setEnrolling(false);
@@ -285,8 +311,8 @@ export default function AttendanceScreen() {
               action === 'checkin' ? 'Checked in!' : 'Checked out!',
             );
             await load(false);
-          } catch (e: any) {
-            Alert.alert('Error', e.message || 'Could not mark attendance');
+          } catch (e: unknown) {
+            Alert.alert('Error', getErrorMessage(e) || 'Could not mark attendance');
           } finally {
             setSelfMarking(null);
           }
@@ -334,8 +360,8 @@ export default function AttendanceScreen() {
         checkOut: '',
         reason: '',
       });
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to submit request');
+    } catch (err: unknown) {
+      Alert.alert('Error', getErrorMessage(err) || 'Failed to submit request');
     } finally {
       setSubmittingCorrection(false);
     }
@@ -359,8 +385,8 @@ export default function AttendanceScreen() {
           r.date ? toDateStr(new Date(r.date)) === dateFilter : false,
         );
         setRecords(forDate);
-      } catch (e: any) {
-        Alert.alert('Error', e.message);
+      } catch (e: unknown) {
+        Alert.alert('Error', getErrorMessage(e));
       } finally {
         setLoading(false);
       }
@@ -372,7 +398,9 @@ export default function AttendanceScreen() {
     try {
       const res: any = await employeeAPI.getAll({ status: 'active' });
       setEmployees(res.data || []);
-    } catch {}
+    } catch (e: unknown) {
+      notifyError(e);
+    }
   }, []);
 
   useEffect(() => {
@@ -426,8 +454,8 @@ export default function AttendanceScreen() {
                 status: 'absent',
               });
               await load();
-            } catch (e: any) {
-              Alert.alert('Error', e.message);
+            } catch (e: unknown) {
+              Alert.alert('Error', getErrorMessage(e));
             }
           },
         },
@@ -507,8 +535,8 @@ export default function AttendanceScreen() {
       }
       closeModal();
       await load();
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -689,6 +717,11 @@ export default function AttendanceScreen() {
                   Checked in and out for today
                 </Text>
               </View>
+            )}
+            {hasFaceEnrolled && (
+              <TouchableOpacity onPress={handleResetMyFace}>
+                <Text style={styles.selfMarkResetText}>Reset my face</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -1295,8 +1328,8 @@ export default function AttendanceScreen() {
                     });
                     setShowBulkModal(false);
                     await load();
-                  } catch (e: any) {
-                    Alert.alert('Error', e.message);
+                  } catch (e: unknown) {
+                    Alert.alert('Error', getErrorMessage(e));
                   } finally {
                     setBulkSaving(false);
                   }
@@ -1726,6 +1759,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   selfMarkDoneRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  selfMarkResetText: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.red,
+    marginTop: 10,
+    textDecorationLine: 'underline',
+  },
   selfMarkDoneText: {
     fontFamily: FONT.bold,
     fontSize: 13,

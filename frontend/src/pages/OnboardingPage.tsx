@@ -14,7 +14,7 @@ import {
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import nestplayLogo from "../../assets/logo.png";
 import { Arrow } from "@radix-ui/react-select";
 declare global {
@@ -214,12 +214,12 @@ export default function OnboardingPage() {
                       email: createdCompany.email,
                       status: createdCompany.status,
                     }
-                  : { ...user?.company!, status: "active" },
+                  : { ...user!.company!, status: "active" },
                 subscription: { status: "active" },
               });
               setTimeout(() => navigate("/welcome", { replace: true }), 1500);
               resolve();
-            } catch (err: any) {
+            } catch (err: unknown) {
               reject(err);
             }
           },
@@ -229,8 +229,8 @@ export default function OnboardingPage() {
         });
         rzp.open();
       });
-    } catch (err: any) {
-      const msg = err.message || "Please try again.";
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err) || "Please try again.";
       if (msg.includes("User already has a SportsClub")) {
         toast({
           title: "SportsClub already exists",
@@ -238,7 +238,7 @@ export default function OnboardingPage() {
           variant: "destructive",
         });
         setTimeout(() => navigate("/", { replace: true }), 1800);
-      } else if (err.message !== "Payment cancelled") {
+      } else if (getErrorMessage(err) !== "Payment cancelled") {
         toast({
           title: "Could not initiate payment",
           description: msg,

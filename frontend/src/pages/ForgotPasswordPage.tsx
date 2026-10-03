@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { authAPI } from "@/services/api";
 import nesthrlogo from "../../assets/logo.png";
+import { getErrorMessage } from "@/lib/utils";
 
 type Step = "email" | "choose" | "email_sent" | "code" | "done";
 type CodeMethod = "whatsapp" | "totp";
@@ -57,8 +58,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       await fn();
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

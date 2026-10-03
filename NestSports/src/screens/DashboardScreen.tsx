@@ -29,10 +29,8 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
+import { formatCurrency, formatDateOrDash } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -47,7 +45,7 @@ export default function DashboardScreen() {
       .then((res: any) => {
         if (res.success) setData(res.data);
       })
-      .catch(() => {});
+      .catch(notifyError);
   }, []);
 
   useEffect(() => {
@@ -163,14 +161,6 @@ export default function DashboardScreen() {
                 (sub.amount || 0) - (sub.amountPaid || 0),
               );
               const g = sub.student?.guardians?.[0];
-              const fmt = (d?: string) =>
-                d
-                  ? new Date(d).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : '—';
               return (
                 <View key={sub._id} style={styles.renewal}>
                   <View style={styles.renewalTop}>
@@ -194,8 +184,8 @@ export default function DashboardScreen() {
                       {sub.billingCycle ? ` (${sub.billingCycle})` : ''}
                     </Text>
                     <Text style={styles.renewalCell}>
-                      {fmt(sub.startDate)} →{' '}
-                      <Text style={styles.bold}>{fmt(sub.renewalDate)}</Text>
+                      {formatDateOrDash(sub.startDate)} →{' '}
+                      <Text style={styles.bold}>{formatDateOrDash(sub.renewalDate)}</Text>
                     </Text>
                     <Text
                       style={[

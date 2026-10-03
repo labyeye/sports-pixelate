@@ -1,10 +1,13 @@
+// Holidays (web): company holiday calendar (types in TYPE_META). Attendance
+// marked on a holiday date is stored with status "holiday". Backend: holidayAPI.
+
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { holidayAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
 import {
   CalendarDays,
@@ -125,8 +128,8 @@ export default function HolidaysPage() {
     try {
       const r = await holidayAPI.getAll({ year: String(year) });
       setHolidays(r.data);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -178,8 +181,8 @@ export default function HolidaysPage() {
         toast({ title: "Holiday added" });
       }
       resetForm();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -191,8 +194,8 @@ export default function HolidaysPage() {
       await holidayAPI.delete(id);
       setHolidays((p) => p.filter((h) => h._id !== id));
       toast({ title: "Holiday deleted" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 

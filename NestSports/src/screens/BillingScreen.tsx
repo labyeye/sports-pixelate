@@ -22,10 +22,8 @@ import {
   Badge,
 } from '../components/ui';
 import { colors } from '../theme/colors';
-
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 export default function BillingScreen() {
   const [subscription, setSubscription] = useState<any>(null);
@@ -38,8 +36,8 @@ export default function BillingScreen() {
     setDownloading(inv._id);
     try {
       await RNPrint.print({ html: buildInvoiceHTML(inv) });
-    } catch (e: any) {
-      if (e?.message !== 'cancelled') {
+    } catch (e: unknown) {
+      if ((e as Error)?.message !== 'cancelled') {
         Alert.alert('Error', 'Could not generate invoice PDF.');
       }
     } finally {
@@ -58,13 +56,13 @@ export default function BillingScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 
@@ -126,7 +124,9 @@ export default function BillingScreen() {
                 </Text>
               ) : null}
               <Text style={styles.sub}>
-                ₹30/student/month · WhatsApp notifications included
+                {subscription.wantsWhatsapp
+                  ? '₹50/user/month + GST · WhatsApp notifications included'
+                  : '₹30/user/month + GST · in-app notifications (WhatsApp not included)'}
               </Text>
               {subscription.renewalDate ? (
                 <Text style={styles.sub}>

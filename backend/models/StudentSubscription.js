@@ -63,6 +63,9 @@ const studentSubscriptionSchema = new mongoose.Schema(
       default: "active",
     },
     autoRenew: { type: Boolean, default: true },
+    // "<renewalDate>:<stage>" keys of reminders already sent for the current
+    // period, so each reminder goes out exactly once (a renewal changes the date).
+    remindersSent: { type: [String], default: [] },
     paymentStatus: {
       type: String,
       enum: ["pending", "partial", "completed", "failed", "rejected"],
@@ -100,6 +103,18 @@ const studentSubscriptionSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// Serves the fee-lock lookup: latest live subscription per student.
+studentSubscriptionSchema.index({
+  company: 1,
+  student: 1,
+  status: 1,
+  createdAt: -1,
+});
+
+// Tenant-first indexes: every query is scoped by company.
+paymentAttemptSchema.index({ company: 1, status: 1, renewalDate: 1 });
+paymentAttemptSchema.index({ student: 1, status: 1 });
 
 module.exports = mongoose.model(
   "StudentSubscription",

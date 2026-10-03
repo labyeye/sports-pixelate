@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { payrollAPI } from '../api/client';
 import { Card, Row, Badge, EmptyState, LoadingView } from '../components/ui';
 import { colors } from '../theme/colors';
+import { formatCurrency } from '../utils/format';
+import { notifyError } from '../utils/notifyError';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: colors.muted,
@@ -26,10 +28,6 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
-function formatCurrency(n: number) {
-  return `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
-}
-
 export default function MyPayrollScreen() {
   const [payslips, setPayslips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,13 +43,13 @@ export default function MyPayrollScreen() {
 
   useEffect(() => {
     load()
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [load]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load().catch(() => {});
+    await load().catch(notifyError);
     setRefreshing(false);
   };
 

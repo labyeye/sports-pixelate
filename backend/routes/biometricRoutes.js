@@ -25,6 +25,7 @@ const {
   getDeviceCommands,
   saveRfidCard,
   saveFaceDescriptor,
+  resetFaceDescriptor,
   getFaceDescriptors,
   faceAttendance,
   triggerFingerprintEnroll,
@@ -139,6 +140,11 @@ router.post(
   "/people/:personType/:id/face",
   authorize("super_admin", "hr_manager"),
   saveFaceDescriptor,
+);
+router.delete(
+  "/people/:personType/:id/face",
+  authorize("super_admin", "hr_manager"),
+  resetFaceDescriptor,
 );
 router.get("/face-descriptors", getFaceDescriptors);
 router.post("/face-attendance", faceAttendance);

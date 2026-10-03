@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { attendanceSettingsAPI, employeeAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { StudentFaceEnrollPanel } from "@/components/biometric/StudentFaceEnrollPanel";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Employee } from "@/types/hrms";
 import {
@@ -14,7 +15,9 @@ import {
   Users,
   CalendarDays,
   Percent,
+  Wallet,
 } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 interface AttendanceSettings {
   shiftStartHour: number;
@@ -27,6 +30,10 @@ interface AttendanceSettings {
   halfDayThresholdMinutes: number;
   earlyCheckoutThresholdMinutes: number;
   earlyCheckoutDeductionEnabled: boolean;
+  feeLockEnabled: boolean;
+  feeDueDay: number;
+  feeGraceDays: number;
+  studentFaceAttendanceEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: AttendanceSettings = {
@@ -40,6 +47,10 @@ const DEFAULT_SETTINGS: AttendanceSettings = {
   halfDayThresholdMinutes: 120,
   earlyCheckoutThresholdMinutes: 15,
   earlyCheckoutDeductionEnabled: false,
+  feeLockEnabled: false,
+  feeDueDay: 0,
+  feeGraceDays: 7,
+  studentFaceAttendanceEnabled: false,
 };
 
 const LEAVE_TYPES = [
@@ -143,6 +154,11 @@ function Toggle({
       </button>
     </div>
   );
+}
+
+function ordinal(n: number) {
+  if (n % 100 >= 11 && n % 100 <= 13) return "th";
+  return ["th", "st", "nd", "rd"][n % 10] ?? "th";
 }
 
 function fmt(h: number, m: number) {
@@ -327,8 +343,8 @@ export default function AttendanceSettingsPage() {
       if (settingsRes.data)
         setSettings({ ...DEFAULT_SETTINGS, ...settingsRes.data });
       if (empRes.success) setEmployees(empRes.data);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -339,8 +355,8 @@ export default function AttendanceSettingsPage() {
     try {
       const res = await attendanceSettingsAPI.getBalanceSummary();
       if (res.success) setBalances(res.data);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setLoadingBalances(false);
     }
@@ -367,8 +383,8 @@ export default function AttendanceSettingsPage() {
         description: "Attendance rules updated",
         variant: "success",
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -387,8 +403,8 @@ export default function AttendanceSettingsPage() {
         variant: "success",
       });
       fetchBalances();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSavingLate(false);
     }
@@ -413,8 +429,8 @@ export default function AttendanceSettingsPage() {
       });
       setShowLateModal(false);
       fetchBalances();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSavingLate(false);
     }
@@ -434,8 +450,8 @@ export default function AttendanceSettingsPage() {
         variant: "success",
       });
       fetchBalances();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSavingLeave(false);
     }
@@ -461,8 +477,8 @@ export default function AttendanceSettingsPage() {
       });
       setShowLeaveModal(false);
       fetchBalances();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setSavingLeave(false);
     }
@@ -615,6 +631,78 @@ export default function AttendanceSettingsPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black">
+                  <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                    <div className="flex items-center gap-3">
+                      <Wallet className="w-5 h-5 text-[#024BAB]" />
+                      <div>
+                        <h2 className="font-bold text-base">
+                          Student Fee Lock
+                        </h2>
+                        <p className="text-xs text-gray-500">
+                          Stop taking attendance for students whose fee is
+                          overdue. A pop-up tells staff the student has not
+                          paid.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <Toggle
+                      label="Block attendance for unpaid students"
+                      description="Applies to manual, bulk and face attendance"
+                      checked={settings.feeLockEnabled}
+                      onChange={(v) => set({ feeLockEnabled: v })}
+                    />
+                    {settings.feeLockEnabled && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <NumField
+                          label="Fee Due Day of Month"
+                          value={settings.feeDueDay}
+                          min={0}
+                          max={28}
+                          onChange={(v) => set({ feeDueDay: v })}
+                          hint={
+                            settings.feeDueDay > 0
+                              ? `Fee is due on the ${settings.feeDueDay}${ordinal(settings.feeDueDay)} of the month`
+                              : "0 = use each student's subscription renewal date"
+                          }
+                        />
+                        <NumField
+                          label="Block After Overdue (days)"
+                          value={settings.feeGraceDays}
+                          min={0}
+                          onChange={(v) => set({ feeGraceDays: v })}
+                          hint={`Attendance stops ${settings.feeGraceDays} day(s) after the due date`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black">
+                  <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                    <h2 className="font-bold text-base">
+                      Student Face Attendance
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Let students be marked present just by showing their face
+                      at the biometric kiosk.
+                    </p>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <Toggle
+                      label="Enable face attendance for students"
+                      description="Save settings after changing. Off = students are not recognised at the kiosk."
+                      checked={settings.studentFaceAttendanceEnabled}
+                      onChange={(v) => set({ studentFaceAttendanceEnabled: v })}
+                    />
+                    {settings.studentFaceAttendanceEnabled && (
+                      <StudentFaceEnrollPanel />
+                    )}
                   </div>
                 </div>
 

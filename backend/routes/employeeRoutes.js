@@ -1,4 +1,5 @@
 const express = require("express");
+const { removeStoredUpload } = require("../utils/uploadFiles");
 const {
   getEmployees,
   getEmployee,
@@ -12,6 +13,7 @@ const {
   downloadEmployeeDocument,
   enrollEmployeeFace,
   enrollMyFace,
+  resetMyFace,
 } = require("../controllers/employeeController");
 const { protect, authorize } = require("../middleware/auth");
 const {
@@ -20,13 +22,21 @@ const {
   uploadFaceEnrollPhoto,
 } = require("../middleware/upload");
 const router = express.Router();
+const NON_PARENT = [
+  "super_admin",
+  "hr_manager",
+  "hr_executive",
+  "department_head",
+  "employee",
+];
 
 router.get("/me", protect, getMyEmployee);
 router.post("/me/face-enroll", protect, uploadFaceEnrollPhoto, enrollMyFace);
+router.delete("/me/face", protect, resetMyFace);
 
 router
   .route("/")
-  .get(protect, getEmployees)
+  .get(protect, authorize(...NON_PARENT), getEmployees)
   .post(
     protect,
     authorize("super_admin", "hr_manager", "hr_executive"),
@@ -34,7 +44,7 @@ router
   );
 router
   .route("/:id")
-  .get(protect, getEmployee)
+  .get(protect, authorize(...NON_PARENT), getEmployee)
   .put(
     protect,
     authorize("super_admin", "hr_manager", "hr_executive"),
@@ -74,7 +84,19 @@ router.post(
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const avatarUrl = `${baseUrl}/uploads/avatars/${req.file.filename}`;
-    await Employee.findByIdAndUpdate(req.params.id, { avatar: avatarUrl });
+    // Scoped to the caller's company; new:false gives the old photo to delete.
+    const previous = await Employee.findOneAndUpdate(
+      { _id: req.params.id, company: req.user.company },
+      { avatar: avatarUrl },
+      { new: false },
+    );
+    if (!previous) {
+      removeStoredUpload(avatarUrl);
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
+    }
+    removeStoredUpload(previous.avatar, req.file.path);
     res.json({ success: true, avatar: avatarUrl });
   },
 );

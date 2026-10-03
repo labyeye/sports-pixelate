@@ -9,20 +9,17 @@ const { safePagination } = require("../middleware/validate");
 const { sendSalaryPaid } = require("../services/whatsappService");
 const { generatePayslipPdf } = require("../services/pdfService");
 const Setting = require("../models/Setting");
-const { getEffectiveShift } = require("../utils/shiftUtils");
+const { computeEmployeePayroll } = require("../utils/payrollCalc");
+const logger = require("../utils/logger");
 
+// Payroll lifecycle: processed (calculated, awaiting payment) -> paid.
+// "cancelled" exists for records voided by an admin.
 const PAYROLL_STATUS = ["processed", "paid", "cancelled"];
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30
-
-// Returns minutes-since-midnight in IST for any Date or ISO string.
-// All shift times (e.g. "09:00") are IST — so we compare apples-to-apples.
-function istMinutes(date) {
-  const d = new Date(date);
-  const ist = new Date(d.getTime() + IST_OFFSET_MS);
-  return ist.getUTCHours() * 60 + ist.getUTCMinutes();
-}
-
+/**
+ * GET /payroll — paginated payroll records for the caller's company.
+ * Optional filters: month, year, employeeId, status.
+ */
 const getPayrolls = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
   const { month, year, employeeId, status } = req.query;
@@ -67,24 +64,19 @@ const getPayrolls = asyncHandler(async (req, res) => {
   });
 });
 
-function getWorkingDays(year, month, workDaysPerWeek) {
-  const days = workDaysPerWeek ?? 6;
-  let count = 0;
-  const end = new Date(year, month, 0).getDate();
-  for (let d = 1; d <= end; d++) {
-    const dow = new Date(year, month - 1, d).getDay();
-    if (days >= 7) count++;
-    else if (days >= 6 && dow >= 1 && dow <= 6) count++;
-    else if (dow >= 1 && dow <= 5) count++;
-  }
-  return count || 1;
-}
-
-function parseTime(timeStr) {
-  const [h, m] = (timeStr || "00:00").split(":").map(Number);
-  return { hour: h || 0, minute: m || 0 };
-}
-
+/**
+ * POST /payroll/process — calculates and saves payroll for a month.
+ *
+ * Per active employee (skipped if already processed or no attendance exists):
+ *   dailyRate  = monthly salary / working days
+ *   hourlyRate = dailyRate / shift hours
+ *   earned     = hours worked (from shift start, capped at shift end) x hourlyRate
+ * then adds overtime and allowances from pending transactions, and subtracts
+ * absent, half-day and late deductions, penalties and active-loan EMIs.
+ * Shift times are IST.
+ *
+ * `force: true` deletes and recalculates this month's records, but never paid ones.
+ */
 const processPayroll = asyncHandler(async (req, res) => {
   const { month, year, employeeIds, employees: empIds, force } = req.body;
   const m = parseInt(month),
@@ -137,181 +129,6 @@ const processPayroll = asyncHandler(async (req, res) => {
 
     if (attendances.length === 0) continue;
 
-    const workDaysPerWeek = emp.workDaysPerWeek ?? 6;
-    const workingDays = getWorkingDays(y, m, workDaysPerWeek);
-    const salary = emp.salary ?? 0;
-    const dailyRate = workingDays > 0 ? salary / workingDays : 0;
-
-    const empShift = getEffectiveShift(emp);
-    let shiftH, shiftM, shiftEndH, shiftEndM;
-
-    if (empShift?.startTime) {
-      const s = parseTime(empShift.startTime);
-      shiftH = s.hour;
-      shiftM = s.minute;
-    } else {
-      shiftH = deductionRule?.shiftStartHour ?? 9;
-      shiftM = deductionRule?.shiftStartMinute ?? 0;
-    }
-
-    if (empShift?.endTime) {
-      const e = parseTime(empShift.endTime);
-      shiftEndH = e.hour;
-      shiftEndM = e.minute;
-    } else {
-      shiftEndH = deductionRule?.shiftEndHour ?? 18;
-      shiftEndM = deductionRule?.shiftEndMinute ?? 0;
-    }
-
-    // Hours-based payroll: earnedSalary = totalHoursWorked × hourlyRate
-    const otEnabled = emp.otEnabled === true;
-    // otRate is a multiplier (e.g. 1.5 = time-and-a-half). Default 1x if not set.
-    const otMultiplier = emp.otRate && emp.otRate > 0 ? emp.otRate : 1;
-    const shiftTotalMins = shiftEndH * 60 + shiftEndM - (shiftH * 60 + shiftM);
-    const shiftHoursPerDay = shiftTotalMins > 0 ? shiftTotalMins / 60 : 8;
-    const hourlyRate = dailyRate / shiftHoursPerDay;
-
-    let presentDays = 0,
-      leaveDays = 0,
-      halfDayCount = 0,
-      lateCount = 0,
-      lateHoursLost = 0,
-      absentCount = 0,
-      totalWorkHours = 0,
-      attendanceOTHours = 0;
-
-    for (const a of attendances) {
-      if (a.status === "holiday" || a.status === "weekend") continue;
-      if (a.status === "on_leave") {
-        leaveDays++;
-        // If salary should be deducted for this leave (unpaid), count as absent
-        if (a.leaveDeductSalary !== false) {
-          absentCount++;
-        } else {
-          // Paid leave: count as present with full shift hours
-          presentDays++;
-          totalWorkHours += shiftHoursPerDay;
-        }
-        continue;
-      }
-      if (a.status === "absent") {
-        absentCount++;
-        continue;
-      }
-
-      if (a.status === "half_day") {
-        // Credit full shift hours; halfDayDeduction subtracts half below — shown explicitly.
-        halfDayCount++;
-        presentDays++;
-        totalWorkHours += shiftHoursPerDay;
-        if (a.overtime && a.overtime > 0) attendanceOTHours += a.overtime;
-        continue;
-      }
-
-      // Reconstruct IST midnight from the attendance date regardless of whether it
-      // was stored as IST midnight (18:30 UTC) or UTC midnight (00:00 UTC).
-      const istDate = new Date(new Date(a.date).getTime() + IST_OFFSET_MS);
-      const istMidnight =
-        Date.UTC(
-          istDate.getUTCFullYear(),
-          istDate.getUTCMonth(),
-          istDate.getUTCDate(),
-        ) - IST_OFFSET_MS;
-      const shiftStartUTC = new Date(
-        istMidnight + (shiftH * 60 + shiftM) * 60_000,
-      );
-      const shiftEndUTC = new Date(
-        istMidnight + (shiftEndH * 60 + shiftEndM) * 60_000,
-      );
-
-      if (a.checkIn && a.checkOut) {
-        const rawIn = new Date(a.checkIn).getTime();
-        const rawOut = new Date(a.checkOut).getTime();
-        const shiftEndMs = shiftEndUTC.getTime();
-
-        // Credit from shift start (not actual check-in) so late deduction
-        // shows as an explicit line item rather than silently reducing earnedBasic.
-        const effectiveFrom = shiftStartUTC.getTime();
-        // Regular hours capped at shift end; OT tracked separately below.
-        const effectiveOut = Math.min(rawOut, shiftEndMs);
-        const fullHours = Math.max(
-          0,
-          (effectiveOut - effectiveFrom) / 3_600_000,
-        );
-        totalWorkHours += fullHours;
-        presentDays++;
-
-        // Always recalculate OT fresh from actual punch times — never trust the stored
-        // a.overtime field (it may be stale from a previous buggy auto-calculation).
-        if (otEnabled && rawOut > shiftEndMs) {
-          attendanceOTHours += (rawOut - shiftEndMs) / 3_600_000;
-        }
-
-        if (a.status === "late") {
-          lateCount++;
-          // Hours lost = time between shift start and actual check-in
-          const hoursLate = Math.max(
-            0,
-            (rawIn - shiftStartUTC.getTime()) / 3_600_000,
-          );
-          lateHoursLost += hoursLate;
-        }
-      } else if (a.checkIn) {
-        // Checked in but no checkout — credit full shift hours; track late hours.
-        totalWorkHours += shiftHoursPerDay;
-        presentDays++;
-        if (a.overtime > 0) attendanceOTHours += a.overtime;
-
-        if (a.status === "late") {
-          lateCount++;
-          const rawIn = new Date(a.checkIn).getTime();
-          const hoursLate = Math.max(
-            0,
-            (rawIn - shiftStartUTC.getTime()) / 3_600_000,
-          );
-          lateHoursLost += hoursLate;
-        }
-      } else if (["present", "late"].includes(a.status)) {
-        // Manual attendance without punch times — use full shift hours, no late tracking
-        totalWorkHours += shiftHoursPerDay;
-        presentDays++;
-        if (a.status === "late") lateCount++;
-        if (a.overtime > 0) attendanceOTHours += a.overtime;
-      }
-    }
-
-    // Absent deduction: 1 full daily rate per explicitly absent-marked day.
-    const absentDeduction = parseFloat((absentCount * dailyRate).toFixed(2));
-
-    // earnedSalary = actual hours earned + absent days credit (inflated so absentDeduction
-    // can be shown as an explicit column without changing net salary).
-    const hoursEarned = Math.max(
-      0,
-      parseFloat((totalWorkHours * hourlyRate).toFixed(2)),
-    );
-    const earnedSalary = parseFloat((hoursEarned + absentDeduction).toFixed(2));
-
-    // Half-day deduction: daily rate × 0.5 per half-day record (credited full hours above).
-    const halfDayDeduction = parseFloat(
-      (halfDayCount * dailyRate * 0.5).toFixed(2),
-    );
-
-    // Late deduction = hours-lost pay + optional rule fine per occurrence.
-    let lateDeduction = parseFloat((lateHoursLost * hourlyRate).toFixed(2));
-    if (
-      deductionRule &&
-      lateCount > 0 &&
-      deductionRule.lateDeductionAmount > 0
-    ) {
-      const ruleFine =
-        deductionRule.lateDeductionType === "percent"
-          ? lateCount * dailyRate * (deductionRule.lateDeductionAmount / 100)
-          : lateCount * deductionRule.lateDeductionAmount;
-      lateDeduction += parseFloat(ruleFine.toFixed(2));
-    }
-
-    const earlyCheckoutDeduction = 0;
-
     const txMonthStart = new Date(y, m - 1, 1);
     const txMonthEnd = new Date(y, m, 0, 23, 59, 59);
     const pendingTx = await Transaction.find({
@@ -320,97 +137,31 @@ const processPayroll = asyncHandler(async (req, res) => {
       status: "pending",
       date: { $gte: txMonthStart, $lte: txMonthEnd },
     });
-
-    let totalAllowances = 0;
-    let totalPenalties = 0;
-    let totalOT = 0;
-    let totalOTHours = 0;
-    const txIds = [];
-    for (const tx of pendingTx) {
-      if (tx.type === "allowance") totalAllowances += tx.amount;
-      else if (tx.type === "penalty") totalPenalties += tx.amount;
-      else if (tx.type === "overtime") {
-        totalOT += tx.amount;
-        totalOTHours += tx.hours || 0;
-      }
-      txIds.push(tx._id);
-    }
-
     const activeLoans = await Loan.find({
       employee: emp._id,
       company: req.user.company,
       status: "active",
     });
 
-    let loanDeduction = 0;
-    const loanUpdates = [];
-
-    const shiftHours = shiftTotalMins > 0 ? shiftTotalMins / 60 : 8;
-    const otHourlyRate = (dailyRate / shiftHours) * otMultiplier;
-    const attendanceOTPay = parseFloat(
-      (attendanceOTHours * otHourlyRate).toFixed(2),
-    );
-    const grossSalary =
-      earnedSalary + totalAllowances + totalOT + attendanceOTPay;
-    const preDeductions =
-      lateDeduction +
-      halfDayDeduction +
-      absentDeduction +
-      earlyCheckoutDeduction +
-      totalPenalties;
-    let salaryAfterDeductions = Math.max(0, grossSalary - preDeductions);
-
-    for (const loan of activeLoans) {
-      if (loan.remainingBalance <= 0) continue;
-
-      const emi = Math.min(
-        loan.monthlyEmi || loan.remainingBalance,
-        loan.remainingBalance,
-        salaryAfterDeductions,
-      );
-      if (emi <= 0) continue;
-
-      loanDeduction += emi;
-      salaryAfterDeductions -= emi;
-
-      const newBalance = Math.max(0, loan.remainingBalance - emi);
-      loanUpdates.push({
-        id: loan._id,
-        newBalance,
-        cleared: newBalance === 0,
-      });
-    }
-
-    const totalDeductions = preDeductions + loanDeduction;
-    const netSalary = Math.max(0, grossSalary - totalDeductions);
+    const { record, loanUpdates, txIds } = computeEmployeePayroll({
+      emp,
+      attendances,
+      year: y,
+      month: m,
+      deductionRule,
+      pendingTx,
+      activeLoans,
+    });
+    const { overtimeHoursRaw, ...figures } = record;
 
     payrolls.push({
       company: req.user.company,
       employee: emp._id,
       month: m,
       year: y,
-      basicSalary: salary,
-      earnedBasic: earnedSalary,
-      totalWorkHours: parseFloat(totalWorkHours.toFixed(2)),
-      hourlyRate: parseFloat(hourlyRate.toFixed(4)),
-      otherAllowances: totalAllowances,
-      otPay: attendanceOTPay + totalOT,
-      grossSalary,
-      lateDeductionAmount: lateDeduction,
-      halfDayDeduction: halfDayDeduction,
-      absentDays: absentCount,
-      absentDeduction: absentDeduction,
-      earlyCheckoutDeduction: 0,
-      penaltyAmount: totalPenalties,
-      loanDeduction,
-      otherDeductions: preDeductions,
-      totalDeductions,
-      netSalary,
-      workingDays,
-      presentDays,
-      leaveDays,
+      ...figures,
       weeklyOffDays: 0,
-      overtimeHours: attendanceOTHours + totalOTHours,
+      overtimeHours: overtimeHoursRaw,
       status: "processed",
       processedBy: req.user._id,
     });
@@ -443,6 +194,10 @@ const processPayroll = asyncHandler(async (req, res) => {
   res.json({ success: true, message: `${payrolls.length} payrolls processed` });
 });
 
+/**
+ * PUT /payroll/:id — manual correction of a payroll record. Only the fields in
+ * `allowed` can be changed; amounts are written as given, not recalculated.
+ */
 const updatePayroll = asyncHandler(async (req, res) => {
   const payroll = await Payroll.findOne({
     _id: req.params.id,
@@ -476,6 +231,11 @@ const updatePayroll = asyncHandler(async (req, res) => {
   res.json({ success: true, data: payroll });
 });
 
+/**
+ * PUT /payroll/:id/paid — marks one payroll as paid, records the payment mode,
+ * and sends the WhatsApp salary notification in the background (a failed
+ * message never fails the request).
+ */
 const markPaid = asyncHandler(async (req, res) => {
   const { paymentMode } = req.body;
 
@@ -566,6 +326,10 @@ const markPaid = asyncHandler(async (req, res) => {
   res.json({ success: true, data: payroll });
 });
 
+/**
+ * POST /payroll/bulk-paid — marks every "processed" payroll of a month as paid
+ * and notifies each employee. Already-paid records are left untouched.
+ */
 const bulkMarkPaid = asyncHandler(async (req, res) => {
   const { month, year, paymentMode } = req.body;
   const m = parseInt(month),
@@ -672,6 +436,10 @@ const bulkMarkPaid = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * GET /payroll/my — the logged-in employee's own payslips (self-service).
+ * Falls back to matching the employee by email and links the account on first hit.
+ */
 const getMyPayrolls = asyncHandler(async (req, res) => {
   let emp = await Employee.findOne({
     user: req.user._id,
@@ -697,6 +465,11 @@ const getMyPayrolls = asyncHandler(async (req, res) => {
   res.json({ success: true, data: payrolls });
 });
 
+/**
+ * POST /payroll/preview — dry run of processPayroll: same calculation, nothing
+ * saved. Flags employees whose month is `alreadyProcessed`.
+ * Uses the same utils/payrollCalc as processPayroll, so figures always match.
+ */
 const previewPayroll = asyncHandler(async (req, res) => {
   const { month, year, employeeIds } = req.body;
   const m = parseInt(month),
@@ -728,144 +501,6 @@ const previewPayroll = asyncHandler(async (req, res) => {
 
     if (attendances.length === 0) continue;
 
-    const workDaysPerWeek = emp.workDaysPerWeek ?? 6;
-    const workingDays = getWorkingDays(y, m, workDaysPerWeek);
-    const salary = emp.salary ?? 0;
-    const dailyRate = workingDays > 0 ? salary / workingDays : 0;
-
-    const empShift = getEffectiveShift(emp);
-    let shiftH, shiftM, shiftEndH, shiftEndM;
-    if (empShift?.startTime) {
-      const s = parseTime(empShift.startTime);
-      shiftH = s.hour;
-      shiftM = s.minute;
-    } else {
-      shiftH = deductionRule?.shiftStartHour ?? 9;
-      shiftM = deductionRule?.shiftStartMinute ?? 0;
-    }
-    if (empShift?.endTime) {
-      const e = parseTime(empShift.endTime);
-      shiftEndH = e.hour;
-      shiftEndM = e.minute;
-    } else {
-      shiftEndH = deductionRule?.shiftEndHour ?? 18;
-      shiftEndM = deductionRule?.shiftEndMinute ?? 0;
-    }
-
-    const otEnabled = emp.otEnabled === true;
-    const otMultiplier = emp.otRate && emp.otRate > 0 ? emp.otRate : 1;
-    const shiftTotalMins = shiftEndH * 60 + shiftEndM - (shiftH * 60 + shiftM);
-    const shiftHoursPerDay = shiftTotalMins > 0 ? shiftTotalMins / 60 : 8;
-    const hourlyRate = dailyRate / shiftHoursPerDay;
-
-    let presentDays = 0,
-      leaveDays = 0,
-      halfDayCount = 0,
-      lateCount = 0,
-      lateHoursLost = 0,
-      absentCount = 0,
-      totalWorkHours = 0,
-      attendanceOTHours = 0;
-
-    for (const a of attendances) {
-      if (a.status === "holiday" || a.status === "weekend") continue;
-      if (a.status === "on_leave") {
-        leaveDays++;
-        if (a.leaveDeductSalary !== false) {
-          absentCount++;
-        } else {
-          presentDays++;
-          totalWorkHours += shiftHoursPerDay;
-        }
-        continue;
-      }
-      if (a.status === "absent") {
-        absentCount++;
-        continue;
-      }
-      if (a.status === "half_day") {
-        halfDayCount++;
-        presentDays++;
-        totalWorkHours += shiftHoursPerDay;
-        if (a.overtime > 0) attendanceOTHours += a.overtime;
-        continue;
-      }
-      const istDate = new Date(new Date(a.date).getTime() + IST_OFFSET_MS);
-      const istMidnight =
-        Date.UTC(
-          istDate.getUTCFullYear(),
-          istDate.getUTCMonth(),
-          istDate.getUTCDate(),
-        ) - IST_OFFSET_MS;
-      const shiftStartUTC = new Date(
-        istMidnight + (shiftH * 60 + shiftM) * 60_000,
-      );
-      const shiftEndUTC = new Date(
-        istMidnight + (shiftEndH * 60 + shiftEndM) * 60_000,
-      );
-
-      if (a.checkIn && a.checkOut) {
-        const rawIn = new Date(a.checkIn).getTime();
-        const rawOut = new Date(a.checkOut).getTime();
-        const shiftEndMs = shiftEndUTC.getTime();
-        const effectiveFrom = shiftStartUTC.getTime();
-        const effectiveOut = Math.min(rawOut, shiftEndMs);
-        totalWorkHours += Math.max(
-          0,
-          (effectiveOut - effectiveFrom) / 3_600_000,
-        );
-        presentDays++;
-        if (otEnabled && rawOut > shiftEndMs)
-          attendanceOTHours += (rawOut - shiftEndMs) / 3_600_000;
-        if (a.status === "late") {
-          lateCount++;
-          lateHoursLost += Math.max(
-            0,
-            (rawIn - shiftStartUTC.getTime()) / 3_600_000,
-          );
-        }
-      } else if (a.checkIn) {
-        totalWorkHours += shiftHoursPerDay;
-        presentDays++;
-        if (a.overtime > 0) attendanceOTHours += a.overtime;
-        if (a.status === "late") {
-          lateCount++;
-          lateHoursLost += Math.max(
-            0,
-            (new Date(a.checkIn).getTime() - shiftStartUTC.getTime()) /
-              3_600_000,
-          );
-        }
-      } else if (["present", "late"].includes(a.status)) {
-        totalWorkHours += shiftHoursPerDay;
-        presentDays++;
-        if (a.status === "late") lateCount++;
-        if (a.overtime > 0) attendanceOTHours += a.overtime;
-      }
-    }
-
-    const absentDeduction = parseFloat((absentCount * dailyRate).toFixed(2));
-    const hoursEarned = Math.max(
-      0,
-      parseFloat((totalWorkHours * hourlyRate).toFixed(2)),
-    );
-    const earnedSalary = parseFloat((hoursEarned + absentDeduction).toFixed(2));
-    const halfDayDeduction = parseFloat(
-      (halfDayCount * dailyRate * 0.5).toFixed(2),
-    );
-    let lateDeduction = parseFloat((lateHoursLost * hourlyRate).toFixed(2));
-    if (
-      deductionRule &&
-      lateCount > 0 &&
-      deductionRule.lateDeductionAmount > 0
-    ) {
-      const ruleFine =
-        deductionRule.lateDeductionType === "percent"
-          ? lateCount * dailyRate * (deductionRule.lateDeductionAmount / 100)
-          : lateCount * deductionRule.lateDeductionAmount;
-      lateDeduction += parseFloat(ruleFine.toFixed(2));
-    }
-
     const txMonthStart = new Date(y, m - 1, 1);
     const txMonthEnd = new Date(y, m, 0, 23, 59, 59);
     const pendingTx = await Transaction.find({
@@ -874,48 +509,21 @@ const previewPayroll = asyncHandler(async (req, res) => {
       status: "pending",
       date: { $gte: txMonthStart, $lte: txMonthEnd },
     });
-    let totalAllowances = 0,
-      totalPenalties = 0,
-      totalOT = 0,
-      totalOTHours = 0;
-    for (const tx of pendingTx) {
-      if (tx.type === "allowance") totalAllowances += tx.amount;
-      else if (tx.type === "penalty") totalPenalties += tx.amount;
-      else if (tx.type === "overtime") {
-        totalOT += tx.amount;
-        totalOTHours += tx.hours || 0;
-      }
-    }
-
     const activeLoans = await Loan.find({
       employee: emp._id,
       company: req.user.company,
       status: "active",
     });
-    let loanDeduction = 0;
-    const shiftHours = shiftTotalMins > 0 ? shiftTotalMins / 60 : 8;
-    const otHourlyRate = (dailyRate / shiftHours) * otMultiplier;
-    const attendanceOTPay = parseFloat(
-      (attendanceOTHours * otHourlyRate).toFixed(2),
-    );
-    const grossSalary =
-      earnedSalary + totalAllowances + totalOT + attendanceOTPay;
-    const preDeductions =
-      lateDeduction + halfDayDeduction + absentDeduction + totalPenalties;
-    let salaryAfterDeductions = Math.max(0, grossSalary - preDeductions);
-    for (const loan of activeLoans) {
-      if (loan.remainingBalance <= 0) continue;
-      const emi = Math.min(
-        loan.monthlyEmi || loan.remainingBalance,
-        loan.remainingBalance,
-        salaryAfterDeductions,
-      );
-      if (emi <= 0) continue;
-      loanDeduction += emi;
-      salaryAfterDeductions -= emi;
-    }
-    const totalDeductions = preDeductions + loanDeduction;
-    const netSalary = Math.max(0, grossSalary - totalDeductions);
+
+    const { record } = computeEmployeePayroll({
+      emp,
+      attendances,
+      year: y,
+      month: m,
+      deductionRule,
+      pendingTx,
+      activeLoans,
+    });
     const alreadyProcessed = !!(await Payroll.findOne({
       employee: emp._id,
       month: m,
@@ -932,25 +540,25 @@ const previewPayroll = asyncHandler(async (req, res) => {
       },
       month: m,
       year: y,
-      basicSalary: salary,
-      earnedBasic: earnedSalary,
-      totalWorkHours: parseFloat(totalWorkHours.toFixed(2)),
-      hourlyRate: parseFloat(hourlyRate.toFixed(4)),
-      otherAllowances: totalAllowances,
-      otPay: attendanceOTPay + totalOT,
-      grossSalary,
-      lateDeductionAmount: lateDeduction,
-      halfDayDeduction,
-      absentDays: absentCount,
-      absentDeduction,
-      penaltyAmount: totalPenalties,
-      loanDeduction,
-      totalDeductions,
-      netSalary,
-      workingDays,
-      presentDays,
-      leaveDays,
-      overtimeHours: parseFloat((attendanceOTHours + totalOTHours).toFixed(2)),
+      basicSalary: record.basicSalary,
+      earnedBasic: record.earnedBasic,
+      totalWorkHours: record.totalWorkHours,
+      hourlyRate: record.hourlyRate,
+      otherAllowances: record.otherAllowances,
+      otPay: record.otPay,
+      grossSalary: record.grossSalary,
+      lateDeductionAmount: record.lateDeductionAmount,
+      halfDayDeduction: record.halfDayDeduction,
+      absentDays: record.absentDays,
+      absentDeduction: record.absentDeduction,
+      penaltyAmount: record.penaltyAmount,
+      loanDeduction: record.loanDeduction,
+      totalDeductions: record.totalDeductions,
+      netSalary: record.netSalary,
+      workingDays: record.workingDays,
+      presentDays: record.presentDays,
+      leaveDays: record.leaveDays,
+      overtimeHours: parseFloat(record.overtimeHoursRaw.toFixed(2)),
       alreadyProcessed,
     });
   }
@@ -958,9 +566,14 @@ const previewPayroll = asyncHandler(async (req, res) => {
   res.json({ success: true, data: previews });
 });
 
+/**
+ * PATCH /payroll/:id/slip-received — records whether the employee confirmed
+ * receiving the payslip ("received" | "not_received"), set from the WhatsApp
+ * reply buttons or by HR.
+ */
 const markSlipReceived = asyncHandler(async (req, res) => {
   const { status } = req.body; // "received" | "not_received"
-  console.log(
+  logger.info(
     `[Payroll] markSlipReceived → id=${req.params.id} status=${status} user=${req.user._id}`,
   );
   if (!["received", "not_received"].includes(status)) {
@@ -972,7 +585,7 @@ const markSlipReceived = asyncHandler(async (req, res) => {
     company: req.user.company,
   });
   if (!payroll) {
-    console.warn(
+    logger.warn(
       `[Payroll] markSlipReceived → payroll ${req.params.id} not found`,
     );
     res.status(404);
@@ -982,7 +595,7 @@ const markSlipReceived = asyncHandler(async (req, res) => {
   payroll.slipReceivedAt = new Date();
   payroll.slipReceivedBy = req.user._id;
   await payroll.save();
-  console.log(
+  logger.info(
     `[Payroll] markSlipReceived ✅ → payroll=${payroll._id} slipReceived=${status}`,
   );
   res.json({ success: true, data: payroll });

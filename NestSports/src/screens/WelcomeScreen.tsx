@@ -37,8 +37,8 @@ export default function WelcomeScreen({ navigation }: any) {
     setDownloading(true);
     try {
       await RNPrint.print({ html: buildInvoiceHTML(latestInvoice) });
-    } catch (e: any) {
-      if (e?.message !== 'cancelled') {
+    } catch (e: unknown) {
+      if ((e as Error)?.message !== 'cancelled') {
         Alert.alert('Error', 'Could not generate invoice PDF.');
       }
     } finally {

@@ -36,4 +36,7 @@ const expenseSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Tenant-first indexes: every query is scoped by company.
+expenseSchema.index({ company: 1, date: -1 });
+
 module.exports = mongoose.model("Expense", expenseSchema);

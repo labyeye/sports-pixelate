@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { eventAPI } from "@/services/api";
 import type { Event, EventDashboard } from "@/types/hrms";
+import { notifyError } from "@/hooks/use-toast";
 
 interface Props {
   event: Event;
@@ -51,7 +52,7 @@ export function OverviewTab({ event }: Props) {
     eventAPI
       .getDashboard(event._id)
       .then((r: any) => setDash(r.data))
-      .catch(() => {})
+      .catch(notifyError)
       .finally(() => setLoading(false));
   }, [event._id]);
 

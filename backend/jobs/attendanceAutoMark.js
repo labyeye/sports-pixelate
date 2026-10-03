@@ -1,9 +1,11 @@
 const cron = require("node-cron");
+const { withJobLock } = require("../utils/jobLock");
 const Attendance = require("../models/Attendance");
 const Employee = require("../models/Employee");
 const Shift = require("../models/Shift");
 const Leave = require("../models/Leave");
 const { isHolidayDate } = require("../controllers/holidayController");
+const logger = require("../utils/logger");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
@@ -158,7 +160,7 @@ async function processDate(targetDate, istMinutesNow) {
             if (approvedLeave)
               existing.leaveDeductSalary = approvedLeave.deductSalary !== false;
             await existing.save();
-            console.log(
+            logger.info(
               `[AutoMark] Marked ${newStatus} (updated): ${emp._id} for ${targetDate.toISOString().slice(0, 10)}`,
             );
           }
@@ -173,7 +175,7 @@ async function processDate(targetDate, istMinutesNow) {
               ? { leaveDeductSalary: approvedLeave.deductSalary !== false }
               : {}),
           });
-          console.log(
+          logger.info(
             `[AutoMark] Marked ${newStatus}: ${emp._id} for ${targetDate.toISOString().slice(0, 10)}`,
           );
         }
@@ -184,7 +186,7 @@ async function processDate(targetDate, istMinutesNow) {
       if (existing.checkIn && !existing.checkOut) {
         // If overtime is enabled for this employee, skip — they may be working late
         if (emp.otEnabled) {
-          console.log(
+          logger.info(
             `[AutoMark] Skipping no-checkout for ${emp._id}: OT enabled`,
           );
           continue;
@@ -197,7 +199,7 @@ async function processDate(targetDate, istMinutesNow) {
         ) {
           existing.status = "half_day";
           await existing.save();
-          console.log(
+          logger.info(
             `[AutoMark] Marked half_day (no checkout): ${emp._id} for ${targetDate.toISOString().slice(0, 10)}`,
           );
         }
@@ -218,7 +220,7 @@ async function processDate(targetDate, istMinutesNow) {
         ) {
           existing.status = "half_day";
           changed = true;
-          console.log(
+          logger.info(
             `[AutoMark] Marked half_day (late check-in): ${emp._id} for ${targetDate.toISOString().slice(0, 10)}`,
           );
         }
@@ -245,7 +247,7 @@ async function processDate(targetDate, istMinutesNow) {
 }
 
 async function runAutoMark() {
-  console.log("[AutoMark] Running attendance auto-mark job...");
+  logger.info("[AutoMark] Running attendance auto-mark job...");
 
   const istNow = nowIST();
   const istMinutes = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
@@ -257,30 +259,36 @@ async function runAutoMark() {
 
   const todayDate = toISTMidnight(istNow);
 
-  console.log(
+  logger.info(
     `[AutoMark] Processing yesterday: ${yesterdayDate.toISOString().slice(0, 10)}`,
   );
   await processDate(yesterdayDate, 1440);
 
-  console.log(
+  logger.info(
     `[AutoMark] Processing today: ${todayDate.toISOString().slice(0, 10)}`,
   );
   await processDate(todayDate, istMinutes);
 
-  console.log("[AutoMark] Done.");
+  logger.info("[AutoMark] Done.");
 }
 
 function startAttendanceAutoMarkJob() {
+  // One run per tick across all API instances (see utils/jobLock).
+  const tick = () =>
+    withJobLock("attendance-automark", 50 * 60 * 1000, runAutoMark);
   // Run every hour — if server restarts, next tick catches missed days
-  cron.schedule("0 * * * *", runAutoMark, { timezone: "UTC" });
-  console.log(
+  cron.schedule("0 * * * *", () =>
+    tick().catch((err) => {
+      console.error("[AutoMark] failed:", err);
+      require("../utils/monitoring").captureError(err, { job: "attendance-automark" });
+    }),
+  { timezone: "UTC" });
+  logger.info(
     "[AutoMark] Scheduled attendance auto-mark job (runs every hour)",
   );
 
   // Run once on startup to catch anything missed while server was down
-  runAutoMark().catch((err) =>
-    console.error("[AutoMark] Startup run failed:", err),
-  );
+  tick().catch((err) => console.error("[AutoMark] Startup run failed:", err));
 }
 
 module.exports = { startAttendanceAutoMarkJob, runAutoMark };
