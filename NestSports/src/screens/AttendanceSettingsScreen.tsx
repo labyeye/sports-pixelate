@@ -16,7 +16,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart2, Percent, CalendarDays, Users } from 'lucide-react-native';
-import { attendanceSettingsAPI, employeeAPI, studentAPI } from '../api/client';
+import {
+  attendanceSettingsAPI,
+  employeeAPI,
+  paymentLinkAPI,
+  studentAPI,
+} from '../api/client';
 import {
   Card,
   SectionTitle,
@@ -43,6 +48,14 @@ interface AttendanceSettings {
   feeDueDay: number;
   feeGraceDays: number;
   studentFaceAttendanceEnabled: boolean;
+  studentAttendanceTimeMode: 'in_out' | 'single';
+  studentAutoLateEnabled: boolean;
+  studentLateGraceMinutes: number;
+  studentAutoAbsentEnabled: boolean;
+  studentAbsentAfterEndMinutes: number;
+  paymentLinkEnabled: boolean;
+  paymentLinkDay: number;
+  paymentLinkHour: number;
 }
 
 const DEFAULT: AttendanceSettings = {
@@ -60,6 +73,14 @@ const DEFAULT: AttendanceSettings = {
   feeDueDay: 0,
   feeGraceDays: 7,
   studentFaceAttendanceEnabled: false,
+  studentAttendanceTimeMode: 'in_out',
+  studentAutoLateEnabled: false,
+  studentLateGraceMinutes: 15,
+  studentAutoAbsentEnabled: false,
+  studentAbsentAfterEndMinutes: 30,
+  paymentLinkEnabled: false,
+  paymentLinkDay: 1,
+  paymentLinkHour: 9,
 };
 
 const LEAVE_TYPES = [
@@ -173,6 +194,39 @@ export default function AttendanceSettingsScreen() {
 
   const set = (key: keyof AttendanceSettings, value: any) =>
     setRules(p => ({ ...p, [key]: value }));
+
+  const [sendingLinks, setSendingLinks] = useState(false);
+  const sendLinksNow = () => {
+    Alert.alert(
+      'Send payment links?',
+      "Send this month's fee payment links on WhatsApp to all students with a fee due, right now?",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send',
+          onPress: async () => {
+            setSendingLinks(true);
+            try {
+              const res: any = await paymentLinkAPI.sendNow();
+              const d = res.data;
+              Alert.alert(
+                `Sent ${d.sent} link(s)`,
+                `${d.nothingDue} nothing due · ${
+                  d.noGuardian
+                } without a WhatsApp guardian${
+                  d.skipped ? ` · ${d.skipped} skipped (WhatsApp off)` : ''
+                }${d.failed ? ` · ${d.failed} failed` : ''}`,
+              );
+            } catch (e) {
+              notifyError(e);
+            } finally {
+              setSendingLinks(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -501,6 +555,132 @@ export default function AttendanceSettingsScreen() {
                   the web dashboard to upload photos for everyone at once.
                 </Text>
               ) : null}
+            </Card>
+
+            <Card>
+              <SectionTitle title="Student Attendance Time" />
+              <ChipSelect
+                label="Time capture"
+                options={['in_out', 'single'] as const}
+                value={rules.studentAttendanceTimeMode}
+                onChange={v => set('studentAttendanceTimeMode', v)}
+                labels={{ in_out: 'Check In & Out', single: 'Single Time' }}
+              />
+            </Card>
+
+            <Card>
+              <SectionTitle
+                title="Automatic Late & Absent"
+                sub="Off = staff mark only Present / Absent themselves"
+              />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>
+                    Mark late automatically
+                  </Text>
+                  <Text style={styles.toggleDesc}>
+                    A Present mark after the grace period from the session start
+                    becomes Late
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.studentAutoLateEnabled}
+                  onValueChange={v => set('studentAutoLateEnabled', v)}
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
+                />
+              </View>
+              {rules.studentAutoLateEnabled ? (
+                <NumField
+                  label="Late Grace Period"
+                  value={rules.studentLateGraceMinutes}
+                  onChange={v =>
+                    set('studentLateGraceMinutes', Math.min(240, v))
+                  }
+                  hint="Late if marked more than this long after the session starts"
+                  suffix="min"
+                />
+              ) : null}
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>
+                    Mark absent automatically
+                  </Text>
+                  <Text style={styles.toggleDesc}>
+                    Scheduled students nobody marked become Absent after their
+                    session ends
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.studentAutoAbsentEnabled}
+                  onValueChange={v => set('studentAutoAbsentEnabled', v)}
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
+                />
+              </View>
+              {rules.studentAutoAbsentEnabled ? (
+                <NumField
+                  label="Mark Absent After Session Ends"
+                  value={rules.studentAbsentAfterEndMinutes}
+                  onChange={v =>
+                    set('studentAbsentAfterEndMinutes', Math.min(720, v))
+                  }
+                  hint="Staff can still mark for this long after the session ends"
+                  suffix="min"
+                />
+              ) : null}
+            </Card>
+
+            <Card>
+              <SectionTitle
+                title="Fee Payment Link"
+                sub="Every month, WhatsApp each guardian a link to pay the fee online"
+              />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>
+                    Send payment links automatically
+                  </Text>
+                  <Text style={styles.toggleDesc}>
+                    Sent on the day below to students with a fee due, to the
+                    guardian who receives WhatsApp. Needs the WhatsApp add-on.
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.paymentLinkEnabled}
+                  onValueChange={v => set('paymentLinkEnabled', v)}
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
+                />
+              </View>
+              {rules.paymentLinkEnabled ? (
+                <>
+                  <NumField
+                    label="Day of Month"
+                    value={rules.paymentLinkDay}
+                    onChange={v =>
+                      set('paymentLinkDay', Math.min(28, Math.max(1, v)))
+                    }
+                    hint="1-28 — links go out on this day every month"
+                  />
+                  <NumField
+                    label="Send Time (hour, 24h IST)"
+                    value={rules.paymentLinkHour}
+                    onChange={v => set('paymentLinkHour', Math.min(23, v))}
+                    hint="0-23, e.g. 9 = 9:00 AM"
+                  />
+                </>
+              ) : null}
+              <Button
+                title="Send links now"
+                variant="outline"
+                onPress={sendLinksNow}
+                loading={sendingLinks}
+              />
+              <Text style={styles.toggleDesc}>
+                Sends this month's links immediately (one per student per
+                month). Save settings first.
+              </Text>
             </Card>
 
             <Button

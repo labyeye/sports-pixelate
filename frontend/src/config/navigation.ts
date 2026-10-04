@@ -29,6 +29,7 @@ import {
   Fingerprint,
   AlertCircle,
   UserMinus,
+  Layers,
 } from "lucide-react";
 
 import { isPathDisabled } from "@/config/features";
@@ -205,6 +206,7 @@ const allGroups: NavGroup[] = [
   {
     label: "Billing & Plans",
     items: [
+      { title: "Groups", href: "/groups", icon: Layers, roles: OWNER },
       { title: "Coaching Plans", href: "/plans", icon: Gift, roles: OWNER },
       {
         title: "Subscriptions",

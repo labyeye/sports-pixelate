@@ -1,0 +1,12 @@
+<resources>
+
+    <!-- Android 12+ draws the app icon on a system splash before the activity.
+         Hide it (white background, transparent icon) so only the JS animation shows. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+
+</resources>

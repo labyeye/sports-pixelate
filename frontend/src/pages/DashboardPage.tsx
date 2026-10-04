@@ -46,6 +46,84 @@ import {
 } from "lucide-react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { notifyError } from "@/hooks/use-toast";
+function FeeCollectionCard({
+  fee,
+}: {
+  fee?: {
+    collected: number;
+    remaining: number;
+    expected: number;
+    bySport: Record<string, { collected: number; remaining: number }>;
+  };
+}) {
+  const collected = fee?.collected || 0;
+  const remaining = fee?.remaining || 0;
+  const expected = fee?.expected || 0;
+  const pct = expected > 0 ? Math.round((collected / expected) * 100) : 0;
+  const groups = Object.entries(fee?.bySport || {})
+    .filter(([, v]) => v.collected || v.remaining)
+    .sort((a, b) => b[1].collected + b[1].remaining - (a[1].collected + a[1].remaining));
+  return (
+    <div className="border-2 bg-white p-5 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h3 className="font-display font-bold text-base text-black">
+            Fee Collection — This Month
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Verified payments received vs. fees still pending
+          </p>
+        </div>
+        <Link
+          to="/subscriptions"
+          className="text-xs font-bold text-[#024BAB] flex items-center gap-1"
+        >
+          View subscriptions <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <div className="border-2 border-black p-3 bg-[#00C48C]/10">
+          <p className="text-xs font-bold uppercase text-muted-foreground">Collected</p>
+          <p className="font-display font-bold text-2xl text-[#00A070]">
+            {formatCurrency(collected)}
+          </p>
+        </div>
+        <div className="border-2 border-black p-3 bg-[#FA731C]/10">
+          <p className="text-xs font-bold uppercase text-muted-foreground">Remaining</p>
+          <p className="font-display font-bold text-2xl text-[#FA731C]">
+            {formatCurrency(remaining)}
+          </p>
+        </div>
+        <div className="border-2 border-black p-3">
+          <p className="text-xs font-bold uppercase text-muted-foreground">Total expected</p>
+          <p className="font-display font-bold text-2xl text-black">
+            {formatCurrency(expected)}
+          </p>
+        </div>
+      </div>
+      <div className="h-3 border-2 border-black bg-white overflow-hidden">
+        <div className="h-full bg-[#00C48C]" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">{pct}% collected</p>
+      {groups.length > 0 && (
+        <div className="mt-3 divide-y border-t">
+          {groups.map(([name, v]) => (
+            <div key={name} className="flex items-center justify-between py-1.5 text-sm">
+              <span className="font-medium text-black">{name || "No group"}</span>
+              <span className="text-xs">
+                <span className="text-[#00A070] font-bold">{formatCurrency(v.collected)}</span>
+                {" collected · "}
+                <span className="text-[#FA731C] font-bold">{formatCurrency(v.remaining)}</span>
+                {" remaining"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function KpiCard({
   title,
   value,
@@ -268,6 +346,9 @@ export default function DashboardPage() {
           </Link>
         </div>
       )}
+
+      {/* Fee collection this month */}
+      <FeeCollectionCard fee={data?.feeSummary} />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">

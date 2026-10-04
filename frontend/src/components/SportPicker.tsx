@@ -22,7 +22,7 @@ export function SportPicker({
   const [newName, setNewName] = useState("");
 
   useEffect(() => {
-    sportAPI.getAll().then((res: any) => setSports(res.data || []));
+    sportAPI.getAll().then((res: any) => setSports((res.data || []).filter((s: Sport) => s.active !== false)));
   }, []);
 
   const selectClass =
@@ -60,7 +60,7 @@ export function SportPicker({
             }
             if (e.key === "Escape") setAdding(false);
           }}
-          placeholder="New sport name"
+          placeholder="New group name"
           className={selectClass}
         />
         <button
@@ -95,7 +95,7 @@ export function SportPicker({
       }}
       className={selectClass}
     >
-      <option value="">Select sport...</option>
+      <option value="">Select group...</option>
       {sports.map((s) => (
         <option key={s._id} value={s.name}>
           {s.name}
@@ -104,7 +104,7 @@ export function SportPicker({
       {value && !sports.some((s) => s.name === value) && (
         <option value={value}>{value}</option>
       )}
-      <option value="__add__">+ Add new sport</option>
+      <option value="__add__">+ Add new group</option>
     </select>
   );
 }

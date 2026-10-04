@@ -8,6 +8,10 @@ const Student = require("../models/Student");
 const Department = require("../models/Department");
 const Booking = require("../models/Booking");
 const StudentSubscription = require("../models/StudentSubscription");
+const StudentAttendance = require("../models/StudentAttendance");
+const Expense = require("../models/Expense");
+const { getMonthlyFeeSummary } = require("../utils/feeSummary");
+const { toDateOnly } = require("../utils/dateOnly");
 
 const getStats = asyncHandler(async (req, res) => {
   const now = new Date();
@@ -33,6 +37,7 @@ const getStats = asyncHandler(async (req, res) => {
       totalBookings,
       todayBookings,
       subscriptionIncomeAgg,
+      feeSummary,
     ] = await Promise.all([
       Employee.countDocuments({ company: companyId }).catch(() => 0),
       Employee.countDocuments({ company: companyId, status: "active" }).catch(
@@ -84,25 +89,34 @@ const getStats = asyncHandler(async (req, res) => {
         },
         { $group: { _id: null, total: { $sum: "$amountPaid" } } },
       ]).catch(() => []),
+      getMonthlyFeeSummary(companyId, now).catch(() => ({
+        collected: 0,
+        remaining: 0,
+        expected: 0,
+        bySport: {},
+      })),
     ]);
 
     const subscriptionIncome = subscriptionIncomeAgg[0]?.total || 0;
 
-    // Subscriptions ending within 7 days, or already past their renewal date
-    // and still marked active/pending — surfaced so staff can chase renewals.
+    // Recent renewals: subscriptions whose renewal date fell in the last 30
+    // days or lands within the next 7, still active/pending — newest first,
+    // so long-stale overdue rows don't crowd out what needs chasing now.
     const sevenDaysOut = new Date(today);
     sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const subscriptionAlerts = await StudentSubscription.find({
       company: companyId,
       status: { $in: ["active", "pending_renewal"] },
-      renewalDate: { $lte: sevenDaysOut },
+      renewalDate: { $gte: thirtyDaysAgo, $lte: sevenDaysOut },
     })
       .populate(
         "student",
         "firstName lastName studentId sport batch avatar guardians",
       )
-      .sort({ renewalDate: 1 })
-      .limit(15)
+      .sort({ renewalDate: -1 })
+      .limit(5)
       .catch(() => []);
 
     const attendanceRate =
@@ -203,6 +217,21 @@ const getStats = asyncHandler(async (req, res) => {
       }),
     );
 
+    // Student attendance is stored at UTC midnight (see utils/dateOnly).
+    const todayStudentDate = toDateOnly(now);
+    const [studentsPresentToday, studentsAbsentToday] = await Promise.all([
+      StudentAttendance.countDocuments({
+        company: companyId,
+        date: todayStudentDate,
+        status: { $in: ["present", "late"] },
+      }).catch(() => 0),
+      StudentAttendance.countDocuments({
+        company: companyId,
+        date: todayStudentDate,
+        status: "absent",
+      }).catch(() => 0),
+    ]);
+
     const [todayLate, todayAbsent, todayOnLeave] = await Promise.all([
       Attendance.countDocuments({
         employee: { $in: companyEmployeeIds },
@@ -241,7 +270,10 @@ const getStats = asyncHandler(async (req, res) => {
           todayBookings,
           subscriptionIncome,
           newStudents,
+          studentsPresentToday,
+          studentsAbsentToday,
         },
+        feeSummary,
         recentHires,
         recentStudents,
         pendingLeaveList,
@@ -279,6 +311,117 @@ const getStats = asyncHandler(async (req, res) => {
       },
     });
   }
+});
+
+// Income (verified fee payments) and expenses bucketed over a range, for the
+// dashboard chart. 1M = daily, 3M = weekly, 6M/1Y = monthly.
+const RANGES = { "1M": 1, "3M": 3, "6M": 6, "1Y": 12 };
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const getTrend = asyncHandler(async (req, res) => {
+  const range = RANGES[req.query.range] ? req.query.range : "6M";
+  const companyId = new mongoose.Types.ObjectId(req.user.company);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(today);
+  start.setMonth(start.getMonth() - RANGES[range]);
+  start.setDate(start.getDate() + 1);
+  const end = new Date(today);
+  end.setDate(end.getDate() + 1);
+
+  const granularity =
+    range === "1M" ? "day" : range === "3M" ? "week" : "month";
+
+  // Bucket start for a date, in server-local time.
+  const bucketStart = (d) => {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (granularity === "week") {
+      const startDay = new Date(start);
+      const weeks = Math.floor((x - startDay) / (7 * 86400000));
+      x.setTime(startDay.getTime() + weeks * 7 * 86400000);
+    } else if (granularity === "month") {
+      x.setDate(1);
+    }
+    return x;
+  };
+  const keyOf = (d) => bucketStart(d).getTime();
+
+  // Pre-build empty buckets so gaps show as zero.
+  const buckets = new Map();
+  const first = bucketStart(start);
+  for (
+    let cur = new Date(first);
+    cur < end;
+    granularity === "day"
+      ? cur.setDate(cur.getDate() + 1)
+      : granularity === "week"
+        ? cur.setDate(cur.getDate() + 7)
+        : cur.setMonth(cur.getMonth() + 1)
+  ) {
+    buckets.set(cur.getTime(), {
+      date: new Date(cur),
+      label:
+        granularity === "month"
+          ? MONTH_NAMES[cur.getMonth()]
+          : `${cur.getDate()} ${MONTH_NAMES[cur.getMonth()]}`,
+      income: 0,
+      expense: 0,
+    });
+  }
+
+  const [payments, expenses] = await Promise.all([
+    StudentSubscription.aggregate([
+      { $match: { company: companyId, "payments.status": "verified" } },
+      { $unwind: "$payments" },
+      {
+        $match: {
+          "payments.status": "verified",
+          "payments.verifiedAt": { $gte: start, $lt: end },
+        },
+      },
+      {
+        $project: { at: "$payments.verifiedAt", amount: "$payments.amount" },
+      },
+    ]).catch(() => []),
+    Expense.find({
+      company: companyId,
+      status: "approved",
+      date: { $gte: start, $lt: end },
+    })
+      .select("date amount")
+      .lean()
+      .catch(() => []),
+  ]);
+
+  for (const p of payments) {
+    const b = buckets.get(keyOf(new Date(p.at)));
+    if (b) b.income += p.amount || 0;
+  }
+  for (const e of expenses) {
+    const b = buckets.get(keyOf(new Date(e.date)));
+    if (b) b.expense += e.amount || 0;
+  }
+
+  const points = [...buckets.values()].map(({ label, income, expense }) => ({
+    label,
+    income,
+    expense,
+  }));
+  res.json({
+    success: true,
+    data: {
+      range,
+      granularity,
+      points,
+      totals: {
+        income: points.reduce((t, p) => t + p.income, 0),
+        expense: points.reduce((t, p) => t + p.expense, 0),
+      },
+    },
+  });
 });
 
 const getEmployeeStats = asyncHandler(async (req, res) => {
@@ -419,4 +562,4 @@ const getEmployeeStats = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { getStats, getEmployeeStats };
+module.exports = { getStats, getEmployeeStats, getTrend };

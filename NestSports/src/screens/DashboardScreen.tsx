@@ -2,20 +2,26 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   RefreshControl,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import {
-  Users,
-  Clock,
-  GraduationCap,
-  CalendarClock,
-  Wallet,
+  Settings,
+  Sun,
+  CloudSun,
+  Moon,
   IndianRupee,
-  CalendarDays,
-  Building2,
+  Wallet,
+  UserPlus,
+  Users,
+  UserCheck,
+  UserX,
+  Phone,
 } from 'lucide-react-native';
 import { dashboardAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,23 +29,30 @@ import {
   KpiTile,
   Card,
   SectionTitle,
-  Row,
-  Badge,
-  FilterPills,
+  StatusPill,
+  Avatar,
   LoadingView,
 } from '../components/ui';
+import { AreaChart } from '../components/charts';
 import { colors, FONT } from '../theme/colors';
 import { formatCurrency, formatDateOrDash } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
+type Series = 'income' | 'expense';
+type Range = '1M' | '3M' | '6M' | '1Y';
+const RANGES: Range[] = ['1M', '3M', '6M', '1Y'];
+
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [joinTab, setJoinTab] = useState<'staff' | 'students'>('staff');
   const [refreshing, setRefreshing] = useState(false);
+  const [series, setSeries] = useState<Series>('income');
+  const [range, setRange] = useState<Range>('6M');
+  const [trend, setTrend] = useState<any>(null);
 
-  const load = useCallback(() => {
+  const loadStats = useCallback(() => {
     return dashboardAPI
       .getStats()
       .then((res: any) => {
@@ -48,238 +61,308 @@ export default function DashboardScreen() {
       .catch(notifyError);
   }, []);
 
+  const loadTrend = useCallback(() => {
+    return dashboardAPI
+      .getTrend(range)
+      .then((res: any) => {
+        if (res.success) setTrend(res.data);
+      })
+      .catch(notifyError);
+  }, [range]);
+
   useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
+    loadStats().finally(() => setLoading(false));
+  }, [loadStats]);
+
+  useEffect(() => {
+    loadTrend();
+  }, [loadTrend]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load();
+    await Promise.all([loadStats(), loadTrend()]);
     setRefreshing(false);
   };
 
   if (loading || !data) return <LoadingView />;
 
-  const {
-    stats,
-    subscriptionAlerts = [],
-    recentHires = [],
-    recentStudents = [],
-  } = data;
+  const { stats, feeSummary, subscriptionAlerts = [] } = data;
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const GreetIcon = hour < 12 ? Sun : hour < 17 ? CloudSun : Moon;
+  const greetColor =
+    hour < 12 ? colors.orange : hour < 17 ? colors.blue : colors.purple;
+  const chartColor = series === 'income' ? colors.green : colors.red;
+  const points = (trend?.points || []).map((p: any) => ({
+    label: p.label,
+    value: p[series] || 0,
+  }));
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.greeting}>
-          {greeting}, {user?.name?.split(' ')[0]} 👋
-        </Text>
-        <Text style={styles.subtitle}>
-          Here's your academy overview for today
-        </Text>
+        <View style={styles.header}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('Settings')}
+              accessibilityLabel="Settings"
+            >
+              <Settings size={18} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            <Avatar
+              uri={user?.avatar}
+              name={user?.name}
+              size={38}
+              onPress={undefined}
+            />
+          </View>
+        </View>
+
+        <View style={styles.greetRow}>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {greeting}, {user?.name?.split(' ')[0]}
+          </Text>
+          <GreetIcon size={30} color={greetColor} strokeWidth={2.5} />
+        </View>
 
         <View style={styles.kpiGrid}>
           <KpiTile
-            label="Employees"
-            value={stats.totalEmployees}
-            sub={`${stats.activeEmployees} active`}
-            color={colors.blue}
-            icon={Users}
-          />
-          <KpiTile
-            label="Attendance"
-            value={`${stats.attendanceRate}%`}
-            sub={`${stats.todayPresent} present today`}
-            color={colors.orange}
-            icon={Clock}
-          />
-          <KpiTile
-            label="Students"
-            value={stats.totalStudents}
-            sub="Active enrollments"
-            color={colors.purple}
-            icon={GraduationCap}
-          />
-          <KpiTile
-            label="Bookings"
-            value={stats.totalBookings}
-            sub={`${stats.todayBookings} today`}
-            color={colors.orange}
-            icon={CalendarClock}
-          />
-          <KpiTile
-            label="Subscription Income"
-            value={formatCurrency(stats.subscriptionIncome)}
-            sub="This month"
+            label="Fee Collected (This Month)"
+            value={formatCurrency(feeSummary?.collected || 0)}
             color={colors.green}
-            icon={Wallet}
-          />
-          <KpiTile
-            label="Monthly Payroll"
-            value={formatCurrency(stats.monthlyPayroll)}
-            sub="Paid this month"
-            color={colors.orange}
+            solid
             icon={IndianRupee}
           />
           <KpiTile
-            label="Pending Leaves"
-            value={stats.pendingLeaves}
-            sub="Awaiting approval"
-            color={colors.blue}
-            icon={CalendarDays}
+            label="Fee Remaining (This Month)"
+            value={formatCurrency(feeSummary?.remaining || 0)}
+            color={colors.orange}
+            solid
+            icon={Wallet}
           />
           <KpiTile
-            label="Departments"
-            value={stats.departments}
-            sub="Active teams"
-            color={colors.green}
-            icon={Building2}
+            label="New Students (This Month)"
+            value={stats.newStudents ?? 0}
+            color={colors.purple}
+            solid
+            icon={UserPlus}
           />
+          <KpiTile
+            label="Total Students"
+            value={stats.totalStudents ?? 0}
+            color={colors.blue}
+            solid
+            icon={Users}
+          />
+          <KpiTile
+            label="Present Today"
+            value={stats.studentsPresentToday ?? 0}
+            color={colors.green}
+            solid
+            icon={UserCheck}
+          />
+          <KpiTile
+            label="Absent Today"
+            value={stats.studentsAbsentToday ?? 0}
+            color={colors.red}
+            solid
+            icon={UserX}
+          />
+        </View>
+
+        <View style={styles.chartHead}>
+          <View style={styles.pillGroup}>
+            {(['income', 'expense'] as Series[]).map(s => (
+              <TouchableOpacity
+                key={s}
+                onPress={() => setSeries(s)}
+                style={[
+                  styles.pill,
+                  series === s && styles.pillActive,
+                ]}
+              >
+                <Text
+                  style={[styles.pillText, series === s && { color: colors.white }]}
+                >
+                  {s === 'income' ? 'Income' : 'Expense'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.pillGroup}>
+            {RANGES.map(r => (
+              <TouchableOpacity
+                key={r}
+                onPress={() => setRange(r)}
+                style={[
+                  styles.pill,
+                  styles.rangePill,
+                  range === r && styles.pillActive,
+                ]}
+              >
+                <Text
+                  style={[styles.pillText, range === r && { color: colors.white }]}
+                >
+                  {r}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <Card>
           <SectionTitle
-            title="Subscription Renewals"
-            sub="Ending within 7 days or already past due"
+            title={series === 'income' ? 'Income' : 'Expense'}
+            sub={`${formatCurrency(trend?.totals?.[series] || 0)} in the last ${range}`}
           />
-          {subscriptionAlerts.length > 0 ? (
-            subscriptionAlerts.map((sub: any) => {
-              const days = Math.ceil(
-                (new Date(sub.renewalDate).getTime() - Date.now()) / 86400000,
-              );
-              const isPastDue = days < 0;
-              const balance = Math.max(
-                0,
-                (sub.amount || 0) - (sub.amountPaid || 0),
-              );
-              const g = sub.student?.guardians?.[0];
-              return (
-                <View key={sub._id} style={styles.renewal}>
-                  <View style={styles.renewalTop}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.renewalName}>
-                        {sub.student?.firstName} {sub.student?.lastName}
-                      </Text>
-                      <Text style={styles.renewalSub}>
-                        {sub.student?.studentId} · {sub.student?.sport || '—'}
-                        {sub.student?.batch ? ` · ${sub.student.batch}` : ''}
-                      </Text>
-                    </View>
-                    <Badge
-                      label={isPastDue ? 'Ended' : 'Ending Soon'}
-                      color={isPastDue ? colors.red : colors.orange}
-                    />
+          {points.length > 0 ? (
+            <AreaChart
+              data={points}
+              color={chartColor}
+              format={n => (n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`)}
+            />
+          ) : (
+            <Text style={styles.empty}>No data for this period</Text>
+          )}
+        </Card>
+
+        <View style={styles.renewHead}>
+          <SectionTitle
+            title="Recent Subscription Renewals"
+            sub="Latest renewals, newest first"
+          />
+        </View>
+        {subscriptionAlerts.length > 0 ? (
+          subscriptionAlerts.map((sub: any) => {
+            const days = Math.ceil(
+              (new Date(sub.renewalDate).getTime() - Date.now()) / 86400000,
+            );
+            const isPastDue = days < 0;
+            const accent = isPastDue ? colors.red : colors.orange;
+            const balance = Math.max(
+              0,
+              (sub.amount || 0) - (sub.amountPaid || 0),
+            );
+            const g = sub.student?.guardians?.[0];
+            const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
+            return (
+              <View
+                key={sub._id}
+                style={[styles.renewCard, { borderLeftColor: accent }]}
+              >
+                <View style={styles.renewTop}>
+                  <View
+                    style={[
+                      styles.renewAvatar,
+                      { backgroundColor: accent + '1A', borderColor: accent },
+                    ]}
+                  >
+                    <Text style={[styles.renewAvatarText, { color: accent }]}>
+                      {(sub.student?.firstName?.[0] || '?').toUpperCase()}
+                    </Text>
                   </View>
-                  <View style={styles.renewalGrid}>
-                    <Text style={styles.renewalCell}>
-                      Plan: <Text style={styles.bold}>{sub.planName}</Text>
-                      {sub.billingCycle ? ` (${sub.billingCycle})` : ''}
+                  <View style={styles.renewInfo}>
+                    <Text style={styles.renewalName} numberOfLines={1}>
+                      {sub.student?.firstName} {sub.student?.lastName}
                     </Text>
-                    <Text style={styles.renewalCell}>
-                      {formatDateOrDash(sub.startDate)} →{' '}
-                      <Text style={styles.bold}>{formatDateOrDash(sub.renewalDate)}</Text>
+                    <Text style={styles.renewalSub} numberOfLines={1}>
+                      {sub.student?.studentId} · {sub.student?.sport || '—'}
+                      {sub.student?.batch ? ` · ${sub.student.batch}` : ''}
                     </Text>
-                    <Text
-                      style={[
-                        styles.renewalCell,
-                        {
-                          color: isPastDue ? colors.red : colors.orange,
-                          fontFamily: FONT.bold,
-                        },
-                      ]}
-                    >
+                  </View>
+                  <StatusPill
+                    label={isPastDue ? 'Ended' : 'Ending Soon'}
+                    color={accent}
+                  />
+                </View>
+
+                <View style={styles.renewMeta}>
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>Plan</Text>
+                    <Text style={styles.metaValue} numberOfLines={1}>
+                      {sub.planName}
+                    </Text>
+                    {sub.billingCycle ? (
+                      <Text style={styles.metaHint}>{sub.billingCycle}</Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.metaDivider} />
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>Renews</Text>
+                    <Text style={styles.metaValue} numberOfLines={1}>
+                      {formatDateOrDash(sub.renewalDate)}
+                    </Text>
+                    <Text style={styles.metaHint}>
+                      from {formatDateOrDash(sub.startDate)}
+                    </Text>
+                  </View>
+                  <View style={styles.metaDivider} />
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>Status</Text>
+                    <Text style={[styles.metaValue, { color: accent }]}>
                       {isPastDue
                         ? `${Math.abs(days)}d overdue`
                         : days === 0
                         ? 'Due today'
                         : `${days}d left`}
                     </Text>
-                    <Text style={styles.renewalCell}>
-                      ₹{(sub.amount || 0).toLocaleString('en-IN')} · Paid ₹
-                      {(sub.amountPaid || 0).toLocaleString('en-IN')} ·{' '}
-                      <Text
-                        style={{
-                          color: balance > 0 ? colors.red : colors.muted,
-                          fontFamily: FONT.bold,
-                        }}
-                      >
-                        Due ₹{balance.toLocaleString('en-IN')}
-                      </Text>
-                    </Text>
-                    {g ? (
-                      <Text style={styles.renewalCell}>
-                        {g.name}
-                        {g.phone ? ` · ${g.phone}` : ''}
-                      </Text>
-                    ) : null}
                   </View>
                 </View>
-              );
-            })
-          ) : (
-            <Text style={{ color: colors.muted }}>
-              No subscriptions ending soon
-            </Text>
-          )}
-        </Card>
 
-        <Card>
-          <SectionTitle
-            title="Recent Joinings"
-            sub={`${stats.newHires ?? 0} staff · ${
-              stats.newStudents ?? 0
-            } students this month`}
-          />
-          <FilterPills
-            options={[
-              { value: 'staff', label: 'Staff' },
-              { value: 'students', label: 'Students' },
-            ]}
-            value={joinTab}
-            onChange={v => setJoinTab(v as 'staff' | 'students')}
-          />
-          {(joinTab === 'staff' ? recentHires : recentStudents).length > 0 ? (
-            (joinTab === 'staff' ? recentHires : recentStudents).map(
-              (p: any) => (
-                <Row
-                  key={p._id}
-                  title={`${p.firstName} ${p.lastName}`}
-                  subtitle={
-                    joinTab === 'staff'
-                      ? `${p.designation || 'Staff'} · ${
-                          p.department?.name || '—'
-                        }`
-                      : `${p.sport || '—'}${p.batch ? ` · ${p.batch}` : ''} · ${
-                          p.studentId
-                        }`
-                  }
-                  right={
-                    <Text style={styles.joinDate}>
-                      {new Date(
-                        joinTab === 'staff' ? p.joinDate : p.enrollmentDate,
-                      ).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                      })}
+                <View style={styles.moneyRow}>
+                  <View style={styles.moneyCell}>
+                    <Text style={styles.metaLabel}>Total</Text>
+                    <Text style={styles.moneyValue}>{inr(sub.amount)}</Text>
+                  </View>
+                  <View style={styles.moneyCell}>
+                    <Text style={styles.metaLabel}>Paid</Text>
+                    <Text style={[styles.moneyValue, { color: colors.green }]}>
+                      {inr(sub.amountPaid)}
                     </Text>
-                  }
-                />
-              ),
-            )
-          ) : (
-            <Text style={{ color: colors.muted }}>
-              No new {joinTab === 'staff' ? 'hires' : 'students'} this month
-            </Text>
-          )}
-        </Card>
+                  </View>
+                  <View style={styles.moneyCell}>
+                    <Text style={styles.metaLabel}>Due</Text>
+                    <Text
+                      style={[
+                        styles.moneyValue,
+                        { color: balance > 0 ? colors.red : colors.muted },
+                      ]}
+                    >
+                      {inr(balance)}
+                    </Text>
+                  </View>
+                </View>
+
+                {g ? (
+                  <View style={styles.guardianRow}>
+                    <Phone size={12} color={colors.muted} strokeWidth={2.5} />
+                    <Text style={styles.guardianText} numberOfLines={1}>
+                      {g.name}
+                      {g.phone ? ` · ${g.phone}` : ''}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })
+        ) : (
+          <Card>
+            <Text style={styles.empty}>No subscriptions ending soon</Text>
+          </Card>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -287,23 +370,149 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  greeting: { fontSize: 22, fontWeight: '800', color: colors.black },
-  subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
+  content: { padding: 16 },
+  renewInfo: { flex: 1, minWidth: 0 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 1,
+  },
+  logo: { width: 146, height: 74 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  greeting: {
+    flexShrink: 1,
+    fontSize: 23,
+    fontFamily: FONT.bold,
+    fontWeight: '800',
+    color: colors.black,
+  },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  renewal: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#0000001A',
+  chartHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
   },
-  renewalTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pillGroup: { flexDirection: 'row', gap: 6 },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+  },
+  pillActive: { backgroundColor: colors.blue },
+  rangePill: { paddingHorizontal: 8 },
+  pillText: { fontFamily: FONT.bold, fontSize: 12, color: colors.black },
+  empty: { color: colors.muted, fontFamily: FONT.medium, fontSize: 13 },
+  renewHead: { marginTop: 4 },
+  renewCard: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRadius: 8,
+    borderColor: colors.black,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    padding: 12,
+    marginBottom: 12,
+  },
+  renewTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  renewAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  renewAvatarText: { fontFamily: FONT.bold, fontSize: 16 },
   renewalName: { fontFamily: FONT.bold, fontSize: 14, color: colors.black },
-  renewalSub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted },
-  renewalGrid: { marginTop: 6, gap: 2 },
-  renewalCell: { fontFamily: FONT.medium, fontSize: 12, color: colors.black },
-  bold: { fontFamily: FONT.bold },
-  joinDate: { fontFamily: FONT.bold, fontSize: 11, color: colors.muted },
+  renewalSub: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 1,
+  },
+  renewMeta: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#0000001A',
+  },
+  metaCol: { flex: 1, minWidth: 0 },
+  metaDivider: { width: 1, backgroundColor: '#0000001A', marginHorizontal: 8 },
+  metaLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 10,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  metaValue: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    color: colors.black,
+    marginTop: 2,
+  },
+  metaHint: {
+    fontFamily: FONT.medium,
+    fontSize: 10,
+    color: colors.muted,
+    marginTop: 1,
+    textTransform: 'capitalize',
+  },
+  moneyRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+    backgroundColor: '#F8FAFF',
+    borderWidth: 1,
+    borderColor: '#0000001A',
+    borderRadius: 8,
+    padding: 8,
+  },
+  moneyCell: { flex: 1 },
+  moneyValue: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    color: colors.black,
+    marginTop: 2,
+  },
+  guardianRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  guardianText: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.black,
+    flex: 1,
+  },
 });

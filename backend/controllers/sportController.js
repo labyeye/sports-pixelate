@@ -3,6 +3,7 @@ const { stripProtected } = require("../middleware/validate");
 const Sport = require("../models/Sport");
 const Student = require("../models/Student");
 const Employee = require("../models/Employee");
+const { getMonthlyFeeSummary } = require("../utils/feeSummary");
 const { validateBody } = require("../middleware/validate");
 
 const createSchema = {
@@ -19,7 +20,7 @@ const updateSchema = {
 const getSports = asyncHandler(async (req, res) => {
   const companyId = req.user.company;
 
-  const [sports, studentCounts, coachCounts] = await Promise.all([
+  const [sports, studentCounts, coachCounts, fees] = await Promise.all([
     Sport.find({ company: companyId }).sort({ name: 1 }),
     Student.aggregate([
       { $match: { company: companyId, status: { $ne: "inactive" } } },
@@ -35,6 +36,7 @@ const getSports = asyncHandler(async (req, res) => {
       },
       { $group: { _id: "$sport", count: { $sum: 1 } } },
     ]),
+    getMonthlyFeeSummary(companyId),
   ]);
 
   const studentCountBySport = Object.fromEntries(
@@ -48,6 +50,8 @@ const getSports = asyncHandler(async (req, res) => {
     ...sport.toObject(),
     studentCount: studentCountBySport[sport.name] || 0,
     coachCount: coachCountBySport[sport.name] || 0,
+    collectedThisMonth: fees.bySport[sport.name]?.collected || 0,
+    remainingThisMonth: fees.bySport[sport.name]?.remaining || 0,
   }));
 
   res.json({ success: true, data });

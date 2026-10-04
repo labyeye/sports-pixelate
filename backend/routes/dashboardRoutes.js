@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getStats,
   getEmployeeStats,
+  getTrend,
 } = require("../controllers/dashboardController");
 const { protect, authorize } = require("../middleware/auth");
 const router = express.Router();
@@ -21,6 +22,13 @@ router.get(
   authorize("super_admin", "hr_manager", "hr_executive", "department_head"),
   noCache,
   getStats,
+);
+router.get(
+  "/trend",
+  protect,
+  authorize("super_admin", "hr_manager", "hr_executive", "department_head"),
+  noCache,
+  getTrend,
 );
 router.get("/employee", protect, noCache, getEmployeeStats);
 module.exports = router;

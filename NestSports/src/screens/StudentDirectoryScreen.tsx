@@ -3,7 +3,6 @@ import {
   FlatList,
   View,
   Text,
-  TouchableOpacity,
   RefreshControl,
   ScrollView,
   Modal,
@@ -11,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Users, X, Share2, Trophy } from 'lucide-react-native';
+import { Users, X, Share2 } from 'lucide-react-native';
 import { studentAPI, sportAPI, reportAPI } from '../api/client';
 import {
   Card,
@@ -19,11 +18,11 @@ import {
   Badge,
   SearchBar,
   FilterPills,
-  KpiTile,
-  CollapsibleSection,
   EmptyState,
   LoadingView,
 } from '../components/ui';
+import { StudentProfileView } from '../components/StudentProfileView';
+import { SOFT } from '../components/profile';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { fetchAllPages } from '../utils/fetchAllPages';
@@ -176,6 +175,7 @@ export default function StudentDirectoryScreen() {
       </View>
 
       <FilterPills
+        inset
         options={[
           { value: '', label: 'All Sports' },
           ...sports.map(s => ({ value: s, label: s })),
@@ -184,6 +184,7 @@ export default function StudentDirectoryScreen() {
         onChange={setSport}
       />
       <FilterPills
+        inset
         options={[
           { value: '', label: 'All Batches' },
           ...batches.map(b => ({ value: b, label: b })),
@@ -232,29 +233,10 @@ export default function StudentDirectoryScreen() {
         presentationStyle="pageSheet"
         onRequestClose={closeProfile}
       >
-        <SafeAreaView edges={['top']} style={styles.screen}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Student Profile</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {profile ? (
-                <TouchableOpacity
-                  onPress={onExportProfile}
-                  style={styles.iconBtn}
-                  hitSlop={8}
-                >
-                  <Share2 size={18} color={colors.black} strokeWidth={2.5} />
-                </TouchableOpacity>
-              ) : null}
-              <TouchableOpacity
-                onPress={closeProfile}
-                style={styles.iconBtn}
-                hitSlop={8}
-              >
-                <X size={18} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
+        <SafeAreaView
+          edges={['top']}
+          style={[styles.screen, { backgroundColor: SOFT.screenBg }]}
+        >
           {profileLoading || !profile ? (
             <LoadingView />
           ) : (
@@ -262,113 +244,23 @@ export default function StudentDirectoryScreen() {
               contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
               showsVerticalScrollIndicator={false}
             >
-              <ProfileContent profile={profile} />
+              <StudentProfileView
+                profile={profile}
+                statusLabel={
+                  STATUS_CONFIG[profile.student?.status]?.label ||
+                  profile.student?.status
+                }
+                statusColor={STATUS_CONFIG[profile.student?.status]?.color}
+                backIcon={X}
+                onBack={closeProfile}
+                shareIcon={Share2}
+                onShare={onExportProfile}
+              />
             </ScrollView>
           )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
-  );
-}
-
-function ProfileContent({ profile }: { profile: any }) {
-  const st = profile.student || {};
-  const att = profile.attendance || {};
-  const subs: any[] = profile.subscriptions || [];
-  const tournaments: any[] = profile.tournaments || [];
-  const statusColor = STATUS_CONFIG[st.status]?.color || colors.muted;
-
-  return (
-    <>
-      <CollapsibleSection title="Profile" defaultOpen>
-        <Text style={styles.profileName}>
-          {st.firstName} {st.lastName}
-        </Text>
-        <Text style={styles.profileLine}>ID: {st.studentId}</Text>
-        <Text style={styles.profileLine}>Sport: {st.sport || '—'}</Text>
-        <Text style={styles.profileLine}>Batch: {st.batch || '—'}</Text>
-        <Text style={styles.profileLine}>
-          Coach: {st.coach ? `${st.coach.firstName} ${st.coach.lastName}` : '—'}
-        </Text>
-        <Text style={styles.profileLine}>
-          Enrollment Date:{' '}
-          {st.enrollmentDate ? st.enrollmentDate.slice(0, 10) : '—'}
-        </Text>
-        <View style={{ marginTop: 8 }}>
-          <Badge
-            label={STATUS_CONFIG[st.status]?.label || st.status || ''}
-            color={statusColor}
-          />
-        </View>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Guardians">
-        {(st.guardians || []).length === 0 ? (
-          <Text style={styles.emptyText}>No guardians on file</Text>
-        ) : (
-          st.guardians.map((g: any, i: number) => (
-            <Text key={i} style={styles.profileLine}>
-              {g.relation.charAt(0).toUpperCase() + g.relation.slice(1)}:{' '}
-              {g.name} — {g.phone}
-            </Text>
-          ))
-        )}
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Attendance Summary">
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Present"
-            value={att.present || 0}
-            color={colors.green}
-          />
-          <KpiTile label="Late" value={att.late || 0} color={colors.yellow} />
-          <KpiTile label="Absent" value={att.absent || 0} color={colors.red} />
-          <KpiTile
-            label="Excused"
-            value={att.excused || 0}
-            color={colors.blue}
-          />
-        </View>
-        <Text style={styles.rateText}>Attendance Rate: {att.rate || 0}%</Text>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Subscriptions">
-        {subs.length === 0 ? (
-          <Text style={styles.emptyText}>No subscriptions</Text>
-        ) : (
-          subs.map((s: any, i: number) => (
-            <View key={s._id || i} style={styles.subRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.subPlan}>{s.planName}</Text>
-                <Text style={styles.profileLine}>
-                  ₹{s.amountPaid || 0} / ₹{s.amount || 0}
-                </Text>
-              </View>
-              <Badge label={s.status} color={colors.blue} />
-            </View>
-          ))
-        )}
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Tournaments">
-        {tournaments.length === 0 ? (
-          <Text style={styles.emptyText}>No tournament history</Text>
-        ) : (
-          tournaments.map((t: any, i: number) => (
-            <View key={i} style={styles.tourRow}>
-              <Trophy size={14} color={colors.purple} strokeWidth={2.5} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.subPlan}>{t.eventName}</Text>
-                <Text style={styles.profileLine}>
-                  {t.activity} · {t.team || 'Individual'} · {t.status}
-                </Text>
-              </View>
-            </View>
-          ))
-        )}
-      </CollapsibleSection>
-    </>
   );
 }
 

@@ -39,6 +39,8 @@ import {
 import { colors, FONT } from '../theme/colors';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import { ChildSelect } from '../components/parent/ChildSelect';
+import { AcademySwitcher } from '../components/parent/AcademySwitcher';
 
 function localDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
@@ -214,34 +216,12 @@ export default function ParentHomeScreen({ navigation }: any) {
           </View>
         </View>
 
-        {children.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, marginBottom: 14, marginTop: 12 }}
-          >
-            {children.map(c => {
-              const selected = c._id === selectedChild;
-              return (
-                <TouchableOpacity
-                  key={c._id}
-                  onPress={() => setSelectedChild(c._id)}
-                  style={[styles.childChip, selected && styles.childChipActive]}
-                >
-                  <Avatar uri={c.avatar} name={c.firstName} size={22} />
-                  <Text
-                    style={[
-                      styles.childChipText,
-                      selected && styles.childChipTextActive,
-                    ]}
-                  >
-                    {c.firstName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
+        <AcademySwitcher />
+        <ChildSelect
+          children={children}
+          value={selectedChild}
+          onChange={setSelectedChild}
+        />
 
         <View style={styles.kpiGrid}>
           <KpiTile

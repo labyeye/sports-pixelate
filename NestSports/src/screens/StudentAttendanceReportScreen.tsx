@@ -214,6 +214,8 @@ export default function StudentAttendanceReportScreen() {
       </View>
 
       <FilterPills
+
+        inset
         options={[
           { value: '', label: 'All Batches' },
           ...batches.map(b => ({ value: b, label: b })),
@@ -222,6 +224,7 @@ export default function StudentAttendanceReportScreen() {
         onChange={setBatch}
       />
       <FilterPills
+        inset
         options={[
           { value: '', label: 'All Sports' },
           ...sports.map(s => ({ value: s, label: s })),
@@ -230,6 +233,7 @@ export default function StudentAttendanceReportScreen() {
         onChange={setSport}
       />
       <FilterPills
+        inset
         options={[
           { value: '', label: 'All Status' },
           ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({

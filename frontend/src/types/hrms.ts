@@ -57,6 +57,8 @@ export interface Sport {
   active: boolean;
   studentCount: number;
   coachCount: number;
+  collectedThisMonth?: number;
+  remainingThisMonth?: number;
 }
 
 export interface Employee {

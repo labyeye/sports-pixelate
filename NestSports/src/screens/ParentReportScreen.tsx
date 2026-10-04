@@ -9,17 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Share2, Trophy, FileText } from 'lucide-react-native';
+import { Share2, FileText } from 'lucide-react-native';
 import { studentAPI, reportAPI } from '../api/client';
-import {
-  Card,
-  Avatar,
-  Badge,
-  KpiTile,
-  CollapsibleSection,
-  EmptyState,
-  LoadingView,
-} from '../components/ui';
+import { ChildSelect } from '../components/parent/ChildSelect';
+import { EmptyState, LoadingView } from '../components/ui';
+import { StudentProfileView } from '../components/StudentProfileView';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
 import { getErrorMessage } from '../utils/format';
@@ -156,134 +150,27 @@ export default function ParentReportScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {children.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, marginBottom: 14 }}
-            >
-              {children.map(c => {
-                const selected = c._id === selectedChild;
-                return (
-                  <TouchableOpacity
-                    key={c._id}
-                    onPress={() => setSelectedChild(c._id)}
-                    style={[
-                      styles.childChip,
-                      selected && styles.childChipActive,
-                    ]}
-                  >
-                    <Avatar uri={c.avatar} name={c.firstName} size={22} />
-                    <Text
-                      style={[
-                        styles.childChipText,
-                        selected && styles.childChipTextActive,
-                      ]}
-                    >
-                      {c.firstName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
+          <ChildSelect
+            children={children}
+            value={selectedChild}
+            onChange={setSelectedChild}
+          />
 
           {profileLoading || !profile ? (
             <LoadingView />
           ) : (
-            <ProfileContent profile={profile} />
+            <StudentProfileView
+              profile={profile}
+              statusLabel={
+                STATUS_CONFIG[profile.student?.status]?.label ||
+                profile.student?.status
+              }
+              statusColor={STATUS_CONFIG[profile.student?.status]?.color}
+            />
           )}
         </ScrollView>
       )}
     </SafeAreaView>
-  );
-}
-
-function ProfileContent({ profile }: { profile: any }) {
-  const st = profile.student || {};
-  const att = profile.attendance || {};
-  const subs: any[] = profile.subscriptions || [];
-  const tournaments: any[] = profile.tournaments || [];
-  const statusColor = STATUS_CONFIG[st.status]?.color || colors.muted;
-
-  return (
-    <>
-      <CollapsibleSection title="Profile" defaultOpen>
-        <Text style={styles.profileName}>
-          {st.firstName} {st.lastName}
-        </Text>
-        <Text style={styles.profileLine}>ID: {st.studentId}</Text>
-        <Text style={styles.profileLine}>Sport: {st.sport || '—'}</Text>
-        <Text style={styles.profileLine}>Batch: {st.batch || '—'}</Text>
-        <Text style={styles.profileLine}>
-          Coach: {st.coach ? `${st.coach.firstName} ${st.coach.lastName}` : '—'}
-        </Text>
-        <Text style={styles.profileLine}>
-          Enrollment Date:{' '}
-          {st.enrollmentDate ? st.enrollmentDate.slice(0, 10) : '—'}
-        </Text>
-        <View style={{ marginTop: 8 }}>
-          <Badge
-            label={STATUS_CONFIG[st.status]?.label || st.status || ''}
-            color={statusColor}
-          />
-        </View>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Attendance Summary">
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Present"
-            value={att.present || 0}
-            color={colors.green}
-          />
-          <KpiTile label="Late" value={att.late || 0} color={colors.yellow} />
-          <KpiTile label="Absent" value={att.absent || 0} color={colors.red} />
-          <KpiTile
-            label="Excused"
-            value={att.excused || 0}
-            color={colors.blue}
-          />
-        </View>
-        <Text style={styles.rateText}>Attendance Rate: {att.rate || 0}%</Text>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Subscriptions">
-        {subs.length === 0 ? (
-          <Text style={styles.emptyText}>No subscriptions</Text>
-        ) : (
-          subs.map((s: any, i: number) => (
-            <View key={s._id || i} style={styles.subRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.subPlan}>{s.planName}</Text>
-                <Text style={styles.profileLine}>
-                  ₹{s.amountPaid || 0} / ₹{s.amount || 0}
-                </Text>
-              </View>
-              <Badge label={s.status} color={colors.blue} />
-            </View>
-          ))
-        )}
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Tournaments">
-        {tournaments.length === 0 ? (
-          <Text style={styles.emptyText}>No tournament history</Text>
-        ) : (
-          tournaments.map((t: any, i: number) => (
-            <View key={i} style={styles.tourRow}>
-              <Trophy size={14} color={colors.purple} strokeWidth={2.5} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.subPlan}>{t.eventName}</Text>
-                <Text style={styles.profileLine}>
-                  {t.activity} · {t.team || 'Individual'} · {t.status}
-                </Text>
-              </View>
-            </View>
-          ))
-        )}
-      </CollapsibleSection>
-    </>
   );
 }
 

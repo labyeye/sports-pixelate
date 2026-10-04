@@ -119,6 +119,8 @@ export default function StudentSubscriptionReportScreen() {
       </View>
 
       <FilterPills
+
+        inset
         options={STATUS_OPTIONS}
         value={status}
         onChange={setStatus}

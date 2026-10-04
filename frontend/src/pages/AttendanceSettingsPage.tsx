@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
-import { attendanceSettingsAPI, employeeAPI } from "@/services/api";
+import {
+  attendanceSettingsAPI,
+  employeeAPI,
+  paymentLinkAPI,
+} from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { StudentFaceEnrollPanel } from "@/components/biometric/StudentFaceEnrollPanel";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -34,6 +38,14 @@ interface AttendanceSettings {
   feeDueDay: number;
   feeGraceDays: number;
   studentFaceAttendanceEnabled: boolean;
+  studentAttendanceTimeMode: "in_out" | "single";
+  studentAutoLateEnabled: boolean;
+  studentLateGraceMinutes: number;
+  studentAutoAbsentEnabled: boolean;
+  studentAbsentAfterEndMinutes: number;
+  paymentLinkEnabled: boolean;
+  paymentLinkDay: number;
+  paymentLinkHour: number;
 }
 
 const DEFAULT_SETTINGS: AttendanceSettings = {
@@ -51,6 +63,14 @@ const DEFAULT_SETTINGS: AttendanceSettings = {
   feeDueDay: 0,
   feeGraceDays: 7,
   studentFaceAttendanceEnabled: false,
+  studentAttendanceTimeMode: "in_out",
+  studentAutoLateEnabled: false,
+  studentLateGraceMinutes: 15,
+  studentAutoAbsentEnabled: false,
+  studentAbsentAfterEndMinutes: 30,
+  paymentLinkEnabled: false,
+  paymentLinkDay: 1,
+  paymentLinkHour: 9,
 };
 
 const LEAVE_TYPES = [
@@ -366,6 +386,33 @@ export default function AttendanceSettingsPage() {
     fetchAll();
     fetchBalances();
   }, [fetchAll, fetchBalances]);
+
+  const [sendingLinks, setSendingLinks] = useState(false);
+  const sendLinksNow = async () => {
+    if (
+      !window.confirm(
+        "Send this month's fee payment links on WhatsApp to all students with a fee due, right now?",
+      )
+    )
+      return;
+    setSendingLinks(true);
+    try {
+      const res = await paymentLinkAPI.sendNow();
+      const d = res.data;
+      toast({
+        title: `Sent ${d.sent} link(s)`,
+        description: `${d.nothingDue} nothing due · ${d.noGuardian} without a WhatsApp guardian${d.skipped ? ` · ${d.skipped} skipped (WhatsApp off)` : ""}${d.failed ? ` · ${d.failed} failed` : ""}`,
+      });
+    } catch (e: unknown) {
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
+    } finally {
+      setSendingLinks(false);
+    }
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -703,6 +750,151 @@ export default function AttendanceSettingsPage() {
                     {settings.studentFaceAttendanceEnabled && (
                       <StudentFaceEnrollPanel />
                     )}
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black">
+                  <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                    <h2 className="font-bold text-base">
+                      Student Attendance Time
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Choose whether students have a check-in and check-out, or
+                      just one time.
+                    </p>
+                  </div>
+                  <div className="p-5 flex gap-2">
+                    {(
+                      [
+                        ["in_out", "Check In & Check Out"],
+                        ["single", "Single Time"],
+                      ] as const
+                    ).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => set({ studentAttendanceTimeMode: val })}
+                        className={`border-2 border-black px-4 py-2 text-xs font-bold uppercase ${
+                          settings.studentAttendanceTimeMode === val
+                            ? "bg-[#024BAB] text-white"
+                            : "bg-white"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black">
+                  <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                    <h2 className="font-bold text-base">
+                      Automatic Late & Absent
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Off = staff mark only Present / Absent themselves. Turn
+                      on whichever you want the system to do for you.
+                    </p>
+                  </div>
+                  <div className="p-5 space-y-5">
+                    <div className="space-y-3">
+                      <Toggle
+                        label="Mark late automatically"
+                        description="A Present mark made after the grace period from the session start time becomes Late."
+                        checked={settings.studentAutoLateEnabled}
+                        onChange={(v) => set({ studentAutoLateEnabled: v })}
+                      />
+                      {settings.studentAutoLateEnabled && (
+                        <NumField
+                          label="Late Grace Period (minutes)"
+                          value={settings.studentLateGraceMinutes}
+                          min={0}
+                          max={240}
+                          onChange={(v) => set({ studentLateGraceMinutes: v })}
+                          hint={`Late if marked more than ${settings.studentLateGraceMinutes} min after the session starts`}
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <Toggle
+                        label="Mark absent automatically"
+                        description="Scheduled students nobody marked are set to Absent after their session ends."
+                        checked={settings.studentAutoAbsentEnabled}
+                        onChange={(v) => set({ studentAutoAbsentEnabled: v })}
+                      />
+                      {settings.studentAutoAbsentEnabled && (
+                        <NumField
+                          label="Mark Absent After Session Ends (minutes)"
+                          value={settings.studentAbsentAfterEndMinutes}
+                          min={0}
+                          max={720}
+                          onChange={(v) =>
+                            set({ studentAbsentAfterEndMinutes: v })
+                          }
+                          hint={`Staff can still mark for ${settings.studentAbsentAfterEndMinutes} min after the session ends`}
+                        />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400">
+                      Save settings after changing. Needs the student's plan to
+                      have a start time (and end time for auto-absent).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border-2 border-black">
+                  <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
+                    <h2 className="font-bold text-base">Fee Payment Link</h2>
+                    <p className="text-xs text-gray-500">
+                      Every month, WhatsApp each student's guardian a link to
+                      pay the fee online — no login needed.
+                    </p>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <Toggle
+                      label="Send payment links automatically"
+                      description="Sent on the day below to students with a fee due (unpaid balance or renewal due this month), to the guardian who receives WhatsApp. Needs the WhatsApp add-on."
+                      checked={settings.paymentLinkEnabled}
+                      onChange={(v) => set({ paymentLinkEnabled: v })}
+                    />
+                    {settings.paymentLinkEnabled && (
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <NumField
+                          label="Day of Month (1-28)"
+                          value={settings.paymentLinkDay}
+                          min={1}
+                          max={28}
+                          onChange={(v) =>
+                            set({ paymentLinkDay: Math.min(28, Math.max(1, v)) })
+                          }
+                          hint={`Links go out on the ${settings.paymentLinkDay}${ordinal(settings.paymentLinkDay)} of every month`}
+                        />
+                        <NumField
+                          label="Send Time (hour, 24h IST)"
+                          value={settings.paymentLinkHour}
+                          min={0}
+                          max={23}
+                          onChange={(v) =>
+                            set({ paymentLinkHour: Math.min(23, Math.max(0, v)) })
+                          }
+                          hint={`About ${((settings.paymentLinkHour + 11) % 12) + 1}:00 ${settings.paymentLinkHour < 12 ? "AM" : "PM"} IST`}
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={sendLinksNow}
+                        disabled={sendingLinks}
+                        className="border-2 border-black bg-white px-4 py-2 text-xs font-bold uppercase disabled:opacity-60"
+                      >
+                        {sendingLinks ? "Sending..." : "Send links now"}
+                      </button>
+                      <span className="text-[11px] text-gray-400">
+                        Sends this month's links immediately (each student gets
+                        at most one per month). Save settings first.
+                      </span>
+                    </div>
                   </div>
                 </div>
 

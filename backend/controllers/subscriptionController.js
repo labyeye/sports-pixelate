@@ -1065,4 +1065,8 @@ module.exports = {
   getPaymentReceipt,
   cancelSubscription,
   bulkImportSubscriptions,
+  // shared with the public payment-link flow (services/paymentLinkService.js)
+  getCompanyPaymentCreds,
+  recalcSubscriptionTotals,
+  notifyPaymentVerified,
 };

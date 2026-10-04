@@ -1615,6 +1615,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-splash-screen (3.3.0):
+    - React-Core
   - react-native-webview (13.17.0):
     - hermes-engine
     - RCTRequired
@@ -2295,6 +2297,7 @@ DEPENDENCIES:
   - react-native-print (from `../node_modules/react-native-print`)
   - react-native-razorpay (from `../node_modules/react-native-razorpay`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-splash-screen (from `../node_modules/react-native-splash-screen`)
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
@@ -2443,6 +2446,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-razorpay"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-splash-screen:
+    :path: "../node_modules/react-native-splash-screen"
   react-native-webview:
     :path: "../node_modules/react-native-webview"
   React-NativeModulesApple:
@@ -2583,6 +2588,7 @@ SPEC CHECKSUMS:
   react-native-print: 692e8782bc89872ea01738c6759631388e77358c
   react-native-razorpay: 376ba84b614ef8a22b5701df4ffee10f4c116d14
   react-native-safe-area-context: 0dd5d7db903a6289e798e934356cd80cf23a31d3
+  react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594
   react-native-webview: 4b1217071d94a56a6f749e25c751e51a1cec25b6
   React-NativeModulesApple: a092d89b58f635ebfab88048b0eda9fb516819fd
   React-networking: 968bbbe73590149feb1e72b2af4f6a68e4796ece

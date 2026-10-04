@@ -123,6 +123,8 @@ export default function StudentPerformanceReportScreen() {
       </View>
 
       <FilterPills
+
+        inset
         options={[
           { value: '', label: 'All Sports' },
           ...sports.map(s => ({ value: s, label: s })),
@@ -131,6 +133,7 @@ export default function StudentPerformanceReportScreen() {
         onChange={setSport}
       />
       <FilterPills
+        inset
         options={[
           { value: '', label: 'All Batches' },
           ...batches.map(b => ({ value: b, label: b })),

@@ -10,6 +10,8 @@ import {
   authAPI,
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChildSelect } from "@/components/parent/ChildSelect";
+import { AcademySwitcher } from "@/components/parent/AcademySwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
 import {
@@ -35,6 +37,8 @@ export default function ParentHomePage() {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // "" = every child in this academy.
+  const [selectedChild, setSelectedChild] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -233,6 +237,7 @@ export default function ParentHomePage() {
               <p className="text-sm text-muted-foreground font-medium mt-1">
                 {user?.email}
               </p>
+              <AcademySwitcher />
             </div>
           </div>
         </div>
@@ -263,6 +268,13 @@ export default function ParentHomePage() {
         </div>
       </div>
 
+      <ChildSelect
+        children={children}
+        value={selectedChild}
+        onChange={setSelectedChild}
+        allLabel="All children"
+      />
+
       {children.length === 0 ? (
         <div className="text-center py-16 bg-white border-2 border-black">
           <GraduationCap className="w-14 h-14 text-gray-200 mx-auto mb-3" />
@@ -275,7 +287,9 @@ export default function ParentHomePage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {children.map((child) => {
+          {children
+            .filter((c) => !selectedChild || c._id === selectedChild)
+            .map((child) => {
             const records = attendance.filter(
               (a) => a.student?._id === child._id,
             );

@@ -32,6 +32,7 @@ import LateApprovalsPage from "./pages/LateApprovalsPage";
 import StudentsPage from "./pages/StudentsPage";
 import StudentAttendancePage from "./pages/StudentAttendancePage";
 import PlansPage from "./pages/PlansPage";
+import GroupsPage from "./pages/GroupsPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailPage from "./pages/EventDetailPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
@@ -46,6 +47,7 @@ import ParentReportPage from "./pages/ParentReportPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import PaymentFailedPage from "./pages/PaymentFailedPage";
 import PaymentReturnPage from "./pages/PaymentReturnPage";
+import PayLinkPage from "./pages/PayLinkPage";
 import WelcomePage from "./pages/WelcomePage";
 import ManagePage from "./pages/ManagePage";
 import EmployeePayrollPage from "./pages/EmployeePayrollPage";
@@ -93,6 +95,7 @@ const OWNER_ONLY_PATHS = [
   "/manage",
   "/reports",
   "/plans",
+  "/groups",
   "/expenses",
   "/exits",
 ];
@@ -212,6 +215,8 @@ function AppRoutes() {
             )
           }
         />
+        {/* Public: opened from the WhatsApp fee link, no login needed */}
+        <Route path="/pay/:token" element={<PayLinkPage />} />
         <Route
           path="/payment-return"
           element={
@@ -434,6 +439,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <StudentAttendancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups"
+          element={
+            <ProtectedRoute>
+              <GroupsPage />
             </ProtectedRoute>
           }
         />

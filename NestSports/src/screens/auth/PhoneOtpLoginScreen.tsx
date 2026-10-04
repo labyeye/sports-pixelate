@@ -267,6 +267,11 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Set when the phone is enrolled in several academies: the parent picks one.
+  const [academyChoice, setAcademyChoice] = useState<{
+    selectionToken: string;
+    accounts: { userId: string; academy: { id: string; name: string } }[];
+  } | null>(null);
   const otpInputRef = useRef<TextInput>(null);
   const OTP_LENGTH = 6;
 
@@ -284,11 +289,39 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
     setLoading(false);
   };
 
+  const onPickAcademy = async (userId: string) => {
+    if (!academyChoice) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await authAPI.selectAcademy(
+        academyChoice.selectionToken,
+        userId,
+      );
+      const { token, ...userData } = res.data;
+      completeLogin(userData, token);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Could not sign in. Please try again.');
+      setAcademyChoice(null);
+      setOtpSent(false);
+      setOtp('');
+    }
+    setLoading(false);
+  };
+
   const onVerifyOtp = async () => {
     setError('');
     setLoading(true);
     try {
       const res = await authAPI.verifyPhoneOtp(fullPhone, otp.trim());
+      if (res.data.requiresAcademySelection) {
+        setAcademyChoice({
+          selectionToken: res.data.selectionToken,
+          accounts: res.data.accounts,
+        });
+        setLoading(false);
+        return;
+      }
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
       // On success, AuthContext flips isAuthenticated and RootNavigator swaps
@@ -407,6 +440,32 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
                 />
               </TouchableOpacity>
             </TouchableOpacity>
+          </Modal>
+
+          <Modal
+            visible={!!academyChoice}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setAcademyChoice(null)}
+          >
+            <View style={styles.modalBackdrop}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Select Academy</Text>
+                <Text style={[styles.countryRowText, { marginBottom: 8 }]}>
+                  This number is enrolled in more than one academy.
+                </Text>
+                {academyChoice?.accounts.map(a => (
+                  <TouchableOpacity
+                    key={a.userId}
+                    style={styles.countryRow}
+                    disabled={loading}
+                    onPress={() => onPickAcademy(a.userId)}
+                  >
+                    <Text style={styles.countryRowText}>{a.academy.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </Modal>
 
           {otpSent && (

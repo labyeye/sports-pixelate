@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
 const User = require("../models/User");
@@ -32,13 +33,86 @@ const hashOtp = (otp) =>
 const to10 = (phone) =>
   String(phone).replace(/\s/g, "").replace(/^\+91/, "").slice(-10);
 
-async function findUserByPhone(normalised) {
-  const variants = [normalised, `+91${normalised}`, `91${normalised}`];
-  const user = await User.findOne({ phone: { $in: variants } });
-  if (user) return user;
+const phoneVariants = (normalised) => [
+  normalised,
+  `+91${normalised}`,
+  `91${normalised}`,
+];
+
+// Every login account on this phone. A parent enrolled in several academies
+// has one User per academy (accounts are company-scoped), all sharing the
+// same phone — so phone login must see all of them, not just the first.
+async function findUsersByPhone(normalised) {
+  const variants = phoneVariants(normalised);
+  const users = await User.find({ phone: { $in: variants } });
+  if (users.length) return users;
   const employee = await Employee.findOne({ phone: { $in: variants } });
-  return employee ? User.findById(employee.user) : null;
+  const viaEmployee = employee ? await User.findById(employee.user) : null;
+  return viaEmployee ? [viaEmployee] : [];
 }
+
+const COMPANY_POPULATE = {
+  path: "company",
+  select: "name email phone status subscription website",
+  populate: {
+    path: "subscription",
+    select:
+      "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
+  },
+};
+
+// Same gate the password login applies: the academy needs a paid, unexpired
+// subscription (owners are exempt so they can always reach billing).
+// Returns { status, message } when blocked, otherwise null.
+async function companyAccessError(user) {
+  if (!user.company || user.role === "super_admin") return null;
+  const companyId = user.company._id || user.company;
+  const subscription = await Subscription.findOne({
+    company: companyId,
+    status: { $in: ["active", "pending_renewal"] },
+  });
+  if (!subscription || subscription.paymentStatus !== "completed") {
+    return {
+      status: 403,
+      message: "No active subscription. Please contact your administrator.",
+    };
+  }
+  if (
+    subscription.isTrial &&
+    subscription.trialEndDate &&
+    subscription.trialEndDate < new Date()
+  ) {
+    return {
+      status: 403,
+      message: "Your 2-month free trial has expired. Please subscribe to continue.",
+    };
+  }
+  return null;
+}
+
+// `otp: true` marks a session whose phone ownership was proven by a WhatsApp
+// code — only those sessions may hop between a parent's academies.
+const sessionPayload = (user, { viaOtp = false } = {}) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  avatar: user.avatar,
+  phone: user.phone,
+  status: user.status,
+  department: user.department,
+  company: user.company,
+  token: generateToken(user._id, viaOtp ? { otp: true } : {}),
+});
+
+const academyChoice = (u) => ({
+  userId: u._id,
+  role: u.role,
+  academy: {
+    id: u.company?._id || u.company,
+    name: u.company?.name || "Academy",
+  },
+});
 
 // Shared by login 2FA and TOTP password reset: 10 bad codes lock the account
 // for 30 minutes, backup codes are single-use. Caller saves the user.
@@ -488,8 +562,8 @@ const sendOtp = asyncHandler(async (req, res) => {
   }
 
   const normalised = to10(phone);
-  const user = await findUserByPhone(normalised);
-  if (!user) {
+  const users = await findUsersByPhone(normalised);
+  if (!users.length) {
     // Return generic success to avoid user enumeration
     return res.json({
       success: true,
@@ -497,16 +571,25 @@ const sendOtp = asyncHandler(async (req, res) => {
     });
   }
 
-  if (user.status === "inactive") {
+  const active = users.filter((u) => u.status !== "inactive");
+  if (!active.length) {
     res.status(403);
     throw new Error("Your account has been deactivated. Please contact HR.");
   }
 
+  // One code for the phone: it is stored on every academy account so a single
+  // verify can offer the parent all of their academies.
   const otp = generateOtp();
-  user.phoneOtp = hashOtp(otp);
-  user.phoneOtpExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-  user.phoneOtpAttempts = 0;
-  await user.save();
+  await User.updateMany(
+    { _id: { $in: active.map((u) => u._id) } },
+    {
+      $set: {
+        phoneOtp: hashOtp(otp),
+        phoneOtpExpire: new Date(Date.now() + 10 * 60 * 1000), // 10 min
+        phoneOtpAttempts: 0,
+      },
+    },
+  );
 
   await sendPhoneOtp(normalised, { otp });
 
@@ -516,7 +599,11 @@ const sendOtp = asyncHandler(async (req, res) => {
   });
 });
 
-// Phone OTP — step 2: verify OTP and return JWT
+const SELECTION_TTL = "10m";
+
+// Phone OTP — step 2: verify OTP. One matching account → JWT. Several
+// (parent in more than one academy) → a short-lived selection token plus the
+// list of academies; the client finishes with selectAcademy.
 const verifyOtp = asyncHandler(async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp) {
@@ -526,95 +613,168 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
   // Bind the code to the phone it was sent to — matching on the code alone
   // would let a guess hit any other user's pending OTP.
-  const target = await findUserByPhone(to10(phone));
-  if (!target) {
+  const targets = await findUsersByPhone(to10(phone));
+  if (!targets.length) {
     res.status(401);
     throw new Error("Invalid or expired OTP");
   }
+  const targetIds = targets.map((t) => t._id);
 
-  // Per-account guess limit (the IP rate limit alone can be sidestepped).
+  // Per-phone guess limit (the IP rate limit alone can be sidestepped).
   const MAX_OTP_ATTEMPTS = 5;
-  const attemptsDoc = await User.findById(target._id).select(
+  const withAttempts = await User.find({ _id: { $in: targetIds } }).select(
     "+phoneOtpAttempts",
   );
-  if ((attemptsDoc?.phoneOtpAttempts || 0) >= MAX_OTP_ATTEMPTS) {
-    await User.updateOne(
-      { _id: target._id },
+  if (withAttempts.some((u) => (u.phoneOtpAttempts || 0) >= MAX_OTP_ATTEMPTS)) {
+    await User.updateMany(
+      { _id: { $in: targetIds } },
       { $unset: { phoneOtp: 1, phoneOtpExpire: 1 } },
     );
     res.status(429);
     throw new Error("Too many wrong codes. Please request a new OTP.");
   }
 
-  const user = await User.findOne({
-    _id: target._id,
+  const matched = await User.find({
+    _id: { $in: targetIds },
     phoneOtp: hashOtp(otp),
     phoneOtpExpire: { $gt: new Date() },
-  }).populate({
-    path: "company",
-    select: "name email phone status subscription website",
-    populate: {
-      path: "subscription",
-      select:
-        "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
-    },
-  });
+  }).populate(COMPANY_POPULATE);
 
-  if (!user) {
-    await User.updateOne({ _id: target._id }, { $inc: { phoneOtpAttempts: 1 } });
+  if (!matched.length) {
+    await User.updateMany(
+      { _id: { $in: targetIds } },
+      { $inc: { phoneOtpAttempts: 1 } },
+    );
     res.status(401);
     throw new Error("Invalid or expired OTP");
   }
 
-  if (user.status === "inactive") {
+  const active = matched.filter((u) => u.status !== "inactive");
+  if (!active.length) {
     res.status(403);
     throw new Error("Your account has been deactivated. Please contact HR.");
   }
 
-  if (user.company && user.role !== "super_admin") {
-    const subscription = await Subscription.findOne({
-      company: user.company._id,
-      status: { $in: ["active", "pending_renewal"] },
-    });
-    if (!subscription || subscription.paymentStatus !== "completed") {
-      res.status(403);
-      throw new Error(
-        "No active subscription. Please contact your administrator.",
-      );
-    }
-    if (
-      subscription.isTrial &&
-      subscription.trialEndDate &&
-      subscription.trialEndDate < new Date()
-    ) {
-      res.status(403);
-      throw new Error(
-        "Your 2-month free trial has expired. Please subscribe to continue.",
-      );
-    }
+  const eligible = [];
+  let firstBlock = null;
+  for (const u of active) {
+    const blocked = await companyAccessError(u);
+    if (blocked) firstBlock = firstBlock || blocked;
+    else eligible.push(u);
+  }
+  if (!eligible.length) {
+    res.status(firstBlock.status);
+    throw new Error(firstBlock.message);
   }
 
-  user.phoneOtp = undefined;
-  user.phoneOtpExpire = undefined;
-  user.phoneOtpAttempts = 0;
+  // The code is single-use whichever branch we take.
+  await User.updateMany(
+    { _id: { $in: targetIds } },
+    { $set: { phoneOtpAttempts: 0 }, $unset: { phoneOtp: 1, phoneOtpExpire: 1 } },
+  );
+
+  if (eligible.length > 1) {
+    const selectionToken = jwt.sign(
+      { purpose: "academy-select", ids: eligible.map((u) => String(u._id)) },
+      process.env.JWT_SECRET,
+      { expiresIn: SELECTION_TTL },
+    );
+    return res.json({
+      success: true,
+      data: {
+        requiresAcademySelection: true,
+        selectionToken,
+        accounts: eligible.map(academyChoice),
+      },
+    });
+  }
+
+  const user = eligible[0];
   user.lastLogin = new Date();
   await user.save();
+  res.json({ success: true, data: sessionPayload(user, { viaOtp: true }) });
+});
 
+// Phone OTP — step 3 (only when verifyOtp offered several academies).
+const selectAcademy = asyncHandler(async (req, res) => {
+  const { selectionToken, userId } = req.body;
+  if (!selectionToken || !userId) {
+    res.status(400);
+    throw new Error("Selection token and academy are required");
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(selectionToken, process.env.JWT_SECRET);
+  } catch {
+    res.status(401);
+    throw new Error("Selection expired. Please log in again.");
+  }
+  if (
+    decoded.purpose !== "academy-select" ||
+    !Array.isArray(decoded.ids) ||
+    !decoded.ids.includes(String(userId))
+  ) {
+    res.status(403);
+    throw new Error("Invalid academy selection");
+  }
+
+  const user = await User.findById(userId).populate(COMPANY_POPULATE);
+  if (!user || user.status === "inactive") {
+    res.status(403);
+    throw new Error("Your account has been deactivated. Please contact HR.");
+  }
+  const blocked = await companyAccessError(user);
+  if (blocked) {
+    res.status(blocked.status);
+    throw new Error(blocked.message);
+  }
+
+  user.lastLogin = new Date();
+  await user.save();
+  res.json({ success: true, data: sessionPayload(user, { viaOtp: true }) });
+});
+
+// Other academy accounts on the signed-in user's phone. Only OTP sessions
+// qualify: a phone number alone is just a label an academy admin typed in,
+// so password sessions must not be able to hop onto another academy's account.
+async function siblingAccounts(req) {
+  if (!req.tokenClaims?.otp || !req.user.phone) return [];
+  const users = await User.find({
+    phone: { $in: phoneVariants(to10(req.user.phone)) },
+    status: { $ne: "inactive" },
+  }).populate(COMPANY_POPULATE);
+  const usable = [];
+  for (const u of users) {
+    if (String(u._id) === String(req.user._id) || !(await companyAccessError(u))) {
+      usable.push(u);
+    }
+  }
+  return usable;
+}
+
+const listAcademies = asyncHandler(async (req, res) => {
+  const accounts = await siblingAccounts(req);
   res.json({
     success: true,
     data: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      phone: user.phone,
-      status: user.status,
-      department: user.department,
-      company: user.company,
-      token: generateToken(user._id),
+      currentUserId: req.user._id,
+      accounts: accounts.length > 1 ? accounts.map(academyChoice) : [],
     },
   });
+});
+
+const switchAcademy = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  const accounts = await siblingAccounts(req);
+  const target = accounts.find((u) => String(u._id) === String(userId));
+  if (!target) {
+    res.status(403);
+    throw new Error("You can't switch to that academy");
+  }
+  target.lastLogin = new Date();
+  await target.save();
+  res.json({ success: true, data: sessionPayload(target, { viaOtp: true }) });
 });
 
 // ── Password reset via WhatsApp code / authenticator app ──────────────────
@@ -780,6 +940,12 @@ module.exports = {
   verify2FA,
   sendOtp,
   verifyOtp,
+  selectAcademy,
+  listAcademies,
+  switchAcademy,
+  selectAcademy,
+  listAcademies,
+  switchAcademy,
   forgotPasswordMethods,
   forgotPasswordWhatsapp,
   resetPasswordWithOtp,

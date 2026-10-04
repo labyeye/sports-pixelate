@@ -124,6 +124,8 @@ export default function SportSummaryReportScreen() {
       </View>
 
       <FilterPills
+
+        inset
         options={[
           { value: '', label: 'All Sports' },
           ...sports.map(s => ({ value: s, label: s })),

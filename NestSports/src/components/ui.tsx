@@ -133,6 +133,26 @@ export function Badge({
   );
 }
 
+// Soft-tinted pill with a black outline and hard bottom/right shadow — the
+// same status chip the web Students table uses (pale fill, colored label).
+export function StatusPill({
+  label,
+  color,
+  bg,
+}: {
+  label: string;
+  color: string;
+  bg?: string;
+}) {
+  return (
+    <View style={[styles.statusPill, { backgroundColor: bg || color + '1A' }]}>
+      <Text style={[styles.statusPillText, { color }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 export function EmptyState({
   title,
   sub,
@@ -172,11 +192,14 @@ export function KpiTile({
   sub,
   color = colors.blue,
   icon: Icon,
+  solid,
 }: {
   label: string;
   value: string | number;
   sub?: string;
   color?: string;
+  // Solid color chip with a white icon — the web dashboard's KPI-card look.
+  solid?: boolean;
   // Bordered icon chip, matching NestHR's stat-card formula. Falls back to a
   // plain color dot when no icon is given.
   icon?: LucideIcon;
@@ -187,10 +210,16 @@ export function KpiTile({
         <View
           style={[
             styles.kpiIconWrap,
-            { backgroundColor: color + '1A', borderColor: color },
+            solid
+              ? { backgroundColor: color, borderColor: colors.black }
+              : { backgroundColor: color + '1A', borderColor: color },
           ]}
         >
-          <Icon size={20} color={color} strokeWidth={2.5} />
+          <Icon
+            size={20}
+            color={solid ? colors.white : color}
+            strokeWidth={2.5}
+          />
         </View>
       ) : (
         <View style={[styles.kpiDot, { backgroundColor: color }]} />
@@ -525,16 +554,23 @@ export function FilterPills<T extends string>({
   options,
   value,
   onChange,
+  inset,
 }: {
   options: { value: T; label: string; count?: number }[];
   value: T;
   onChange: (v: T) => void;
+  // Adds 16px side gutters — for bars that sit edge-to-edge on the screen
+  // rather than inside an already-padded container/card.
+  inset?: boolean;
 }) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, alignItems: 'center' }}
+      contentContainerStyle={[
+        styles.pillContent,
+        inset && { paddingHorizontal: 16 },
+      ]}
       style={styles.pillScroll}
     >
       {options.map(opt => {
@@ -1130,6 +1166,25 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
+  statusPill: {
+    borderWidth: 2,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderColor: colors.black,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+  },
+  statusPillText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   empty: { padding: 24, alignItems: 'center' },
   emptyTitle: { ...textStyle, fontSize: 14 },
   emptySub: {
@@ -1292,7 +1347,8 @@ const styles = StyleSheet.create({
     color: colors.black,
     padding: 0,
   },
-  pillScroll: { flexGrow: 0, height: 40, marginBottom: 12 },
+  pillScroll: { flexGrow: 0, flexShrink: 0, marginBottom: 6 },
+  pillContent: { gap: 10, alignItems: 'center', paddingVertical: 8 },
   statPillScroll: { flexGrow: 0, marginBottom: 12 },
   statPillContent: { gap: 8, paddingVertical: 2 },
   statPill: {
@@ -1315,18 +1371,21 @@ const styles = StyleSheet.create({
   },
   pill: {
     borderWidth: 2,
-    borderRadius: 8,
+    borderRadius: 10,
     borderColor: colors.black,
     backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pillActive: { backgroundColor: colors.blue },
   pillText: {
     fontFamily: FONT.bold,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.black,
   },
   pillTextActive: { color: colors.white },

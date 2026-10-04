@@ -47,6 +47,14 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
     feeDueDay,
     feeGraceDays,
     studentFaceAttendanceEnabled,
+    studentAttendanceTimeMode,
+    studentAutoLateEnabled,
+    studentLateGraceMinutes,
+    studentAutoAbsentEnabled,
+    studentAbsentAfterEndMinutes,
+    paymentLinkEnabled,
+    paymentLinkDay,
+    paymentLinkHour,
   } = req.body;
 
   // Fee-lock fields are optional so older clients that don't send them
@@ -62,6 +70,41 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
     studentFaceAttendanceEnabled !== undefined
       ? { studentFaceAttendanceEnabled: Boolean(studentFaceAttendanceEnabled) }
       : {};
+
+  const timeMode =
+    studentAttendanceTimeMode === "single" ||
+    studentAttendanceTimeMode === "in_out"
+      ? { studentAttendanceTimeMode }
+      : {};
+
+  // Optional so older clients that don't send them can't reset the owner's
+  // automatic late/absent configuration.
+  const clampInt = (v, max) =>
+    Math.min(max, Math.max(0, Math.floor(Number(v) || 0)));
+  const autoMarking = {};
+  if (studentAutoLateEnabled !== undefined)
+    autoMarking.studentAutoLateEnabled = Boolean(studentAutoLateEnabled);
+  if (studentLateGraceMinutes !== undefined)
+    autoMarking.studentLateGraceMinutes = clampInt(studentLateGraceMinutes, 240);
+  if (studentAutoAbsentEnabled !== undefined)
+    autoMarking.studentAutoAbsentEnabled = Boolean(studentAutoAbsentEnabled);
+  if (studentAbsentAfterEndMinutes !== undefined)
+    autoMarking.studentAbsentAfterEndMinutes = clampInt(
+      studentAbsentAfterEndMinutes,
+      720,
+    );
+
+  // Optional like the fields above: older clients can't reset the schedule.
+  const paymentLink = {};
+  if (paymentLinkEnabled !== undefined)
+    paymentLink.paymentLinkEnabled = Boolean(paymentLinkEnabled);
+  if (paymentLinkDay !== undefined)
+    paymentLink.paymentLinkDay = Math.min(
+      28,
+      Math.max(1, Math.floor(Number(paymentLinkDay) || 1)),
+    );
+  if (paymentLinkHour !== undefined)
+    paymentLink.paymentLinkHour = clampInt(paymentLinkHour, 23);
 
   const rule = await DeductionRule.findOneAndUpdate(
     { company: req.user.company },
@@ -81,6 +124,9 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
         earlyCheckoutDeductionEnabled: Boolean(earlyCheckoutDeductionEnabled),
         ...feeLock,
         ...faceFlag,
+        ...timeMode,
+        ...autoMarking,
+        ...paymentLink,
       },
     },
     { upsert: true, new: true },
@@ -90,6 +136,17 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
   invalidateFeeRule(req.user.company);
 
   res.json({ success: true, data: rule });
+});
+
+// Readable by any logged-in user (coaches mark student attendance too).
+const getStudentTimeMode = asyncHandler(async (req, res) => {
+  const rule = await DeductionRule.findOne({
+    company: req.user.company,
+  }).select("studentAttendanceTimeMode");
+  res.json({
+    success: true,
+    data: { mode: rule?.studentAttendanceTimeMode || "in_out" },
+  });
 });
 
 const upsertLateAllowance = asyncHandler(async (req, res) => {
@@ -193,4 +250,5 @@ module.exports = {
   upsertLeaveAllowance,
   getBalanceSummary,
   getMyBalance,
+  getStudentTimeMode,
 };

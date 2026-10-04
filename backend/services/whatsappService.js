@@ -431,6 +431,38 @@ async function sendStudentCheckIn(
 }
 
 /**
+ * Template: nestplay_fee_payment_link
+ * Body:  Hi {{1}}, the {{2}} fee for {{3}} is due. Amount: {{4}}. Pay securely online: {{5}}
+ * Returns { status: "sent" | "skipped" | "failed", error? } so the monthly job
+ * can tell "WhatsApp is off for this academy" from a delivery failure.
+ */
+async function sendFeePaymentLink(
+  phone,
+  { guardianName, studentName, planName, amount, url },
+  companyId,
+) {
+  try {
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    if (!s) return { status: "skipped", error: "WhatsApp is not enabled" };
+    const inr = new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+    await sendTemplate(
+      phone,
+      "nestplay_fee_payment_link",
+      [guardianName || "there", planName, studentName, inr, url],
+      s.whatsappLang || "en",
+    );
+    return { status: "sent" };
+  } catch (err) {
+    console.error("[WhatsApp] sendFeePaymentLink:", err.message);
+    return { status: "failed", error: err.message };
+  }
+}
+
+/**
  * Template: nestplay_student_checkout
  * Body:  Hi {{1}}, {{2}} checked out at {{3}} at {{4}}.
  */
@@ -1125,6 +1157,7 @@ module.exports = {
   sendCheckOutHR,
   sendStudentCheckIn,
   sendStudentCheckOut,
+  sendFeePaymentLink,
   sendLeaveSubmitted,
   sendLeaveApproved,
   sendLeaveRejected,

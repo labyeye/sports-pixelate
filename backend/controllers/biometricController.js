@@ -6,6 +6,18 @@ const BiometricCommand = require("../models/BiometricCommand");
 const BiometricLog = require("../models/BiometricLog");
 const Attendance = require("../models/Attendance");
 const StudentAttendance = require("../models/StudentAttendance");
+const { resolvePresentStatus } = require("../utils/studentAttendanceRules");
+
+// A device check-in is "late" past the 15-minute grace. A repeat punch never
+// changes a status that is already settled for the day (e.g. keeps "late").
+async function studentCheckInStatus(companyId, studentId, dateOnly, now) {
+  const existing = await StudentAttendance.findOne({
+    student: studentId,
+    date: dateOnly,
+  }).select("status");
+  if (existing && existing.status !== "absent") return existing.status;
+  return resolvePresentStatus(companyId, studentId, dateOnly, now);
+}
 const Employee = require("../models/Employee");
 const Student = require("../models/Student");
 const User = require("../models/User");
@@ -626,7 +638,12 @@ const recordBiometric = asyncHandler(async (req, res) => {
     };
     if (logType === "check_in") {
       attendanceUpdate.checkIn = now;
-      attendanceUpdate.status = "present";
+      attendanceUpdate.status = await studentCheckInStatus(
+        person.company,
+        person._id,
+        studentDate,
+        now,
+      );
       attendanceUpdate.verifyMode =
         method === "nfc" ? "card" : method === "face" ? "face" : "manual";
     } else {
@@ -1392,7 +1409,12 @@ const faceAttendance = asyncHandler(async (req, res) => {
     };
     if (logType === "check_in") {
       attendanceUpdate.checkIn = now;
-      attendanceUpdate.status = "present";
+      attendanceUpdate.status = await studentCheckInStatus(
+        bestMatch.company,
+        bestMatch._id,
+        studentDate,
+        now,
+      );
     } else {
       attendanceUpdate.checkOut = now;
     }

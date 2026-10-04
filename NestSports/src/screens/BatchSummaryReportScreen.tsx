@@ -127,6 +127,8 @@ export default function BatchSummaryReportScreen() {
       </View>
 
       <FilterPills
+
+        inset
         options={[
           { value: '', label: 'All Batches' },
           ...batches.map(b => ({ value: b, label: b })),

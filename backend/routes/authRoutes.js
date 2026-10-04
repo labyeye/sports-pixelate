@@ -13,6 +13,9 @@ const {
   verify2FA,
   sendOtp,
   verifyOtp,
+  selectAcademy,
+  listAcademies,
+  switchAcademy,
   forgotPasswordMethods,
   forgotPasswordWhatsapp,
   resetPasswordWithOtp,
@@ -74,6 +77,10 @@ router.post("/phone/verify-otp", protect, authLimit, verifyPhoneVerifyOtp);
 
 router.post("/otp/send", sensitiveLimit, sendOtp);
 router.post("/otp/verify", sensitiveLimit, verifyOtp);
+// Parent in several academies: pick one after OTP, or hop between them later.
+router.post("/otp/select-academy", authLimit, selectAcademy);
+router.get("/academies", protect, listAcademies);
+router.post("/switch-academy", protect, authLimit, switchAcademy);
 
 router.post("/2fa/setup", protect, requirePlanFeature("twoFactor"), setup2FA);
 router.post(

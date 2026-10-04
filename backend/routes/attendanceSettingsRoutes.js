@@ -8,9 +8,11 @@ const {
   upsertLeaveAllowance,
   getBalanceSummary,
   getMyBalance,
+  getStudentTimeMode,
 } = require("../controllers/attendanceSettingsController");
 
 router.get("/my-balance", protect, getMyBalance);
+router.get("/student-time-mode", protect, getStudentTimeMode);
 
 router.use(protect, authorize("super_admin", "hr_manager"));
 

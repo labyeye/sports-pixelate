@@ -29,6 +29,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    RNSplashScreen.show() // react-native-splash-screen: keep the launch screen up until JS hides it
+
     return true
   }
 }

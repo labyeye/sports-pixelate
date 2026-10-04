@@ -663,9 +663,24 @@ export default function SubscriptionsPage() {
   }, [filtered, sortKey, sortDir]);
 
   const activeCount = subscriptions.filter((s) => s.status === "active").length;
-  const monthlyRevenue = subscriptions
-    .filter((s) => s.status === "active" && s.billingCycle === "monthly")
-    .reduce((sum, s) => sum + s.amount, 0);
+  // Same definition as the dashboard's "Collected": verified payments whose
+  // verifiedAt falls in the current month.
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const monthlyRevenue = subscriptions.reduce(
+    (sum, s: any) =>
+      sum +
+      (Array.isArray(s.payments) ? s.payments : [])
+        .filter(
+          (p: any) =>
+            p.status === "verified" &&
+            p.verifiedAt &&
+            new Date(p.verifiedAt) >= monthStart,
+        )
+        .reduce((a: number, p: any) => a + (p.amount || 0), 0),
+    0,
+  );
 
   return (
     <AppLayout title="Subscriptions">
@@ -754,7 +769,7 @@ export default function SubscriptionsPage() {
           </div>
           <div>
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Monthly Revenue
+              Collected This Month
             </p>
             <p className="text-2xl font-bold text-black">
               ₹{monthlyRevenue.toLocaleString("en-IN")}

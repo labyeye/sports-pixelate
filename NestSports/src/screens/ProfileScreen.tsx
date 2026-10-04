@@ -6,7 +6,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import {
+  Pencil,
+  KeyRound,
+  MessageCircle,
+  ShieldCheck,
+  X,
+} from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   launchCamera,
@@ -16,15 +26,9 @@ import {
 import { cropFile } from '../utils/cropImage';
 import { authAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  Card,
-  SectionTitle,
-  TextField,
-  Button,
-  Avatar,
-  Badge,
-} from '../components/ui';
-import { colors } from '../theme/colors';
+import { Card, SectionTitle, TextField, Button, Badge } from '../components/ui';
+import { ActionTile, ProfileHero, SOFT } from '../components/profile';
+import { colors, FONT } from '../theme/colors';
 import { notifyError } from '../utils/notifyError';
 
 function uriToBase64(uri: string): Promise<string> {
@@ -122,7 +126,10 @@ function PhoneVerifyCard({ phone }: { phone: string }) {
       setOtp('');
       Alert.alert('Verified', 'WhatsApp number verified');
     } catch (e: unknown) {
-      Alert.alert('Verification failed', (e as Error)?.message || 'Invalid code');
+      Alert.alert(
+        'Verification failed',
+        (e as Error)?.message || 'Invalid code',
+      );
     } finally {
       setBusy(false);
     }
@@ -161,11 +168,23 @@ export default function ProfileScreen({ navigation }: any) {
   const [avatar, setAvatar] = useState(user?.avatar || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [me, setMe] = useState<any>(null);
+  const [editField, setEditField] = useState<'name' | 'phone'>('name');
+  const [sheet, setSheet] = useState<
+    'profile' | 'password' | 'whatsapp' | null
+  >(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [nextPassword, setNextPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+
+  useEffect(() => {
+    authAPI
+      .getMe()
+      .then((r: any) => setMe(r?.data || null))
+      .catch(notifyError);
+  }, []);
 
   const handleAvatarPick = () => {
     pickAvatar(async uri => {
@@ -178,7 +197,10 @@ export default function ProfileScreen({ navigation }: any) {
           updateUser({ avatar: res.data.avatar || base64 });
         }
       } catch (e: unknown) {
-        Alert.alert('Upload failed', (e as Error)?.message || 'Could not update photo');
+        Alert.alert(
+          'Upload failed',
+          (e as Error)?.message || 'Could not update photo',
+        );
       } finally {
         setUploadingAvatar(false);
       }
@@ -188,15 +210,20 @@ export default function ProfileScreen({ navigation }: any) {
   const handleSaveProfile = async () => {
     if (!name.trim()) {
       Alert.alert('Required Field Missing', 'Please enter your name');
-      return;
+      return false;
     }
     setSavingProfile(true);
     try {
       await authAPI.updateProfile({ name, phone });
       updateUser({ name, phone });
       Alert.alert('Saved', 'Profile updated successfully');
+      return true;
     } catch (e: unknown) {
-      Alert.alert('Save failed', (e as Error)?.message || 'Could not update profile');
+      Alert.alert(
+        'Save failed',
+        (e as Error)?.message || 'Could not update profile',
+      );
+      return false;
     } finally {
       setSavingProfile(false);
     }
@@ -208,14 +235,14 @@ export default function ProfileScreen({ navigation }: any) {
         'Required Field Missing',
         'Please fill in both password fields',
       );
-      return;
+      return false;
     }
     if (nextPassword !== confirmPassword) {
       Alert.alert(
         "Passwords don't match",
         'New password and confirmation must match',
       );
-      return;
+      return false;
     }
     setChangingPassword(true);
     try {
@@ -224,100 +251,366 @@ export default function ProfileScreen({ navigation }: any) {
       setNextPassword('');
       setConfirmPassword('');
       Alert.alert('Success', 'Password changed successfully');
+      return true;
     } catch (e: unknown) {
-      Alert.alert('Change failed', (e as Error)?.message || 'Could not change password');
+      Alert.alert(
+        'Change failed',
+        (e as Error)?.message || 'Could not change password',
+      );
+      return false;
     } finally {
       setChangingPassword(false);
     }
   };
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16 }}>
-        <Text style={styles.title}>My Profile</Text>
-        <Text style={styles.subtitle}>Manage your account details</Text>
+  const roleLabel = ROLE_LABEL[user?.role || ''] || user?.role || '';
+  const fmtDate = (d?: string) =>
+    d
+      ? new Date(d).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '';
+  const deptName =
+    typeof me?.department === 'object' ? me.department?.name : me?.department;
+  // `field` marks what the backend lets a user change; the rest is managed by
+  // the academy, so their pencil only explains that.
+  const details: {
+    label: string;
+    value: string;
+    field?: 'name' | 'phone';
+  }[] = [
+    { label: 'Name', value: name, field: 'name' },
+    { label: 'Phone', value: phone, field: 'phone' },
+    { label: 'Email', value: me?.email || user?.email || '' },
+    { label: 'Role', value: roleLabel },
+    { label: 'Employee ID', value: me?.employeeId || '' },
+    { label: 'Department', value: deptName || '' },
+    { label: 'Academy', value: me?.company?.name || user?.company?.name || '' },
+    ...(me?.role === 'parent'
+      ? [{ label: 'Children', value: String(me?.children?.length ?? 0) }]
+      : []),
+    {
+      label: 'Status',
+      value: me?.status ? String(me.status).toUpperCase() : '',
+    },
+    { label: '2FA', value: me?.twoFactorEnabled ? 'Enabled' : 'Off' },
+    {
+      label: 'WhatsApp',
+      value: me?.phoneVerified ? 'Verified' : 'Not verified',
+    },
+    { label: 'Member since', value: fmtDate(me?.createdAt) },
+    { label: 'Last login', value: fmtDate(me?.lastLogin) },
+  ];
 
-        <Card>
-          <View style={{ alignItems: 'center', marginBottom: 16 }}>
-            <Avatar
-              uri={avatar}
-              name={name}
-              size={84}
-              onPress={handleAvatarPick}
-            />
-            {uploadingAvatar ? (
-              <Text style={styles.uploadingText}>Uploading…</Text>
-            ) : null}
-          </View>
+  const onPencil = (d: { label: string; field?: 'name' | 'phone' }) => {
+    if (d.field) {
+      setEditField(d.field);
+      setSheet('profile');
+    } else {
+      Alert.alert(
+        d.label,
+        'This detail is managed by your academy and cannot be changed here.',
+      );
+    }
+  };
+
+  return (
+    <SafeAreaView
+      edges={['top']}
+      style={[styles.screen, { backgroundColor: colors.white }]}
+    >
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ProfileHero
+          uri={avatar}
+          name={name || 'Your name'}
+          subtitle={roleLabel}
+          onCamera={handleAvatarPick}
+        />
+        {uploadingAvatar ? (
+          <Text style={styles.uploadingText}>Uploading photo…</Text>
+        ) : null}
+
+        <View style={styles.detailsBox}>
+          {details.map((d, i) => (
+            <View
+              key={d.label}
+              style={[
+                styles.detailRow,
+                i === details.length - 1 && styles.detailRowLast,
+              ]}
+            >
+              <View style={styles.detailText}>
+                <Text style={styles.detailLabel}>{d.label}</Text>
+                <Text style={styles.detailValue}>{d.value || '—'}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.pencilBtn}
+                onPress={() => onPencil(d)}
+                hitSlop={8}
+                activeOpacity={0.8}
+              >
+                <Pencil size={14} color={colors.white} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.tileRow}>
+          <ActionTile
+            brutal
+            icon={KeyRound}
+            title="Password"
+            sub="Change password"
+            onPress={() => setSheet('password')}
+          />
+          <ActionTile
+            brutal
+            icon={MessageCircle}
+            title="WhatsApp"
+            sub="Verify your number"
+            onPress={() => setSheet('whatsapp')}
+          />
+        </View>
+        <View style={styles.tileRow}>
+          <ActionTile
+            brutal
+            icon={ShieldCheck}
+            title="2FA Security"
+            sub="Authenticator app"
+            onPress={() => navigation.navigate('TwoFactor')}
+          />
+          <View style={{ flex: 1 }} />
+        </View>
+      </ScrollView>
+
+      <Sheet
+        visible={sheet === 'profile'}
+        title={editField === 'name' ? 'Edit Name' : 'Edit Phone'}
+        onClose={() => setSheet(null)}
+      >
+        {editField === 'name' ? (
           <TextField
             label="Full Name"
             required
             value={name}
             onChangeText={setName}
           />
+        ) : (
           <TextField
             label="Phone"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
           />
-          <View style={{ marginBottom: 14 }}>
-            <Text style={styles.fieldLabel}>Email</Text>
-            <Text style={styles.readonlyValue}>{user?.email || '—'}</Text>
-          </View>
-          <Button
-            title="Save Profile"
-            onPress={handleSaveProfile}
-            loading={savingProfile}
-          />
-        </Card>
+        )}
+        <Button
+          title="Save"
+          onPress={async () => {
+            if (await handleSaveProfile()) {
+              setSheet(null);
+              authAPI
+                .getMe()
+                .then((r: any) => setMe(r?.data || null))
+                .catch(notifyError);
+            }
+          }}
+          loading={savingProfile}
+        />
+      </Sheet>
 
-        <PhoneVerifyCard phone={user?.phone || ''} />
+      <Sheet
+        visible={sheet === 'password'}
+        title="Change Password"
+        onClose={() => setSheet(null)}
+      >
+        <TextField
+          label="Current Password"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry
+        />
+        <TextField
+          label="New Password"
+          value={nextPassword}
+          onChangeText={setNextPassword}
+          secureTextEntry
+        />
+        <TextField
+          label="Confirm New Password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+        />
+        <Button
+          title="Change Password"
+          onPress={async () => {
+            if (await handleChangePassword()) setSheet(null);
+          }}
+          loading={changingPassword}
+        />
+      </Sheet>
 
-        <Card>
-          <SectionTitle title="Change Password" />
-          <TextField
-            label="Current Password"
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            secureTextEntry
-          />
-          <TextField
-            label="New Password"
-            value={nextPassword}
-            onChangeText={setNextPassword}
-            secureTextEntry
-          />
-          <TextField
-            label="Confirm New Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-          <Button
-            title="Change Password"
-            onPress={handleChangePassword}
-            loading={changingPassword}
-            variant="outline"
-          />
-        </Card>
-
-        <TouchableOpacity
-          onPress={() => navigation.navigate('TwoFactor')}
-          style={styles.linkRow}
-        >
-          <Text style={styles.linkText}>2FA Security →</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <Sheet
+        visible={sheet === 'whatsapp'}
+        title="WhatsApp Verification"
+        onClose={() => setSheet(null)}
+      >
+        {user?.phone ? (
+          <PhoneVerifyCard phone={user.phone} />
+        ) : (
+          <Text style={styles.readonlyValue}>
+            Save a phone number first, then come back to verify it.
+          </Text>
+        )}
+      </Sheet>
     </SafeAreaView>
   );
 }
 
+// Bottom sheet that holds the forms, so the profile page itself stays a clean
+// card layout instead of a long stack of inputs.
+function Sheet({
+  visible,
+  title,
+  onClose,
+  children,
+}: {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        style={styles.sheetWrap}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={8}>
+              <X size={20} color={SOFT.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            {children}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: 'Owner',
+  hr_manager: 'Manager',
+  hr_executive: 'Executive',
+  department_head: 'Department Head',
+  employee: 'Staff / Coach',
+  parent: 'Parent',
+};
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
-  subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
-  uploadingText: { color: colors.muted, fontSize: 12, marginTop: 6 },
+  content: { padding: 16, paddingBottom: 32 },
+  uploadingText: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  tileRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  emailBlock: { marginBottom: 14 },
+  sheetWrap: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: '#0F172A66',
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderWidth: 2,
+    borderBottomWidth: 0,
+    borderColor: colors.black,
+    padding: 20,
+    paddingBottom: 32,
+    maxHeight: '85%',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    color: SOFT.text,
+    textTransform: 'uppercase',
+  },
+  detailsBox: {
+    marginTop: 14,
+    borderWidth: 2,
+    borderColor: colors.black,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.black,
+  },
+  detailRowLast: { borderBottomWidth: 0 },
+  detailText: { flex: 1 },
+  detailLabel: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  detailValue: {
+    fontFamily: FONT.bold,
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.black,
+    marginTop: 2,
+  },
+  pencilBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   fieldLabel: {
     fontWeight: '700',
     fontSize: 11,

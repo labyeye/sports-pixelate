@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { studentAPI, studentAttendanceAPI } from "@/services/api";
+import {
+  studentAPI,
+  studentAttendanceAPI,
+  attendanceSettingsAPI,
+} from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
@@ -137,6 +141,13 @@ function toDateStr(d: Date) {
 export default function StudentAttendancePage() {
   const { toast } = useToast();
   const [date, setDate] = useState(toDateStr(new Date()));
+  const [singleTime, setSingleTime] = useState(false);
+  useEffect(() => {
+    attendanceSettingsAPI
+      .getStudentTimeMode()
+      .then((r: any) => setSingleTime(r?.data?.mode === "single"))
+      .catch(() => {});
+  }, []);
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<Record<string, Status>>({});
   const [times, setTimes] = useState<
@@ -207,7 +218,11 @@ export default function StudentAttendancePage() {
         ),
       );
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -248,7 +263,11 @@ export default function StudentAttendancePage() {
       });
     } catch (e: unknown) {
       if (handleFeeBlock(e)) return;
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setPunchingId(null);
     }
@@ -337,26 +356,36 @@ export default function StudentAttendancePage() {
       if (blocked.length) setFeeBlock(blocked);
       await load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
   };
 
+  // Only students scheduled on the selected date; anyone already marked that
+  // day stays visible so recorded attendance never disappears.
+  const scheduledStudents = students.filter(
+    (s) => marks[s._id] || isSessionDay(s, date),
+  );
+
   const summary = {
-    total: students.length,
+    total: scheduledStudents.length,
     present: students.filter((s) => marks[s._id] === "present").length,
     late: students.filter((s) => marks[s._id] === "late").length,
     absent: students.filter((s) => marks[s._id] === "absent").length,
     excused: students.filter((s) => marks[s._id] === "excused").length,
-    unmarked: students.filter((s) => !marks[s._id]).length,
+    unmarked: scheduledStudents.filter((s) => !marks[s._id]).length,
   };
 
   const displayedStudents = activeFilter
     ? activeFilter === ("unmarked" as any)
-      ? students
-      : students.filter((s) => marks[s._id] === activeFilter)
-    : students;
+      ? scheduledStudents.filter((s) => !marks[s._id])
+      : scheduledStudents.filter((s) => marks[s._id] === activeFilter)
+    : scheduledStudents;
 
   return (
     <AppLayout title="Student Attendance">
@@ -607,7 +636,7 @@ export default function StudentAttendancePage() {
                 {[
                   "Student",
                   "Sport / Batch",
-                  "Check In / Out",
+                  singleTime ? "Time" : "Check In / Out",
                   "Status",
                   "",
                 ].map((h) => (
@@ -713,24 +742,28 @@ export default function StudentAttendancePage() {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })
-                            : "Check In"}
+                            : singleTime
+                              ? "Set Time"
+                              : "Check In"}
                         </button>
-                        <button
-                          onClick={() => punch(s._id, "checkout")}
-                          disabled={punchingId === s._id}
-                          className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#FA731C]/10 hover:border-[#FA731C] disabled:opacity-50"
-                          title="Check out now"
-                        >
-                          <LogOut className="w-3 h-3" />
-                          {times[s._id]?.checkOut
-                            ? new Date(
-                                times[s._id].checkOut!,
-                              ).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : "Check Out"}
-                        </button>
+                        {!singleTime && (
+                          <button
+                            onClick={() => punch(s._id, "checkout")}
+                            disabled={punchingId === s._id}
+                            className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#FA731C]/10 hover:border-[#FA731C] disabled:opacity-50"
+                            title="Check out now"
+                          >
+                            <LogOut className="w-3 h-3" />
+                            {times[s._id]?.checkOut
+                              ? new Date(
+                                  times[s._id].checkOut!,
+                                ).toLocaleTimeString("en-IN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Check Out"}
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -815,7 +848,7 @@ export default function StudentAttendancePage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-black mb-1">
-                  Check In
+                  {singleTime ? "Time" : "Check In"}
                 </label>
                 <input
                   type="datetime-local"
@@ -826,19 +859,21 @@ export default function StudentAttendancePage() {
                   className="border-2 w-full px-3 py-2 text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-black mb-1">
-                  Check Out
-                </label>
-                <input
-                  type="datetime-local"
-                  value={editForm.checkOut}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, checkOut: e.target.value })
-                  }
-                  className="border-2 w-full px-3 py-2 text-sm"
-                />
-              </div>
+              {!singleTime && (
+                <div>
+                  <label className="block text-xs font-bold text-black mb-1">
+                    Check Out
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editForm.checkOut}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, checkOut: e.target.value })
+                    }
+                    className="border-2 w-full px-3 py-2 text-sm"
+                  />
+                </div>
+              )}
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"

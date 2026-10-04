@@ -44,7 +44,7 @@ import {
   RNFile,
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
-import { DateTimeField, FilterPills } from '../components/ui';
+import { DateTimeField, FilterPills, StatusPill } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -110,6 +110,13 @@ function timeToISO(dateStr: string, timeStr: string): string | undefined {
   return `${dateStr}T${timeStr}:00+05:30`;
 }
 
+function nowTime(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(
+    d.getMinutes(),
+  ).padStart(2, '0')}`;
+}
+
 function isoToTime(iso: string | undefined): string {
   if (!iso) return '';
   return new Date(iso).toLocaleTimeString('en-IN', {
@@ -131,7 +138,7 @@ export default function AttendanceScreen() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedEmpId, setSelectedEmpId] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editRecord, setEditRecord] = useState<any | null>(null);
   const [form, setForm] = useState({
     status: 'present',
@@ -146,12 +153,6 @@ export default function AttendanceScreen() {
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
   });
-
-  // Bulk modal state
-  const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState('present');
-  const [bulkSelected, setBulkSelected] = useState<string[]>([]);
-  const [bulkSaving, setBulkSaving] = useState(false);
 
   // Correction states
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
@@ -257,7 +258,8 @@ export default function AttendanceScreen() {
         } catch (e: unknown) {
           Alert.alert(
             'Error',
-            getErrorMessage(e) || 'Face enrollment failed. Try a clear, well-lit photo.',
+            getErrorMessage(e) ||
+              'Face enrollment failed. Try a clear, well-lit photo.',
           );
         } finally {
           setEnrolling(false);
@@ -312,7 +314,10 @@ export default function AttendanceScreen() {
             );
             await load(false);
           } catch (e: unknown) {
-            Alert.alert('Error', getErrorMessage(e) || 'Could not mark attendance');
+            Alert.alert(
+              'Error',
+              getErrorMessage(e) || 'Could not mark attendance',
+            );
           } finally {
             setSelfMarking(null);
           }
@@ -425,15 +430,15 @@ export default function AttendanceScreen() {
 
   const openNew = () => {
     setEditRecord(null);
-    setSelectedEmpId('');
-    setForm({ status: 'present', checkIn: '', checkOut: '', notes: '' });
+    setSelectedIds([]);
+    setForm({ status: 'present', checkIn: nowTime(), checkOut: '', notes: '' });
     setShowModal(true);
   };
 
   const openMarkForEmp = (empId: string) => {
     setEditRecord(null);
-    setSelectedEmpId(empId);
-    setForm({ status: 'present', checkIn: '', checkOut: '', notes: '' });
+    setSelectedIds([empId]);
+    setForm({ status: 'present', checkIn: nowTime(), checkOut: '', notes: '' });
     setShowModal(true);
   };
 
@@ -466,7 +471,7 @@ export default function AttendanceScreen() {
   const openEdit = (record: any) => {
     setEditRecord(record);
     const emp = record.employee;
-    setSelectedEmpId(emp?._id || '');
+    setSelectedIds(emp?._id ? [emp._id] : []);
     setForm({
       status: record.status,
       checkIn: isoToTime(record.checkIn),
@@ -480,6 +485,11 @@ export default function AttendanceScreen() {
     setShowModal(false);
     setEditRecord(null);
   };
+
+  // Weekend-off employees are skipped from multi-select, as bulk did before.
+  const eligibleEmployees = employees.filter(
+    e => !isWeekendForEmployee(dateFilter, e),
+  );
 
   const mergedRows = isEmployee
     ? records
@@ -519,19 +529,32 @@ export default function AttendanceScreen() {
           notes: form.notes,
         });
       } else {
-        if (!selectedEmpId) {
-          Alert.alert('Validation', 'Please select an employee');
+        if (selectedIds.length === 0) {
+          Alert.alert('Validation', 'Please select at least one employee');
           setSaving(false);
           return;
         }
-        await attendanceAPI.mark({
-          employee: selectedEmpId,
-          date: dateFilter,
-          status: form.status,
-          checkIn: timeToISO(dateFilter, form.checkIn),
-          checkOut: timeToISO(dateFilter, form.checkOut),
-          notes: form.notes || undefined,
-        });
+        if (selectedIds.length === 1) {
+          await attendanceAPI.mark({
+            employee: selectedIds[0],
+            date: dateFilter,
+            status: form.status,
+            checkIn: timeToISO(dateFilter, form.checkIn),
+            checkOut: timeToISO(dateFilter, form.checkOut),
+            notes: form.notes || undefined,
+          });
+        } else {
+          await attendanceAPI.bulkMark({
+            records: selectedIds.map(id => ({
+              employee: id,
+              date: dateFilter,
+              status: form.status,
+              checkIn: timeToISO(dateFilter, form.checkIn),
+              checkOut: timeToISO(dateFilter, form.checkOut),
+              notes: form.notes || undefined,
+            })),
+          });
+        }
       }
       closeModal();
       await load();
@@ -565,17 +588,6 @@ export default function AttendanceScreen() {
         </View>
         {!isEmployee && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              style={styles.bulkBtn}
-              onPress={() => {
-                setBulkSelected([]);
-                setBulkStatus('present');
-                setShowBulkModal(true);
-              }}
-            >
-              <CheckCircle2 size={14} color={colors.blue} strokeWidth={2.5} />
-              <Text style={styles.bulkBtnText}>Bulk</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.addBtn} onPress={openNew}>
               <CheckCircle2 size={14} color={colors.white} strokeWidth={2.5} />
               <Text style={styles.addBtnText}>Mark</Text>
@@ -728,6 +740,7 @@ export default function AttendanceScreen() {
 
       {!isEmployee && (
         <FilterPills
+          inset
           options={[
             { value: '', label: 'All' },
             ...Object.keys(summary).map(status => ({
@@ -811,20 +824,6 @@ export default function AttendanceScreen() {
                   emp.lastName?.[0] || ''
                 }`.toUpperCase()
               : '?';
-            const ciDate = item.checkIn
-              ? new Date(item.checkIn).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : null;
-            const coDate = item.checkOut
-              ? new Date(item.checkOut).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : null;
             const deptName =
               typeof emp?.department === 'object'
                 ? emp?.department?.name
@@ -891,18 +890,37 @@ export default function AttendanceScreen() {
                       </View>
                     )}
                   </View>
+                  <StatusPill
+                    label={statusLabel}
+                    color={cfg.color}
+                    bg={cfg.bg}
+                  />
+                </View>
+                {!(item._id.startsWith('v_') && item.status === 'weekend') && (
                   <View style={styles.cardActions}>
-                    <View
-                      style={[
-                        styles.statusTag,
-                        { backgroundColor: cfg.bg, borderColor: cfg.color },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.statusTagText, { color: cfg.color }]}
-                      >
-                        {statusLabel}
-                      </Text>
+                    <View style={styles.cardLeft}>
+                      <View style={styles.inOutRow}>
+                        <View style={styles.inOutCard}>
+                          <LogIn
+                            size={13}
+                            color={colors.green}
+                            strokeWidth={2.5}
+                          />
+                          <Text style={styles.inOutTime}>
+                            {ciTime || '--:--'}
+                          </Text>
+                        </View>
+                        <View style={styles.inOutCard}>
+                          <LogOut
+                            size={13}
+                            color={colors.red}
+                            strokeWidth={2.5}
+                          />
+                          <Text style={styles.inOutTime}>
+                            {coTime || '--:--'}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                     {!isEmployee &&
                       (item._id.startsWith('v_') ? (
@@ -911,7 +929,12 @@ export default function AttendanceScreen() {
                             <TouchableOpacity
                               style={styles.absentBtn}
                               onPress={() => markAbsent(item.employee?._id)}
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              hitSlop={{
+                                top: 8,
+                                bottom: 8,
+                                left: 8,
+                                right: 8,
+                              }}
                             >
                               <XCircle
                                 size={13}
@@ -922,7 +945,12 @@ export default function AttendanceScreen() {
                             <TouchableOpacity
                               style={styles.markBtn}
                               onPress={() => openMarkForEmp(item.employee?._id)}
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              hitSlop={{
+                                top: 8,
+                                bottom: 8,
+                                left: 8,
+                                right: 8,
+                              }}
                             >
                               <CheckCircle2
                                 size={13}
@@ -946,57 +974,6 @@ export default function AttendanceScreen() {
                         </TouchableOpacity>
                       ))}
                   </View>
-                </View>
-
-                {(ciTime || coTime) && (
-                  <>
-                    <View style={styles.cardDivider} />
-                    <View style={styles.statsRow}>
-                      <View style={styles.statCol}>
-                        <View style={styles.statLabelRow}>
-                          <View
-                            style={[
-                              styles.statIconWrap,
-                              { backgroundColor: '#E7F9F1' },
-                            ]}
-                          >
-                            <LogIn
-                              size={12}
-                              color={colors.green}
-                              strokeWidth={2.5}
-                            />
-                          </View>
-                          <Text style={styles.statLabel}>Check In</Text>
-                        </View>
-                        <Text style={styles.statValue}>
-                          {ciTime || '--:--'}
-                        </Text>
-                        {ciDate && <Text style={styles.statSub}>{ciDate}</Text>}
-                      </View>
-                      <View style={styles.statDivider} />
-                      <View style={styles.statCol}>
-                        <View style={styles.statLabelRow}>
-                          <View
-                            style={[
-                              styles.statIconWrap,
-                              { backgroundColor: '#FDEBEB' },
-                            ]}
-                          >
-                            <LogOut
-                              size={12}
-                              color={colors.red}
-                              strokeWidth={2.5}
-                            />
-                          </View>
-                          <Text style={styles.statLabel}>Check Out</Text>
-                        </View>
-                        <Text style={styles.statValue}>
-                          {coTime || '--:--'}
-                        </Text>
-                        {coDate && <Text style={styles.statSub}>{coDate}</Text>}
-                      </View>
-                    </View>
-                  </>
                 )}
 
                 {(workHours ||
@@ -1185,169 +1162,6 @@ export default function AttendanceScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Bulk attendance modal */}
-      {!isEmployee && (
-        <Modal
-          visible={showBulkModal}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowBulkModal(false)}
-        >
-          <SafeAreaView style={styles.safe} edges={['top']}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Bulk Attendance</Text>
-              <TouchableOpacity onPress={() => setShowBulkModal(false)}>
-                <X size={22} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              contentContainerStyle={{
-                padding: 16,
-                gap: 14,
-                paddingBottom: 32,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <View>
-                <Text style={styles.fieldLabel}>Status *</Text>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    marginTop: 6,
-                  }}
-                >
-                  {Object.keys(STATUS_CONFIG)
-                    .filter(s => s !== 'not_checked_in' && s !== 'weekend')
-                    .map(s => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[
-                          styles.selChip,
-                          bulkStatus === s && styles.selChipActive,
-                        ]}
-                        onPress={() => setBulkStatus(s)}
-                      >
-                        <Text
-                          style={[
-                            styles.selChipText,
-                            bulkStatus === s && { color: colors.white },
-                          ]}
-                        >
-                          {s.replace(/_/g, ' ').toUpperCase()}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.bulkSelectAllRow}
-                onPress={() => {
-                  const eligible = employees.filter(
-                    e => !isWeekendForEmployee(dateFilter, e),
-                  );
-                  if (bulkSelected.length === eligible.length) {
-                    setBulkSelected([]);
-                  } else {
-                    setBulkSelected(eligible.map(e => e._id));
-                  }
-                }}
-              >
-                <View style={styles.bulkCheckbox}>
-                  {bulkSelected.length ===
-                    employees.filter(e => !isWeekendForEmployee(dateFilter, e))
-                      .length &&
-                    employees.filter(e => !isWeekendForEmployee(dateFilter, e))
-                      .length > 0 && <View style={styles.bulkCheckboxInner} />}
-                </View>
-                <Text style={styles.bulkSelectAllText}>Select All</Text>
-              </TouchableOpacity>
-
-              {employees.map(emp => {
-                const isWeekend = isWeekendForEmployee(dateFilter, emp);
-                if (isWeekend) return null;
-                const checked = bulkSelected.includes(emp._id);
-                return (
-                  <TouchableOpacity
-                    key={emp._id}
-                    style={styles.bulkEmpRow}
-                    onPress={() =>
-                      setBulkSelected(p =>
-                        checked
-                          ? p.filter(id => id !== emp._id)
-                          : [...p, emp._id],
-                      )
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.bulkCheckbox,
-                        checked && styles.bulkCheckboxChecked,
-                      ]}
-                    >
-                      {checked && <View style={styles.bulkCheckboxInner} />}
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.empOptionName}>
-                        {emp.firstName} {emp.lastName}
-                      </Text>
-                      <Text style={styles.empOptionId}>{emp.employeeId}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <View
-              style={{
-                padding: 16,
-                backgroundColor: colors.white,
-                borderTopWidth: 2,
-                borderTopColor: colors.black,
-              }}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.submitBtn,
-                  bulkSelected.length === 0 && { opacity: 0.5 },
-                ]}
-                disabled={bulkSelected.length === 0 || bulkSaving}
-                onPress={async () => {
-                  if (bulkSelected.length === 0) return;
-                  setBulkSaving(true);
-                  try {
-                    await attendanceAPI.bulkMark({
-                      records: bulkSelected.map(id => ({
-                        employee: id,
-                        date: dateFilter,
-                        status: bulkStatus,
-                      })),
-                    });
-                    setShowBulkModal(false);
-                    await load();
-                  } catch (e: unknown) {
-                    Alert.alert('Error', getErrorMessage(e));
-                  } finally {
-                    setBulkSaving(false);
-                  }
-                }}
-              >
-                {bulkSaving ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Text style={styles.submitBtnText}>
-                    Mark Selected ({bulkSelected.length})
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </Modal>
-      )}
-
       {!isEmployee && (
         <Modal
           visible={showModal}
@@ -1378,35 +1192,98 @@ export default function AttendanceScreen() {
                 </View>
               ) : (
                 <View>
-                  <Text style={styles.fieldLabel}>Employee *</Text>
-                  <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
-                    {employees.map(e => (
-                      <TouchableOpacity
-                        key={e._id}
-                        style={[
-                          styles.empOption,
-                          selectedEmpId === e._id && styles.empOptionActive,
-                        ]}
-                        onPress={() => setSelectedEmpId(e._id)}
-                      >
-                        <Text
-                          style={[
-                            styles.empOptionName,
-                            selectedEmpId === e._id && { color: colors.white },
-                          ]}
+                  <Text style={styles.fieldLabel}>
+                    Employees * ({selectedIds.length} selected)
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.bulkSelectAllRow}
+                    onPress={() =>
+                      setSelectedIds(
+                        selectedIds.length === eligibleEmployees.length
+                          ? []
+                          : eligibleEmployees.map(x => x._id),
+                      )
+                    }
+                  >
+                    <Text style={[styles.bulkSelectAllText, { flex: 1 }]}>
+                      Select All
+                    </Text>
+                    <View
+                      style={[
+                        styles.bulkCheckbox,
+                        selectedIds.length === eligibleEmployees.length &&
+                          eligibleEmployees.length > 0 &&
+                          styles.bulkCheckboxChecked,
+                      ]}
+                    >
+                      {selectedIds.length === eligibleEmployees.length &&
+                        eligibleEmployees.length > 0 && (
+                          <View style={styles.bulkCheckboxInner} />
+                        )}
+                    </View>
+                  </TouchableOpacity>
+                  <ScrollView
+                    style={{ maxHeight: 240 }}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {eligibleEmployees.map(emp => {
+                      const checked = selectedIds.includes(emp._id);
+                      return (
+                        <TouchableOpacity
+                          key={emp._id}
+                          style={styles.bulkEmpRow}
+                          onPress={() =>
+                            setSelectedIds(p =>
+                              checked
+                                ? p.filter(id => id !== emp._id)
+                                : [...p, emp._id],
+                            )
+                          }
+                          activeOpacity={0.7}
                         >
-                          {e.firstName} {e.lastName}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.empOptionId,
-                            selectedEmpId === e._id && { color: '#93C5FD' },
-                          ]}
-                        >
-                          {e.employeeId}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <View style={styles.pickAvatarWrap}>
+                            {emp.avatar ? (
+                              <Image
+                                source={{ uri: emp.avatar }}
+                                style={styles.pickAvatar}
+                              />
+                            ) : (
+                              <View
+                                style={[
+                                  styles.pickAvatar,
+                                  styles.pickAvatarFallback,
+                                ]}
+                              >
+                                <Text style={styles.pickInitials}>
+                                  {`${emp.firstName?.[0] || ''}${
+                                    emp.lastName?.[0] || ''
+                                  }`.toUpperCase()}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={{ flex: 1, marginLeft: 10 }}>
+                            <Text style={styles.empOptionName}>
+                              {emp.firstName} {emp.lastName}
+                            </Text>
+                            <Text style={styles.empOptionId}>
+                              {emp.employeeId}
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.bulkCheckbox,
+                              checked && styles.bulkCheckboxChecked,
+                            ]}
+                          >
+                            {checked && (
+                              <View style={styles.bulkCheckboxInner} />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </ScrollView>
                 </View>
               )}
@@ -1443,6 +1320,11 @@ export default function AttendanceScreen() {
                       </TouchableOpacity>
                     ))}
                 </View>
+              </View>
+
+              <View style={styles.editInfoBox}>
+                <Text style={styles.editInfoLabel}>Date</Text>
+                <Text style={styles.editInfoValue}>{dateFilter}</Text>
               </View>
 
               <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -1485,7 +1367,11 @@ export default function AttendanceScreen() {
                   <ActivityIndicator color={colors.white} />
                 ) : (
                   <Text style={styles.submitBtnText}>
-                    {editRecord ? 'Update Attendance' : 'Save Attendance'}
+                    {editRecord
+                      ? 'Update Attendance'
+                      : selectedIds.length > 1
+                      ? `Mark ${selectedIds.length} Employees`
+                      : 'Save Attendance'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -1820,7 +1706,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 12,
+  },
   photoWrap: { position: 'relative', width: 48, height: 48 },
   empPhoto: {
     width: 48,
@@ -1853,6 +1745,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#9CA3AF',
     fontWeight: '500',
+  },
+  cardLeft: { flex: 1, gap: 8, alignSelf: 'flex-end' },
+  inOutRow: { flexDirection: 'row', gap: 8 },
+  inOutCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  inOutTime: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.black,
   },
   cardDivider: {
     height: 1,
@@ -1911,9 +1822,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   editBtn: {
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: colors.blue,
-    padding: 4,
+    borderRadius: 8,
+    padding: 7,
     backgroundColor: colors.white,
   },
   markBtn: {
@@ -2069,28 +1981,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textTransform: 'uppercase',
   },
-  bulkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderColor: colors.blue,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  bulkBtnText: {
-    color: colors.blue,
-    fontFamily: FONT.bold,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
   bulkSelectAllRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2126,6 +2016,25 @@ const styles = StyleSheet.create({
   bulkCheckboxChecked: {
     borderColor: colors.blue,
     backgroundColor: colors.blue,
+  },
+  pickAvatarWrap: { width: 36, height: 36 },
+  pickAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.black,
+  },
+  pickAvatarFallback: {
+    backgroundColor: '#E8F0FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickInitials: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.blue,
   },
   bulkCheckboxInner: { width: 10, height: 10, backgroundColor: colors.white },
   calOverlay: {

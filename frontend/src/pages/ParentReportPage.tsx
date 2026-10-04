@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { studentAPI, reportAPI, settingsAPI } from "@/services/api";
+import { ChildSelect } from "@/components/parent/ChildSelect";
 import { buildReportHTML, ReportCompany } from "@/lib/reportPrintHTML";
 import { useToast, notifyError } from "@/hooks/use-toast";
 import { cn, formatDate, getErrorMessage } from "@/lib/utils";
@@ -191,35 +192,11 @@ export default function ParentReportPage() {
         </div>
       ) : (
         <>
-          {children.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-5">
-              {children.map((c) => (
-                <button
-                  key={c._id}
-                  onClick={() => setSelectedChild(c._id)}
-                  className={cn(
-                    "flex items-center gap-2 border-2 border-black px-3 py-2 text-xs font-bold uppercase transition-colors",
-                    selectedChild === c._id
-                      ? "bg-[#024BAB] text-white"
-                      : "bg-white text-black hover:bg-[#024BAB]/5",
-                  )}
-                >
-                  {c.avatar ? (
-                    <img
-                      src={c.avatar}
-                      alt={c.firstName}
-                      className="w-5 h-5 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[9px]">
-                      {c.firstName?.[0]}
-                    </span>
-                  )}
-                  {c.firstName} {c.lastName}
-                </button>
-              ))}
-            </div>
-          )}
+          <ChildSelect
+            children={children}
+            value={selectedChild}
+            onChange={setSelectedChild}
+          />
 
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>

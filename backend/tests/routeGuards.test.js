@@ -29,6 +29,8 @@ const ANY_LOGGED_IN_WRITES = new Set([
   "auth POST /forgot-password/whatsapp", "auth POST /reset-password/otp/whatsapp",
   "auth POST /reset-password/otp/totp", "auth POST /phone/send-otp",
   "auth POST /phone/verify-otp", "auth POST /otp/send", "auth POST /otp/verify",
+  "auth POST /otp/select-academy", "auth POST /switch-academy",
+  "pay POST /:token/order", "pay POST /:token/verify", // payment-link token
   "auth POST /2fa/setup", "auth POST /2fa/confirm", "auth POST /2fa/disable",
   "auth POST /2fa/verify",
   // other auth schemes

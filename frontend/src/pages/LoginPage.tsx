@@ -63,6 +63,11 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
+  // Set when the phone is enrolled in several academies: the parent picks one.
+  const [academyChoice, setAcademyChoice] = useState<{
+    selectionToken: string;
+    accounts: { userId: string; academy: { id: string; name: string } }[];
+  } | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   const handlePasskeyLogin = async () => {
@@ -169,11 +174,40 @@ export default function LoginPage() {
     setOtpLoading(true);
     try {
       const res = await authAPI.verifyPhoneOtp(phone.trim(), otp.trim());
+      if (res.data.requiresAcademySelection) {
+        setAcademyChoice({
+          selectionToken: res.data.selectionToken,
+          accounts: res.data.accounts,
+        });
+        return;
+      }
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
       navigate("/");
     } catch (err: unknown) {
       setError(getErrorMessage(err) || "Invalid or expired OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handlePickAcademy = async (userId: string) => {
+    if (!academyChoice) return;
+    setError("");
+    setOtpLoading(true);
+    try {
+      const res = await authAPI.selectAcademy(
+        academyChoice.selectionToken,
+        userId,
+      );
+      const { token, ...userData } = res.data;
+      completeLogin(userData, token);
+      navigate("/");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || "Could not sign in. Please try again.");
+      setAcademyChoice(null);
+      setOtpSent(false);
+      setOtp("");
     } finally {
       setOtpLoading(false);
     }
@@ -325,11 +359,17 @@ export default function LoginPage() {
                 <div className="flex items-center gap-3 mb-2">
                   <WhatsAppIcon className="w-7 h-7 text-[#25D366]" />
                   <h2 className="text-2xl font-display font-bold text-black">
-                    {otpSent ? "Enter OTP" : "Phone Login"}
+                    {academyChoice
+                      ? "Select Academy"
+                      : otpSent
+                        ? "Enter OTP"
+                        : "Phone Login"}
                   </h2>
                 </div>
                 <p className="text-sm text-gray-500 font-medium">
-                  {otpSent
+                  {academyChoice
+                    ? "This number is enrolled in more than one academy. Choose where to continue."
+                    : otpSent
                     ? "We sent a 6-digit OTP to your WhatsApp."
                     : "We'll send a one-time password to your WhatsApp."}
                 </p>
@@ -342,7 +382,24 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {!otpSent ? (
+              {academyChoice ? (
+                <div className="space-y-3">
+                  {academyChoice.accounts.map((a) => (
+                    <button
+                      key={a.userId}
+                      type="button"
+                      disabled={otpLoading}
+                      onClick={() => handlePickAcademy(a.userId)}
+                      className="w-full flex items-center justify-between gap-3 border-2 border-black bg-white px-4 py-3.5 text-sm font-bold text-black hover:bg-[#024BAB]/5 disabled:opacity-60 transition-colors"
+                    >
+                      <span className="truncate text-left">
+                        {a.academy.name}
+                      </span>
+                      <ArrowRight className="w-4 h-4 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              ) : !otpSent ? (
                 <form onSubmit={handleSendOtp} className="space-y-5">
                   <div>
                     <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">

@@ -16,11 +16,7 @@ import {
   ArrowUpDown,
   Eye,
   X,
-  CheckCircle2,
   XCircle,
-  Users,
-  IndianRupee,
-  CalendarClock,
   Download,
   FileSpreadsheet,
   FileText,
@@ -39,7 +35,6 @@ import {
   SortSheet,
   LoadMoreFooter,
   SortOption,
-  KpiTile,
   PickerField,
   TextField,
   ChipSelect,
@@ -360,19 +355,31 @@ export default function SubscriptionsScreen({ navigation }: any) {
   const pendingRenewalCount = subscriptions.filter(
     s => s.status === 'pending_renewal',
   ).length;
-  const totalRevenue = subscriptions
-    .filter(s => s.paymentStatus === 'completed')
-    .reduce((sum, s) => sum + (s.amount || 0), 0);
+  // Same definition as the dashboard's "Collected": verified payments whose
+  // verifiedAt falls in the current month.
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const collectedThisMonth = subscriptions.reduce(
+    (sum, s: any) =>
+      sum +
+      (Array.isArray(s.payments) ? s.payments : [])
+        .filter(
+          (p: any) =>
+            p.status === 'verified' &&
+            p.verifiedAt &&
+            new Date(p.verifiedAt) >= monthStart,
+        )
+        .reduce((a: number, p: any) => a + (p.amount || 0), 0),
+    0,
+  );
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 0, flex: 1 }}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Subscriptions</Text>
-            <Text style={styles.subtitle}>
-              Coaching plan subscriptions and renewals
-            </Text>
           </View>
           {!isParent && (
             <>
@@ -422,35 +429,23 @@ export default function SubscriptionsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Subscriptions"
-            value={subscriptions.length}
-            sub="Loaded"
-            color={colors.blue}
-            icon={Users}
-          />
-          <KpiTile
-            label="Active"
-            value={activeCount}
-            sub="Currently active"
-            color={colors.green}
-            icon={CheckCircle2}
-          />
-          <KpiTile
-            label="Pending Renewal"
-            value={pendingRenewalCount}
-            sub="Renewal due"
-            color={colors.orange}
-            icon={CalendarClock}
-          />
-          <KpiTile
-            label="Revenue"
-            value={formatCurrency(totalRevenue)}
-            sub="Completed payments"
-            color={colors.purple}
-            icon={IndianRupee}
-          />
+        <View style={styles.summaryStrip}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{activeCount}</Text>
+            <Text style={styles.summaryLabel}>Active</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{pendingRenewalCount}</Text>
+            <Text style={styles.summaryLabel}>Renewal due</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue} numberOfLines={1}>
+              {formatCurrency(collectedThisMonth)}
+            </Text>
+            <Text style={styles.summaryLabel}>Collected this month</Text>
+          </View>
         </View>
 
         <FilterPills
@@ -892,12 +887,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 10,
   },
-  kpiGrid: {
+  summaryStrip: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.black,
+    borderRadius: 8,
+    paddingVertical: 10,
     marginBottom: 12,
   },
+  summaryItem: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
+  summaryLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.muted,
+    textTransform: 'uppercase',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  summaryDivider: { width: 2, alignSelf: 'stretch', backgroundColor: colors.black, opacity: 0.1 },
   choosePlanBtn: {
     backgroundColor: colors.blue,
     borderWidth: 2,

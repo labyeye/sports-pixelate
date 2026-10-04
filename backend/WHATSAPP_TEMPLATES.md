@@ -12,7 +12,7 @@ errors).
 > `META_WA_VERIFY_TOKEN` for the webhook) in `.env` to point at the new
 > number. No code changes are needed if you keep the names exactly as listed.
 
-Progress: **`0` / `18`** created — tick each box off as you submit it.
+Progress: **`0` / `19`** created — tick each box off as you submit it.
 
 ---
 
@@ -80,6 +80,14 @@ Progress: **`0` / `18`** created — tick each box off as you submit it.
 - **Body:** `Hi {{1}}, {{2}} checked out at {{3}} at {{4}}.`
 - **Params:** `guardianName`, `studentName`, `locationName`, `time`
 - **Sample:** `Priya` · `Aarav Sharma` · `Andheri Sports Complex` · `6:00 PM`
+
+### [ ] `nestplay_fee_payment_link` 🆕
+
+- **Category:** Utility
+- **Body:** `Hi {{1}}, the {{2}} fee for {{3}} is due. Amount: {{4}}. Pay securely online: {{5}}`
+- **Params:** `guardianName`, `planName`, `studentName`, `amount` (e.g. `₹1,500`), `payUrl` (`https://…/pay/<token>`)
+- **Sample:** `Priya` · `Tennis Monthly` · `Aarav Sharma` · `₹1,500` · `https://sports.pixelatenest.com/pay/AbC123`
+- Sent monthly on the day the owner sets in Attendance Settings → Fee Payment Link. Gated by the same per-academy WhatsApp switch as the subscription/payment messages.
 
 ---
 

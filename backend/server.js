@@ -30,7 +30,11 @@ const { startAttendanceAutoMarkJob } = require("./jobs/attendanceAutoMark");
 const {
   startSubscriptionLifecycleJob,
 } = require("./jobs/subscriptionLifecycle");
+const { startStudentAutoAbsentJob } = require("./jobs/studentAutoAbsent");
 startAttendanceAutoMarkJob();
+startStudentAutoAbsentJob();
+const { startPaymentLinksJob } = require("./jobs/paymentLinks");
+startPaymentLinksJob();
 startSubscriptionLifecycleJob();
 
 const app = express();
@@ -163,6 +167,9 @@ app.use("/api/sports", require("./routes/sportRoutes"));
 app.use("/api/student-attendance", require("./routes/studentAttendanceRoutes"));
 app.use("/api/plans", require("./routes/sportsPlanRoutes"));
 app.use("/api/subscriptions", require("./routes/subscriptionRoutes"));
+// Public pay page (token-authenticated) and the owner's "send links now".
+app.use("/api/pay", require("./routes/payRoutes"));
+app.use("/api/payment-links", require("./routes/paymentLinkRoutes"));
 app.use("/api/expenses", require("./routes/expenseRoutes"));
 app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/facilities", require("./routes/facilityRoutes"));

@@ -574,7 +574,8 @@ export default function InventoryScreen() {
               : items
           }
           keyExtractor={i => i._id}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 32, paddingRight: 3, gap: 12 }}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -586,104 +587,97 @@ export default function InventoryScreen() {
           ListEmptyComponent={<EmptyState title="No inventory items found" />}
           renderItem={({ item: i }) => {
             const low = i.availableQuantity <= (i.reorderThreshold ?? 0);
+            const total = i.totalQuantity || 0;
+            const pct = total > 0 ? Math.min(1, Math.max(0, (i.availableQuantity || 0) / total)) : 0;
+            const stockColor = low ? colors.red : colors.green;
+            const catColor = CATEGORY_COLORS[i.category] || colors.blue;
             return (
-              <View style={styles.flatRow}>
+              <View style={styles.card}>
                 <View style={styles.itemRow}>
-                  <ItemPhoto uri={i.photo} />
+                  <ItemPhoto uri={i.photo} size={56} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <View style={styles.headerRowInner}>
-                      <Text style={styles.name} numberOfLines={1}>
-                        {i.name}
-                      </Text>
-                      <Badge
-                        label={i.category}
-                        color={CATEGORY_COLORS[i.category] || colors.blue}
-                      />
-                    </View>
-                    {i.sport ? <Text style={styles.sub}>{i.sport}</Text> : null}
-                    <Text style={[styles.qty, low && { color: colors.red }]}>
-                      {i.availableQuantity} / {i.totalQuantity} available
+                    <Text style={styles.name} numberOfLines={2}>
+                      {i.name}
                     </Text>
+                    <View style={styles.tagRow}>
+                      <Badge label={i.category} color={catColor} />
+                      {i.sport ? (
+                        <Text style={styles.sub} numberOfLines={1}>
+                          {i.sport}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.stockBox}>
+                  <View style={styles.stockTop}>
+                    <Text style={styles.stockLabel}>In stock</Text>
+                    <Text style={[styles.qty, { color: stockColor }]}>
+                      {i.availableQuantity}
+                      <Text style={styles.qtyTotal}> / {total}</Text>
+                    </Text>
+                  </View>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${pct * 100}%`, backgroundColor: stockColor },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.stockFlags}>
+                    {low ? (
+                      <View style={[styles.flag, { borderColor: colors.red, backgroundColor: '#FEF2F2' }]}>
+                        <Text style={[styles.flagText, { color: colors.red }]}>Low stock</Text>
+                      </View>
+                    ) : null}
                     {!!i.onOrderQuantity && (
-                      <View style={styles.onOrderRow}>
-                        <Truck
-                          size={12}
-                          color={colors.purple}
-                          strokeWidth={2.5}
-                        />
-                        <Text style={styles.onOrderText}>
+                      <View style={[styles.flag, { borderColor: colors.purple, backgroundColor: '#FAF5FF' }]}>
+                        <Truck size={11} color={colors.purple} strokeWidth={2.5} />
+                        <Text style={[styles.flagText, { color: colors.purple }]}>
                           {i.onOrderQuantity} on order
                         </Text>
                       </View>
                     )}
                   </View>
                 </View>
+
                 <View style={styles.actionsRow}>
                   {isOwner && (
                     <TouchableOpacity
                       onPress={() => openTxn(i)}
                       style={styles.actionBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.8}
                     >
-                      <Truck
-                        size={14}
-                        color={colors.purple}
-                        strokeWidth={2.5}
-                      />
-                      <Text
-                        style={[styles.actionText, { color: colors.purple }]}
-                      >
-                        Stock
-                      </Text>
+                      <Truck size={14} color={colors.purple} strokeWidth={2.5} />
+                      <Text style={[styles.actionText, { color: colors.purple }]}>Stock</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
                     onPress={() => openAssign(i)}
                     style={styles.actionBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.8}
                   >
-                    <UserCheck
-                      size={14}
-                      color={colors.blue}
-                      strokeWidth={2.5}
-                    />
-                    <Text style={[styles.actionText, { color: colors.blue }]}>
-                      Check Out
-                    </Text>
+                    <UserCheck size={14} color={colors.blue} strokeWidth={2.5} />
+                    <Text style={[styles.actionText, { color: colors.blue }]}>Check Out</Text>
                   </TouchableOpacity>
                   {isOwner && (
                     <>
                       <TouchableOpacity
                         onPress={() => openEdit(i)}
                         style={styles.actionBtn}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        activeOpacity={0.8}
                       >
-                        <Pencil
-                          size={14}
-                          color={colors.blue}
-                          strokeWidth={2.5}
-                        />
-                        <Text
-                          style={[styles.actionText, { color: colors.blue }]}
-                        >
-                          Edit
-                        </Text>
+                        <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
+                        <Text style={[styles.actionText, { color: colors.blue }]}>Edit</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => confirmDelete(i)}
-                        style={styles.actionBtn}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[styles.actionBtn, styles.actionBtnIcon]}
+                        activeOpacity={0.8}
                       >
-                        <Trash2
-                          size={14}
-                          color={colors.red}
-                          strokeWidth={2.5}
-                        />
-                        <Text
-                          style={[styles.actionText, { color: colors.red }]}
-                        >
-                          Delete
-                        </Text>
+                        <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
                       </TouchableOpacity>
                     </>
                   )}
@@ -1099,10 +1093,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 12,
   },
-  flatRow: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+  card: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 10,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderColor: colors.black,
+    padding: 14,
   },
   kpiGrid: {
     flexDirection: 'row',
@@ -1140,26 +1140,31 @@ const styles = StyleSheet.create({
   lowStockToggle: {
     alignSelf: 'flex-start',
     borderWidth: 2,
-    borderRadius: 8,
+    borderRadius: 10,
     borderColor: colors.black,
     backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    minHeight: 38,
+    justifyContent: 'center',
+    marginTop: 6,
+    marginBottom: 14,
   },
   lowStockToggleActive: { backgroundColor: colors.red },
   lowStockToggleText: {
     fontFamily: FONT.bold,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.black,
   },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerRowInner: {
+  tagRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
+    marginTop: 6,
   },
   photoBox: {
     borderWidth: 2,
@@ -1170,23 +1175,75 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     overflow: 'hidden',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black, flexShrink: 1 },
+  name: { fontSize: 16, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
   sub: {
     color: colors.muted,
     fontSize: 12,
-    marginTop: 2,
     fontFamily: FONT.medium,
+    flexShrink: 1,
   },
-  qty: { fontWeight: '800', color: colors.black, fontSize: 15, marginTop: 8 },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 16,
+  stockBox: {
     marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFF',
+    borderWidth: 1,
+    borderColor: '#0000001A',
   },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  stockTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  stockLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 11,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  qty: { fontFamily: FONT.bold, fontWeight: '800', fontSize: 20 },
+  qtyTotal: { fontFamily: FONT.medium, fontSize: 13, color: colors.muted },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  progressFill: { height: '100%' },
+  stockFlags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  flag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1.5,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  flagText: {
+    fontFamily: FONT.bold,
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  actionsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+  },
+  actionBtnIcon: { flex: 0, width: 40 },
   actionText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
   modalHeader: {
     flexDirection: 'row',

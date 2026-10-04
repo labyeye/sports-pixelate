@@ -135,4 +135,11 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    implementation project(':react-native-splash-screen')
+}
+
+// react-native-splash-screen 3.x still declares the legacy com.android.support
+// libs (pulled in via autolinking too), which duplicate the AndroidX classes.
+configurations.all {
+    exclude group: 'com.android.support'
 }

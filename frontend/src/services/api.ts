@@ -128,6 +128,19 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify({ phone, otp }),
     }),
+  // Parent enrolled in several academies: finish OTP login by picking one,
+  // or hop between them later (OTP sessions only).
+  selectAcademy: (selectionToken: string, userId: string) =>
+    request("/auth/otp/select-academy", {
+      method: "POST",
+      body: JSON.stringify({ selectionToken, userId }),
+    }),
+  listAcademies: () => request("/auth/academies"),
+  switchAcademy: (userId: string) =>
+    request("/auth/switch-academy", {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    }),
   // Password reset by WhatsApp code / authenticator app
   forgotPasswordMethods: (email: string) =>
     request(`/auth/forgot-password/methods?email=${encodeURIComponent(email)}`),
@@ -169,6 +182,7 @@ export const authAPI = {
 export const dashboardAPI = {
   getStats: () => request("/dashboard/stats"),
   getEmployeeStats: () => request("/dashboard/employee"),
+  getTrend: (range: string) => request(`/dashboard/trend?range=${range}`),
 };
 
 export const parentAPI = {
@@ -712,6 +726,7 @@ export const payrollConfigAPI = {
 
 export const attendanceSettingsAPI = {
   get: () => request("/attendance-settings"),
+  getStudentTimeMode: () => request("/attendance-settings/student-time-mode"),
   update: (body: object) =>
     request("/attendance-settings", {
       method: "PUT",
@@ -1191,6 +1206,31 @@ export const reportAPI = {
   },
   studentProfile: (studentId: string) =>
     request(`/reports/student-profile/${studentId}`),
+};
+
+// Public pay page opened from the WhatsApp fee link — the token in the URL is
+// the only credential, no login involved.
+export const payLinkAPI = {
+  get: (token: string) => request(`/pay/${encodeURIComponent(token)}`),
+  startOrder: (token: string) =>
+    request(`/pay/${encodeURIComponent(token)}/order`, { method: "POST" }),
+  verify: (
+    token: string,
+    body: {
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+    } = {},
+  ) =>
+    request(`/pay/${encodeURIComponent(token)}/verify`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+// Owner: send this month's fee links right now.
+export const paymentLinkAPI = {
+  sendNow: () => request("/payment-links/send-now", { method: "POST" }),
 };
 
 export const subscriptionAPI = {

@@ -21,6 +21,7 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 import { studentAPI, studentAttendanceAPI } from '../api/client';
+import { ChildSelect } from '../components/parent/ChildSelect';
 import {
   Card,
   Avatar,
@@ -173,37 +174,11 @@ export default function ParentAttendanceScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {children.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, marginBottom: 14 }}
-            >
-              {children.map(c => {
-                const selected = c._id === selectedChild;
-                return (
-                  <TouchableOpacity
-                    key={c._id}
-                    onPress={() => setSelectedChild(c._id)}
-                    style={[
-                      styles.childChip,
-                      selected && styles.childChipActive,
-                    ]}
-                  >
-                    <Avatar uri={c.avatar} name={c.firstName} size={22} />
-                    <Text
-                      style={[
-                        styles.childChipText,
-                        selected && styles.childChipTextActive,
-                      ]}
-                    >
-                      {c.firstName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
+          <ChildSelect
+            children={children}
+            value={selectedChild}
+            onChange={setSelectedChild}
+          />
 
           {child ? (
             <View style={styles.childHeaderRow}>

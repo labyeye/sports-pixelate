@@ -10,6 +10,7 @@ const { isStudentFaceEnabled } = require("../services/faceIndex");
 const { validateMagicBytes } = require("../middleware/upload");
 const { readDecrypted } = require("../utils/fileCrypto");
 const { toDateOnly } = require("../utils/dateOnly");
+const { resolvePresentStatus } = require("../utils/studentAttendanceRules");
 const { getOverdueStudents, studentName } = require("../utils/feeOverdue");
 const {
   notifyOwners,
@@ -162,13 +163,23 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
   await assertFeesCleared(req, res, studentDoc);
 
   const d = toDateOnly(date || Date.now());
+  // A "present" mark arriving >15 min after the session start is "late".
+  let finalStatus = status || "present";
+  if (finalStatus === "present") {
+    finalStatus = await resolvePresentStatus(
+      req.user.company,
+      student,
+      d,
+      checkIn ? new Date(checkIn) : new Date(),
+    );
+  }
   const record = await StudentAttendance.findOneAndUpdate(
     { student, date: d },
     {
       company: req.user.company,
       student,
       date: d,
-      status: status || "present",
+      status: finalStatus,
       batch: batch ?? studentDoc.batch,
       notes,
       checkIn: checkIn || undefined,
@@ -221,6 +232,18 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
     }
     return true;
   });
+  const now = new Date();
+  for (const r of validRecords) {
+    r.status = r.status || "present";
+    if (r.status === "present") {
+      r.status = await resolvePresentStatus(
+        req.user.company,
+        r.student,
+        d,
+        r.checkIn ? new Date(r.checkIn) : now,
+      );
+    }
+  }
   const ops = validRecords.map((r) => ({
     updateOne: {
       filter: { student: r.student, date: d },
@@ -230,6 +253,7 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
           status: r.status || "present",
           batch: r.batch,
           notes: r.notes,
+          ...(r.checkIn && { checkIn: r.checkIn }),
           markedBy: req.user._id,
         },
       },
@@ -328,14 +352,21 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
   }
 
   const d = toDateOnly(date || Date.now());
+  const arrivedAt = new Date();
+  const faceStatus = await resolvePresentStatus(
+    req.user.company,
+    student,
+    d,
+    arrivedAt,
+  );
   const record = await StudentAttendance.findOneAndUpdate(
     { student, date: d },
     {
       company: req.user.company,
       student,
       date: d,
-      status: "present",
-      checkIn: new Date(),
+      status: faceStatus,
+      checkIn: arrivedAt,
       verifyMode: "face",
       batch: batch ?? studentDoc.batch,
       notes,
@@ -347,7 +378,7 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
   notifyStudentAttendanceMarked(
     req.user.company,
     studentDoc,
-    "present",
+    faceStatus,
     req.user._id,
   ).catch((err) => console.error("[notify] markStudentAttendanceByFace:", err.message));
 

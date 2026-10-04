@@ -40,6 +40,32 @@ const deductionRuleSchema = new mongoose.Schema(
     // and mark students (employees are unaffected). Off by default.
     studentFaceAttendanceEnabled: { type: Boolean, default: false },
 
+    // Student attendance time capture: "in_out" records check-in and
+    // check-out; "single" records one time (stored as checkIn).
+    studentAttendanceTimeMode: {
+      type: String,
+      enum: ["in_out", "single"],
+      default: "in_out",
+    },
+
+    // Owner-controlled automatic student marking. Both off by default, in
+    // which case only manual present/absent/etc. marks are ever recorded.
+    // Auto-late: a "present" mark more than `studentLateGraceMinutes` after the
+    // session start time is recorded as "late".
+    studentAutoLateEnabled: { type: Boolean, default: false },
+    studentLateGraceMinutes: { type: Number, default: 15, min: 0, max: 240 },
+    // Auto-absent: scheduled students still unmarked `studentAbsentAfterEndMinutes`
+    // after their session ends are marked "absent".
+    studentAutoAbsentEnabled: { type: Boolean, default: false },
+    studentAbsentAfterEndMinutes: { type: Number, default: 30, min: 0, max: 720 },
+
+    // Monthly fee payment link: on `paymentLinkDay` of each month (at
+    // `paymentLinkHour` IST) every student with a fee due gets a WhatsApp link
+    // to pay online. Off by default.
+    paymentLinkEnabled: { type: Boolean, default: false },
+    paymentLinkDay: { type: Number, default: 1, min: 1, max: 28 },
+    paymentLinkHour: { type: Number, default: 9, min: 0, max: 23 },
+
     lateAllowance: {
       mode: { type: String, enum: ["bulk", "custom"], default: "bulk" },
       bulkCount: { type: Number, default: 0 },

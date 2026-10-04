@@ -295,7 +295,9 @@ export default function StudentsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [filterSport, setFilterSport] = useState("");
+  const [filterSport, setFilterSport] = useState(
+    () => new URLSearchParams(window.location.search).get("sport") || "",
+  );
   const [filterStatus, setFilterStatus] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");

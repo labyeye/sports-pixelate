@@ -34,12 +34,13 @@ import {
 import {
   studentAttendanceAPI,
   studentAPI,
+  attendanceSettingsAPI,
   biometricAPI,
   RNFile,
 } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
-import { DateTimeField, FilterPills } from '../components/ui';
+import { DateTimeField, FilterPills, StatusPill } from '../components/ui';
 import FeeOverdueModal, {
   FeeOverdueStudent,
 } from '../components/FeeOverdueModal';
@@ -56,7 +57,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> =
     absent: { color: colors.red, bg: '#FDEBEB', icon: XCircle },
     late: { color: colors.yellow, bg: '#FEF3E2', icon: AlertCircle },
     excused: { color: colors.blue, bg: '#E8F0FB', icon: Calendar },
-    not_marked: { color: '#9CA3AF', bg: '#F3F4F6', icon: Clock },
+    not_marked: { color: colors.blue, bg: '#E8F0FB', icon: Clock },
   };
 
 function toDateStr(d: Date) {
@@ -90,6 +91,13 @@ function timeToISO(dateStr: string, timeStr: string): string | undefined {
   return `${dateStr}T${timeStr}:00+05:30`;
 }
 
+function nowTime(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(
+    d.getMinutes(),
+  ).padStart(2, '0')}`;
+}
+
 function isoToTime(iso: string | undefined): string {
   if (!iso) return '';
   return new Date(iso).toLocaleTimeString('en-IN', {
@@ -102,17 +110,19 @@ function isoToTime(iso: string | undefined): string {
 export default function StudentAttendanceScreen() {
   const { user } = useAuth();
   // Only owner/HR may clear a student's enrolled face (backend enforces this too).
-  const canResetFace = user?.role === 'super_admin' || user?.role === 'hr_manager';
+  const canResetFace =
+    user?.role === 'super_admin' || user?.role === 'hr_manager';
   const [records, setRecords] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [singleTime, setSingleTime] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState(toDateStr(new Date()));
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editRecord, setEditRecord] = useState<any | null>(null);
   const [form, setForm] = useState({
     status: 'present',
@@ -128,11 +138,6 @@ export default function StudentAttendanceScreen() {
     month: new Date().getMonth(),
   });
 
-  // Bulk modal state
-  const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState('present');
-  const [bulkSelected, setBulkSelected] = useState<string[]>([]);
-  const [bulkSaving, setBulkSaving] = useState(false);
   const [markingByFaceId, setMarkingByFaceId] = useState<string | null>(null);
 
   const todayStr = toDateStr(new Date());
@@ -177,6 +182,12 @@ export default function StudentAttendanceScreen() {
     load();
   }, [load]);
   useEffect(() => {
+    attendanceSettingsAPI
+      .getStudentTimeMode()
+      .then((r: any) => setSingleTime(r?.data?.mode === 'single'))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
     loadStudents();
   }, [loadStudents]);
 
@@ -188,15 +199,15 @@ export default function StudentAttendanceScreen() {
 
   const openNew = () => {
     setEditRecord(null);
-    setSelectedStudentId('');
-    setForm({ status: 'present', checkIn: '', checkOut: '', notes: '' });
+    setSelectedIds([]);
+    setForm({ status: 'present', checkIn: nowTime(), checkOut: '', notes: '' });
     setShowModal(true);
   };
 
   const openMarkForStudent = (studentId: string) => {
     setEditRecord(null);
-    setSelectedStudentId(studentId);
-    setForm({ status: 'present', checkIn: '', checkOut: '', notes: '' });
+    setSelectedIds([studentId]);
+    setForm({ status: 'present', checkIn: nowTime(), checkOut: '', notes: '' });
     setShowModal(true);
   };
 
@@ -250,7 +261,7 @@ export default function StudentAttendanceScreen() {
             try {
               await biometricAPI.resetFace('student', student._id);
               await loadStudents();
-              Alert.alert('Face Reset', 'Enroll the student\'s face again.');
+              Alert.alert('Face Reset', "Enroll the student's face again.");
             } catch (e: unknown) {
               Alert.alert('Error', getErrorMessage(e));
             }
@@ -296,7 +307,10 @@ export default function StudentAttendanceScreen() {
           await load();
         } catch (e: unknown) {
           if (handleFeeBlock(e)) return;
-          Alert.alert('Face Mismatch', getErrorMessage(e) || 'Could not verify face');
+          Alert.alert(
+            'Face Mismatch',
+            getErrorMessage(e) || 'Could not verify face',
+          );
         } finally {
           setMarkingByFaceId(null);
         }
@@ -307,7 +321,7 @@ export default function StudentAttendanceScreen() {
   const openEdit = (record: any) => {
     setEditRecord(record);
     const st = record.student;
-    setSelectedStudentId(st?._id || '');
+    setSelectedIds(st?._id ? [st._id] : []);
     setForm({
       status: record.status,
       checkIn: isoToTime(record.checkIn),
@@ -324,16 +338,22 @@ export default function StudentAttendanceScreen() {
 
   const mergedRows = (() => {
     const recordByStudentId = new Map(records.map(r => [r.student?._id, r]));
-    return students.map(st => {
-      const existing = recordByStudentId.get(st._id);
-      if (existing) return existing;
-      return {
-        _id: `v_${st._id}`,
-        student: st,
-        date: dateFilter,
-        status: 'not_marked',
-      };
-    });
+    // Only students scheduled on the selected date; anyone who already has a
+    // record that day stays visible so marked attendance never disappears.
+    return students
+      .filter(
+        st => recordByStudentId.has(st._id) || isSessionDay(st, dateFilter),
+      )
+      .map(st => {
+        const existing = recordByStudentId.get(st._id);
+        if (existing) return existing;
+        return {
+          _id: `v_${st._id}`,
+          student: st,
+          date: dateFilter,
+          status: 'not_marked',
+        };
+      });
   })();
 
   const filtered = mergedRows.filter(r => {
@@ -347,21 +367,35 @@ export default function StudentAttendanceScreen() {
   });
 
   const handleSave = async () => {
-    if (!selectedStudentId) {
-      Alert.alert('Validation', 'Please select a student');
+    if (selectedIds.length === 0) {
+      Alert.alert('Validation', 'Please select at least one student');
       return;
     }
     setSaving(true);
     try {
-      await studentAttendanceAPI.mark({
-        student: selectedStudentId,
-        date: dateFilter,
-        status: form.status,
-        checkIn: timeToISO(dateFilter, form.checkIn),
-        checkOut: timeToISO(dateFilter, form.checkOut),
-        notes: form.notes || undefined,
-      });
-      closeModal();
+      if (selectedIds.length === 1) {
+        await studentAttendanceAPI.mark({
+          student: selectedIds[0],
+          date: dateFilter,
+          status: form.status,
+          checkIn: timeToISO(dateFilter, form.checkIn),
+          checkOut: timeToISO(dateFilter, form.checkOut),
+          notes: form.notes || undefined,
+        });
+        closeModal();
+      } else {
+        const res: any = await studentAttendanceAPI.bulkMark({
+          date: dateFilter,
+          records: selectedIds.map(id => ({
+            student: id,
+            status: form.status,
+            checkIn: timeToISO(dateFilter, form.checkIn),
+            notes: form.notes || undefined,
+          })),
+        });
+        closeModal();
+        if (res?.blocked?.length) setFeeBlock(res.blocked);
+      }
       await load();
     } catch (e: unknown) {
       if (handleFeeBlock(e)) {
@@ -396,17 +430,6 @@ export default function StudentAttendanceScreen() {
           <Text style={styles.headerTitle}>Student Attendance</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            style={styles.bulkBtn}
-            onPress={() => {
-              setBulkSelected([]);
-              setBulkStatus('present');
-              setShowBulkModal(true);
-            }}
-          >
-            <CheckCircle2 size={14} color={colors.blue} strokeWidth={2.5} />
-            <Text style={styles.bulkBtnText}>Bulk</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.addBtn} onPress={openNew}>
             <CheckCircle2 size={14} color={colors.white} strokeWidth={2.5} />
             <Text style={styles.addBtnText}>Mark</Text>
@@ -449,6 +472,7 @@ export default function StudentAttendanceScreen() {
       </View>
 
       <FilterPills
+        inset
         options={[
           { value: '', label: 'All' },
           ...Object.keys(summary).map(status => ({
@@ -527,20 +551,6 @@ export default function StudentAttendanceScreen() {
                   st.lastName?.[0] || ''
                 }`.toUpperCase()
               : '?';
-            const ciDate = item.checkIn
-              ? new Date(item.checkIn).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : null;
-            const coDate = item.checkOut
-              ? new Date(item.checkOut).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : null;
             const statusLabel = item.status.replace(/_/g, ' ').toUpperCase();
             const sessionDay = isSessionDay(st, dateFilter);
             return (
@@ -601,165 +611,137 @@ export default function StudentAttendanceScreen() {
                         <Text style={styles.stSportText}>{st.sport}</Text>
                       </View>
                     )}
-                    {!!st?.activePlan && (
-                      <Text
-                        style={[
-                          styles.stSportText,
-                          !sessionDay && { color: colors.yellow },
-                        ]}
-                      >
-                        {st.activePlan.name}
-                        {st.activePlan.startTime &&
-                          ` · ${formatTime12(st.activePlan.startTime)}${
-                            st.activePlan.endTime
-                              ? `–${formatTime12(st.activePlan.endTime)}`
-                              : ''
-                          }`}
-                        {!sessionDay && ' · not scheduled today'}
-                      </Text>
-                    )}
                   </View>
-                  <View style={styles.cardActions}>
-                    <View
-                      style={[
-                        styles.statusTag,
-                        { backgroundColor: cfg.bg, borderColor: cfg.color },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.statusTagText, { color: cfg.color }]}
-                      >
-                        {statusLabel}
-                      </Text>
+                  <StatusPill
+                    label={statusLabel}
+                    color={cfg.color}
+                    bg={cfg.bg}
+                  />
+                </View>
+                <View style={styles.cardActions}>
+                  <View style={styles.cardLeft}>
+                    <View style={styles.planChips}>
+                      {!!st?.activePlan && (
+                        <View style={styles.planChip}>
+                          <Text style={styles.planChipText} numberOfLines={1}>
+                            {st.activePlan.name}
+                            {st.activePlan.startTime &&
+                              ` · ${formatTime12(st.activePlan.startTime)}${
+                                st.activePlan.endTime
+                                  ? `–${formatTime12(st.activePlan.endTime)}`
+                                  : ''
+                              }`}
+                          </Text>
+                        </View>
+                      )}
+                      {!!st?.activePlan && !sessionDay && (
+                        <View style={[styles.planChip, styles.planChipWarn]}>
+                          <Text
+                            style={[styles.planChipText, { color: '#B45309' }]}
+                          >
+                            Not scheduled today
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                    {item._id.startsWith('v_') ? (
-                      <View style={{ flexDirection: 'row', gap: 6 }}>
-                        <TouchableOpacity
-                          style={styles.absentBtn}
-                          onPress={() => markAbsent(item.student?._id)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <XCircle
+                    <View style={styles.inOutRow}>
+                      <View style={styles.inOutCard}>
+                        <LogIn
+                          size={13}
+                          color={colors.green}
+                          strokeWidth={2.5}
+                        />
+                        <Text style={styles.inOutTime}>
+                          {ciTime || '--:--'}
+                        </Text>
+                      </View>
+                      {!singleTime && (
+                        <View style={styles.inOutCard}>
+                          <LogOut
                             size={13}
-                            color={colors.white}
+                            color={colors.red}
                             strokeWidth={2.5}
                           />
-                        </TouchableOpacity>
-                        {Array.isArray(st?.faceDescriptor) &&
-                          st.faceDescriptor.length === 128 && (
-                            <TouchableOpacity
-                              style={styles.faceBtn}
-                              onPress={() => markByFace(st)}
-                              disabled={markingByFaceId === st._id}
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                              {markingByFaceId === st._id ? (
-                                <ActivityIndicator
-                                  size="small"
-                                  color={colors.white}
-                                />
-                              ) : (
-                                <ScanFace
-                                  size={13}
-                                  color={colors.white}
-                                  strokeWidth={2.5}
-                                />
-                              )}
-                            </TouchableOpacity>
-                          )}
-                        {canResetFace &&
-                          Array.isArray(st?.faceDescriptor) &&
-                          st.faceDescriptor.length === 128 && (
-                            <TouchableOpacity
-                              style={styles.faceResetBtn}
-                              onPress={() => resetStudentFace(st)}
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                              <RotateCcw
+                          <Text style={styles.inOutTime}>
+                            {coTime || '--:--'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  {item._id.startsWith('v_') ? (
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <TouchableOpacity
+                        style={styles.absentBtn}
+                        onPress={() => markAbsent(item.student?._id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <XCircle
+                          size={13}
+                          color={colors.white}
+                          strokeWidth={2.5}
+                        />
+                      </TouchableOpacity>
+                      {Array.isArray(st?.faceDescriptor) &&
+                        st.faceDescriptor.length === 128 && (
+                          <TouchableOpacity
+                            style={styles.faceBtn}
+                            onPress={() => markByFace(st)}
+                            disabled={markingByFaceId === st._id}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            {markingByFaceId === st._id ? (
+                              <ActivityIndicator
+                                size="small"
+                                color={colors.white}
+                              />
+                            ) : (
+                              <ScanFace
                                 size={13}
                                 color={colors.white}
                                 strokeWidth={2.5}
                               />
-                            </TouchableOpacity>
-                          )}
-                        <TouchableOpacity
-                          style={styles.markBtn}
-                          onPress={() => openMarkForStudent(item.student?._id)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <CheckCircle2
-                            size={13}
-                            color={colors.white}
-                            strokeWidth={2.5}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
+                            )}
+                          </TouchableOpacity>
+                        )}
+                      {canResetFace &&
+                        Array.isArray(st?.faceDescriptor) &&
+                        st.faceDescriptor.length === 128 && (
+                          <TouchableOpacity
+                            style={styles.faceResetBtn}
+                            onPress={() => resetStudentFace(st)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <RotateCcw
+                              size={13}
+                              color={colors.white}
+                              strokeWidth={2.5}
+                            />
+                          </TouchableOpacity>
+                        )}
                       <TouchableOpacity
-                        style={styles.editBtn}
-                        onPress={() => openEdit(item)}
+                        style={styles.markBtn}
+                        onPress={() => openMarkForStudent(item.student?._id)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Pencil
-                          size={14}
-                          color={colors.blue}
+                        <CheckCircle2
+                          size={13}
+                          color={colors.white}
                           strokeWidth={2.5}
                         />
                       </TouchableOpacity>
-                    )}
-                  </View>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() => openEdit(item)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  )}
                 </View>
 
-                {(ciTime || coTime) && (
-                  <>
-                    <View style={styles.cardDivider} />
-                    <View style={styles.statsRow}>
-                      <View style={styles.statCol}>
-                        <View style={styles.statLabelRow}>
-                          <View
-                            style={[
-                              styles.statIconWrap,
-                              { backgroundColor: '#E7F9F1' },
-                            ]}
-                          >
-                            <LogIn
-                              size={12}
-                              color={colors.green}
-                              strokeWidth={2.5}
-                            />
-                          </View>
-                          <Text style={styles.statLabel}>Check In</Text>
-                        </View>
-                        <Text style={styles.statValue}>
-                          {ciTime || '--:--'}
-                        </Text>
-                        {ciDate && <Text style={styles.statSub}>{ciDate}</Text>}
-                      </View>
-                      <View style={styles.statDivider} />
-                      <View style={styles.statCol}>
-                        <View style={styles.statLabelRow}>
-                          <View
-                            style={[
-                              styles.statIconWrap,
-                              { backgroundColor: '#FDEBEB' },
-                            ]}
-                          >
-                            <LogOut
-                              size={12}
-                              color={colors.red}
-                              strokeWidth={2.5}
-                            />
-                          </View>
-                          <Text style={styles.statLabel}>Check Out</Text>
-                        </View>
-                        <Text style={styles.statValue}>
-                          {coTime || '--:--'}
-                        </Text>
-                        {coDate && <Text style={styles.statSub}>{coDate}</Text>}
-                      </View>
-                    </View>
-                  </>
-                )}
                 {item.notes && (
                   <Text style={styles.noteText}>{item.notes}</Text>
                 )}
@@ -882,156 +864,6 @@ export default function StudentAttendanceScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Bulk attendance modal */}
-      <Modal
-        visible={showBulkModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowBulkModal(false)}
-      >
-        <SafeAreaView style={styles.safe} edges={['top']}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Bulk Attendance</Text>
-            <TouchableOpacity onPress={() => setShowBulkModal(false)}>
-              <X size={22} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }}
-            showsVerticalScrollIndicator={false}
-          >
-            <View>
-              <Text style={styles.fieldLabel}>Status *</Text>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginTop: 6,
-                }}
-              >
-                {Object.keys(STATUS_CONFIG)
-                  .filter(s => s !== 'not_marked')
-                  .map(s => (
-                    <TouchableOpacity
-                      key={s}
-                      style={[
-                        styles.selChip,
-                        bulkStatus === s && styles.selChipActive,
-                      ]}
-                      onPress={() => setBulkStatus(s)}
-                    >
-                      <Text
-                        style={[
-                          styles.selChipText,
-                          bulkStatus === s && { color: colors.white },
-                        ]}
-                      >
-                        {s.replace(/_/g, ' ').toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.bulkSelectAllRow}
-              onPress={() => {
-                if (bulkSelected.length === students.length) {
-                  setBulkSelected([]);
-                } else {
-                  setBulkSelected(students.map(s => s._id));
-                }
-              }}
-            >
-              <View style={styles.bulkCheckbox}>
-                {bulkSelected.length === students.length &&
-                  students.length > 0 && (
-                    <View style={styles.bulkCheckboxInner} />
-                  )}
-              </View>
-              <Text style={styles.bulkSelectAllText}>Select All</Text>
-            </TouchableOpacity>
-
-            {students.map(st => {
-              const checked = bulkSelected.includes(st._id);
-              return (
-                <TouchableOpacity
-                  key={st._id}
-                  style={styles.bulkStRow}
-                  onPress={() =>
-                    setBulkSelected(p =>
-                      checked ? p.filter(id => id !== st._id) : [...p, st._id],
-                    )
-                  }
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.bulkCheckbox,
-                      checked && styles.bulkCheckboxChecked,
-                    ]}
-                  >
-                    {checked && <View style={styles.bulkCheckboxInner} />}
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.stOptionName}>
-                      {st.firstName} {st.lastName}
-                    </Text>
-                    <Text style={styles.stOptionId}>{st.studentId}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <View
-            style={{
-              padding: 16,
-              backgroundColor: colors.white,
-              borderTopWidth: 2,
-              borderTopColor: colors.black,
-            }}
-          >
-            <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                bulkSelected.length === 0 && { opacity: 0.5 },
-              ]}
-              disabled={bulkSelected.length === 0 || bulkSaving}
-              onPress={async () => {
-                if (bulkSelected.length === 0) return;
-                setBulkSaving(true);
-                try {
-                  const res: any = await studentAttendanceAPI.bulkMark({
-                    date: dateFilter,
-                    records: bulkSelected.map(id => ({
-                      student: id,
-                      status: bulkStatus,
-                    })),
-                  });
-                  setShowBulkModal(false);
-                  if (res?.blocked?.length) setFeeBlock(res.blocked);
-                  await load();
-                } catch (e: unknown) {
-                  Alert.alert('Error', getErrorMessage(e));
-                } finally {
-                  setBulkSaving(false);
-                }
-              }}
-            >
-              {bulkSaving ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.submitBtnText}>
-                  Mark Selected ({bulkSelected.length})
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
-
       {/* Single mark/edit modal */}
       <Modal
         visible={showModal}
@@ -1061,37 +893,94 @@ export default function StudentAttendanceScreen() {
               </View>
             ) : (
               <View>
-                <Text style={styles.fieldLabel}>Student *</Text>
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
-                  {students.map(s => (
-                    <TouchableOpacity
-                      key={s._id}
-                      style={[
-                        styles.stOption,
-                        selectedStudentId === s._id && styles.stOptionActive,
-                      ]}
-                      onPress={() => setSelectedStudentId(s._id)}
-                    >
-                      <Text
-                        style={[
-                          styles.stOptionName,
-                          selectedStudentId === s._id && {
-                            color: colors.white,
-                          },
-                        ]}
+                <Text style={styles.fieldLabel}>
+                  Students * ({selectedIds.length} selected)
+                </Text>
+                <TouchableOpacity
+                  style={styles.bulkSelectAllRow}
+                  onPress={() =>
+                    setSelectedIds(
+                      selectedIds.length === students.length
+                        ? []
+                        : students.map(x => x._id),
+                    )
+                  }
+                >
+                  <Text style={[styles.bulkSelectAllText, { flex: 1 }]}>
+                    Select All
+                  </Text>
+                  <View
+                    style={[
+                      styles.bulkCheckbox,
+                      selectedIds.length === students.length &&
+                        students.length > 0 &&
+                        styles.bulkCheckboxChecked,
+                    ]}
+                  >
+                    {selectedIds.length === students.length &&
+                      students.length > 0 && (
+                        <View style={styles.bulkCheckboxInner} />
+                      )}
+                  </View>
+                </TouchableOpacity>
+                <ScrollView
+                  style={{ maxHeight: 240 }}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={false}
+                >
+                  {students.map(st => {
+                    const checked = selectedIds.includes(st._id);
+                    return (
+                      <TouchableOpacity
+                        key={st._id}
+                        style={styles.bulkStRow}
+                        onPress={() =>
+                          setSelectedIds(p =>
+                            checked
+                              ? p.filter(id => id !== st._id)
+                              : [...p, st._id],
+                          )
+                        }
+                        activeOpacity={0.7}
                       >
-                        {s.firstName} {s.lastName}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.stOptionId,
-                          selectedStudentId === s._id && { color: '#93C5FD' },
-                        ]}
-                      >
-                        {s.studentId}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <View style={styles.pickAvatarWrap}>
+                          {st.avatar ? (
+                            <Image
+                              source={{ uri: st.avatar }}
+                              style={styles.pickAvatar}
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                styles.pickAvatar,
+                                styles.pickAvatarFallback,
+                              ]}
+                            >
+                              <Text style={styles.pickInitials}>
+                                {`${st.firstName?.[0] || ''}${
+                                  st.lastName?.[0] || ''
+                                }`.toUpperCase()}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <Text style={styles.stOptionName}>
+                            {st.firstName} {st.lastName}
+                          </Text>
+                          <Text style={styles.stOptionId}>{st.studentId}</Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.bulkCheckbox,
+                            checked && styles.bulkCheckboxChecked,
+                          ]}
+                        >
+                          {checked && <View style={styles.bulkCheckboxInner} />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
             )}
@@ -1130,23 +1019,30 @@ export default function StudentAttendanceScreen() {
               </View>
             </View>
 
+            <View style={styles.editInfoBox}>
+              <Text style={styles.editInfoLabel}>Date</Text>
+              <Text style={styles.editInfoValue}>{dateFilter}</Text>
+            </View>
+
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
                 <DateTimeField
-                  label="Check In"
+                  label={singleTime ? 'Time' : 'Check In'}
                   mode="time"
                   value={form.checkIn}
                   onChangeText={v => setForm(p => ({ ...p, checkIn: v }))}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <DateTimeField
-                  label="Check Out"
-                  mode="time"
-                  value={form.checkOut}
-                  onChangeText={v => setForm(p => ({ ...p, checkOut: v }))}
-                />
-              </View>
+              {!singleTime && (
+                <View style={{ flex: 1 }}>
+                  <DateTimeField
+                    label="Check Out"
+                    mode="time"
+                    value={form.checkOut}
+                    onChangeText={v => setForm(p => ({ ...p, checkOut: v }))}
+                  />
+                </View>
+              )}
             </View>
 
             <View>
@@ -1170,7 +1066,11 @@ export default function StudentAttendanceScreen() {
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.submitBtnText}>
-                  {editRecord ? 'Update Attendance' : 'Save Attendance'}
+                  {editRecord
+                    ? 'Update Attendance'
+                    : selectedIds.length > 1
+                    ? `Mark ${selectedIds.length} Students`
+                    : 'Save Attendance'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -1323,7 +1223,48 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 12,
+  },
+  cardLeft: { flex: 1, gap: 8, alignSelf: 'flex-end' },
+  planChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  inOutRow: { flexDirection: 'row', gap: 8 },
+  inOutCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  inOutTime: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  planChip: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  planChipWarn: { borderColor: '#F59E0B', backgroundColor: '#FEF3C7' },
+  planChipText: {
+    fontFamily: FONT.medium,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
   photoWrap: { position: 'relative', width: 48, height: 48 },
   stPhoto: {
     width: 48,
@@ -1363,8 +1304,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 10,
   },
-  statsRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  statCol: { flex: 1, gap: 3 },
+  statsRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
+  statCol: {
+    flex: 1,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 10,
+  },
   statDivider: { width: 1, backgroundColor: '#F0F1F3', marginHorizontal: 10 },
   statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statIconWrap: {
@@ -1414,9 +1363,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   editBtn: {
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: colors.blue,
-    padding: 4,
+    borderRadius: 8,
+    padding: 7,
     backgroundColor: colors.white,
   },
   markBtn: {
@@ -1574,28 +1524,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textTransform: 'uppercase',
   },
-  bulkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderColor: colors.blue,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  bulkBtnText: {
-    color: colors.blue,
-    fontFamily: FONT.bold,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
   bulkSelectAllRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1631,6 +1559,25 @@ const styles = StyleSheet.create({
   bulkCheckboxChecked: {
     borderColor: colors.blue,
     backgroundColor: colors.blue,
+  },
+  pickAvatarWrap: { width: 36, height: 36 },
+  pickAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.black,
+  },
+  pickAvatarFallback: {
+    backgroundColor: '#E8F0FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickInitials: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.blue,
   },
   bulkCheckboxInner: { width: 10, height: 10, backgroundColor: colors.white },
   calOverlay: {

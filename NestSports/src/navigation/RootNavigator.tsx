@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
+import AnimatedSplash from '../components/AnimatedSplash';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme/colors';
 import MainTabs from './MainTabs';
@@ -49,6 +50,7 @@ import BookingsScreen from '../screens/BookingsScreen';
 import ParentAttendanceScreen from '../screens/ParentAttendanceScreen';
 import ParentReportScreen from '../screens/ParentReportScreen';
 import PlansScreen from '../screens/PlansScreen';
+import GroupsScreen from '../screens/GroupsScreen';
 import AddPlanScreen from '../screens/AddPlanScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
 import ExitManagementScreen from '../screens/ExitManagementScreen';
@@ -102,7 +104,23 @@ function LoadingScreen() {
   );
 }
 
+// The animated splash covers the app until the saved session is restored (and
+// its minimum animation time has passed). It also hides the native splash.
 export default function RootNavigator() {
+  const { isLoading } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
+  const finishSplash = useCallback(() => setSplashDone(true), []);
+  return (
+    <View style={{ flex: 1 }}>
+      <RootNavigatorContent />
+      {!splashDone && (
+        <AnimatedSplash ready={!isLoading} onFinish={finishSplash} />
+      )}
+    </View>
+  );
+}
+
+function RootNavigatorContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) return <LoadingScreen />;
@@ -113,8 +131,13 @@ export default function RootNavigator() {
     user?.subscription?.status === 'pending_renewal';
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+    // Keyed on the account so switching academy remounts every screen.
+    <NavigationContainer key={user?.id}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
         {!isAuthenticated ? (
           <>
             <Stack.Screen
@@ -274,6 +297,11 @@ export default function RootNavigator() {
               name="ParentReport"
               component={ParentReportScreen}
               options={{ title: 'Student Report' }}
+            />
+            <Stack.Screen
+              name="Groups"
+              component={GroupsScreen}
+              options={{ title: 'Groups' }}
             />
             <Stack.Screen
               name="Plans"
