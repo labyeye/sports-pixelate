@@ -88,6 +88,7 @@ app.use(
     },
   }),
 );
+app.use(require("./middleware/sanitizeInput"));
 // Uploaded images (avatars, guardian photos, etc.) are embedded via absolute
 // URL from the frontend, which runs on a different origin/port than this API.
 // Helmet's default same-origin Cross-Origin-Resource-Policy blocks that

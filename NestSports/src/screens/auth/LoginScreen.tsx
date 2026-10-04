@@ -14,8 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../api/client';
 import { Button } from '../../components/ui';
+import AuthBanner from '../../components/AuthBanner';
 import { colors } from '../../theme/colors';
-import LottieView from 'lottie-react-native';
 import { Smartphone, Eye, EyeOff, Fingerprint } from 'lucide-react-native';
 import { getErrorMessage } from '../../utils/format';
 export default function LoginScreen({ navigation }: any) {
@@ -42,7 +42,10 @@ export default function LoginScreen({ navigation }: any) {
     setError('');
     setLoading(true);
     try {
-      const res: any = await authAPI.verify2FA(pending2FA || '', tfaCode.trim());
+      const res: any = await authAPI.verify2FA(
+        pending2FA || '',
+        tfaCode.trim(),
+      );
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
     } catch (err: unknown) {
@@ -51,7 +54,6 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(false);
   };
 
-
   if (pending2FA !== null) {
     return (
       <SafeAreaView
@@ -59,14 +61,19 @@ export default function LoginScreen({ navigation }: any) {
         style={{ flex: 1, backgroundColor: colors.white }}
       >
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerStyle={[styles.container, styles.centered]}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.title}>Two-Factor Authentication</Text>
           <Text
-            style={{ textAlign: 'center', color: colors.muted, marginBottom: 20 }}
+            style={{
+              textAlign: 'center',
+              color: colors.muted,
+              marginBottom: 20,
+            }}
           >
-            Enter the 6-digit code from your authenticator app, or a backup code.
+            Enter the 6-digit code from your authenticator app, or a backup
+            code.
           </Text>
           <View style={styles.field}>
             <Text style={styles.label}>Authentication Code</Text>
@@ -98,27 +105,21 @@ export default function LoginScreen({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={{ flex: 1, backgroundColor: colors.white }}
-    >
+    <SafeAreaView edges={['top']} style={styles.screen}>
+      <AuthBanner />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.container}>
-          <LottieView
-            source={require('../../assets/lottie/login.json')}
-            autoPlay
-            loop
-            style={{
-              width: '100%',
-              height: 250,
-              marginTop: -74,
-              marginBottom: 24,
-            }}
-          />
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.title}>Login</Text>
+          <Text style={styles.subtitle}>
+            Sign in with your email and password to continue.
+          </Text>
+
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -175,8 +176,7 @@ export default function LoginScreen({ navigation }: any) {
               color: colors.muted,
             }}
           >
-            ------------------- Or Login With
-            -------------------
+            ------------------- Or Login With -------------------
           </Text>
           <View
             style={{ flexDirection: 'row', justifyContent: 'center', gap: 24 }}
@@ -223,7 +223,10 @@ export default function LoginScreen({ navigation }: any) {
                   marginTop: 8,
                 }}
                 onPress={() => {
-                  Alert.alert('Passkey / Biometric', 'Ensure Face/Fingerprint unlock is enabled on your device.');
+                  Alert.alert(
+                    'Passkey / Biometric',
+                    'Ensure Face/Fingerprint unlock is enabled on your device.',
+                  );
                 }}
               >
                 <Fingerprint color={colors.white} size={26} />
@@ -248,8 +251,8 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     backgroundColor: colors.white,
   },
   logo: {
@@ -258,12 +261,21 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 24,
   },
+  centered: { justifyContent: 'center', paddingTop: 24 },
+  screen: { flex: 1, backgroundColor: colors.blue },
+  body: { flex: 1, backgroundColor: colors.white },
   title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '700',
+    textAlign: 'left',
+    fontSize: 34,
+    fontWeight: '800',
     color: colors.black,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  subtitle: {
+    textAlign: 'left',
+    color: colors.muted,
+    fontSize: 15,
+    marginBottom: 16,
   },
   field: { marginBottom: 14 },
   label: { fontWeight: '700', marginBottom: 6, color: colors.black },
@@ -287,7 +299,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   forgot: {
-    textAlign: 'right',
+    textAlign: 'left',
     color: colors.blue,
     fontWeight: '700',
     marginTop: 25,

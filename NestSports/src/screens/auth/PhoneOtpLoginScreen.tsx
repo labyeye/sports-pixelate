@@ -10,23 +10,27 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../api/client';
 import { Button } from '../../components/ui';
+import AuthBanner from '../../components/AuthBanner';
 import { colors } from '../../theme/colors';
-import LottieView from 'lottie-react-native';
 import { Mail, ChevronDown } from 'lucide-react-native';
 import { getErrorMessage } from '../../utils/format';
 
-// Flag emoji is derived from the ISO 3166-1 alpha-2 code (two regional-
-// indicator symbols) rather than hand-typed, so the list below can't drift
-// out of sync with a wrong emoji.
-function isoToFlag(iso2: string) {
-  return iso2
-    .toUpperCase()
-    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
+// Flag emoji don't render on every device (they show as "?"), so flags are
+// loaded as small images keyed by the ISO 3166-1 alpha-2 code.
+function Flag({ iso2 }: { iso2: string }) {
+  return (
+    <Image
+      source={{ uri: `https://flagcdn.com/w80/${iso2.toLowerCase()}.png` }}
+      style={styles.flag}
+      resizeMode="cover"
+    />
+  );
 }
 
 // India first since it's the default; the rest is alphabetical by name.
@@ -255,7 +259,7 @@ const RAW_COUNTRIES: { name: string; iso2: string; dial: string }[] = [
   { name: 'Zimbabwe', iso2: 'ZW', dial: '+263' },
 ];
 
-const COUNTRIES = RAW_COUNTRIES.map(c => ({ ...c, flag: isoToFlag(c.iso2) }));
+const COUNTRIES = RAW_COUNTRIES;
 
 export default function PhoneOtpLoginScreen({ navigation }: any) {
   const { completeLogin } = useAuth();
@@ -333,27 +337,20 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={{ flex: 1, backgroundColor: colors.white }}
-    >
+    <SafeAreaView edges={['top']} style={styles.screen}>
+      <AuthBanner />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.container}>
-          <LottieView
-            source={require('../../assets/lottie/otp.json')}
-            autoPlay
-            loop
-            style={{
-              width: '100%',
-              height: 300,
-              marginTop: -204,
-              marginBottom: 24,
-            }}
-          />
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.title}>Login</Text>
+          <Text style={styles.subtitle}>
+            Enter your phone number to receive a one-time password and sign in.
+          </Text>
 
           <View style={styles.field}>
             <Text style={styles.label}>Phone Number</Text>
@@ -363,9 +360,8 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
                 onPress={() => !otpSent && setCountryPickerVisible(true)}
                 disabled={otpSent}
               >
-                <Text style={styles.countryButtonText}>
-                  {countryCode.flag} {countryCode.dial}
-                </Text>
+                <Flag iso2={countryCode.iso2} />
+                <Text style={styles.countryButtonText}>{countryCode.dial}</Text>
                 <ChevronDown size={16} color={colors.black} />
               </TouchableOpacity>
               <TextInput
@@ -425,9 +421,10 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
                         setCountrySearch('');
                       }}
                     >
-                      <Text style={styles.countryRowText}>
-                        {item.flag} {item.name}
-                      </Text>
+                      <View style={styles.countryRowName}>
+                        <Flag iso2={item.iso2} />
+                        <Text style={styles.countryRowText}>{item.name}</Text>
+                      </View>
                       <Text style={styles.countryRowDial}>{item.dial}</Text>
                     </TouchableOpacity>
                   )}
@@ -536,8 +533,7 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
               marginTop: 25,
             }}
           >
-            ------------------- Or Login With
-            -------------------
+            ------------------- Or Login With -------------------
           </Text>
           <View
             style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}
@@ -579,19 +575,21 @@ export default function PhoneOtpLoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     backgroundColor: colors.white,
   },
+  screen: { flex: 1, backgroundColor: colors.blue },
+  body: { flex: 1, backgroundColor: colors.white },
   title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '700',
+    textAlign: 'left',
+    fontSize: 34,
+    fontWeight: '800',
     color: colors.black,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    textAlign: 'center',
+    textAlign: 'left',
     color: colors.muted,
     marginBottom: 24,
   },
@@ -704,6 +702,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#0000001A',
+  },
+  flag: {
+    width: 28,
+    height: 20,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#0000001A',
+  },
+  countryRowName: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
   },
   countryRowText: {
     fontSize: 15,

@@ -1,8 +1,8 @@
 const dns = require("dns");
 const mongoose = require("mongoose");
 
-// Treat query-filter objects as literal values, never operators ($ne, $gt, ...).
-mongoose.set("sanitizeFilter", true);
+// Note: no global `sanitizeFilter` — it rewrites the server's own `$in`/`$lt`
+// filters too. Request input is stripped of `$` keys in middleware/sanitizeInput.
 
 const connectDB = async () => {
   // Some local resolvers can't answer SRV lookups needed by mongodb+srv:// URIs.
