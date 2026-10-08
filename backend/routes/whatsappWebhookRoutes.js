@@ -67,7 +67,12 @@ router.post("/", async (req, res) => {
     // Status updates (sent, delivered, read)
     //
     if (value.statuses) {
-      logger.info("[WA] Status Event");
+      for (const st of value.statuses) {
+        const errs = st.errors ? ` errors=${JSON.stringify(st.errors)}` : "";
+        logger.info(
+          `[WA] Status ${st.status} to=${st.recipient_id} id=${st.id}${errs}`,
+        );
+      }
     }
 
     //

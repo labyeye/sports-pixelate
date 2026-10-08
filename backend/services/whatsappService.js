@@ -118,6 +118,9 @@ async function sendTemplate(
         let data = "";
         res.on("data", (chunk) => (data += chunk));
         res.on("end", () => {
+          logger.info(
+            `[WA] ${templateName} to=${toNumber} lang=${lang} Meta status=${res.statusCode} body=${data}`,
+          );
           if (res.statusCode >= 200 && res.statusCode < 300)
             resolve(JSON.parse(data));
           else reject(new Error(`Meta API ${res.statusCode}: ${data}`));
