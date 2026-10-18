@@ -17,7 +17,10 @@ export default tseslint.config(
       // The codebase predates linting: keep these as warnings so CI blocks
       // real bugs (errors) without blocking on style/legacy typing debt.
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/no-empty-object-type": "warn",
       "@typescript-eslint/no-unused-expressions": "warn",
       "no-empty": ["warn", { allowEmptyCatch: true }],

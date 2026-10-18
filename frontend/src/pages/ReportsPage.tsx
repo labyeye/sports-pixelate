@@ -1,3 +1,4 @@
+import { writePrintDocument } from "@/lib/printWindow";
 import { escapeHtml } from "@/lib/escapeHtml";
 // Reports hub (web): a catalogue of payroll, attendance, employee and student
 // reports. Each report card in REPORTS opens a `*Gen` component below that
@@ -489,8 +490,7 @@ function printReport(
 ) {
   const win = window.open("", "_blank");
   if (!win) return;
-  win.document.write(buildReportHTML(title, period, headers, rows, opts));
-  win.document.close();
+  writePrintDocument(win, buildReportHTML(title, period, headers, rows, opts), true);
 }
 
 function NbSelect({
@@ -1175,7 +1175,7 @@ function SalarySlipGen({
       minute: "2-digit",
       hour12: true,
     });
-    win.document.write(`<!DOCTYPE html>
+    writePrintDocument(win, `<!DOCTYPE html>
 <html><head><title>Salary Slip</title><style>
   @page { size: A4; margin: 15mm 15mm 22mm; @bottom-right { content: "Page " counter(page); font-size: 9px; color: #6B7280; } }
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -1253,9 +1253,7 @@ function SalarySlipGen({
     <span>${companyName} — Confidential</span>
     <span>Salary Slip · ${MONTHS[+month - 1]} ${year}</span>
   </div>
-  <script>window.onload = function() { window.print(); }</script>
-</body></html>`);
-    win.document.close();
+</body></html>`, true);
   }
 
   return (
@@ -4972,7 +4970,10 @@ function StudentPaymentHistoryGen({
 }
 
 // Placeholder shown for reports that are listed but not yet available.
-function ComingSoonGen(_props: { departments?: any[]; company: ReportCompany }) {
+function ComingSoonGen(_props: {
+  departments?: any[];
+  company: ReportCompany;
+}) {
   return (
     <div className="border-2 bg-white p-12 flex flex-col items-center gap-4">
       <div className="w-16 h-16 border-2 border-black bg-[#024BAB]/10 flex items-center justify-center">

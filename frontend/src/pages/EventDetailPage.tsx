@@ -53,7 +53,11 @@ export default function EventDetailPage() {
       const res = await eventAPI.getOne(id);
       setEvent(res.data);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
       navigate("/events");
     } finally {
       setLoading(false);

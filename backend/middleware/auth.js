@@ -27,12 +27,19 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, no token");
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    // A purpose-bound token (2FA step) is not a session.
+    if (decoded.purpose) throw new Error("Not a session token");
     req.user = await User.findById(decoded.id).select("-password");
     req.tokenClaims = decoded;
     if (!req.user || req.user.status === "inactive") {
       res.status(401);
       throw new Error("Not authorized");
+    }
+    // A password change/reset bumps tokenVersion, which retires every token issued before it.
+    if ((decoded.tv || 0) !== (req.user.tokenVersion || 0)) {
+      res.status(401);
+      throw new Error("Session expired");
     }
   } catch (err) {
     res.status(401);
@@ -68,7 +75,8 @@ const protectCompany = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, no token");
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    if (decoded.purpose) throw new Error("Not a session token");
     req.company = await Company.findById(decoded.id).select("-password");
     if (!req.company) {
       res.status(401);

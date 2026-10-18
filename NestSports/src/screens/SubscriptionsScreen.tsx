@@ -139,7 +139,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
   const [cashPlans, setCashPlans] = useState<any[]>([]);
   const [cashStudentId, setCashStudentId] = useState('');
   const [cashPlanId, setCashPlanId] = useState('');
-  const [cashBillingCycle, setCashBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [cashBillingCycle, setCashBillingCycle] = useState<
+    'monthly' | 'yearly'
+  >('monthly');
   const [cashAmount, setCashAmount] = useState('');
   const [submittingCash, setSubmittingCash] = useState(false);
   const [loadingCashOptions, setLoadingCashOptions] = useState(false);
@@ -277,7 +279,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
       setCashStudents((studRes as any).data || []);
       setCashPlans((planRes as any).data || []);
     } catch (e: unknown) {
-      Alert.alert('Error', getErrorMessage(e) || 'Failed to load students/plans');
+      Alert.alert(
+        'Error',
+        getErrorMessage(e) || 'Failed to load students/plans',
+      );
     } finally {
       setLoadingCashOptions(false);
     }
@@ -329,7 +334,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
       setCashTopUpSub(null);
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', getErrorMessage(e) || 'Failed to record cash payment');
+      Alert.alert(
+        'Error',
+        getErrorMessage(e) || 'Failed to record cash payment',
+      );
     } finally {
       setSubmittingCash(false);
     }
@@ -376,7 +384,14 @@ export default function SubscriptionsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 0, flex: 1 }}>
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 0,
+          paddingBottom: 0,
+          flex: 1,
+        }}
+      >
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Subscriptions</Text>
@@ -459,14 +474,13 @@ export default function SubscriptionsScreen({ navigation }: any) {
             style={styles.choosePlanBtn}
             onPress={() => navigation.navigate('ChoosePlan')}
           >
-            <Text style={styles.choosePlanBtnText}>+ Subscribe a Child to a Plan</Text>
+            <Text style={styles.choosePlanBtnText}>
+              + Subscribe a Child to a Plan
+            </Text>
           </TouchableOpacity>
         )}
         {!isParent && (
-          <TouchableOpacity
-            style={styles.cashBtn}
-            onPress={openCashModalNew}
-          >
+          <TouchableOpacity style={styles.cashBtn} onPress={openCashModalNew}>
             <Banknote size={16} color={colors.white} strokeWidth={2.5} />
             <Text style={styles.choosePlanBtnText}>Record Cash Payment</Text>
           </TouchableOpacity>
@@ -551,13 +565,21 @@ export default function SubscriptionsScreen({ navigation }: any) {
                         <View style={styles.methodTicks}>
                           <View style={styles.methodTickItem}>
                             {p.method === 'cash' && (
-                              <Check size={10} color={colors.green} strokeWidth={3} />
+                              <Check
+                                size={10}
+                                color={colors.green}
+                                strokeWidth={3}
+                              />
                             )}
                             <Text style={styles.methodTickText}>Cash</Text>
                           </View>
                           <View style={styles.methodTickItem}>
                             {p.method !== 'cash' && (
-                              <Check size={10} color={colors.blue} strokeWidth={3} />
+                              <Check
+                                size={10}
+                                color={colors.blue}
+                                strokeWidth={3}
+                              />
                             )}
                             <Text style={styles.methodTickText}>UPI</Text>
                           </View>
@@ -590,8 +612,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
                       s.payments?.some((p: any) => p.status === 'pending')
                         ? 'Awaiting Verification'
                         : s.amountPaid > 0
-                        ? 'Pay Remaining'
-                        : 'Renew'
+                          ? 'Pay Remaining'
+                          : 'Renew'
                     }
                     onPress={() =>
                       navigation.navigate('QrRenewal', { subscription: s })
@@ -635,7 +657,11 @@ export default function SubscriptionsScreen({ navigation }: any) {
                         style={styles.cashRowBtn}
                         onPress={() => openCashModalTopUp(s)}
                       >
-                        <Banknote size={14} color={colors.green} strokeWidth={2.5} />
+                        <Banknote
+                          size={14}
+                          color={colors.green}
+                          strokeWidth={2.5}
+                        />
                         <Text style={styles.cashRowBtnText}>Record Cash</Text>
                       </TouchableOpacity>
                     )}
@@ -795,7 +821,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
                   <PickerField
                     label="Student"
                     value={
-                      selectedCashStudent ? cashStudentLabel(selectedCashStudent) : ''
+                      selectedCashStudent
+                        ? cashStudentLabel(selectedCashStudent)
+                        : ''
                     }
                     options={cashStudentOptions}
                     onChange={label => {
@@ -804,16 +832,22 @@ export default function SubscriptionsScreen({ navigation }: any) {
                       );
                       setCashStudentId(match?._id || '');
                     }}
-                    placeholder={loadingCashOptions ? 'Loading...' : 'Select student'}
+                    placeholder={
+                      loadingCashOptions ? 'Loading...' : 'Select student'
+                    }
                     disabled={loadingCashOptions}
                     required
                   />
                   <PickerField
                     label="Plan"
-                    value={selectedCashPlan ? cashPlanLabel(selectedCashPlan) : ''}
+                    value={
+                      selectedCashPlan ? cashPlanLabel(selectedCashPlan) : ''
+                    }
                     options={cashPlanOptions}
                     onChange={label => {
-                      const match = cashPlans.find(p => cashPlanLabel(p) === label);
+                      const match = cashPlans.find(
+                        p => cashPlanLabel(p) === label,
+                      );
                       setCashPlanId(match?._id || '');
                       if (match) {
                         setCashAmount(
@@ -825,7 +859,9 @@ export default function SubscriptionsScreen({ navigation }: any) {
                         );
                       }
                     }}
-                    placeholder={loadingCashOptions ? 'Loading...' : 'Select plan'}
+                    placeholder={
+                      loadingCashOptions ? 'Loading...' : 'Select plan'
+                    }
                     disabled={loadingCashOptions}
                     required
                   />
@@ -911,7 +947,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  summaryDivider: { width: 2, alignSelf: 'stretch', backgroundColor: colors.black, opacity: 0.1 },
+  summaryDivider: {
+    width: 2,
+    alignSelf: 'stretch',
+    backgroundColor: colors.black,
+    opacity: 0.1,
+  },
   choosePlanBtn: {
     backgroundColor: colors.blue,
     borderWidth: 2,

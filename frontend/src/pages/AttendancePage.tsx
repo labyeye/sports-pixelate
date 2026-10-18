@@ -526,7 +526,11 @@ export default function AttendancePage() {
               icon={icon}
               color={color}
               active={isActive}
-              onClick={() => setActiveFilter(isActive || filterKey === "total" ? null : filterKey)}
+              onClick={() =>
+                setActiveFilter(
+                  isActive || filterKey === "total" ? null : filterKey,
+                )
+              }
             />
           );
         })}

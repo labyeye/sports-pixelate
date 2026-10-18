@@ -13,7 +13,6 @@ if (process.env.NODE_ENV === "production" && !process.env.ALLOWED_ORIGINS) {
 }
 
 const express = require("express");
-const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -40,6 +39,7 @@ startSubscriptionLifecycleJob();
 const app = express();
 
 app.set("trust proxy", 1);
+app.use(require("compression")());
 
 app.use(
   helmet({
@@ -78,7 +78,9 @@ app.use(
   }),
 );
 app.use(timeout("30s"));
-app.use(morgan("dev"));
+// Access log without query strings: they can carry ?token= (payment-proof images) and OTP/reset parameters.
+morgan.token("path", (req) => String(req.originalUrl || req.url).split("?")[0]);
+app.use(morgan(":method :path :status :res[content-length] - :response-time ms"));
 app.use(
   express.json({
     limit: "5mb",
@@ -99,6 +101,10 @@ app.use(
   uploadGuard,
   (req, res, next) => {
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // Active content that may already sit in uploads/ is downloaded, never rendered on the API origin.
+    if (/\.(html?|svg|xml|xhtml|js|mjs)$/i.test(req.path))
+      res.setHeader("Content-Disposition", "attachment");
     next();
   },
   serveEncryptedUpload,
@@ -190,6 +196,4 @@ require("./utils/monitoring").attachExpress(app);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5002;
-app.listen(PORT, () =>
-  console.log(`NestPlay server running on port ${PORT}`),
-);
+app.listen(PORT, () => console.log(`NestPlay server running on port ${PORT}`));

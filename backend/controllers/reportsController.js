@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const mongoose = require("mongoose");
+const { escapeRegex } = require("../middleware/validate");
 const StudentSubscription = require("../models/StudentSubscription");
 const Student = require("../models/Student");
 const StudentAttendance = require("../models/StudentAttendance");
@@ -151,7 +151,7 @@ const getStudentPerformance = asyncHandler(async (req, res) => {
   if (sport) filter.sport = sport;
   if (batch) filter.batch = batch;
   if (search) {
-    const re = new RegExp(search, "i");
+    const re = new RegExp(escapeRegex(String(search).slice(0, 100)), "i");
     filter.$or = [{ firstName: re }, { lastName: re }, { studentId: re }];
   }
 

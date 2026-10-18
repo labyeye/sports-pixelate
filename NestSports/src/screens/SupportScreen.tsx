@@ -10,7 +10,14 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Type, Tag, Flag, FileText, MessageSquare } from 'lucide-react-native';
+import {
+  X,
+  Type,
+  Tag,
+  Flag,
+  FileText,
+  MessageSquare,
+} from 'lucide-react-native';
 import { supportAPI } from '../api/client';
 import {
   Card,
@@ -108,7 +115,10 @@ export default function SupportScreen() {
       setDescription('');
       await load();
     } catch (err: unknown) {
-      Alert.alert('Failed to submit ticket', getErrorMessage(err) || 'Please try again');
+      Alert.alert(
+        'Failed to submit ticket',
+        getErrorMessage(err) || 'Please try again',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -131,7 +141,10 @@ export default function SupportScreen() {
   const sendReply = async () => {
     if (!selectedTicket) return;
     if (!replyMessage.trim()) {
-      Alert.alert('Missing information', 'Please type your reply before sending.');
+      Alert.alert(
+        'Missing information',
+        'Please type your reply before sending.',
+      );
       return;
     }
     setReplying(true);
@@ -162,7 +175,10 @@ export default function SupportScreen() {
             setSelectedTicket(res.data || selectedTicket);
             await load();
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Could not close ticket');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Could not close ticket',
+            );
           } finally {
             setClosing(false);
           }

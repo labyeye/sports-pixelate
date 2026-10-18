@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { Megaphone } from 'lucide-react-native';
 import { Card, SectionTitle, EmptyState, useToast } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
@@ -29,12 +37,18 @@ export default function AnnouncementsTab({ eventId }: { eventId: string }) {
   const post = async () => {
     if (posting) return;
     if (!title.trim() || !message.trim()) {
-      Alert.alert('Missing information', 'Please enter both a title and a message.');
+      Alert.alert(
+        'Missing information',
+        'Please enter both a title and a message.',
+      );
       return;
     }
     setPosting(true);
     try {
-      await eventAPI.addAnnouncement(eventId, { title: title.trim(), message: message.trim() });
+      await eventAPI.addAnnouncement(eventId, {
+        title: title.trim(),
+        message: message.trim(),
+      });
       setTitle('');
       setMessage('');
       load();
@@ -61,10 +75,32 @@ export default function AnnouncementsTab({ eventId }: { eventId: string }) {
         ))
       )}
       <View style={{ marginTop: 10, gap: 8 }}>
-        <TextInput style={styles.input} placeholder="Title" value={title} onChangeText={setTitle} />
-        <TextInput style={[styles.input, { height: 70 }]} placeholder="Message" value={message} onChangeText={setMessage} multiline />
-        <TouchableOpacity onPress={post} disabled={posting || !title.trim() || !message.trim()} style={[styles.postBtn, (posting || !title.trim() || !message.trim()) && { opacity: 0.5 }]}>
-          {posting ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.postBtnText}>Post Announcement</Text>}
+        <TextInput
+          style={styles.input}
+          placeholder="Title"
+          value={title}
+          onChangeText={setTitle}
+        />
+        <TextInput
+          style={[styles.input, { height: 70 }]}
+          placeholder="Message"
+          value={message}
+          onChangeText={setMessage}
+          multiline
+        />
+        <TouchableOpacity
+          onPress={post}
+          disabled={posting || !title.trim() || !message.trim()}
+          style={[
+            styles.postBtn,
+            (posting || !title.trim() || !message.trim()) && { opacity: 0.5 },
+          ]}
+        >
+          {posting ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <Text style={styles.postBtnText}>Post Announcement</Text>
+          )}
         </TouchableOpacity>
       </View>
     </Card>
@@ -72,10 +108,51 @@ export default function AnnouncementsTab({ eventId }: { eventId: string }) {
 }
 
 const styles = StyleSheet.create({
-  item: { borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  title: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
-  message: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
-  input: { borderWidth: 2, borderRadius: 8, borderRightWidth: 5, borderBottomWidth: 5, borderRightColor: '#0A0A0A', borderBottomColor: '#0A0A0A', borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, fontFamily: FONT.medium },
-  postBtn: { backgroundColor: colors.blue, borderWidth: 2, borderRadius: 8, borderColor: colors.black, paddingVertical: 10, alignItems: 'center' },
-  postBtnText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
+  item: {
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: '#0000001A',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  title: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  message: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  input: {
+    borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderColor: colors.black,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    fontFamily: FONT.medium,
+  },
+  postBtn: {
+    backgroundColor: colors.blue,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  postBtnText: {
+    color: colors.white,
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+  },
 });

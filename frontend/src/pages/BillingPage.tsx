@@ -1,3 +1,4 @@
+import { writePrintDocument } from "@/lib/printWindow";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -131,11 +132,7 @@ export default function BillingPage() {
       const html = buildInvoiceHTML(inv);
       const w = window.open("", "_blank");
       if (w) {
-        w.document.write(html);
-        w.document.close();
-        setTimeout(() => {
-          w.print();
-        }, 500);
+        writePrintDocument(w, html, true);
       }
     } finally {
       setDownloading(null);

@@ -155,10 +155,7 @@ function computeEmployeePayroll({
       const effectiveFrom = shiftStartUTC.getTime();
       // Regular hours capped at shift end; OT tracked separately below.
       const effectiveOut = Math.min(rawOut, shiftEndMs);
-      const fullHours = Math.max(
-        0,
-        (effectiveOut - effectiveFrom) / 3_600_000,
-      );
+      const fullHours = Math.max(0, (effectiveOut - effectiveFrom) / 3_600_000);
       totalWorkHours += fullHours;
       presentDays++;
 
@@ -219,11 +216,7 @@ function computeEmployeePayroll({
 
   // Late deduction = hours-lost pay + optional rule fine per occurrence.
   let lateDeduction = parseFloat((lateHoursLost * hourlyRate).toFixed(2));
-  if (
-    deductionRule &&
-    lateCount > 0 &&
-    deductionRule.lateDeductionAmount > 0
-  ) {
+  if (deductionRule && lateCount > 0 && deductionRule.lateDeductionAmount > 0) {
     const ruleFine =
       deductionRule.lateDeductionType === "percent"
         ? lateCount * dailyRate * (deductionRule.lateDeductionAmount / 100)
@@ -232,7 +225,6 @@ function computeEmployeePayroll({
   }
 
   const earlyCheckoutDeduction = 0;
-
 
   let totalAllowances = 0;
   let totalPenalties = 0;
@@ -248,7 +240,6 @@ function computeEmployeePayroll({
     }
     txIds.push(tx._id);
   }
-
 
   let loanDeduction = 0;
   const loanUpdates = [];
@@ -321,4 +312,9 @@ function computeEmployeePayroll({
   };
 }
 
-module.exports = { computeEmployeePayroll, getWorkingDays, parseTime, IST_OFFSET_MS };
+module.exports = {
+  computeEmployeePayroll,
+  getWorkingDays,
+  parseTime,
+  IST_OFFSET_MS,
+};

@@ -102,7 +102,9 @@ export default function LoginPage() {
           clientDataJSON: bufferToBase64Url(response.clientDataJSON),
           authenticatorData: bufferToBase64Url(response.authenticatorData),
           signature: bufferToBase64Url(response.signature),
-          userHandle: response.userHandle ? bufferToBase64Url(response.userHandle) : null,
+          userHandle: response.userHandle
+            ? bufferToBase64Url(response.userHandle)
+            : null,
         },
         type: credential.type,
       });
@@ -370,8 +372,8 @@ export default function LoginPage() {
                   {academyChoice
                     ? "This number is enrolled in more than one academy. Choose where to continue."
                     : otpSent
-                    ? "We sent a 6-digit OTP to your WhatsApp."
-                    : "We'll send a one-time password to your WhatsApp."}
+                      ? "We sent a 6-digit OTP to your WhatsApp."
+                      : "We'll send a one-time password to your WhatsApp."}
                 </p>
               </div>
 
@@ -608,7 +610,8 @@ export default function LoginPage() {
                   }}
                   className="w-full py-2.5 px-4 bg-white border-2 border-black text-xs font-bold text-black flex items-center justify-center gap-2"
                 >
-                  <WhatsAppIcon className="w-4 h-4 text-[#25D366]" /> Login with Phone OTP (WhatsApp)
+                  <WhatsAppIcon className="w-4 h-4 text-[#25D366]" /> Login with
+                  Phone OTP (WhatsApp)
                 </button>
                 <button
                   type="button"
@@ -623,7 +626,8 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
-                      <KeyRound className="w-4 h-4 text-[#024BAB]" /> Sign in with Passkey / WebAuthn
+                      <KeyRound className="w-4 h-4 text-[#024BAB]" /> Sign in
+                      with Passkey / WebAuthn
                     </>
                   )}
                 </button>

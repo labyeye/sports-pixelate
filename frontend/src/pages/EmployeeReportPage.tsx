@@ -1,3 +1,4 @@
+import { writePrintDocument } from "@/lib/printWindow";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { buildReportHTML } from "@/lib/reportPrintHTML";
@@ -8,7 +9,6 @@ import {
   BarChart2,
   Calendar,
   Download,
-  Loader2,
   Clock,
   CheckCircle,
   XCircle,
@@ -166,15 +166,16 @@ export default function EmployeeReportPage() {
       });
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(
+    writePrintDocument(
+      win,
       buildReportHTML(
         `Attendance Report`,
         `${MONTHS[month - 1]} ${year}`,
         headers,
         tableRows,
       ),
+      true,
     );
-    win.document.close();
   };
 
   return (

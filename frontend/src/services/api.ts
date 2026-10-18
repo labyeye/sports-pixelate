@@ -18,8 +18,10 @@ export function statusMessage(status: number, serverMessage?: string): string {
   if (status === 401) return "Your session has expired. Please log in again.";
   if (status === 403) return "You don't have permission to do this.";
   if (status === 404) return "We couldn't find what you were looking for.";
-  if (status === 413) return "That file is too large. Please choose a smaller one.";
-  if (status === 429) return "Too many attempts. Please wait a moment and try again.";
+  if (status === 413)
+    return "That file is too large. Please choose a smaller one.";
+  if (status === 429)
+    return "Too many attempts. Please wait a moment and try again.";
   if (status >= 500)
     return "Something went wrong on our side. Please try again in a moment.";
   return "Something went wrong. Please try again.";
@@ -27,7 +29,10 @@ export function statusMessage(status: number, serverMessage?: string): string {
 
 // fetch() that turns a network failure (offline, DNS, CORS, server down) into a
 // readable error instead of the browser's "Failed to fetch".
-async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+async function apiFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
   try {
     return await fetch(input, init);
   } catch {
@@ -90,8 +95,12 @@ export const authAPI = {
   register: (body: { name: string; email: string; password: string }) =>
     request("/auth/register", { method: "POST", body: JSON.stringify(body) }),
   getMe: () => request("/auth/me"),
-  updateProfile: (body: object) =>
-    request("/auth/profile", { method: "PUT", body: JSON.stringify(body) }),
+  // A password change retires old tokens server-side and answers with a fresh one, so keep this session alive.
+  updateProfile: async (body: object) => {
+    const res = await request("/auth/profile", { method: "PUT", body: JSON.stringify(body) });
+    if (res?.token) setToken(res.token);
+    return res;
+  },
   forgotPassword: (email: string) =>
     request("/auth/forgot-password", {
       method: "POST",

@@ -93,7 +93,11 @@ export default function ParentAttendancePage() {
       setChildren(res.data || []);
       if (res.data?.length && !selectedChild) setSelectedChild(res.data[0]._id);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -112,7 +116,11 @@ export default function ParentAttendancePage() {
       });
       setRecords(res.data || []);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

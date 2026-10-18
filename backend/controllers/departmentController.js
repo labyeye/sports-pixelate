@@ -35,16 +35,12 @@ const getDepartments = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  const withCounts = await Promise.all(
-    departments.map(async (d) => {
-      const count = await Employee.countDocuments({
-        company: req.user.company,
-        department: d._id,
-        status: "active",
-      });
-      return { ...d.toObject(), headcount: count };
-    }),
-  );
+  const counts = await Employee.aggregate([
+    { $match: { company: req.user.company, status: "active", department: { $in: departments.map((d) => d._id) } } },
+    { $group: { _id: "$department", n: { $sum: 1 } } },
+  ]);
+  const byDept = new Map(counts.map((c) => [String(c._id), c.n]));
+  const withCounts = departments.map((d) => ({ ...d.toObject(), headcount: byDept.get(String(d._id)) || 0 }));
 
   res.json({
     success: true,

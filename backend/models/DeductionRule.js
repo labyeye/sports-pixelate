@@ -57,7 +57,12 @@ const deductionRuleSchema = new mongoose.Schema(
     // Auto-absent: scheduled students still unmarked `studentAbsentAfterEndMinutes`
     // after their session ends are marked "absent".
     studentAutoAbsentEnabled: { type: Boolean, default: false },
-    studentAbsentAfterEndMinutes: { type: Number, default: 30, min: 0, max: 720 },
+    studentAbsentAfterEndMinutes: {
+      type: Number,
+      default: 30,
+      min: 0,
+      max: 720,
+    },
 
     // Monthly fee payment link: on `paymentLinkDay` of each month (at
     // `paymentLinkHour` IST) every student with a fee due gets a WhatsApp link

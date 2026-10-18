@@ -11,7 +11,6 @@ const {
   safePagination,
   safeSort,
   validateBody,
-  validateMongoId,
 } = require("../middleware/validate");
 
 const EMPLOYEE_SORT_FIELDS = [
@@ -554,6 +553,13 @@ const bulkImportEmployees = asyncHandler(async (req, res) => {
       let userId;
       const existingUser = await User.findOne({ email });
       if (existingUser) {
+        // Never adopt a login that belongs to another academy or to staff/owners (account takeover via import).
+        if (
+          String(existingUser.company) !== String(req.user.company) ||
+          existingUser.role !== "employee"
+        ) {
+          throw new Error("This email is already registered to another account");
+        }
         userId = existingUser._id;
       } else {
         const tempPassword =
@@ -700,7 +706,10 @@ const downloadEmployeeDocument = asyncHandler(async (req, res) => {
   }
 
   // Stored encrypted: decrypt in memory and send as an attachment.
-  res.setHeader("Content-Disposition", `attachment; filename="${path.basename(abs)}"`);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${path.basename(abs)}"`,
+  );
   res.type(path.extname(abs) || "application/octet-stream");
   res.send(readDecrypted(abs));
 });

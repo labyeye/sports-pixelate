@@ -30,7 +30,11 @@ export function GalleryTab({ eventId }: Props) {
       const res = await eventAPI.getGallery(eventId);
       setItems(res.data || []);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -47,7 +51,11 @@ export function GalleryTab({ eventId }: Props) {
       await eventAPI.addGalleryItem(eventId, file, "");
       await load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -59,7 +67,11 @@ export function GalleryTab({ eventId }: Props) {
       await eventAPI.deleteGalleryItem(eventId, itemId);
       setItems((prev) => prev.filter((i) => i._id !== itemId));
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setBusyId(null);
     }

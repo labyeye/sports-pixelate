@@ -1,6 +1,5 @@
 const asyncHandler = require("express-async-handler");
 const { removeStoredUpload } = require("../utils/uploadFiles");
-const path = require("path");
 const Setting = require("../models/Setting");
 const Company = require("../models/Company");
 

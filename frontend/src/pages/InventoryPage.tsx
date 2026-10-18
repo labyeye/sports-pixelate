@@ -210,7 +210,11 @@ export default function InventoryPage() {
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -226,7 +230,11 @@ export default function InventoryPage() {
       setPage(next);
       setPages(r.pages || 1);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setLoadingMore(false);
   };
@@ -325,7 +333,11 @@ export default function InventoryPage() {
       }
       resetForm();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -338,7 +350,11 @@ export default function InventoryPage() {
       setItems((p) => p.filter((x) => x._id !== id));
       toast({ title: "Item deleted" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -361,7 +377,11 @@ export default function InventoryPage() {
       setTxnFor(null);
       setTxnQty("1");
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -417,7 +437,11 @@ export default function InventoryPage() {
       }));
       toast({ title: "Item checked out" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setAssignSaving(false);
     }
@@ -434,7 +458,11 @@ export default function InventoryPage() {
       setAssignFor(r.data);
       toast({ title: "Item returned" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

@@ -14,7 +14,9 @@ let cachedToken: string | null = null;
 export async function getToken(): Promise<string | null> {
   if (cachedToken !== null) return cachedToken;
   try {
-    const creds = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+    const creds = await Keychain.getGenericPassword({
+      service: KEYCHAIN_SERVICE,
+    });
     if (creds) {
       cachedToken = creds.password;
       return cachedToken;
@@ -67,7 +69,11 @@ const NETWORK_MESSAGE =
 // Plain-language text for an HTTP failure. The server's own message wins when it
 // has one (it is already written for users); otherwise fall back by status code.
 export function statusMessage(status: number, serverMessage?: string): string {
-  if (serverMessage && serverMessage !== 'Request failed' && serverMessage !== 'Upload failed') {
+  if (
+    serverMessage &&
+    serverMessage !== 'Request failed' &&
+    serverMessage !== 'Upload failed'
+  ) {
     return serverMessage;
   }
   if (status === 400 || status === 422) {
@@ -76,8 +82,10 @@ export function statusMessage(status: number, serverMessage?: string): string {
   if (status === 401) return 'Your session has expired. Please log in again.';
   if (status === 403) return "You don't have permission to do this.";
   if (status === 404) return "We couldn't find what you were looking for.";
-  if (status === 413) return 'That file is too large. Please choose a smaller one.';
-  if (status === 429) return 'Too many attempts. Please wait a moment and try again.';
+  if (status === 413)
+    return 'That file is too large. Please choose a smaller one.';
+  if (status === 429)
+    return 'Too many attempts. Please wait a moment and try again.';
   if (status >= 500) {
     return 'Something went wrong on our side. Please try again in a moment.';
   }
@@ -170,8 +178,12 @@ export const authAPI = {
   register: (body: { name: string; email: string; password: string }) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   getMe: () => request('/auth/me'),
-  updateProfile: (body: object) =>
-    request('/auth/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  // A password change retires old tokens server-side and answers with a fresh one, so keep this session alive.
+  updateProfile: async (body: object) => {
+    const res = await request('/auth/profile', { method: 'PUT', body: JSON.stringify(body) });
+    if (res?.token) await setToken(res.token);
+    return res;
+  },
   forgotPassword: (email: string) =>
     request('/auth/forgot-password', {
       method: 'POST',
@@ -241,7 +253,10 @@ export const authAPI = {
     }),
   // Prove ownership of the profile phone (separate from the login OTP)
   sendPhoneVerifyOtp: () =>
-    request('/auth/phone/send-otp', { method: 'POST', body: JSON.stringify({}) }),
+    request('/auth/phone/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
   verifyPhoneVerifyOtp: (otp: string) =>
     request('/auth/phone/verify-otp', {
       method: 'POST',
@@ -315,7 +330,12 @@ export const attendanceAPI = {
   // employee's enrolled face descriptor and their location against their
   // configured geofence, server-side.
   selfMark: (
-    body: { action: 'checkin' | 'checkout'; lat: number; lng: number; accuracy?: number },
+    body: {
+      action: 'checkin' | 'checkout';
+      lat: number;
+      lng: number;
+      accuracy?: number;
+    },
     selfie: RNFile,
   ) =>
     upload(
@@ -468,7 +488,10 @@ export const attendanceSettingsAPI = {
   get: () => request('/attendance-settings'),
   getStudentTimeMode: () => request('/attendance-settings/student-time-mode'),
   update: (body: object) =>
-    request('/attendance-settings', { method: 'PUT', body: JSON.stringify(body) }),
+    request('/attendance-settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   upsertLateAllowance: (body: {
     mode: 'bulk' | 'custom';
     bulkCount?: number;
@@ -821,7 +844,10 @@ export const eventAPI = {
       body: JSON.stringify(body),
     }),
 
-  addOfficial: (id: string, body: { name: string; role?: string; phone?: string; email?: string }) =>
+  addOfficial: (
+    id: string,
+    body: { name: string; role?: string; phone?: string; email?: string },
+  ) =>
     request(`/events/${id}/officials`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -888,7 +914,11 @@ export const subscriptionAPI = {
     }),
   // Owner/staff assigns a plan to a student (e.g. from the student form) —
   // creates a pending subscription with no payment attached yet.
-  assign: (body: { studentId: string; planId: string; billingCycle?: string }) =>
+  assign: (body: {
+    studentId: string;
+    planId: string;
+    billingCycle?: string;
+  }) =>
     request('/subscriptions/assign', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -947,7 +977,11 @@ export const subscriptionAPI = {
     request(`/subscriptions/${subscriptionId}/payments/${paymentId}/verify`, {
       method: 'POST',
     }),
-  rejectQrPayment: (subscriptionId: string, paymentId: string, reason?: string) =>
+  rejectQrPayment: (
+    subscriptionId: string,
+    paymentId: string,
+    reason?: string,
+  ) =>
     request(`/subscriptions/${subscriptionId}/payments/${paymentId}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason }),

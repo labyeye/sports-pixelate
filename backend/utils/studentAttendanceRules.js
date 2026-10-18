@@ -76,9 +76,7 @@ async function resolvePresentStatus(companyId, studentId, dateOnly, markedAt) {
 // Is the plan expected on this weekday? Mirrors the apps' isSessionDay.
 function isScheduledOn(plan, dateOnly) {
   if (!plan || plan.scheduleType !== "custom_days") return true;
-  return (plan.scheduleDays || []).includes(
-    WEEKDAY_KEYS[dateOnly.getUTCDay()],
-  );
+  return (plan.scheduleDays || []).includes(WEEKDAY_KEYS[dateOnly.getUTCDay()]);
 }
 
 module.exports = {

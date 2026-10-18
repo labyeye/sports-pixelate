@@ -37,17 +37,40 @@ async function run() {
   if (!company) throw new Error("Company not found: " + COMPANY_ID);
   console.log("Using company:", company.name);
 
-  const owner = await User.findOne({ company: COMPANY_ID, role: "super_admin" });
-  let tennisDept = await Department.findOne({ company: COMPANY_ID, code: "SPORT001" });
+  const owner = await User.findOne({
+    company: COMPANY_ID,
+    role: "super_admin",
+  });
+  let tennisDept = await Department.findOne({
+    company: COMPANY_ID,
+    code: "SPORT001",
+  });
 
   // ── Coaches (Employees) ───────────────────────────────────────────────
   const coachDefs = [
-    { first: "SURESH", last: "PATEL", designation: "SENIOR COACH", salary: 32000 },
-    { first: "MEERA", last: "IYER", designation: "ASSISTANT COACH", salary: 22000 },
-    { first: "ANJALI", last: "DESHMUKH", designation: "FRONT DESK EXECUTIVE", salary: 15000 },
+    {
+      first: "SURESH",
+      last: "PATEL",
+      designation: "SENIOR COACH",
+      salary: 32000,
+    },
+    {
+      first: "MEERA",
+      last: "IYER",
+      designation: "ASSISTANT COACH",
+      salary: 22000,
+    },
+    {
+      first: "ANJALI",
+      last: "DESHMUKH",
+      designation: "FRONT DESK EXECUTIVE",
+      salary: 15000,
+    },
   ];
   const coaches = [];
-  const existingEmpCount = await Employee.countDocuments({ company: COMPANY_ID });
+  const existingEmpCount = await Employee.countDocuments({
+    company: COMPANY_ID,
+  });
   for (let i = 0; i < coachDefs.length; i++) {
     const c = coachDefs[i];
     const email = `${c.first.toLowerCase()}.${c.last.toLowerCase()}@kalahanu-demo.com`;
@@ -104,7 +127,9 @@ async function run() {
     firstName: "RAVI",
   });
   const allCoaches = existingCoach ? [existingCoach, ...coaches] : coaches;
-  const coachPool = allCoaches.filter((c) => c.role === "coach" || c.designation?.includes("COACH"));
+  const coachPool = allCoaches.filter(
+    (c) => c.role === "coach" || c.designation?.includes("COACH"),
+  );
   const coachesForAssign = coachPool.length ? coachPool : allCoaches;
 
   // ── Students ───────────────────────────────────────────────────────────
@@ -125,7 +150,9 @@ async function run() {
     { first: "KAVYA", last: "PARMAR", gender: "female", batch: "MORNING" },
   ];
 
-  const existingStudentCount = await Student.countDocuments({ company: COMPANY_ID });
+  const existingStudentCount = await Student.countDocuments({
+    company: COMPANY_ID,
+  });
   const students = [];
   for (let i = 0; i < studentDefs.length; i++) {
     const s = studentDefs[i];
@@ -170,8 +197,14 @@ async function run() {
   }
 
   // ── Sports Plans (add an EVENING plan alongside the existing MORNING) ───
-  let morningPlan = await SportsPlan.findOne({ company: COMPANY_ID, name: "MORNING" });
-  let eveningPlan = await SportsPlan.findOne({ company: COMPANY_ID, name: "EVENING" });
+  let morningPlan = await SportsPlan.findOne({
+    company: COMPANY_ID,
+    name: "MORNING",
+  });
+  let eveningPlan = await SportsPlan.findOne({
+    company: COMPANY_ID,
+    name: "EVENING",
+  });
   if (!eveningPlan) {
     eveningPlan = await SportsPlan.create({
       company: COMPANY_ID,
@@ -193,7 +226,10 @@ async function run() {
     const plan = stu.batch === "EVENING" ? eveningPlan : morningPlan;
     if (!plan) continue;
 
-    const exists = await StudentSubscription.findOne({ student: stu._id, plan: plan._id });
+    const exists = await StudentSubscription.findOne({
+      student: stu._id,
+      plan: plan._id,
+    });
     if (exists) continue;
 
     const renewalDate = daysFromNow(renewalOffsets[i % renewalOffsets.length]);
@@ -231,20 +267,77 @@ async function run() {
 
   // ── Inventory ─────────────────────────────────────────────────────────
   const inventoryDefs = [
-    { name: "TENNIS RACKET (JUNIOR)", category: "equipment", qty: 20, cost: 1800, reorder: 4 },
-    { name: "TENNIS RACKET (SENIOR)", category: "equipment", qty: 15, cost: 3200, reorder: 3 },
-    { name: "TENNIS BALLS (CAN OF 3)", category: "consumable", qty: 40, cost: 220, reorder: 10 },
-    { name: "BALL BASKET", category: "equipment", qty: 6, cost: 900, reorder: 1 },
-    { name: "TENNIS NET", category: "equipment", qty: 3, cost: 4500, reorder: 1 },
-    { name: "COURT MARKING TAPE", category: "consumable", qty: 10, cost: 350, reorder: 2 },
-    { name: "TEAM T-SHIRT (KALAHANU)", category: "apparel", qty: 35, cost: 400, reorder: 8 },
+    {
+      name: "TENNIS RACKET (JUNIOR)",
+      category: "equipment",
+      qty: 20,
+      cost: 1800,
+      reorder: 4,
+    },
+    {
+      name: "TENNIS RACKET (SENIOR)",
+      category: "equipment",
+      qty: 15,
+      cost: 3200,
+      reorder: 3,
+    },
+    {
+      name: "TENNIS BALLS (CAN OF 3)",
+      category: "consumable",
+      qty: 40,
+      cost: 220,
+      reorder: 10,
+    },
+    {
+      name: "BALL BASKET",
+      category: "equipment",
+      qty: 6,
+      cost: 900,
+      reorder: 1,
+    },
+    {
+      name: "TENNIS NET",
+      category: "equipment",
+      qty: 3,
+      cost: 4500,
+      reorder: 1,
+    },
+    {
+      name: "COURT MARKING TAPE",
+      category: "consumable",
+      qty: 10,
+      cost: 350,
+      reorder: 2,
+    },
+    {
+      name: "TEAM T-SHIRT (KALAHANU)",
+      category: "apparel",
+      qty: 35,
+      cost: 400,
+      reorder: 8,
+    },
     { name: "SPORTS CAP", category: "apparel", qty: 30, cost: 180, reorder: 6 },
-    { name: "FIRST AID KIT", category: "consumable", qty: 4, cost: 850, reorder: 1 },
-    { name: "WATER DISPENSER", category: "other", qty: 2, cost: 3200, reorder: 1 },
+    {
+      name: "FIRST AID KIT",
+      category: "consumable",
+      qty: 4,
+      cost: 850,
+      reorder: 1,
+    },
+    {
+      name: "WATER DISPENSER",
+      category: "other",
+      qty: 2,
+      cost: 3200,
+      reorder: 1,
+    },
   ];
   const inventoryItems = [];
   for (const d of inventoryDefs) {
-    let item = await InventoryItem.findOne({ company: COMPANY_ID, name: d.name });
+    let item = await InventoryItem.findOne({
+      company: COMPANY_ID,
+      name: d.name,
+    });
     if (!item) {
       item = await InventoryItem.create({
         company: COMPANY_ID,
@@ -271,7 +364,9 @@ async function run() {
   }
 
   // A couple of realistic checkouts/consumption
-  const juniorRacket = inventoryItems.find((i) => i.name === "TENNIS RACKET (JUNIOR)");
+  const juniorRacket = inventoryItems.find(
+    (i) => i.name === "TENNIS RACKET (JUNIOR)",
+  );
   if (juniorRacket && juniorRacket.assignments.length === 0 && students[0]) {
     juniorRacket.assignments.push({
       assignedTo: students[0]._id,
@@ -279,7 +374,10 @@ async function run() {
       quantity: 1,
       notes: "Assigned for practice",
     });
-    juniorRacket.availableQuantity = Math.max(0, juniorRacket.availableQuantity - 1);
+    juniorRacket.availableQuantity = Math.max(
+      0,
+      juniorRacket.availableQuantity - 1,
+    );
     await juniorRacket.save();
     await InventoryTransaction.create({
       company: COMPANY_ID,
@@ -290,9 +388,14 @@ async function run() {
       recordedBy: owner ? owner._id : undefined,
     });
   }
-  const ballCans = inventoryItems.find((i) => i.name === "TENNIS BALLS (CAN OF 3)");
+  const ballCans = inventoryItems.find(
+    (i) => i.name === "TENNIS BALLS (CAN OF 3)",
+  );
   if (ballCans) {
-    const already = await InventoryTransaction.findOne({ item: ballCans._id, type: "consume" });
+    const already = await InventoryTransaction.findOne({
+      item: ballCans._id,
+      type: "consume",
+    });
     if (!already) {
       ballCans.availableQuantity = Math.max(0, ballCans.availableQuantity - 8);
       await ballCans.save();
@@ -310,32 +413,131 @@ async function run() {
 
   // ── Expenses (last ~60 days, realistic academy costs) ───────────────────
   const expenseDefs = [
-    { title: "Court Rent - Monthly", category: "facility_maintenance", amount: 25000, daysAgo: 2 },
-    { title: "Electricity Bill", category: "utilities", amount: 4200, daysAgo: 5 },
+    {
+      title: "Court Rent - Monthly",
+      category: "facility_maintenance",
+      amount: 25000,
+      daysAgo: 2,
+    },
+    {
+      title: "Electricity Bill",
+      category: "utilities",
+      amount: 4200,
+      daysAgo: 5,
+    },
     { title: "Water Bill", category: "utilities", amount: 900, daysAgo: 5 },
-    { title: "Tennis Balls Bulk Purchase", category: "equipment", amount: 8800, daysAgo: 10 },
-    { title: "Court Resurfacing & Net Repair", category: "facility_maintenance", amount: 15000, daysAgo: 18 },
-    { title: "Coach Salary - Suresh Patel", category: "salaries", amount: 32000, daysAgo: 3 },
-    { title: "Coach Salary - Meera Iyer", category: "salaries", amount: 22000, daysAgo: 3 },
-    { title: "Front Desk Salary - Anjali Deshmukh", category: "salaries", amount: 15000, daysAgo: 3 },
-    { title: "Instagram & Facebook Ads", category: "marketing", amount: 3500, daysAgo: 20 },
-    { title: "Banners for Summer Camp", category: "marketing", amount: 2200, daysAgo: 25 },
-    { title: "Travel - Inter-Academy Tournament", category: "travel", amount: 6000, daysAgo: 30 },
-    { title: "First Aid & Medical Supplies", category: "other", amount: 1200, daysAgo: 12 },
-    { title: "Court Rent - Monthly", category: "facility_maintenance", amount: 25000, daysAgo: 32 },
-    { title: "Electricity Bill", category: "utilities", amount: 3900, daysAgo: 35 },
-    { title: "New Ball Baskets", category: "equipment", amount: 5400, daysAgo: 40 },
-    { title: "Team T-Shirts Printing", category: "other", amount: 9800, daysAgo: 45 },
-    { title: "Coach Salary - Suresh Patel", category: "salaries", amount: 32000, daysAgo: 33 },
-    { title: "Coach Salary - Meera Iyer", category: "salaries", amount: 22000, daysAgo: 33 },
-    { title: "Water Dispenser Purchase", category: "other", amount: 3200, daysAgo: 50 },
-    { title: "Annual Tournament Sponsorship Banner", category: "marketing", amount: 4500, daysAgo: 55 },
+    {
+      title: "Tennis Balls Bulk Purchase",
+      category: "equipment",
+      amount: 8800,
+      daysAgo: 10,
+    },
+    {
+      title: "Court Resurfacing & Net Repair",
+      category: "facility_maintenance",
+      amount: 15000,
+      daysAgo: 18,
+    },
+    {
+      title: "Coach Salary - Suresh Patel",
+      category: "salaries",
+      amount: 32000,
+      daysAgo: 3,
+    },
+    {
+      title: "Coach Salary - Meera Iyer",
+      category: "salaries",
+      amount: 22000,
+      daysAgo: 3,
+    },
+    {
+      title: "Front Desk Salary - Anjali Deshmukh",
+      category: "salaries",
+      amount: 15000,
+      daysAgo: 3,
+    },
+    {
+      title: "Instagram & Facebook Ads",
+      category: "marketing",
+      amount: 3500,
+      daysAgo: 20,
+    },
+    {
+      title: "Banners for Summer Camp",
+      category: "marketing",
+      amount: 2200,
+      daysAgo: 25,
+    },
+    {
+      title: "Travel - Inter-Academy Tournament",
+      category: "travel",
+      amount: 6000,
+      daysAgo: 30,
+    },
+    {
+      title: "First Aid & Medical Supplies",
+      category: "other",
+      amount: 1200,
+      daysAgo: 12,
+    },
+    {
+      title: "Court Rent - Monthly",
+      category: "facility_maintenance",
+      amount: 25000,
+      daysAgo: 32,
+    },
+    {
+      title: "Electricity Bill",
+      category: "utilities",
+      amount: 3900,
+      daysAgo: 35,
+    },
+    {
+      title: "New Ball Baskets",
+      category: "equipment",
+      amount: 5400,
+      daysAgo: 40,
+    },
+    {
+      title: "Team T-Shirts Printing",
+      category: "other",
+      amount: 9800,
+      daysAgo: 45,
+    },
+    {
+      title: "Coach Salary - Suresh Patel",
+      category: "salaries",
+      amount: 32000,
+      daysAgo: 33,
+    },
+    {
+      title: "Coach Salary - Meera Iyer",
+      category: "salaries",
+      amount: 22000,
+      daysAgo: 33,
+    },
+    {
+      title: "Water Dispenser Purchase",
+      category: "other",
+      amount: 3200,
+      daysAgo: 50,
+    },
+    {
+      title: "Annual Tournament Sponsorship Banner",
+      category: "marketing",
+      amount: 4500,
+      daysAgo: 55,
+    },
   ];
 
   let expensesCreated = 0;
   for (const e of expenseDefs) {
     const date = daysAgo(e.daysAgo);
-    const exists = await Expense.findOne({ company: COMPANY_ID, title: e.title, date });
+    const exists = await Expense.findOne({
+      company: COMPANY_ID,
+      title: e.title,
+      date,
+    });
     if (exists) continue;
     await Expense.create({
       company: COMPANY_ID,
@@ -386,7 +588,10 @@ async function run() {
   for (const stu of students) {
     for (let d = 13; d >= 0; d--) {
       const date = daysAgo(d);
-      const exists = await StudentAttendance.findOne({ student: stu._id, date });
+      const exists = await StudentAttendance.findOne({
+        student: stu._id,
+        date,
+      });
       if (exists) continue;
       let status = "present";
       if (Math.random() < 0.12) status = "absent";

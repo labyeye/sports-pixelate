@@ -331,7 +331,10 @@ export default function InventoryScreen() {
       setTxnQty('1');
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not record movement');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not record movement',
+      );
     } finally {
       setTxnSaving(null);
     }
@@ -382,7 +385,10 @@ export default function InventoryScreen() {
       setAssignNotes('');
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not record check-out');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not record check-out',
+      );
     } finally {
       setAssigning(false);
     }
@@ -398,7 +404,10 @@ export default function InventoryScreen() {
       setAssignItem(res.data);
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not mark item returned');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not mark item returned',
+      );
     }
   };
 
@@ -413,7 +422,10 @@ export default function InventoryScreen() {
             await inventoryAPI.delete(item._id);
             await load();
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Could not delete item');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Could not delete item',
+            );
           }
         },
       },
@@ -574,7 +586,11 @@ export default function InventoryScreen() {
               : items
           }
           keyExtractor={i => i._id}
-          contentContainerStyle={{ paddingBottom: 32, paddingRight: 3, gap: 12 }}
+          contentContainerStyle={{
+            paddingBottom: 32,
+            paddingRight: 3,
+            gap: 12,
+          }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -588,7 +604,10 @@ export default function InventoryScreen() {
           renderItem={({ item: i }) => {
             const low = i.availableQuantity <= (i.reorderThreshold ?? 0);
             const total = i.totalQuantity || 0;
-            const pct = total > 0 ? Math.min(1, Math.max(0, (i.availableQuantity || 0) / total)) : 0;
+            const pct =
+              total > 0
+                ? Math.min(1, Math.max(0, (i.availableQuantity || 0) / total))
+                : 0;
             const stockColor = low ? colors.red : colors.green;
             const catColor = CATEGORY_COLORS[i.category] || colors.blue;
             return (
@@ -628,14 +647,38 @@ export default function InventoryScreen() {
                   </View>
                   <View style={styles.stockFlags}>
                     {low ? (
-                      <View style={[styles.flag, { borderColor: colors.red, backgroundColor: '#FEF2F2' }]}>
-                        <Text style={[styles.flagText, { color: colors.red }]}>Low stock</Text>
+                      <View
+                        style={[
+                          styles.flag,
+                          {
+                            borderColor: colors.red,
+                            backgroundColor: '#FEF2F2',
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.flagText, { color: colors.red }]}>
+                          Low stock
+                        </Text>
                       </View>
                     ) : null}
                     {!!i.onOrderQuantity && (
-                      <View style={[styles.flag, { borderColor: colors.purple, backgroundColor: '#FAF5FF' }]}>
-                        <Truck size={11} color={colors.purple} strokeWidth={2.5} />
-                        <Text style={[styles.flagText, { color: colors.purple }]}>
+                      <View
+                        style={[
+                          styles.flag,
+                          {
+                            borderColor: colors.purple,
+                            backgroundColor: '#FAF5FF',
+                          },
+                        ]}
+                      >
+                        <Truck
+                          size={11}
+                          color={colors.purple}
+                          strokeWidth={2.5}
+                        />
+                        <Text
+                          style={[styles.flagText, { color: colors.purple }]}
+                        >
                           {i.onOrderQuantity} on order
                         </Text>
                       </View>
@@ -650,8 +693,16 @@ export default function InventoryScreen() {
                       style={styles.actionBtn}
                       activeOpacity={0.8}
                     >
-                      <Truck size={14} color={colors.purple} strokeWidth={2.5} />
-                      <Text style={[styles.actionText, { color: colors.purple }]}>Stock</Text>
+                      <Truck
+                        size={14}
+                        color={colors.purple}
+                        strokeWidth={2.5}
+                      />
+                      <Text
+                        style={[styles.actionText, { color: colors.purple }]}
+                      >
+                        Stock
+                      </Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
@@ -659,8 +710,14 @@ export default function InventoryScreen() {
                     style={styles.actionBtn}
                     activeOpacity={0.8}
                   >
-                    <UserCheck size={14} color={colors.blue} strokeWidth={2.5} />
-                    <Text style={[styles.actionText, { color: colors.blue }]}>Check Out</Text>
+                    <UserCheck
+                      size={14}
+                      color={colors.blue}
+                      strokeWidth={2.5}
+                    />
+                    <Text style={[styles.actionText, { color: colors.blue }]}>
+                      Check Out
+                    </Text>
                   </TouchableOpacity>
                   {isOwner && (
                     <>
@@ -669,15 +726,27 @@ export default function InventoryScreen() {
                         style={styles.actionBtn}
                         activeOpacity={0.8}
                       >
-                        <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
-                        <Text style={[styles.actionText, { color: colors.blue }]}>Edit</Text>
+                        <Pencil
+                          size={14}
+                          color={colors.blue}
+                          strokeWidth={2.5}
+                        />
+                        <Text
+                          style={[styles.actionText, { color: colors.blue }]}
+                        >
+                          Edit
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => confirmDelete(i)}
                         style={[styles.actionBtn, styles.actionBtnIcon]}
                         activeOpacity={0.8}
                       >
-                        <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                        <Trash2
+                          size={14}
+                          color={colors.red}
+                          strokeWidth={2.5}
+                        />
                       </TouchableOpacity>
                     </>
                   )}
@@ -1175,7 +1244,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     overflow: 'hidden',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  name: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   sub: {
     color: colors.muted,
     fontSize: 12,

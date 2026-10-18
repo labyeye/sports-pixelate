@@ -37,7 +37,11 @@ export function SettingsTab({ event, onChanged, canManage }: Props) {
       toast({ title: "Saved", description: "Event updated successfully" });
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -52,7 +56,11 @@ export function SettingsTab({ event, onChanged, canManage }: Props) {
       toast({ title: "Deleted", description: "Event deleted" });
       navigate("/events");
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
       setDeleting(false);
     }
   };

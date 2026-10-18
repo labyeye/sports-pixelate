@@ -109,7 +109,8 @@ export default function ParentHomeScreen({ navigation }: any) {
       setSelectedChild(prev => prev || data[0]?._id || '');
     }
     if (attRes.status === 'fulfilled') setAttendance(attRes.value?.data || []);
-    if (subRes.status === 'fulfilled') setSubscriptions(subRes.value?.data || []);
+    if (subRes.status === 'fulfilled')
+      setSubscriptions(subRes.value?.data || []);
     if (holRes.status === 'fulfilled') setHolidays(holRes.value?.data || []);
     if (annRes.status === 'fulfilled')
       setAnnouncements(annRes.value?.data || []);

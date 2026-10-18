@@ -203,7 +203,10 @@ export default function FacilitiesScreen() {
             await facilityAPI.delete(f._id);
             setFacilities(prev => prev.filter(x => x._id !== f._id));
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Could not delete facility');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Could not delete facility',
+            );
           }
         },
       },
@@ -404,8 +407,8 @@ export default function FacilitiesScreen() {
                 saving
                   ? 'Saving...'
                   : editingFacility
-                  ? 'Update Facility'
-                  : 'Save Facility'
+                    ? 'Update Facility'
+                    : 'Save Facility'
               }
               onPress={save}
               disabled={saving}

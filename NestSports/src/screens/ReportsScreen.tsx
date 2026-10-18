@@ -18,7 +18,13 @@ import {
   Building2,
 } from 'lucide-react-native';
 import { dashboardAPI, payrollAPI } from '../api/client';
-import { Card, KpiTile, LoadingView, Row, SectionTitle } from '../components/ui';
+import {
+  Card,
+  KpiTile,
+  LoadingView,
+  Row,
+  SectionTitle,
+} from '../components/ui';
 import { CATEGORY_LABELS, REPORTS, ReportCategory } from '../reports/catalog';
 import { colors } from '../theme/colors';
 import { formatCurrency } from '../utils/format';
@@ -73,64 +79,64 @@ export default function ReportsScreen({ navigation }: any) {
         <Text style={styles.subtitle}>Summary and downloadable reports</Text>
 
         {stats ? (
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Employees"
-            value={stats.totalEmployees}
-            sub={`${stats.activeEmployees} active`}
-            color={colors.blue}
-            icon={Users}
-          />
-          <KpiTile
-            label="Attendance Rate"
-            value={`${stats.attendanceRate}%`}
-            sub={`${stats.todayPresent} present today`}
-            color={colors.orange}
-            icon={Clock}
-          />
-          <KpiTile
-            label="Total Students"
-            value={stats.totalStudents}
-            sub="Active enrollments"
-            color={colors.purple}
-            icon={GraduationCap}
-          />
-          <KpiTile
-            label="Bookings"
-            value={stats.totalBookings}
-            sub={`${stats.todayBookings} today`}
-            color={colors.orange}
-            icon={CalendarClock}
-          />
-          <KpiTile
-            label="Subscription Income"
-            value={formatCurrency(stats.subscriptionIncome)}
-            sub="This month"
-            color={colors.green}
-            icon={Wallet}
-          />
-          <KpiTile
-            label="Monthly Payroll"
-            value={formatCurrency(stats.monthlyPayroll)}
-            sub={`${paidCount} paid, ${processedCount} pending`}
-            color={colors.orange}
-            icon={IndianRupee}
-          />
-          <KpiTile
-            label="Pending Leaves"
-            value={stats.pendingLeaves}
-            sub="Awaiting approval"
-            color={colors.blue}
-            icon={CalendarDays}
-          />
-          <KpiTile
-            label="Departments"
-            value={stats.departments}
-            sub="Active teams"
-            color={colors.green}
-            icon={Building2}
-          />
-        </View>
+          <View style={styles.kpiGrid}>
+            <KpiTile
+              label="Total Employees"
+              value={stats.totalEmployees}
+              sub={`${stats.activeEmployees} active`}
+              color={colors.blue}
+              icon={Users}
+            />
+            <KpiTile
+              label="Attendance Rate"
+              value={`${stats.attendanceRate}%`}
+              sub={`${stats.todayPresent} present today`}
+              color={colors.orange}
+              icon={Clock}
+            />
+            <KpiTile
+              label="Total Students"
+              value={stats.totalStudents}
+              sub="Active enrollments"
+              color={colors.purple}
+              icon={GraduationCap}
+            />
+            <KpiTile
+              label="Bookings"
+              value={stats.totalBookings}
+              sub={`${stats.todayBookings} today`}
+              color={colors.orange}
+              icon={CalendarClock}
+            />
+            <KpiTile
+              label="Subscription Income"
+              value={formatCurrency(stats.subscriptionIncome)}
+              sub="This month"
+              color={colors.green}
+              icon={Wallet}
+            />
+            <KpiTile
+              label="Monthly Payroll"
+              value={formatCurrency(stats.monthlyPayroll)}
+              sub={`${paidCount} paid, ${processedCount} pending`}
+              color={colors.orange}
+              icon={IndianRupee}
+            />
+            <KpiTile
+              label="Pending Leaves"
+              value={stats.pendingLeaves}
+              sub="Awaiting approval"
+              color={colors.blue}
+              icon={CalendarDays}
+            />
+            <KpiTile
+              label="Departments"
+              value={stats.departments}
+              sub="Active teams"
+              color={colors.green}
+              icon={Building2}
+            />
+          </View>
         ) : null}
 
         {(Object.keys(CATEGORY_LABELS) as ReportCategory[]).map(cat => (
@@ -141,7 +147,9 @@ export default function ReportsScreen({ navigation }: any) {
                 key={r.id}
                 title={r.name}
                 subtitle={r.desc}
-                onPress={() => navigation?.navigate?.('ReportViewer', { reportId: r.id })}
+                onPress={() =>
+                  navigation?.navigate?.('ReportViewer', { reportId: r.id })
+                }
               />
             ))}
             {cat === 'student' ? (

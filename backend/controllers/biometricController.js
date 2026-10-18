@@ -618,7 +618,9 @@ const recordBiometric = asyncHandler(async (req, res) => {
       };
       await Promise.all([
         notifyOwners(device.company, inAppPayload),
-        person.user ? notifyUsers(device.company, [person.user], inAppPayload) : null,
+        person.user
+          ? notifyUsers(device.company, [person.user], inAppPayload)
+          : null,
       ]);
     } catch (err) {
       console.error("[Biometric] employee in-app notify error:", err.message);
@@ -1151,7 +1153,10 @@ const resetFaceDescriptor = asyncHandler(async (req, res) => {
     { name: `${person.firstName} ${person.lastName}` },
   );
 
-  res.json({ success: true, message: "Face reset — enroll again to use face attendance" });
+  res.json({
+    success: true,
+    message: "Face reset — enroll again to use face attendance",
+  });
 });
 
 const getFaceDescriptors = asyncHandler(async (req, res) => {
@@ -1395,7 +1400,10 @@ const faceAttendance = asyncHandler(async (req, res) => {
             : null,
         ]);
       } catch (err) {
-        console.error("[Biometric] faceAttendance employee in-app notify error:", err.message);
+        console.error(
+          "[Biometric] faceAttendance employee in-app notify error:",
+          err.message,
+        );
       }
     };
   } else {
@@ -1439,7 +1447,8 @@ const faceAttendance = asyncHandler(async (req, res) => {
         );
       }
       try {
-        const studentName = `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
+        const studentName =
+          `${bestMatch.firstName} ${bestMatch.lastName}`.trim();
         const inAppPayload = {
           type: "student_attendance",
           title: "Student attendance marked",
@@ -1448,10 +1457,17 @@ const faceAttendance = asyncHandler(async (req, res) => {
         };
         await Promise.all([
           notifyOwners(bestMatch.company, inAppPayload),
-          notifyParentsOfStudent(bestMatch._id, bestMatch.company, inAppPayload),
+          notifyParentsOfStudent(
+            bestMatch._id,
+            bestMatch.company,
+            inAppPayload,
+          ),
         ]);
       } catch (err) {
-        console.error("[Biometric] faceAttendance student in-app notify error:", err.message);
+        console.error(
+          "[Biometric] faceAttendance student in-app notify error:",
+          err.message,
+        );
       }
     };
   }

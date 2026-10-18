@@ -1,6 +1,11 @@
 import React from 'react';
 import { IndianRupee } from 'lucide-react-native';
-import { CollapsibleSection, TextField, DateTimeField, ToggleRow } from '../../ui';
+import {
+  CollapsibleSection,
+  TextField,
+  DateTimeField,
+  ToggleRow,
+} from '../../ui';
 
 export interface FeesData {
   currency?: string;

@@ -256,7 +256,11 @@ export default function SubscriptionsPage() {
         );
       }
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -272,7 +276,11 @@ export default function SubscriptionsPage() {
       setPage(next);
       setPages(r.pages || 1);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setLoadingMore(false);
   };
@@ -486,7 +494,11 @@ export default function SubscriptionsPage() {
       setQrScreenshot(null);
       load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSubmittingQr(false);
     }
@@ -508,7 +520,11 @@ export default function SubscriptionsPage() {
       setReviewSub(null);
       load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setReviewing(false);
     }
@@ -526,7 +542,11 @@ export default function SubscriptionsPage() {
       setReviewSub(null);
       load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setReviewing(false);
     }
@@ -548,7 +568,11 @@ export default function SubscriptionsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setDownloadingId(null);
     }
@@ -618,7 +642,11 @@ export default function SubscriptionsPage() {
       setCashTopUpSub(null);
       load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSubmittingCash(false);
     }
@@ -631,7 +659,11 @@ export default function SubscriptionsPage() {
       toast({ title: "Subscription cancelled" });
       load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

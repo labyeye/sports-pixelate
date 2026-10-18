@@ -1370,8 +1370,8 @@ export default function AttendanceScreen() {
                     {editRecord
                       ? 'Update Attendance'
                       : selectedIds.length > 1
-                      ? `Mark ${selectedIds.length} Employees`
-                      : 'Save Attendance'}
+                        ? `Mark ${selectedIds.length} Employees`
+                        : 'Save Attendance'}
                   </Text>
                 )}
               </TouchableOpacity>

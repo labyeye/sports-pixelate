@@ -35,7 +35,11 @@ export function DocumentsTab({ event, onChanged }: Props) {
       setLabel("");
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -47,7 +51,11 @@ export function DocumentsTab({ event, onChanged }: Props) {
       await eventAPI.removeDocument(event._id, docId);
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setBusyId(null);
     }

@@ -81,6 +81,21 @@ async function processDate(targetDate, istMinutesNow) {
     const isHoliday = await isHolidayDate(companyId, targetDate);
     if (isHoliday) continue;
 
+    // Two queries for the whole company instead of one or two per employee.
+    const ids = companyEmps.map((e) => e._id);
+    const [attRows, leaveRows] = await Promise.all([
+      Attendance.find({ employee: { $in: ids }, date: targetDate }),
+      Leave.find({
+        employee: { $in: ids },
+        status: "approved",
+        startDate: { $lte: targetDate },
+        endDate: { $gte: targetDate },
+      }),
+    ]);
+    const attByEmp = new Map(attRows.map((a) => [String(a.employee), a]));
+    const leaveByEmp = new Map();
+    for (const l of leaveRows) if (!leaveByEmp.has(String(l.employee))) leaveByEmp.set(String(l.employee), l);
+
     for (const emp of companyEmps) {
       // Skip days outside the employee's employment period entirely.
       if (emp.joinDate) {
@@ -126,10 +141,7 @@ async function processDate(targetDate, istMinutesNow) {
       // For today: skip if we haven't reached 1 hour past shift end yet
       if (isToday && istMinutesNow < cutoffMins) continue;
 
-      const existing = await Attendance.findOne({
-        employee: emp._id,
-        date: targetDate,
-      });
+      const existing = attByEmp.get(String(emp._id)) || null;
 
       // ── Case 1: No check-in at all → check leave, then mark Absent ────────
       if (!existing || !existing.checkIn) {
@@ -142,14 +154,7 @@ async function processDate(targetDate, istMinutesNow) {
         }
 
         // Check if employee has an approved leave covering this date
-        const approvedLeave = await Leave.findOne({
-          employee: emp._id,
-          status: "approved",
-          startDate: { $lte: targetDate },
-          endDate: { $gte: targetDate },
-        })
-          .select("leaveType deductSalary")
-          .lean();
+        const approvedLeave = leaveByEmp.get(String(emp._id)) || null;
 
         const newStatus = approvedLeave ? "on_leave" : "absent";
 
@@ -277,12 +282,17 @@ function startAttendanceAutoMarkJob() {
   const tick = () =>
     withJobLock("attendance-automark", 50 * 60 * 1000, runAutoMark);
   // Run every hour — if server restarts, next tick catches missed days
-  cron.schedule("0 * * * *", () =>
-    tick().catch((err) => {
-      console.error("[AutoMark] failed:", err);
-      require("../utils/monitoring").captureError(err, { job: "attendance-automark" });
-    }),
-  { timezone: "UTC" });
+  cron.schedule(
+    "0 * * * *",
+    () =>
+      tick().catch((err) => {
+        console.error("[AutoMark] failed:", err);
+        require("../utils/monitoring").captureError(err, {
+          job: "attendance-automark",
+        });
+      }),
+    { timezone: "UTC" },
+  );
   logger.info(
     "[AutoMark] Scheduled attendance auto-mark job (runs every hour)",
   );

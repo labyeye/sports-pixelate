@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
@@ -7,6 +8,7 @@ const User = require("../models/User");
 const Employee = require("../models/Employee");
 const Subscription = require("../models/Subscription");
 const generateToken = require("../utils/generateToken");
+const { generatePendingToken, verifyPendingToken } = generateToken;
 const { validateBody } = require("../middleware/validate");
 const { sendPasswordResetEmail } = require("../services/notificationService");
 const { sendPhoneOtp } = require("../services/whatsappService");
@@ -84,7 +86,8 @@ async function companyAccessError(user) {
   ) {
     return {
       status: 403,
-      message: "Your 2-month free trial has expired. Please subscribe to continue.",
+      message:
+        "Your 2-month free trial has expired. Please subscribe to continue.",
     };
   }
   return null;
@@ -92,6 +95,9 @@ async function companyAccessError(user) {
 
 // `otp: true` marks a session whose phone ownership was proven by a WhatsApp
 // code — only those sessions may hop between a parent's academies.
+// Valid bcrypt hash used only to burn the same time as a real comparison when the e-mail is unknown.
+const DUMMY_HASH = "$2a$12$CwTycUXWue0Thq9StjUM0uJ8.G1c/3d1Hn5X9lq0Yx1y6k8mQ5G1e";
+
 const sessionPayload = (user, { viaOtp = false } = {}) => ({
   _id: user._id,
   name: user.name,
@@ -102,7 +108,7 @@ const sessionPayload = (user, { viaOtp = false } = {}) => ({
   status: user.status,
   department: user.department,
   company: user.company,
-  token: generateToken(user._id, viaOtp ? { otp: true } : {}),
+  token: generateToken(user._id, viaOtp ? { otp: true } : {}, user.tokenVersion),
 });
 
 const academyChoice = (u) => ({
@@ -185,7 +191,7 @@ const register = [
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id),
+        token: generateToken(user._id, {}, user.tokenVersion),
       },
     });
   }),
@@ -206,7 +212,25 @@ const login = [
       },
     });
 
-    if (!user || !(await user.matchPassword(password))) {
+    if (user && user.lockUntil && user.lockUntil > new Date()) {
+      res.status(429);
+      throw new Error("Too many failed attempts. Try again in a few minutes.");
+    }
+
+    // Compare against a dummy hash for unknown e-mails so the response time doesn't reveal whether one exists.
+    const passwordOk = user
+      ? await user.matchPassword(password)
+      : (await bcrypt.compare(password, DUMMY_HASH), false);
+    if (!passwordOk) {
+      if (user) {
+        const locked = (user.failedLogins || 0) + 1 >= 10;
+        await User.updateOne(
+          { _id: user._id },
+          locked
+            ? { $set: { failedLogins: 0, lockUntil: new Date(Date.now() + 15 * 60 * 1000) } }
+            : { $inc: { failedLogins: 1 } },
+        );
+      }
       res.status(401);
       throw new Error("Invalid email or password");
     }
@@ -250,12 +274,16 @@ const login = [
     }
 
     user.lastLogin = new Date();
+    user.failedLogins = 0;
+    user.lockUntil = undefined;
     await user.save();
 
     if (user.twoFactorEnabled) {
+      // `userId` keeps its name for the existing web/mobile clients, but it now carries a 5-minute signed token
+      // proving the password step passed — a bare user id can no longer be used to start the 2FA step.
       return res.json({
         success: true,
-        data: { requires2FA: true, userId: user._id },
+        data: { requires2FA: true, userId: generatePendingToken(user._id) },
       });
     }
 
@@ -271,7 +299,7 @@ const login = [
         status: user.status,
         department: user.department,
         company: user.company,
-        token: generateToken(user._id),
+        token: generateToken(user._id, {}, user.tokenVersion),
       },
     });
   }),
@@ -351,10 +379,15 @@ const updateProfile = asyncHandler(async (req, res) => {
     user.avatar = avatar;
   }
 
+  const passwordChanged = user.isModified("password");
   await user.save();
   const updated = user.toObject();
   delete updated.password;
-  res.json({ success: true, data: updated });
+  res.json({
+    success: true,
+    data: updated,
+    ...(passwordChanged && { token: generateToken(user._id, {}, user.tokenVersion) }),
+  });
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
@@ -511,23 +544,30 @@ const disable2FA = asyncHandler(async (req, res) => {
 
 // 2FA verify — called after first-step login when 2FA is enabled
 const verify2FA = asyncHandler(async (req, res) => {
-  const { userId, token } = req.body;
-  if (!userId || !token) {
+  const { userId: pendingToken, token } = req.body;
+  if (!pendingToken || !token) {
     res.status(400);
     throw new Error("userId and token are required");
+  }
+  let userId;
+  try {
+    userId = verifyPendingToken(pendingToken).id;
+  } catch {
+    res.status(401);
+    throw new Error("Login step expired. Please sign in again.");
   }
 
   const user = await User.findById(userId)
     .select("+twoFactorSecret +twoFactorBackupCodes")
     .populate({
-    path: "company",
-    select: "name email phone status subscription website",
-    populate: {
-      path: "subscription",
-      select:
-        "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
-    },
-  });
+      path: "company",
+      select: "name email phone status subscription website",
+      populate: {
+        path: "subscription",
+        select:
+          "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
+      },
+    });
   if (!user || !user.twoFactorEnabled) {
     res.status(400);
     throw new Error("Invalid request");
@@ -548,7 +588,7 @@ const verify2FA = asyncHandler(async (req, res) => {
       status: user.status,
       department: user.department,
       company: user.company,
-      token: generateToken(user._id),
+      token: generateToken(user._id, {}, user.tokenVersion),
     },
   });
 });
@@ -670,7 +710,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
   // The code is single-use whichever branch we take.
   await User.updateMany(
     { _id: { $in: targetIds } },
-    { $set: { phoneOtpAttempts: 0 }, $unset: { phoneOtp: 1, phoneOtpExpire: 1 } },
+    {
+      $set: { phoneOtpAttempts: 0 },
+      $unset: { phoneOtp: 1, phoneOtpExpire: 1 },
+    },
   );
 
   if (eligible.length > 1) {
@@ -746,7 +789,10 @@ async function siblingAccounts(req) {
   }).populate(COMPANY_POPULATE);
   const usable = [];
   for (const u of users) {
-    if (String(u._id) === String(req.user._id) || !(await companyAccessError(u))) {
+    if (
+      String(u._id) === String(req.user._id) ||
+      !(await companyAccessError(u))
+    ) {
       usable.push(u);
     }
   }
@@ -940,9 +986,6 @@ module.exports = {
   verify2FA,
   sendOtp,
   verifyOtp,
-  selectAcademy,
-  listAcademies,
-  switchAcademy,
   selectAcademy,
   listAcademies,
   switchAcademy,

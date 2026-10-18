@@ -83,7 +83,11 @@ export default function ExpensesPage() {
       setExpenses(r.data);
       setTotalAmount(r.totalAmount || 0);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -125,7 +129,11 @@ export default function ExpensesPage() {
       toast({ title: "Expense recorded" });
       resetForm();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -139,7 +147,11 @@ export default function ExpensesPage() {
       setTotalAmount((t) => t - amount);
       toast({ title: "Expense deleted" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

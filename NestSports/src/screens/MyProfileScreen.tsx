@@ -201,7 +201,10 @@ export default function MyProfileScreen({ navigation }: any) {
         const avatar = res?.data?.avatar || base64;
         updateUser({ avatar });
       } catch (e: unknown) {
-        Alert.alert('Upload failed', (e as Error)?.message || 'Could not update photo');
+        Alert.alert(
+          'Upload failed',
+          (e as Error)?.message || 'Could not update photo',
+        );
       } finally {
         setUploadingAvatar(false);
       }

@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { Image as ImageIcon, Trash2 } from 'lucide-react-native';
-import { Card, SectionTitle, EmptyState, ImagePicker, useToast, type PickedImage } from '../../ui';
+import {
+  Card,
+  SectionTitle,
+  EmptyState,
+  ImagePicker,
+  useToast,
+  type PickedImage,
+} from '../../ui';
 import { colors } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
 import { notifyError } from '../../../utils/notifyError';
@@ -52,14 +65,26 @@ export default function GalleryTab({ eventId }: { eventId: string }) {
       {loading ? (
         <ActivityIndicator color={colors.blue} style={{ marginTop: 10 }} />
       ) : items.length === 0 ? (
-        <EmptyState title="No photos yet" sub="Upload one above" icon={ImageIcon} />
+        <EmptyState
+          title="No photos yet"
+          sub="Upload one above"
+          icon={ImageIcon}
+        />
       ) : (
         <View style={styles.grid}>
           {items.map(item => (
             <View key={item._id} style={styles.thumbWrap}>
               <Image source={{ uri: item.url }} style={styles.thumb} />
-              <TouchableOpacity onPress={() => remove(item._id)} disabled={busyId === item._id} style={styles.removeBtn}>
-                {busyId === item._id ? <ActivityIndicator size="small" color={colors.red} /> : <Trash2 size={12} color={colors.red} strokeWidth={2.5} />}
+              <TouchableOpacity
+                onPress={() => remove(item._id)}
+                disabled={busyId === item._id}
+                style={styles.removeBtn}
+              >
+                {busyId === item._id ? (
+                  <ActivityIndicator size="small" color={colors.red} />
+                ) : (
+                  <Trash2 size={12} color={colors.red} strokeWidth={2.5} />
+                )}
               </TouchableOpacity>
             </View>
           ))}
@@ -71,7 +96,23 @@ export default function GalleryTab({ eventId }: { eventId: string }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  thumbWrap: { width: '31%', aspectRatio: 1, borderWidth: 2, borderRadius: 8, borderColor: colors.black, overflow: 'hidden' },
+  thumbWrap: {
+    width: '31%',
+    aspectRatio: 1,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    overflow: 'hidden',
+  },
   thumb: { width: '100%', height: '100%' },
-  removeBtn: { position: 'absolute', top: 2, right: 2, backgroundColor: colors.white, borderWidth: 2, borderRadius: 8, borderColor: colors.black, padding: 2 },
+  removeBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    padding: 2,
+  },
 });

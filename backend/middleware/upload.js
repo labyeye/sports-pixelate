@@ -28,6 +28,23 @@ module.exports.validateMagicBytes = validateMagicBytes;
 
 const { UPLOAD_DIR: UPLOAD_BASE } = require("../config/paths");
 
+// The stored extension decides how /uploads serves the file, so it must never come from the client's file name:
+// "x.html" sent as image/png would otherwise be saved and rendered from the API origin (stored XSS).
+const EXT_BY_MIME = {
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "application/pdf": ".pdf",
+};
+const SAFE_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"]);
+function safeExt(file, fallback) {
+  if (EXT_BY_MIME[file.mimetype]) return EXT_BY_MIME[file.mimetype];
+  const ext = path.extname(file.originalname).toLowerCase();
+  return SAFE_EXTS.has(ext) ? ext : fallback;
+}
+
 // Ensure upload dirs exist on startup
 [
   "employee-aadhaar",
@@ -67,7 +84,7 @@ const employeeDocStorage = multer.diskStorage({
     );
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".pdf";
+    const ext = safeExt(file, ".pdf");
     const safe = `${req.user.company}_${req.params.id}_${file.fieldname}${ext}`;
     cb(null, safe);
   },
@@ -93,7 +110,7 @@ const companyLogoStorage = multer.diskStorage({
     cb(null, path.join(UPLOAD_BASE, "company-logos"));
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".png";
+    const ext = safeExt(file, ".png");
     const safe = `company_${req.user.company}${ext}`;
     cb(null, safe);
   },
@@ -113,7 +130,7 @@ const paymentQrStorage = multer.diskStorage({
     cb(null, path.join(UPLOAD_BASE, "payment-qr"));
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".png";
+    const ext = safeExt(file, ".png");
     const safe = `qr_${req.user.company}${ext}`;
     cb(null, safe);
   },
@@ -134,7 +151,7 @@ const paymentScreenshotStorage = multer.diskStorage({
     cb(null, path.join(UPLOAD_BASE, "payment-screenshots"));
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     const safe = `${req.user.company}_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
     cb(null, safe);
   },
@@ -154,7 +171,7 @@ const avatarStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     cb(null, `avatar_${req.params.id}_${Date.now()}${ext}`);
   },
 });
@@ -176,7 +193,7 @@ const guardianPhotoStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     cb(null, `guardian_${req.params.guardianId}_${Date.now()}${ext}`);
   },
 });
@@ -198,7 +215,7 @@ const inventoryPhotoStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     cb(null, `item_${req.params.id}_${Date.now()}${ext}`);
   },
 });
@@ -218,7 +235,7 @@ const documentVaultStorage = multer.diskStorage({
     cb(null, path.join(UPLOAD_BASE, "employee-docs"));
   },
   filename(_req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".bin";
+    const ext = safeExt(file, ".bin");
     const safe = `${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
     cb(null, safe);
   },
@@ -238,7 +255,7 @@ const attendanceSelfieStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     const safe = `${req.user.company}_${req.user._id}_${Date.now()}${ext}`;
     cb(null, safe);
   },
@@ -288,7 +305,7 @@ const eventImageStorage = multer.diskStorage({
     );
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     cb(null, `event_${req.params.id}_${file.fieldname}_${Date.now()}${ext}`);
   },
 });
@@ -311,7 +328,7 @@ const eventGalleryStorage = multer.diskStorage({
     cb(null, path.join(UPLOAD_BASE, "event-gallery"));
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    const ext = safeExt(file, ".jpg");
     cb(
       null,
       `event_${req.params.id}_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`,
@@ -334,7 +351,7 @@ const eventDocumentStorage = multer.diskStorage({
     cb(null, path.join(UPLOAD_BASE, "event-documents"));
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || ".pdf";
+    const ext = safeExt(file, ".pdf");
     const kind = (req.body?.kind || "other").replace(/[^a-z0-9_]/gi, "");
     cb(null, `event_${req.params.id}_${kind}_${Date.now()}${ext}`);
   },
@@ -360,7 +377,9 @@ function encrypted(multerMiddleware) {
       } catch (e) {
         const files = [
           ...(req.file ? [req.file] : []),
-          ...(Array.isArray(req.files) ? req.files : Object.values(req.files || {}).flat()),
+          ...(Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files || {}).flat()),
         ];
         files.forEach((f) => f.path && fs.rmSync(f.path, { force: true }));
         next(e);
@@ -385,4 +404,5 @@ module.exports = {
   uploadEventGalleryPhoto: encrypted(uploadEventGalleryPhoto),
   uploadEventDocument: encrypted(uploadEventDocument),
   validateMagicBytes,
+  safeExt,
 };

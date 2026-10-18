@@ -114,7 +114,11 @@ export default function ParentHomePage() {
       setAttendance(attRes.data);
       setSubscriptions(subRes.data);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -290,132 +294,133 @@ export default function ParentHomePage() {
           {children
             .filter((c) => !selectedChild || c._id === selectedChild)
             .map((child) => {
-            const records = attendance.filter(
-              (a) => a.student?._id === child._id,
-            );
-            const present = records.filter(
-              (a) => a.status === "present",
-            ).length;
-            const total = records.length;
-            const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-            // Any non-cancelled subscription counts — a plan the owner just
-            // assigned (status "pending_renewal"/"inactive", payment not
-            // in yet) should show as "Due", not "Not subscribed".
-            const sub = subscriptions.find(
-              (s) => s.student?._id === child._id && s.status !== "cancelled",
-            );
-            const subDue = sub && sub.status !== "active";
+              const records = attendance.filter(
+                (a) => a.student?._id === child._id,
+              );
+              const present = records.filter(
+                (a) => a.status === "present",
+              ).length;
+              const total = records.length;
+              const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+              // Any non-cancelled subscription counts — a plan the owner just
+              // assigned (status "pending_renewal"/"inactive", payment not
+              // in yet) should show as "Due", not "Not subscribed".
+              const sub = subscriptions.find(
+                (s) => s.student?._id === child._id && s.status !== "cancelled",
+              );
+              const subDue = sub && sub.status !== "active";
 
-            return (
-              <div
-                key={child._id}
-                className="border-2 border-black bg-white p-5 flex flex-col gap-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {child.avatar ? (
-                      <img
-                        src={child.avatar}
-                        alt={child.firstName}
-                        className="w-11 h-11 rounded-full border-2 border-black object-cover"
-                      />
-                    ) : (
-                      <div className="w-11 h-11 rounded-full border-2 border-black bg-[#024BAB] flex items-center justify-center text-white font-bold">
-                        {child.firstName?.[0]?.toUpperCase()}
+              return (
+                <div
+                  key={child._id}
+                  className="border-2 border-black bg-white p-5 flex flex-col gap-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {child.avatar ? (
+                        <img
+                          src={child.avatar}
+                          alt={child.firstName}
+                          className="w-11 h-11 rounded-full border-2 border-black object-cover"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full border-2 border-black bg-[#024BAB] flex items-center justify-center text-white font-bold">
+                          {child.firstName?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-bold text-lg text-black">
+                          {child.firstName} {child.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {child.sport} {child.batch ? `· ${child.batch}` : ""}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="font-bold text-lg text-black">
-                        {child.firstName} {child.lastName}
-                      </p>
+                    </div>
+                    <GraduationCap className="w-8 h-8 text-[#024BAB]" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="border-2 border-black p-3 bg-[#024BAB]/5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 mb-1">
+                        <Clock className="w-3.5 h-3.5" /> Attendance (this
+                        month)
+                      </div>
+                      <p className="text-2xl font-bold text-black">{rate}%</p>
                       <p className="text-xs text-gray-500">
-                        {child.sport} {child.batch ? `· ${child.batch}` : ""}
+                        {present}/{total} sessions
                       </p>
                     </div>
-                  </div>
-                  <GraduationCap className="w-8 h-8 text-[#024BAB]" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="border-2 border-black p-3 bg-[#024BAB]/5">
-                    <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 mb-1">
-                      <Clock className="w-3.5 h-3.5" /> Attendance (this month)
+                    <div className="border-2 border-black p-3 bg-[#024BAB]/5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 mb-1">
+                        <Wallet className="w-3.5 h-3.5" /> Subscription
+                      </div>
+                      {sub && !subDue ? (
+                        <>
+                          <p className="text-sm font-bold text-black flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />{" "}
+                            {sub.planName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            renews{" "}
+                            {new Date(sub.renewalDate).toLocaleDateString(
+                              "en-IN",
+                            )}
+                          </p>
+                        </>
+                      ) : sub && subDue ? (
+                        <>
+                          <p className="text-sm font-bold text-orange-500 flex items-center gap-1">
+                            <XCircle className="w-4 h-4" /> Due — {sub.planName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            ₹
+                            {(
+                              sub.amount - (sub.amountPaid || 0)
+                            ).toLocaleString("en-IN")}{" "}
+                            pending
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-bold text-red-500 flex items-center gap-1">
+                          <XCircle className="w-4 h-4" /> Not subscribed
+                        </p>
+                      )}
                     </div>
-                    <p className="text-2xl font-bold text-black">{rate}%</p>
-                    <p className="text-xs text-gray-500">
-                      {present}/{total} sessions
-                    </p>
                   </div>
-                  <div className="border-2 border-black p-3 bg-[#024BAB]/5">
-                    <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 mb-1">
-                      <Wallet className="w-3.5 h-3.5" /> Subscription
-                    </div>
-                    {sub && !subDue ? (
-                      <>
-                        <p className="text-sm font-bold text-black flex items-center gap-1">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />{" "}
-                          {sub.planName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          renews{" "}
-                          {new Date(sub.renewalDate).toLocaleDateString(
-                            "en-IN",
-                          )}
-                        </p>
-                      </>
-                    ) : sub && subDue ? (
-                      <>
-                        <p className="text-sm font-bold text-orange-500 flex items-center gap-1">
-                          <XCircle className="w-4 h-4" /> Due — {sub.planName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          ₹
-                          {(sub.amount - (sub.amountPaid || 0)).toLocaleString(
-                            "en-IN",
-                          )}{" "}
-                          pending
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm font-bold text-red-500 flex items-center gap-1">
-                        <XCircle className="w-4 h-4" /> Not subscribed
-                      </p>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex gap-2 mt-1">
-                  <button
-                    onClick={() => navigate("/parent-attendance")}
-                    className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-black px-3 py-2 text-xs font-bold uppercase hover:bg-[#024BAB]/5"
-                  >
-                    <Clock className="w-3.5 h-3.5" /> Attendance{" "}
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => navigate("/subscriptions")}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 border-2 border-black px-3 py-2 text-xs font-bold uppercase",
-                      sub && !subDue ? "bg-white" : "bg-[#024BAB] text-white",
-                    )}
-                  >
-                    <Wallet className="w-3.5 h-3.5" />{" "}
-                    {sub && !subDue
-                      ? "Manage Plan"
-                      : subDue
-                        ? "Pay Now"
-                        : "Subscribe"}
-                  </button>
-                  <button
-                    onClick={() => navigate("/bookings")}
-                    className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
-                  >
-                    <CalendarClock className="w-3.5 h-3.5" /> Book Slot
-                  </button>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => navigate("/parent-attendance")}
+                      className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-black px-3 py-2 text-xs font-bold uppercase hover:bg-[#024BAB]/5"
+                    >
+                      <Clock className="w-3.5 h-3.5" /> Attendance{" "}
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => navigate("/subscriptions")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 border-2 border-black px-3 py-2 text-xs font-bold uppercase",
+                        sub && !subDue ? "bg-white" : "bg-[#024BAB] text-white",
+                      )}
+                    >
+                      <Wallet className="w-3.5 h-3.5" />{" "}
+                      {sub && !subDue
+                        ? "Manage Plan"
+                        : subDue
+                          ? "Pay Now"
+                          : "Subscribe"}
+                    </button>
+                    <button
+                      onClick={() => navigate("/bookings")}
+                      className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-black px-3 py-2 text-xs font-bold uppercase"
+                    >
+                      <CalendarClock className="w-3.5 h-3.5" /> Book Slot
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       )}
     </AppLayout>

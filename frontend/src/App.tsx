@@ -6,62 +6,63 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ImageCropHost } from "@/components/ui/ImageCropper";
 import { useDisabledFeatures } from "@/hooks/useDisabledFeatures";
 import { isPathDisabled } from "@/config/features";
 import { ToastProvider } from "@/hooks/use-toast";
 import { usePushNotification } from "@/hooks/usePushNotification";
-import DashboardPage from "./pages/DashboardPage";
-import EmployeesPage from "./pages/EmployeesPage";
-import EmployeeCredentialsPage from "./pages/EmployeeCredentialsPage";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
-import AttendancePage from "./pages/AttendancePage";
-import LeavePage from "./pages/LeavePage";
-import PayrollPage from "./pages/PayrollPage";
-import DepartmentsPage from "./pages/DepartmentsPage";
-import SettingsPage from "./pages/SettingsPage";
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
+const EmployeeCredentialsPage = lazy(() => import("./pages/EmployeeCredentialsPage"));
+const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
+const AttendancePage = lazy(() => import("./pages/AttendancePage"));
+const LeavePage = lazy(() => import("./pages/LeavePage"));
+const PayrollPage = lazy(() => import("./pages/PayrollPage"));
+const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import BillingPage from "./pages/BillingPage";
-import ReportsPage from "./pages/ReportsPage";
-import HolidaysPage from "./pages/HolidaysPage";
-import AttendanceSettingsPage from "./pages/AttendanceSettingsPage";
-import LateApprovalsPage from "./pages/LateApprovalsPage";
-import StudentsPage from "./pages/StudentsPage";
-import StudentAttendancePage from "./pages/StudentAttendancePage";
-import PlansPage from "./pages/PlansPage";
-import GroupsPage from "./pages/GroupsPage";
-import EventsPage from "./pages/EventsPage";
-import EventDetailPage from "./pages/EventDetailPage";
-import SubscriptionsPage from "./pages/SubscriptionsPage";
-import ExpensesPage from "./pages/ExpensesPage";
-import InventoryPage from "./pages/InventoryPage";
-import ExitManagementPage from "./pages/ExitManagementPage";
-import FacilitiesPage from "./pages/FacilitiesPage";
-import BookingsPage from "./pages/BookingsPage";
-import ParentHomePage from "./pages/ParentHomePage";
-import ParentAttendancePage from "./pages/ParentAttendancePage";
-import ParentReportPage from "./pages/ParentReportPage";
-import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import PaymentFailedPage from "./pages/PaymentFailedPage";
-import PaymentReturnPage from "./pages/PaymentReturnPage";
-import PayLinkPage from "./pages/PayLinkPage";
-import WelcomePage from "./pages/WelcomePage";
-import ManagePage from "./pages/ManagePage";
-import EmployeePayrollPage from "./pages/EmployeePayrollPage";
-import MyLoansPage from "./pages/MyLoansPage";
-import EmployeeReportPage from "./pages/EmployeeReportPage";
-import LoansPage from "./pages/LoansPage";
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+const BillingPage = lazy(() => import("./pages/BillingPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const HolidaysPage = lazy(() => import("./pages/HolidaysPage"));
+const AttendanceSettingsPage = lazy(() => import("./pages/AttendanceSettingsPage"));
+const LateApprovalsPage = lazy(() => import("./pages/LateApprovalsPage"));
+const StudentsPage = lazy(() => import("./pages/StudentsPage"));
+const StudentAttendancePage = lazy(() => import("./pages/StudentAttendancePage"));
+const PlansPage = lazy(() => import("./pages/PlansPage"));
+const GroupsPage = lazy(() => import("./pages/GroupsPage"));
+const EventsPage = lazy(() => import("./pages/EventsPage"));
+const EventDetailPage = lazy(() => import("./pages/EventDetailPage"));
+const SubscriptionsPage = lazy(() => import("./pages/SubscriptionsPage"));
+const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const ExitManagementPage = lazy(() => import("./pages/ExitManagementPage"));
+const FacilitiesPage = lazy(() => import("./pages/FacilitiesPage"));
+const BookingsPage = lazy(() => import("./pages/BookingsPage"));
+const ParentHomePage = lazy(() => import("./pages/ParentHomePage"));
+const ParentAttendancePage = lazy(() => import("./pages/ParentAttendancePage"));
+const ParentReportPage = lazy(() => import("./pages/ParentReportPage"));
+const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
+const PaymentFailedPage = lazy(() => import("./pages/PaymentFailedPage"));
+const PaymentReturnPage = lazy(() => import("./pages/PaymentReturnPage"));
+const PayLinkPage = lazy(() => import("./pages/PayLinkPage"));
+const WelcomePage = lazy(() => import("./pages/WelcomePage"));
+const ManagePage = lazy(() => import("./pages/ManagePage"));
+const EmployeePayrollPage = lazy(() => import("./pages/EmployeePayrollPage"));
+const MyLoansPage = lazy(() => import("./pages/MyLoansPage"));
+const EmployeeReportPage = lazy(() => import("./pages/EmployeeReportPage"));
+const LoansPage = lazy(() => import("./pages/LoansPage"));
 import NotFound from "./pages/NotFound";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import AuditLogPage from "./pages/AuditLogPage";
-import SupportPage from "./pages/SupportPage";
-import DocumentVaultPage from "./pages/DocumentVaultPage";
-import BiometricPage from "./pages/BiometricPage";
-import BiometricDevicePage from "./pages/BiometricDevicePage";
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+const SupportPage = lazy(() => import("./pages/SupportPage"));
+const DocumentVaultPage = lazy(() => import("./pages/DocumentVaultPage"));
+const BiometricPage = lazy(() => import("./pages/BiometricPage"));
+const BiometricDevicePage = lazy(() => import("./pages/BiometricDevicePage"));
 import nesthrlogo from "../assets/nesthr.png";
 import PageTransition from "@/components/layout/PageTransition";
 const queryClient = new QueryClient({
@@ -167,6 +168,7 @@ function AppRoutes() {
 
   return (
     <PageTransition>
+      <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route
           path="/login"
@@ -540,6 +542,7 @@ function AppRoutes() {
         />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </PageTransition>
   );
 }

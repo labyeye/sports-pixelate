@@ -109,20 +109,22 @@ export default function MainTabs() {
       {role &&
         PARENT.includes(role) &&
         !disabledFeatures.includes('bookings') && (
-        <Tab.Screen
-          name="BookingsTab"
-          component={BookingsScreen}
-          options={{
-            title: 'Bookings',
-            tabBarLabel: 'Bookings',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-                <CalendarClock color={color} size={20} strokeWidth={2} />
-              </View>
-            ),
-          }}
-        />
-      )}
+          <Tab.Screen
+            name="BookingsTab"
+            component={BookingsScreen}
+            options={{
+              title: 'Bookings',
+              tabBarLabel: 'Bookings',
+              tabBarIcon: ({ color, focused }) => (
+                <View
+                  style={[styles.iconWrap, focused && styles.iconWrapActive]}
+                >
+                  <CalendarClock color={color} size={20} strokeWidth={2} />
+                </View>
+              ),
+            }}
+          />
+        )}
       {role && OWNER_STAFF.includes(role) && (
         <Tab.Screen
           name="StudentAttendanceTab"
@@ -156,20 +158,22 @@ export default function MainTabs() {
       {role &&
         OWNER_STAFF.includes(role) &&
         !disabledFeatures.includes('inventory') && (
-        <Tab.Screen
-          name="InventoryTab"
-          component={InventoryScreen}
-          options={{
-            title: 'Inventory',
-            tabBarLabel: 'Inventory',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-                <Package color={color} size={20} strokeWidth={2} />
-              </View>
-            ),
-          }}
-        />
-      )}
+          <Tab.Screen
+            name="InventoryTab"
+            component={InventoryScreen}
+            options={{
+              title: 'Inventory',
+              tabBarLabel: 'Inventory',
+              tabBarIcon: ({ color, focused }) => (
+                <View
+                  style={[styles.iconWrap, focused && styles.iconWrapActive]}
+                >
+                  <Package color={color} size={20} strokeWidth={2} />
+                </View>
+              ),
+            }}
+          />
+        )}
       <Tab.Screen
         name="Menu"
         component={MenuScreen}

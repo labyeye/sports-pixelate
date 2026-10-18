@@ -19,8 +19,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   Area,
   AreaChart,
 } from "recharts";
@@ -29,7 +27,6 @@ import {
   Clock,
   CalendarDays,
   IndianRupee,
-  Briefcase,
   Building2,
   ArrowUpRight,
   TrendingUp,
@@ -62,7 +59,10 @@ function FeeCollectionCard({
   const pct = expected > 0 ? Math.round((collected / expected) * 100) : 0;
   const groups = Object.entries(fee?.bySport || {})
     .filter(([, v]) => v.collected || v.remaining)
-    .sort((a, b) => b[1].collected + b[1].remaining - (a[1].collected + a[1].remaining));
+    .sort(
+      (a, b) =>
+        b[1].collected + b[1].remaining - (a[1].collected + a[1].remaining),
+    );
   return (
     <div className="border-2 bg-white p-5 mb-5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -83,19 +83,25 @@ function FeeCollectionCard({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div className="border-2 border-black p-3 bg-[#00C48C]/10">
-          <p className="text-xs font-bold uppercase text-muted-foreground">Collected</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Collected
+          </p>
           <p className="font-display font-bold text-2xl text-[#00A070]">
             {formatCurrency(collected)}
           </p>
         </div>
         <div className="border-2 border-black p-3 bg-[#FA731C]/10">
-          <p className="text-xs font-bold uppercase text-muted-foreground">Remaining</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Remaining
+          </p>
           <p className="font-display font-bold text-2xl text-[#FA731C]">
             {formatCurrency(remaining)}
           </p>
         </div>
         <div className="border-2 border-black p-3">
-          <p className="text-xs font-bold uppercase text-muted-foreground">Total expected</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Total expected
+          </p>
           <p className="font-display font-bold text-2xl text-black">
             {formatCurrency(expected)}
           </p>
@@ -108,12 +114,21 @@ function FeeCollectionCard({
       {groups.length > 0 && (
         <div className="mt-3 divide-y border-t">
           {groups.map(([name, v]) => (
-            <div key={name} className="flex items-center justify-between py-1.5 text-sm">
-              <span className="font-medium text-black">{name || "No group"}</span>
+            <div
+              key={name}
+              className="flex items-center justify-between py-1.5 text-sm"
+            >
+              <span className="font-medium text-black">
+                {name || "No group"}
+              </span>
               <span className="text-xs">
-                <span className="text-[#00A070] font-bold">{formatCurrency(v.collected)}</span>
+                <span className="text-[#00A070] font-bold">
+                  {formatCurrency(v.collected)}
+                </span>
                 {" collected · "}
-                <span className="text-[#FA731C] font-bold">{formatCurrency(v.remaining)}</span>
+                <span className="text-[#FA731C] font-bold">
+                  {formatCurrency(v.remaining)}
+                </span>
                 {" remaining"}
               </span>
             </div>

@@ -104,7 +104,9 @@ export function useFaceRecognition() {
   // Non-throwing single-frame probe for continuous scanning. Detection runs
   // first and landmarks/descriptor only run once a usable face is found, so an
   // empty frame costs just the tiny detector.
-  const detectFaceDescriptor = useCallback(async (): Promise<number[] | null> => {
+  const detectFaceDescriptor = useCallback(async (): Promise<
+    number[] | null
+  > => {
     const video = videoRef.current;
     // The <video> remounts when the kiosk swaps in a result panel; re-attach
     // the live stream to the fresh element.

@@ -154,7 +154,11 @@ export default function DocumentVaultPage() {
             ? "Please choose the employee this document belongs to."
             : "";
     if (missing || !fileObj) {
-      toast({ title: "Missing information", description: missing, variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: missing,
+        variant: "destructive",
+      });
       return;
     }
 

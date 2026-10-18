@@ -100,7 +100,6 @@ NestPlay brings together staff/HR management, coaching operations, student enrol
 - **Communication**: WhatsApp Business API, email, web push notifications
 - **Security**: JWT authentication, two-factor authentication, geofencing, audit logging
 
-
 ---
 
 ## Local setup
@@ -130,6 +129,7 @@ npm run ios                 # or: npm run android
 CI (`.github/workflows/ci.yml`) runs the API tests + dependency audit, web lint/typecheck/build and mobile typecheck on every push and pull request.
 
 ### Production checklist
+
 - `NODE_ENV=production` and `ALLOWED_ORIGINS` set (the API refuses to start otherwise).
 - `UPLOAD_DIR` on a persistent volume — uploaded files are not stored in the database or git.
 - `META_APP_SECRET` + `META_WA_VERIFY_TOKEN` set — the WhatsApp webhook rejects unsigned requests.

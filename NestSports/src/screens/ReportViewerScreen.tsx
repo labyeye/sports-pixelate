@@ -11,14 +11,47 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { departmentAPI } from '../api/client';
-import { Button, Card, EmptyState, FilterPills, PickerField, TextField } from '../components/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  FilterPills,
+  PickerField,
+  TextField,
+} from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
-import { findReport, Filters, ReportDef, ReportTable } from '../reports/catalog';
+import {
+  findReport,
+  Filters,
+  ReportDef,
+  ReportTable,
+} from '../reports/catalog';
 import { colors, FONT } from '../theme/colors';
 import { notifyError } from '../utils/notifyError';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const NAME_HEADERS = ['employee', 'name', 'employee name', 'student', 'team a', 'designation', 'round'];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+const NAME_HEADERS = [
+  'employee',
+  'name',
+  'employee name',
+  'student',
+  'team a',
+  'designation',
+  'round',
+];
 
 const initFilters = (def: ReportDef): Filters => {
   const now = new Date();
@@ -35,7 +68,15 @@ const initFilters = (def: ReportDef): Filters => {
   return f;
 };
 
-function Stepper({ label, onPrev, onNext }: { label: string; onPrev: () => void; onNext: () => void }) {
+function Stepper({
+  label,
+  onPrev,
+  onNext,
+}: {
+  label: string;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
   return (
     <View style={styles.stepper}>
       <TouchableOpacity onPress={onPrev} hitSlop={10}>
@@ -51,7 +92,9 @@ function Stepper({ label, onPrev, onNext }: { label: string; onPrev: () => void;
 
 export default function ReportViewerScreen({ route, navigation }: any) {
   const def = findReport(route.params?.reportId);
-  const [filters, setFilters] = useState<Filters>(() => (def ? initFilters(def) : {}));
+  const [filters, setFilters] = useState<Filters>(() =>
+    def ? initFilters(def) : {},
+  );
   const [depts, setDepts] = useState<any[]>([]);
   const [refs, setRefs] = useState<Record<string, any[]>>({});
   const [table, setTable] = useState<ReportTable | null>(null);
@@ -74,7 +117,9 @@ export default function ReportViewerScreen({ route, navigation }: any) {
         .then(list => {
           setRefs(r => ({ ...r, [x.key]: list }));
           // Default to the first record, as the web report does.
-          setFilters(f => (f[x.key] || !list.length ? f : { ...f, [x.key]: list[0]._id }));
+          setFilters(f =>
+            f[x.key] || !list.length ? f : { ...f, [x.key]: list[0]._id },
+          );
         })
         .catch(notifyError);
     });
@@ -119,20 +164,32 @@ export default function ReportViewerScreen({ route, navigation }: any) {
 
   const exportExcel = async () => {
     if (!table?.rows.length) return;
-    const period = filters.month ? `${MONTHS[+filters.month - 1]}_${filters.year}` : filters.year || 'all';
+    const period = filters.month
+      ? `${MONTHS[+filters.month - 1]}_${filters.year}`
+      : filters.year || 'all';
     try {
       await exportRowsToExcel(
         table.headers.map((h, i) => ({ key: String(i), label: h })),
-        table.rows.map(r => Object.fromEntries(r.map((c, i) => [String(i), c]))),
+        table.rows.map(r =>
+          Object.fromEntries(r.map((c, i) => [String(i), c])),
+        ),
         `${def.id}_${period}.xlsx`,
         def.name.slice(0, 31),
       );
     } catch (e: unknown) {
-      Alert.alert('Export failed', (e as Error)?.message || 'Could not export the report');
+      Alert.alert(
+        'Export failed',
+        (e as Error)?.message || 'Could not export the report',
+      );
     }
   };
 
-  const titleIdx = table ? Math.max(0, table.headers.findIndex(h => NAME_HEADERS.includes(h.toLowerCase()))) : 0;
+  const titleIdx = table
+    ? Math.max(
+        0,
+        table.headers.findIndex(h => NAME_HEADERS.includes(h.toLowerCase())),
+      )
+    : 0;
 
   const header = (
     <View>
@@ -161,15 +218,30 @@ export default function ReportViewerScreen({ route, navigation }: any) {
               key="dept"
               label="Department"
               options={['All departments', ...depts.map(d => d.name)]}
-              value={filters.dept === 'all' ? 'All departments' : depts.find(d => d._id === filters.dept)?.name || ''}
-              onChange={n => set('dept', n === 'All departments' ? 'all' : depts.find(d => d.name === n)?._id || 'all')}
+              value={
+                filters.dept === 'all'
+                  ? 'All departments'
+                  : depts.find(d => d._id === filters.dept)?.name || ''
+              }
+              onChange={n =>
+                set(
+                  'dept',
+                  n === 'All departments'
+                    ? 'all'
+                    : depts.find(d => d.name === n)?._id || 'all',
+                )
+              }
             />
           );
         if (x.kind === 'select')
           return (
             <View key={x.key} style={{ marginBottom: 12 }}>
               <Text style={styles.filterLabel}>{x.label}</Text>
-              <FilterPills options={x.options} value={filters[x.key]} onChange={v => set(x.key, v)} />
+              <FilterPills
+                options={x.options}
+                value={filters[x.key]}
+                onChange={v => set(x.key, v)}
+              />
             </View>
           );
         if (x.kind === 'ref') {
@@ -179,8 +251,14 @@ export default function ReportViewerScreen({ route, navigation }: any) {
               key={x.key}
               label={x.label}
               options={list.map(r => r.name || r.title)}
-              value={(list.find(r => r._id === filters[x.key]) || {}).name || (list.find(r => r._id === filters[x.key]) || {}).title || ''}
-              onChange={n => set(x.key, list.find(r => (r.name || r.title) === n)?._id || '')}
+              value={
+                (list.find(r => r._id === filters[x.key]) || {}).name ||
+                (list.find(r => r._id === filters[x.key]) || {}).title ||
+                ''
+              }
+              onChange={n =>
+                set(x.key, list.find(r => (r.name || r.title) === n)?._id || '')
+              }
             />
           );
         }
@@ -196,7 +274,11 @@ export default function ReportViewerScreen({ route, navigation }: any) {
         );
       })}
       <Text style={styles.count}>
-        {loading ? 'Loading…' : error ? error : `${table?.rows.length ?? 0} records`}
+        {loading
+          ? 'Loading…'
+          : error
+            ? error
+            : `${table?.rows.length ?? 0} records`}
       </Text>
       <Button
         title="Export to Excel"
@@ -225,7 +307,11 @@ export default function ReportViewerScreen({ route, navigation }: any) {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={header}
         ListEmptyComponent={
-          loading ? <ActivityIndicator style={{ marginTop: 24 }} color={colors.blue} /> : <EmptyState title="No data for these filters" />
+          loading ? (
+            <ActivityIndicator style={{ marginTop: 24 }} color={colors.blue} />
+          ) : (
+            <EmptyState title="No data for these filters" />
+          )
         }
         renderItem={({ item: row }) => (
           <Card>
@@ -270,10 +356,42 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   stepperText: { fontSize: 15, fontFamily: FONT.bold, color: colors.black },
-  filterLabel: { fontSize: 12, fontFamily: FONT.bold, color: colors.black, marginBottom: 6, textTransform: 'uppercase' },
-  count: { color: colors.muted, fontFamily: FONT.medium, fontSize: 12, marginVertical: 8 },
-  rowTitle: { fontSize: 15, fontFamily: FONT.bold, color: colors.black, marginBottom: 6 },
-  line: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 2 },
-  lineLabel: { flexShrink: 0, color: colors.muted, fontSize: 12, fontFamily: FONT.medium },
-  lineValue: { flex: 1, textAlign: 'right', color: colors.black, fontSize: 12, fontFamily: FONT.semiBold },
+  filterLabel: {
+    fontSize: 12,
+    fontFamily: FONT.bold,
+    color: colors.black,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  count: {
+    color: colors.muted,
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    marginVertical: 8,
+  },
+  rowTitle: {
+    fontSize: 15,
+    fontFamily: FONT.bold,
+    color: colors.black,
+    marginBottom: 6,
+  },
+  line: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 2,
+  },
+  lineLabel: {
+    flexShrink: 0,
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: FONT.medium,
+  },
+  lineValue: {
+    flex: 1,
+    textAlign: 'right',
+    color: colors.black,
+    fontSize: 12,
+    fontFamily: FONT.semiBold,
+  },
 });

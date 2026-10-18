@@ -4,9 +4,14 @@
 // MAX_CHARS (the server rejects anything bigger).
 export const MAX_CHARS = 1_500_000;
 
-export async function fileToDataUrl(file: File, maxDim = 1600): Promise<string> {
-  if (!/^image\/(png|jpe?g|webp|gif|svg\+xml)$/.test(file.type)) throw new Error("Use a PNG, JPG, WebP, GIF or SVG image.");
-  if (file.size > 12 * 1024 * 1024) throw new Error("Image must be under 12 MB.");
+export async function fileToDataUrl(
+  file: File,
+  maxDim = 1600,
+): Promise<string> {
+  if (!/^image\/(png|jpe?g|webp|gif|svg\+xml)$/.test(file.type))
+    throw new Error("Use a PNG, JPG, WebP, GIF or SVG image.");
+  if (file.size > 12 * 1024 * 1024)
+    throw new Error("Image must be under 12 MB.");
 
   const objectUrl = URL.createObjectURL(file);
   try {
@@ -31,19 +36,26 @@ export async function fileToDataUrl(file: File, maxDim = 1600): Promise<string> 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const out = keepAlpha ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.88);
+      const out = keepAlpha
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", 0.88);
       if (out.length <= MAX_CHARS) return out;
     }
-    throw new Error("Image is too detailed to embed. Try a simpler or smaller one.");
+    throw new Error(
+      "Image is too detailed to embed. Try a simpler or smaller one.",
+    );
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
 }
 
-export function imageNaturalSize(src: string): Promise<{ w: number; h: number }> {
+export function imageNaturalSize(
+  src: string,
+): Promise<{ w: number; h: number }> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve({ w: img.naturalWidth || 800, h: img.naturalHeight || 400 });
+    img.onload = () =>
+      resolve({ w: img.naturalWidth || 800, h: img.naturalHeight || 400 });
     img.onerror = () => resolve({ w: 800, h: 400 });
     img.src = src;
   });

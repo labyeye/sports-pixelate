@@ -22,7 +22,10 @@ type Step = 'email' | 'choose' | 'code' | 'done';
 
 // Only methods the account has actually set up are offered (see /methods).
 const METHOD_INFO: Record<string, { label: string; desc: string }> = {
-  email: { label: 'Email link', desc: 'Get a password reset link in your inbox' },
+  email: {
+    label: 'Email link',
+    desc: 'Get a password reset link in your inbox',
+  },
   whatsapp: {
     label: 'WhatsApp code',
     desc: 'Get a 6-digit code on your verified WhatsApp number',
@@ -51,7 +54,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     try {
       await fn();
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || 'Something went wrong. Please try again.');
+      setError(
+        getErrorMessage(err) || 'Something went wrong. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -59,7 +64,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
 
   const sendLink = async () => {
     await authAPI.forgotPassword(email.trim());
-    setDoneMsg('If an account exists for that email, a reset link has been sent.');
+    setDoneMsg(
+      'If an account exists for that email, a reset link has been sent.',
+    );
     setStep('done');
   };
 
@@ -88,7 +95,11 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       if (method === 'whatsapp')
         await authAPI.resetPasswordWithOtp(email.trim(), code.trim(), password);
       else
-        await authAPI.resetPasswordWithTotp(email.trim(), code.trim(), password);
+        await authAPI.resetPasswordWithTotp(
+          email.trim(),
+          code.trim(),
+          password,
+        );
       setDoneMsg('Your password has been reset. You can now log in.');
       setStep('done');
     });
@@ -98,12 +109,12 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     step === 'email'
       ? 'Reset your password'
       : step === 'choose'
-      ? 'How do you want to reset it?'
-      : step === 'code'
-      ? method === 'whatsapp'
-        ? 'Enter WhatsApp code'
-        : 'Enter authenticator code'
-      : 'All set';
+        ? 'How do you want to reset it?'
+        : step === 'code'
+          ? method === 'whatsapp'
+            ? 'Enter WhatsApp code'
+            : 'Enter authenticator code'
+          : 'All set';
 
   return (
     <SafeAreaView
@@ -213,7 +224,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
           {step === 'code' && (
             <>
               <TextField
-                label={method === 'whatsapp' ? 'WhatsApp Code' : 'Authenticator Code'}
+                label={
+                  method === 'whatsapp' ? 'WhatsApp Code' : 'Authenticator Code'
+                }
                 value={code}
                 onChangeText={setCode}
                 keyboardType={method === 'whatsapp' ? 'number-pad' : 'default'}
@@ -232,7 +245,11 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                 onChangeText={setConfirm}
                 secureTextEntry
               />
-              <Button title="Reset Password" onPress={onReset} loading={loading} />
+              <Button
+                title="Reset Password"
+                onPress={onReset}
+                loading={loading}
+              />
               <Text
                 style={styles.link}
                 onPress={() => {

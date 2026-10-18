@@ -26,18 +26,43 @@ async function getCompanyPaymentCreds(company) {
   );
   const gateway = setting?.paymentGateway || "razorpay";
   let creds;
-  if (gateway === "razorpay" && setting?.razorpayKeyId && setting?.razorpayKeySecret) {
-    creds = { keyId: setting.razorpayKeyId, keySecret: setting.razorpayKeySecret };
-  } else if (gateway === "cashfree" && setting?.cashfreeAppId && setting?.cashfreeSecretKey) {
-    creds = { appId: setting.cashfreeAppId, secretKey: setting.cashfreeSecretKey };
-  } else if (gateway === "phonepe" && setting?.phonepeMerchantId && setting?.phonepeSaltKey) {
+  if (
+    gateway === "razorpay" &&
+    setting?.razorpayKeyId &&
+    setting?.razorpayKeySecret
+  ) {
+    creds = {
+      keyId: setting.razorpayKeyId,
+      keySecret: setting.razorpayKeySecret,
+    };
+  } else if (
+    gateway === "cashfree" &&
+    setting?.cashfreeAppId &&
+    setting?.cashfreeSecretKey
+  ) {
+    creds = {
+      appId: setting.cashfreeAppId,
+      secretKey: setting.cashfreeSecretKey,
+    };
+  } else if (
+    gateway === "phonepe" &&
+    setting?.phonepeMerchantId &&
+    setting?.phonepeSaltKey
+  ) {
     creds = {
       merchantId: setting.phonepeMerchantId,
       saltKey: setting.phonepeSaltKey,
       saltIndex: setting.phonepeSaltIndex,
     };
-  } else if (gateway === "paytm" && setting?.paytmMerchantId && setting?.paytmMerchantKey) {
-    creds = { merchantId: setting.paytmMerchantId, merchantKey: setting.paytmMerchantKey };
+  } else if (
+    gateway === "paytm" &&
+    setting?.paytmMerchantId &&
+    setting?.paytmMerchantKey
+  ) {
+    creds = {
+      merchantId: setting.paytmMerchantId,
+      merchantKey: setting.paytmMerchantKey,
+    };
   }
   return { gateway, creds };
 }
@@ -63,7 +88,12 @@ async function getChequeCompanyInfo(companyId) {
 // Fire-and-forget: emails/PDFs the parent's opted-in guardian and every
 // owner/staff user a receipt for a just-verified payment. Never throws —
 // notification failures must not affect the payment-verification response.
-async function notifyPaymentVerified(subscription, payment, companyId, verifiedByName) {
+async function notifyPaymentVerified(
+  subscription,
+  payment,
+  companyId,
+  verifiedByName,
+) {
   try {
     const student = await Student.findById(subscription.student).select(
       "firstName lastName studentId guardians",
@@ -77,7 +107,10 @@ async function notifyPaymentVerified(subscription, payment, companyId, verifiedB
       company,
     });
     const studentName = `${student.firstName} ${student.lastName}`.trim();
-    const balanceDue = Math.max(subscription.amount - subscription.amountPaid, 0);
+    const balanceDue = Math.max(
+      subscription.amount - subscription.amountPaid,
+      0,
+    );
 
     const guardian = (student.guardians || []).find(
       (g) => g.receivesWhatsapp && g.phone,
@@ -106,7 +139,8 @@ async function notifyPaymentVerified(subscription, payment, companyId, verifiedB
     }).select("phone role");
     for (const admin of admins) {
       const phone =
-        admin.phone || (admin.role === "super_admin" ? companyDoc?.phone : null);
+        admin.phone ||
+        (admin.role === "super_admin" ? companyDoc?.phone : null);
       if (phone) {
         await sendPaymentVerifiedAdmin(
           phone,
@@ -125,7 +159,10 @@ async function notifyPaymentVerified(subscription, payment, companyId, verifiedB
       }
     }
   } catch (err) {
-    console.error("[Subscription] WA payment-verified notify failed:", err.message);
+    console.error(
+      "[Subscription] WA payment-verified notify failed:",
+      err.message,
+    );
   }
 }
 
@@ -151,7 +188,10 @@ async function notifyPaymentRejected(subscription, payment, companyId) {
       companyId,
     );
   } catch (err) {
-    console.error("[Subscription] WA payment-rejected notify failed:", err.message);
+    console.error(
+      "[Subscription] WA payment-rejected notify failed:",
+      err.message,
+    );
   }
 }
 
@@ -378,6 +418,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
 
   const subscription = await StudentSubscription.findOne({
     razorpayOrderId: orderId,
+    company: req.user.company,
   });
   if (!subscription) {
     res.status(404);
@@ -670,7 +711,9 @@ async function handleCashPayment(req, res, { subscription }) {
   }
   if (payAmount > remaining + 0.01) {
     res.status(400);
-    throw new Error(`Amount cannot exceed the remaining balance of ₹${remaining}`);
+    throw new Error(
+      `Amount cannot exceed the remaining balance of ₹${remaining}`,
+    );
   }
 
   subscription.payments.push({
@@ -686,10 +729,16 @@ async function handleCashPayment(req, res, { subscription }) {
   await updated.populate("student", "firstName lastName");
 
   const payment = updated.payments[updated.payments.length - 1];
-  await logAudit(req, "payment_verified", "StudentSubscription", subscription._id, {
-    paymentId: payment._id,
-    amount: payment.amount,
-  });
+  await logAudit(
+    req,
+    "payment_verified",
+    "StudentSubscription",
+    subscription._id,
+    {
+      paymentId: payment._id,
+      amount: payment.amount,
+    },
+  );
   notifyPaymentVerified(updated, payment, req.user.company, req.user.name);
 
   res.json({ success: true, message: "Cash payment recorded", data: updated });
@@ -887,11 +936,17 @@ const rejectQrPayment = asyncHandler(async (req, res) => {
 
   await subscription.populate("student", "firstName lastName");
 
-  await logAudit(req, "payment_rejected", "StudentSubscription", subscription._id, {
-    paymentId: payment._id,
-    amount: payment.amount,
-    reason: payment.rejectionReason,
-  });
+  await logAudit(
+    req,
+    "payment_rejected",
+    "StudentSubscription",
+    subscription._id,
+    {
+      paymentId: payment._id,
+      amount: payment.amount,
+      reason: payment.rejectionReason,
+    },
+  );
   notifyPaymentRejected(subscription, payment, req.user.company);
 
   res.json({
@@ -950,7 +1005,12 @@ const cancelSubscription = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Subscription not found");
   }
-  await logAudit(req, "subscription_cancelled", "StudentSubscription", subscription._id);
+  await logAudit(
+    req,
+    "subscription_cancelled",
+    "StudentSubscription",
+    subscription._id,
+  );
   res.json({ success: true, data: subscription });
 });
 

@@ -364,7 +364,11 @@ export default function AttendanceSettingsPage() {
         setSettings({ ...DEFAULT_SETTINGS, ...settingsRes.data });
       if (empRes.success) setEmployees(empRes.data);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -376,7 +380,11 @@ export default function AttendanceSettingsPage() {
       const res = await attendanceSettingsAPI.getBalanceSummary();
       if (res.success) setBalances(res.data);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoadingBalances(false);
     }
@@ -431,7 +439,11 @@ export default function AttendanceSettingsPage() {
         variant: "success",
       });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -451,7 +463,11 @@ export default function AttendanceSettingsPage() {
       });
       fetchBalances();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSavingLate(false);
     }
@@ -477,7 +493,11 @@ export default function AttendanceSettingsPage() {
       setShowLateModal(false);
       fetchBalances();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSavingLate(false);
     }
@@ -498,7 +518,11 @@ export default function AttendanceSettingsPage() {
       });
       fetchBalances();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSavingLeave(false);
     }
@@ -525,7 +549,11 @@ export default function AttendanceSettingsPage() {
       setShowLeaveModal(false);
       fetchBalances();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSavingLeave(false);
     }
@@ -792,8 +820,8 @@ export default function AttendanceSettingsPage() {
                       Automatic Late & Absent
                     </h2>
                     <p className="text-xs text-gray-500">
-                      Off = staff mark only Present / Absent themselves. Turn
-                      on whichever you want the system to do for you.
+                      Off = staff mark only Present / Absent themselves. Turn on
+                      whichever you want the system to do for you.
                     </p>
                   </div>
                   <div className="p-5 space-y-5">
@@ -865,7 +893,9 @@ export default function AttendanceSettingsPage() {
                           min={1}
                           max={28}
                           onChange={(v) =>
-                            set({ paymentLinkDay: Math.min(28, Math.max(1, v)) })
+                            set({
+                              paymentLinkDay: Math.min(28, Math.max(1, v)),
+                            })
                           }
                           hint={`Links go out on the ${settings.paymentLinkDay}${ordinal(settings.paymentLinkDay)} of every month`}
                         />
@@ -875,7 +905,9 @@ export default function AttendanceSettingsPage() {
                           min={0}
                           max={23}
                           onChange={(v) =>
-                            set({ paymentLinkHour: Math.min(23, Math.max(0, v)) })
+                            set({
+                              paymentLinkHour: Math.min(23, Math.max(0, v)),
+                            })
                           }
                           hint={`About ${((settings.paymentLinkHour + 11) % 12) + 1}:00 ${settings.paymentLinkHour < 12 ? "AM" : "PM"} IST`}
                         />

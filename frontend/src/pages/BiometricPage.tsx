@@ -264,7 +264,11 @@ export default function BiometricPage() {
   const handleSaveLocation = async () => {
     if (locSaving) return;
     if (!locForm.name.trim()) {
-      toast({ title: "Missing information", description: "Please enter a name for the location.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please enter a name for the location.",
+        variant: "destructive",
+      });
       return;
     }
     const ok = window.confirm(
@@ -288,7 +292,11 @@ export default function BiometricPage() {
       setEditingLoc(null);
       setShowLocForm(false);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLocSaving(false);
     }
@@ -304,7 +312,11 @@ export default function BiometricPage() {
       setLocations((prev) => prev.filter((l) => l._id !== id));
       toast({ title: "Location deleted" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -321,7 +333,11 @@ export default function BiometricPage() {
   const handleCreateDevice = async () => {
     if (devSaving) return;
     if (!devForm.name.trim() || !devForm.location) {
-      toast({ title: "Missing information", description: "Please enter the device name and choose its location.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please enter the device name and choose its location.",
+        variant: "destructive",
+      });
       return;
     }
     const ok = window.confirm("Create this device?");
@@ -337,7 +353,11 @@ export default function BiometricPage() {
         description: "Save the device token to open the device page.",
       });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setDevSaving(false);
     }
@@ -377,7 +397,11 @@ export default function BiometricPage() {
         description: "New activation code is ready.",
       });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -392,7 +416,11 @@ export default function BiometricPage() {
         ),
       );
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -407,14 +435,22 @@ export default function BiometricPage() {
       if (selectedDevice?._id === id) setSelectedDevice(null);
       toast({ title: "Device deleted" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
   const handleAssignNfc = async () => {
     if (!selectedDevice) return;
     if (!nfcForm.uid.trim() || !nfcForm.personId) {
-      toast({ title: "Missing information", description: "Please enter the card number and choose the person.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please enter the card number and choose the person.",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -432,7 +468,11 @@ export default function BiometricPage() {
       setNfcForm({ uid: "", personType: "employee", personId: "", label: "" });
       toast({ title: "NFC card assigned" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -446,7 +486,11 @@ export default function BiometricPage() {
       setSelectedDevice(res.data);
       toast({ title: "NFC card removed" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -510,7 +554,11 @@ export default function BiometricPage() {
   const handleSaveSerial = async () => {
     if (!admsDevice || serialSaving) return;
     if (!admsSerial.trim()) {
-      toast({ title: "Missing information", description: "Please enter the device serial number.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please enter the device serial number.",
+        variant: "destructive",
+      });
       return;
     }
     setSerialSaving(true);
@@ -525,7 +573,11 @@ export default function BiometricPage() {
         description: `Device linked to SN: ${admsSerial.toUpperCase()}`,
       });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setSerialSaving(false);
   };
@@ -546,7 +598,11 @@ export default function BiometricPage() {
       });
       fetchCommands(admsDevice._id);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setSyncingId(null);
   };
@@ -559,7 +615,11 @@ export default function BiometricPage() {
       toast({ title: "Bulk sync queued", description: res.message });
       fetchCommands(admsDevice._id);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setSyncingAll(false);
   };
@@ -584,7 +644,11 @@ export default function BiometricPage() {
         description: "Enroll the face again to use face attendance.",
       });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -599,7 +663,11 @@ export default function BiometricPage() {
       toast({ title: "Face enrollment queued", description: res.message });
       fetchCommands(admsDevice._id);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -614,7 +682,11 @@ export default function BiometricPage() {
       toast({ title: "Face template push queued", description: res.message });
       fetchCommands(admsDevice._id);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -636,7 +708,11 @@ export default function BiometricPage() {
       setEditBioId(null);
       toast({ title: "Biometric ID saved" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 
@@ -675,7 +751,11 @@ export default function BiometricPage() {
       });
       setRfidModalPerson(null);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setRfidSaving(false);
   };

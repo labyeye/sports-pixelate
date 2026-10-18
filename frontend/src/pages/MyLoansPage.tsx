@@ -66,7 +66,6 @@ const EMPTY_FORM = {
   reason: "",
 };
 
-
 export default function MyLoansPage() {
   const { toast } = useToast();
   const [loans, setLoans] = useState<Loan[]>([]);

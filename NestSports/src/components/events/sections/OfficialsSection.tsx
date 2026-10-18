@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { Gavel, Plus, Trash2 } from 'lucide-react-native';
 import { CollapsibleSection } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
@@ -58,7 +66,10 @@ export default function OfficialsSection({
       const res: any = await eventAPI.removeOfficial(eventId, officialId);
       onChanged(res.data?.officials || []);
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not remove official');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not remove official',
+      );
     }
   };
 
@@ -127,8 +138,18 @@ const styles = StyleSheet.create({
     borderBottomColor: '#0000001A',
     paddingVertical: 8,
   },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
-  role: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted, marginTop: 1 },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  role: {
+    fontFamily: FONT.medium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 1,
+  },
   addRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   input: {
     flex: 1,

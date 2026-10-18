@@ -1,3 +1,4 @@
+import { writePrintDocument } from "@/lib/printWindow";
 import { escapeHtml } from "@/lib/escapeHtml";
 import { StatCard } from "@/components/ui/StatCard";
 import { useState, useEffect, useCallback } from "react";
@@ -167,7 +168,9 @@ async function printPayslip(
         if (!src) continue;
         const img = await loadImg(src);
         if (!img) continue;
-        const ratio = img.naturalWidth ? img.naturalHeight / img.naturalWidth : 1;
+        const ratio = img.naturalWidth
+          ? img.naturalHeight / img.naturalWidth
+          : 1;
         const drawW = w;
         const drawH = Math.min(h, drawW * ratio);
         c.drawImage(img, x, y, drawW, drawH);
@@ -180,7 +183,8 @@ async function printPayslip(
         c.textBaseline = "middle";
         const align = f.align || "left";
         c.textAlign = align;
-        const tx = align === "right" ? x + w : align === "center" ? x + w / 2 : x;
+        const tx =
+          align === "right" ? x + w : align === "center" ? x + w / 2 : x;
         c.fillText(text, tx, y + h / 2, w);
       }
     }
@@ -671,11 +675,11 @@ export default function PayrollPage() {
                     `<tr><td>${escapeHtml((p.employee as any)?.firstName)} ${escapeHtml((p.employee as any)?.lastName)}</td><td>${escapeHtml((p.employee as any)?.designation)}</td><td>₹${p.basicSalary.toLocaleString()}</td><td>₹${p.grossSalary.toLocaleString()}</td><td>-₹${p.totalDeductions.toLocaleString()}</td><td>₹${p.netSalary.toLocaleString()}</td><td>${escapeHtml(p.status)}</td></tr>`,
                 )
                 .join("");
-              win.document.write(
+              writePrintDocument(
+                win,
                 `<html><head><title>Salary Slips ${MONTHS[month - 1]} ${year}</title><style>@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');body{font-family:"DM Sans",sans-serif;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 10px}th{background:#f0f6ff}</style></head><body><h2>Payroll — ${MONTHS[month - 1]} ${year}</h2><table><thead><tr><th>Employee</th><th>Designation</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`,
+                true,
               );
-              win.document.close();
-              win.print();
             }}
             className="bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 border-2 border-black"
           >

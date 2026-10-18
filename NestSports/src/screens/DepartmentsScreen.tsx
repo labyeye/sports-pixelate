@@ -168,7 +168,10 @@ export default function DepartmentsScreen() {
       setFormVisible(false);
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not save department');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not save department',
+      );
     } finally {
       setSaving(false);
     }
@@ -188,7 +191,10 @@ export default function DepartmentsScreen() {
               await departmentAPI.delete(d._id);
               setDepartments(prev => prev.filter(x => x._id !== d._id));
             } catch (e: unknown) {
-              Alert.alert('Error', (e as Error)?.message || 'Could not delete department');
+              Alert.alert(
+                'Error',
+                (e as Error)?.message || 'Could not delete department',
+              );
             }
           },
         },
@@ -362,8 +368,8 @@ export default function DepartmentsScreen() {
                 saving
                   ? 'Saving...'
                   : editingDept
-                  ? 'Update Department'
-                  : 'Save Department'
+                    ? 'Update Department'
+                    : 'Save Department'
               }
               onPress={save}
               disabled={saving}

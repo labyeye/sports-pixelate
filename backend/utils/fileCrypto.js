@@ -51,7 +51,9 @@ function getKey() {
 }
 
 function isEncryptedBuffer(buf) {
-  return buf.length >= HEADER_LEN && buf.subarray(0, MAGIC.length).equals(MAGIC);
+  return (
+    buf.length >= HEADER_LEN && buf.subarray(0, MAGIC.length).equals(MAGIC)
+  );
 }
 
 function encryptBuffer(plain) {
@@ -68,7 +70,10 @@ function decryptBuffer(buf) {
   const tag = buf.subarray(MAGIC.length + IV_LEN, HEADER_LEN);
   const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), iv);
   decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(buf.subarray(HEADER_LEN)), decipher.final()]);
+  return Buffer.concat([
+    decipher.update(buf.subarray(HEADER_LEN)),
+    decipher.final(),
+  ]);
 }
 
 // Cheap check that only reads the first bytes of the file.
@@ -113,7 +118,8 @@ function encryptUploadedFiles(req) {
   const files = [];
   if (req.file) files.push(req.file);
   if (Array.isArray(req.files)) files.push(...req.files);
-  else if (req.files) Object.values(req.files).forEach((list) => files.push(...list));
+  else if (req.files)
+    Object.values(req.files).forEach((list) => files.push(...list));
   for (const f of files) if (f.path) encryptFileInPlace(f.path);
 }
 

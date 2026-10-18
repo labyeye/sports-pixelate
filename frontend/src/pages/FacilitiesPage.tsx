@@ -1,7 +1,7 @@
 // Facilities (web): courts/grounds/rooms with capacity and hourly fee.
 // Bookings are handled in BookingsPage. Backend: facilityAPI.
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { facilityAPI } from "@/services/api";
@@ -87,7 +87,11 @@ export default function FacilitiesPage() {
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -103,7 +107,11 @@ export default function FacilitiesPage() {
       setPage(next);
       setPages(r.pages || 1);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setLoadingMore(false);
   };
@@ -160,7 +168,11 @@ export default function FacilitiesPage() {
       }
       resetForm();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -173,7 +185,11 @@ export default function FacilitiesPage() {
       setFacilities((p) => p.filter((f) => f._id !== id));
       toast({ title: "Facility deactivated" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

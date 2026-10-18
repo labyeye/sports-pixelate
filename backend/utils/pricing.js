@@ -27,7 +27,9 @@ function calculatePricing(
 
   let monthlySubtotal = totalUsers * rate;
   if (offer && offer.discountType === "percent_off" && offer.percentOff) {
-    monthlySubtotal = Math.round(monthlySubtotal * (1 - offer.percentOff / 100));
+    monthlySubtotal = Math.round(
+      monthlySubtotal * (1 - offer.percentOff / 100),
+    );
   }
   const monthlyGstAmount = Math.round(monthlySubtotal * (GST_RATE / 100));
   const monthlyPrice = monthlySubtotal + monthlyGstAmount;
@@ -56,7 +58,13 @@ if (require.main === module) {
   const assert = require("assert");
   const p = calculatePricing(100, 5, false);
   assert.deepStrictEqual(
-    [p.ratePerUnit, p.monthlySubtotal, p.monthlyGstAmount, p.monthlyPrice, p.yearlyPrice],
+    [
+      p.ratePerUnit,
+      p.monthlySubtotal,
+      p.monthlyGstAmount,
+      p.monthlyPrice,
+      p.yearlyPrice,
+    ],
     [30, 3150, 567, 3717, 44604],
   );
   const wa = calculatePricing(100, 5, true);
@@ -70,8 +78,10 @@ if (require.main === module) {
     200,
   );
   assert.strictEqual(
-    calculatePricing(10, 0, false, { discountType: "percent_off", percentOff: 50 })
-      .monthlySubtotal,
+    calculatePricing(10, 0, false, {
+      discountType: "percent_off",
+      percentOff: 50,
+    }).monthlySubtotal,
     150,
   );
   console.log("pricing ok");

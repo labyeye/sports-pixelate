@@ -159,17 +159,21 @@ function BankNamePicker({
       >
         <Landmark size={16} color={colors.muted} />
         <Text
-          style={[
-            styles.pickerFieldText,
-            !value && { color: colors.muted },
-          ]}
+          style={[styles.pickerFieldText, !value && { color: colors.muted }]}
         >
           {value || 'Select your bank'}
         </Text>
       </TouchableOpacity>
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.white }}>
+      <Modal
+        visible={open}
+        animationType="slide"
+        onRequestClose={() => setOpen(false)}
+      >
+        <SafeAreaView
+          edges={['top']}
+          style={{ flex: 1, backgroundColor: colors.white }}
+        >
           <View style={styles.pickerHeader}>
             <Text style={styles.pickerHeaderTitle}>Select Bank</Text>
             <TouchableOpacity onPress={() => setOpen(false)} hitSlop={10}>
@@ -287,7 +291,10 @@ export default function SettingsScreen() {
         const res: any = await settingsAPI.uploadLogo(file);
         if (res?.data?.logoUrl) set({ logoUrl: res.data.logoUrl });
       } catch (e: unknown) {
-        Alert.alert('Upload failed', (e as Error)?.message || 'Could not upload logo');
+        Alert.alert(
+          'Upload failed',
+          (e as Error)?.message || 'Could not upload logo',
+        );
       } finally {
         setUploadingLogo(false);
       }
@@ -353,7 +360,10 @@ export default function SettingsScreen() {
       setDisabledFeatures(settings?.disabledFeatures || []);
       Alert.alert('Saved', 'Settings updated successfully');
     } catch (e: unknown) {
-      Alert.alert('Save failed', (e as Error)?.message || 'Could not save settings');
+      Alert.alert(
+        'Save failed',
+        (e as Error)?.message || 'Could not save settings',
+      );
     } finally {
       setSaving(false);
     }
@@ -835,9 +845,9 @@ export default function SettingsScreen() {
           <Card>
             <SectionTitle title="Features" />
             <Text style={styles.toggleSub}>
-              Switch off features your academy doesn't use. They are hidden
-              from the menu for everyone. Your data is kept, and you can turn
-              a feature back on any time.
+              Switch off features your academy doesn't use. They are hidden from
+              the menu for everyone. Your data is kept, and you can turn a
+              feature back on any time.
             </Text>
             {FEATURES.map(f => (
               <ToggleRow
@@ -1036,7 +1046,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  pickerHeaderTitle: { fontFamily: FONT.bold, fontSize: 16, color: colors.black },
+  pickerHeaderTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 16,
+    color: colors.black,
+  },
   pickerSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',

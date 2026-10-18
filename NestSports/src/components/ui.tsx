@@ -399,7 +399,11 @@ export function PickerField({
         </Text>
       </View>
       <TouchableOpacity
-        style={[styles.fieldInput, styles.pickerFieldBox, disabled && { opacity: 0.5 }]}
+        style={[
+          styles.fieldInput,
+          styles.pickerFieldBox,
+          disabled && { opacity: 0.5 },
+        ]}
         onPress={() => !disabled && setOpen(true)}
         disabled={disabled}
         activeOpacity={0.7}
@@ -416,12 +420,25 @@ export function PickerField({
         </Text>
         <ChevronDown size={16} color={colors.muted} strokeWidth={2.5} />
       </TouchableOpacity>
-      <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
-        <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={close}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="slide"
+        onRequestClose={close}
+      >
+        <TouchableOpacity
+          style={styles.sheetBackdrop}
+          activeOpacity={1}
+          onPress={close}
+        >
           <TouchableOpacity activeOpacity={1} style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{label}</Text>
-              <TouchableOpacity onPress={close} hitSlop={8} style={{ marginLeft: 'auto' }}>
+              <TouchableOpacity
+                onPress={close}
+                hitSlop={8}
+                style={{ marginLeft: 'auto' }}
+              >
                 <X size={18} color={colors.black} />
               </TouchableOpacity>
             </View>
@@ -433,7 +450,10 @@ export function PickerField({
               onChangeText={setQuery}
               autoFocus
             />
-            <ScrollView style={{ maxHeight: 360 }} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={{ maxHeight: 360 }}
+              keyboardShouldPersistTaps="handled"
+            >
               {filtered.length === 0 ? (
                 <Text style={{ color: colors.muted, paddingVertical: 12 }}>
                   No matches
@@ -451,7 +471,10 @@ export function PickerField({
                     <Text
                       style={[
                         styles.sheetRowText,
-                        opt === value && { color: colors.blue, fontFamily: FONT.bold },
+                        opt === value && {
+                          color: colors.blue,
+                          fontFamily: FONT.bold,
+                        },
                       ]}
                     >
                       {opt}
@@ -489,7 +512,9 @@ export function ChipSelect<T extends string>({
     <View style={{ marginBottom: 14 }}>
       <View style={styles.fieldLabelRow}>
         {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
-        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>{label}</Text>
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>
+          {label}
+        </Text>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map(opt => {
@@ -628,13 +653,26 @@ export function StatPills<T extends string>({
             activeOpacity={0.8}
             style={[
               styles.statPill,
-              { borderColor: color, backgroundColor: active ? color : colors.white },
+              {
+                borderColor: color,
+                backgroundColor: active ? color : colors.white,
+              },
             ]}
           >
-            <Text style={[styles.statPillCount, { color: active ? colors.white : color }]}>
+            <Text
+              style={[
+                styles.statPillCount,
+                { color: active ? colors.white : color },
+              ]}
+            >
               {opt.count}
             </Text>
-            <Text style={[styles.statPillLabel, { color: active ? colors.white : color }]}>
+            <Text
+              style={[
+                styles.statPillLabel,
+                { color: active ? colors.white : color },
+              ]}
+            >
               {opt.label}
             </Text>
           </TouchableOpacity>
@@ -667,7 +705,12 @@ export function SortSheet({
   onApply: (sortBy: string, sortDir: 'asc' | 'desc') => void;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <TouchableOpacity
         style={styles.sheetBackdrop}
         activeOpacity={1}
@@ -687,7 +730,10 @@ export function SortSheet({
                 onPress={() => onApply(opt.key, sortDir)}
               >
                 <Text
-                  style={[styles.sheetRowText, selected && { color: colors.blue }]}
+                  style={[
+                    styles.sheetRowText,
+                    selected && { color: colors.blue },
+                  ]}
                 >
                   {opt.label}
                 </Text>
@@ -699,21 +745,33 @@ export function SortSheet({
           })}
           <View style={styles.sheetDirRow}>
             <TouchableOpacity
-              style={[styles.sheetDirBtn, sortDir === 'asc' && styles.pillActive]}
+              style={[
+                styles.sheetDirBtn,
+                sortDir === 'asc' && styles.pillActive,
+              ]}
               onPress={() => onApply(sortBy, 'asc')}
             >
               <Text
-                style={[styles.pillText, sortDir === 'asc' && styles.pillTextActive]}
+                style={[
+                  styles.pillText,
+                  sortDir === 'asc' && styles.pillTextActive,
+                ]}
               >
                 Ascending
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.sheetDirBtn, sortDir === 'desc' && styles.pillActive]}
+              style={[
+                styles.sheetDirBtn,
+                sortDir === 'desc' && styles.pillActive,
+              ]}
               onPress={() => onApply(sortBy, 'desc')}
             >
               <Text
-                style={[styles.pillText, sortDir === 'desc' && styles.pillTextActive]}
+                style={[
+                  styles.pillText,
+                  sortDir === 'desc' && styles.pillTextActive,
+                ]}
               >
                 Descending
               </Text>
@@ -773,8 +831,17 @@ export function CollapsibleSection({
         style={styles.collapsibleHeader}
         activeOpacity={0.7}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-          {Icon ? <Icon size={16} color={colors.black} strokeWidth={2.5} /> : null}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            flex: 1,
+          }}
+        >
+          {Icon ? (
+            <Icon size={16} color={colors.black} strokeWidth={2.5} />
+          ) : null}
           <Text style={styles.collapsibleTitle}>{title}</Text>
         </View>
         {open ? (
@@ -872,7 +939,8 @@ export function ImagePicker({
     Alert.alert(label, 'Choose a source', [
       {
         text: 'Camera',
-        onPress: () => launchCamera({ mediaType: 'photo', quality: 0.7 }, handle),
+        onPress: () =>
+          launchCamera({ mediaType: 'photo', quality: 0.7 }, handle),
       },
       {
         text: 'Gallery',
@@ -889,7 +957,9 @@ export function ImagePicker({
     <View style={{ marginBottom: 14 }}>
       <View style={styles.fieldLabelRow}>
         {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
-        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>{label}</Text>
+        <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>
+          {label}
+        </Text>
       </View>
       <TouchableOpacity onPress={openPicker} style={styles.imagePickerBox}>
         {uri ? (
@@ -944,8 +1014,12 @@ export function FilePicker({
     <View style={{ marginBottom: 14 }}>
       {label ? (
         <View style={styles.fieldLabelRow}>
-          {Icon ? <Icon size={13} color={colors.blue} strokeWidth={2.5} /> : null}
-          <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>{label}</Text>
+          {Icon ? (
+            <Icon size={13} color={colors.blue} strokeWidth={2.5} />
+          ) : null}
+          <Text style={[styles.fieldLabel, Icon && { marginBottom: 0 }]}>
+            {label}
+          </Text>
         </View>
       ) : null}
       <TouchableOpacity onPress={pickFile} style={styles.filePickerBox}>
@@ -1020,8 +1094,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     toast?.type === 'error'
       ? colors.red
       : toast?.type === 'info'
-      ? colors.blue
-      : colors.green;
+        ? colors.blue
+        : colors.green;
 
   return (
     <ToastContext.Provider value={api}>

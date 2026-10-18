@@ -60,9 +60,13 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
   // Fee-lock fields are optional so older clients that don't send them
   // can't reset the owner's configuration.
   const feeLock = {};
-  if (feeLockEnabled !== undefined) feeLock.feeLockEnabled = Boolean(feeLockEnabled);
+  if (feeLockEnabled !== undefined)
+    feeLock.feeLockEnabled = Boolean(feeLockEnabled);
   if (feeDueDay !== undefined)
-    feeLock.feeDueDay = Math.min(28, Math.max(0, Math.floor(Number(feeDueDay) || 0)));
+    feeLock.feeDueDay = Math.min(
+      28,
+      Math.max(0, Math.floor(Number(feeDueDay) || 0)),
+    );
   if (feeGraceDays !== undefined)
     feeLock.feeGraceDays = Math.max(0, Math.floor(Number(feeGraceDays) || 0));
 
@@ -85,7 +89,10 @@ const upsertAttendanceSettings = asyncHandler(async (req, res) => {
   if (studentAutoLateEnabled !== undefined)
     autoMarking.studentAutoLateEnabled = Boolean(studentAutoLateEnabled);
   if (studentLateGraceMinutes !== undefined)
-    autoMarking.studentLateGraceMinutes = clampInt(studentLateGraceMinutes, 240);
+    autoMarking.studentLateGraceMinutes = clampInt(
+      studentLateGraceMinutes,
+      240,
+    );
   if (studentAutoAbsentEnabled !== undefined)
     autoMarking.studentAutoAbsentEnabled = Boolean(studentAutoAbsentEnabled);
   if (studentAbsentAfterEndMinutes !== undefined)

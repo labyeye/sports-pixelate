@@ -68,7 +68,11 @@ export default function LateApprovalsPage() {
       const res = await lateApprovalAPI.getAll();
       setItems(res.data ?? []);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -89,7 +93,11 @@ export default function LateApprovalsPage() {
       });
       load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setResolvingId(null);
     }

@@ -105,7 +105,12 @@ export default function QrRenewalScreen({ route, navigation }: any) {
     } catch (e: unknown) {
       if ((e as { code?: string | number })?.code !== 0) {
         // code 0 = user cancelled the Razorpay sheet, nothing to report
-        Alert.alert('Payment failed', (e as { description?: string })?.description || (e as Error)?.message || 'Please try again.');
+        Alert.alert(
+          'Payment failed',
+          (e as { description?: string })?.description ||
+            (e as Error)?.message ||
+            'Please try again.',
+        );
       }
     } finally {
       setPayingOnline(false);
@@ -159,8 +164,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
       if (isTopUp) {
         await subscriptionAPI.submitPayment(subscription._id, {
           method,
-          referenceNumber:
-            method === 'qr' ? referenceNumber.trim() : undefined,
+          referenceNumber: method === 'qr' ? referenceNumber.trim() : undefined,
           transactionNumber:
             method === 'qr' ? transactionNumber.trim() : undefined,
           amount,
@@ -172,8 +176,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
           planId: subscription.plan._id,
           billingCycle: subscription.billingCycle,
           method,
-          referenceNumber:
-            method === 'qr' ? referenceNumber.trim() : undefined,
+          referenceNumber: method === 'qr' ? referenceNumber.trim() : undefined,
           transactionNumber:
             method === 'qr' ? transactionNumber.trim() : undefined,
           amount,
@@ -193,7 +196,10 @@ export default function QrRenewalScreen({ route, navigation }: any) {
         },
       ]);
     } catch (e: unknown) {
-      Alert.alert('Error', getErrorMessage(e) || 'Failed to submit renewal request');
+      Alert.alert(
+        'Error',
+        getErrorMessage(e) || 'Failed to submit renewal request',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -226,8 +232,8 @@ export default function QrRenewalScreen({ route, navigation }: any) {
           {method === 'online' && (
             <Text style={styles.instructions}>
               Pay {formatCurrency(remaining)} securely via UPI, card, or
-              netbanking. Your subscription activates instantly — no waiting
-              for the club to verify.
+              netbanking. Your subscription activates instantly — no waiting for
+              the club to verify.
             </Text>
           )}
 
@@ -350,9 +356,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
                 ) : (
                   <>
                     <Upload size={18} color={colors.muted} />
-                    <Text style={styles.uploadBtnText}>
-                      Choose Screenshot
-                    </Text>
+                    <Text style={styles.uploadBtnText}>Choose Screenshot</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -366,7 +370,11 @@ export default function QrRenewalScreen({ route, navigation }: any) {
               loading={payingOnline}
             />
           ) : (
-            <Button title="Submit" onPress={handleSubmit} loading={submitting} />
+            <Button
+              title="Submit"
+              onPress={handleSubmit}
+              loading={submitting}
+            />
           )}
         </Card>
       </ScrollView>

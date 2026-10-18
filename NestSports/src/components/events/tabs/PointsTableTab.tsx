@@ -19,9 +19,19 @@ export default function PointsTableTab({ event }: { event: any }) {
   }, [event._id]);
 
   const table = useMemo(() => {
-    const stats = new Map<string, { name: string; played: number; won: number; lost: number; points: number }>();
+    const stats = new Map<
+      string,
+      {
+        name: string;
+        played: number;
+        won: number;
+        lost: number;
+        points: number;
+      }
+    >();
     const ensure = (id: string, name: string) => {
-      if (!stats.has(id)) stats.set(id, { name, played: 0, won: 0, lost: 0, points: 0 });
+      if (!stats.has(id))
+        stats.set(id, { name, played: 0, won: 0, lost: 0, points: 0 });
       return stats.get(id)!;
     };
     fixtures
@@ -42,13 +52,19 @@ export default function PointsTableTab({ event }: { event: any }) {
           a.lost++;
         }
       });
-    return Array.from(stats.values()).sort((x, y) => y.points - x.points || y.won - x.won);
+    return Array.from(stats.values()).sort(
+      (x, y) => y.points - x.points || y.won - x.won,
+    );
   }, [fixtures]);
 
   if (event.format !== 'round_robin') {
     return (
       <Card>
-        <EmptyState title="Not applicable" sub="Points tables are only available for Round Robin events." icon={ListOrdered} />
+        <EmptyState
+          title="Not applicable"
+          sub="Points tables are only available for Round Robin events."
+          icon={ListOrdered}
+        />
       </Card>
     );
   }
@@ -61,7 +77,9 @@ export default function PointsTableTab({ event }: { event: any }) {
       ) : (
         <>
           <View style={[styles.row, styles.headerRow]}>
-            <Text style={[styles.cell, styles.teamCell, styles.headerText]}>Team</Text>
+            <Text style={[styles.cell, styles.teamCell, styles.headerText]}>
+              Team
+            </Text>
             <Text style={[styles.cell, styles.headerText]}>P</Text>
             <Text style={[styles.cell, styles.headerText]}>W</Text>
             <Text style={[styles.cell, styles.headerText]}>L</Text>
@@ -86,10 +104,33 @@ export default function PointsTableTab({ event }: { event: any }) {
 
 const styles = StyleSheet.create({
   emptyHint: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted },
-  row: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#0000001A', paddingVertical: 8 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#0000001A',
+    paddingVertical: 8,
+  },
   headerRow: { borderBottomWidth: 2, borderBottomColor: colors.black },
-  cell: { flex: 1, textAlign: 'center', fontFamily: FONT.medium, fontSize: 12, color: colors.black },
-  teamCell: { flex: 2, textAlign: 'left', fontFamily: FONT.bold, fontWeight: '700' },
-  headerText: { fontFamily: FONT.bold, fontWeight: '700', textTransform: 'uppercase', fontSize: 10, color: colors.muted },
+  cell: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.black,
+  },
+  teamCell: {
+    flex: 2,
+    textAlign: 'left',
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+  },
+  headerText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    fontSize: 10,
+    color: colors.muted,
+  },
   pointsCell: { fontFamily: FONT.bold, fontWeight: '800', color: colors.blue },
 });

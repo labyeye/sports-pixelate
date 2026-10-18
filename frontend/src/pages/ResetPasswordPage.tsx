@@ -48,7 +48,9 @@ export default function ResetPasswordPage() {
       setDone(true);
       setTimeout(() => navigate("/login"), 3000);
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || "Something went wrong. Please try again.");
+      setError(
+        getErrorMessage(err) || "Something went wrong. Please try again.",
+      );
     } finally {
       setLoading(false);
     }

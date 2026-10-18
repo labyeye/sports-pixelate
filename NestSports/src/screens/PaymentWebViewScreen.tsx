@@ -58,7 +58,8 @@ export default function PaymentWebViewScreen({ route, navigation }: any) {
     } catch (e: unknown) {
       Alert.alert(
         'Payment could not be verified',
-        (e as Error)?.message || 'Please check your subscription status in a moment.',
+        (e as Error)?.message ||
+          'Please check your subscription status in a moment.',
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     } finally {

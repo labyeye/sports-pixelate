@@ -365,7 +365,11 @@ export default function StudentsPage() {
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -381,7 +385,11 @@ export default function StudentsPage() {
       setPage(next);
       setPages(r.pages || 1);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoadingMore(false);
     }
@@ -576,7 +584,11 @@ export default function StudentsPage() {
       );
       resetForm();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -591,7 +603,11 @@ export default function StudentsPage() {
       );
       toast({ title: "Student deactivated" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChipSelect, TextField } from '../ui';
-import { activityCategories, ActivityCategoryKey } from '../../config/eventTypeConfig';
+import {
+  activityCategories,
+  ActivityCategoryKey,
+} from '../../config/eventTypeConfig';
 import { colors, FONT } from '../../theme/colors';
 
 export default function ActivityPicker({

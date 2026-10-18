@@ -187,7 +187,11 @@ export default function PlansPage() {
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -203,7 +207,11 @@ export default function PlansPage() {
       setPage(next);
       setPages(r.pages || 1);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setLoadingMore(false);
   };
@@ -272,7 +280,11 @@ export default function PlansPage() {
       }
       resetForm();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -285,7 +297,11 @@ export default function PlansPage() {
       setPlans((p) => p.filter((x) => x._id !== id));
       toast({ title: "Plan deactivated" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

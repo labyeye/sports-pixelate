@@ -79,9 +79,7 @@ export default function PaymentReturnPage() {
             <h2 className="font-bold text-xl text-black mb-2">
               Verification Failed
             </h2>
-            <p className="text-sm text-gray-500 font-medium mb-6">
-              {errorMsg}
-            </p>
+            <p className="text-sm text-gray-500 font-medium mb-6">{errorMsg}</p>
             <button
               onClick={() => navigate("/subscriptions", { replace: true })}
               className="w-full bg-[#024BAB] text-white border-2 border-black font-bold uppercase text-sm px-4 py-3 hover:bg-[#023590] transition-all mb-3"

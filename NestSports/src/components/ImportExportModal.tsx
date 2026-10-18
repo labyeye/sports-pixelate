@@ -75,8 +75,15 @@ export function ImportExportModal({
       setRows(parsed);
       setStep('preview');
     } catch (err: unknown) {
-      if ((err as { code?: string | number })?.code !== 'DOCUMENT_PICKER_CANCELED' && (err as { code?: string | number })?.code !== 'OPERATION_CANCELED') {
-        Alert.alert('Could not read file', (err as Error)?.message || 'Please try a valid .xlsx/.xls file.');
+      if (
+        (err as { code?: string | number })?.code !==
+          'DOCUMENT_PICKER_CANCELED' &&
+        (err as { code?: string | number })?.code !== 'OPERATION_CANCELED'
+      ) {
+        Alert.alert(
+          'Could not read file',
+          (err as Error)?.message || 'Please try a valid .xlsx/.xls file.',
+        );
       }
     } finally {
       setPicking(false);
@@ -91,19 +98,31 @@ export function ImportExportModal({
       setStep('result');
       if (res.imported > 0) onImported?.();
     } catch (err: unknown) {
-      Alert.alert('Import failed', (err as Error)?.message || 'Something went wrong.');
+      Alert.alert(
+        'Import failed',
+        (err as Error)?.message || 'Something went wrong.',
+      );
     } finally {
       setImporting(false);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={close}
+    >
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <FileSpreadsheet size={18} color={colors.blue} strokeWidth={2.5} />
+              <FileSpreadsheet
+                size={18}
+                color={colors.blue}
+                strokeWidth={2.5}
+              />
               <Text style={styles.headerTitle}>
                 {step === 'guide' && `Import ${entityLabel}s via Excel`}
                 {step === 'preview' &&
@@ -116,7 +135,10 @@ export function ImportExportModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={{ padding: 16 }}>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ padding: 16 }}
+          >
             {step === 'guide' && (
               <>
                 <View style={styles.infoBox}>
@@ -127,18 +149,31 @@ export function ImportExportModal({
                 </View>
                 <View style={styles.table}>
                   <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Column</Text>
-                    <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Required</Text>
+                    <Text style={[styles.tableHeaderCell, { flex: 2 }]}>
+                      Column
+                    </Text>
+                    <Text style={[styles.tableHeaderCell, { flex: 1 }]}>
+                      Required
+                    </Text>
                   </View>
                   {headers.map(h => (
                     <View key={h.key} style={styles.tableRow}>
-                      <Text style={[styles.tableCell, { flex: 2, fontWeight: '700' }]}>
+                      <Text
+                        style={[
+                          styles.tableCell,
+                          { flex: 2, fontWeight: '700' },
+                        ]}
+                      >
                         {h.label}
                       </Text>
                       <Text
                         style={[
                           styles.tableCell,
-                          { flex: 1, color: h.required ? colors.red : colors.muted, fontWeight: '700' },
+                          {
+                            flex: 1,
+                            color: h.required ? colors.red : colors.muted,
+                            fontWeight: '700',
+                          },
                         ]}
                       >
                         {h.required ? 'Yes' : 'No'}
@@ -162,7 +197,9 @@ export function ImportExportModal({
             {step === 'preview' && (
               <>
                 {rows.length === 0 ? (
-                  <Text style={styles.emptyText}>No data rows found in the file.</Text>
+                  <Text style={styles.emptyText}>
+                    No data rows found in the file.
+                  </Text>
                 ) : (
                   rows.map((r, i) => (
                     <View key={i} style={styles.previewRow}>
@@ -177,23 +214,53 @@ export function ImportExportModal({
             {step === 'result' && result && (
               <>
                 <View style={styles.resultRow}>
-                  <View style={[styles.resultTile, { borderColor: colors.green, backgroundColor: `${colors.green}1A` }]}>
+                  <View
+                    style={[
+                      styles.resultTile,
+                      {
+                        borderColor: colors.green,
+                        backgroundColor: `${colors.green}1A`,
+                      },
+                    ]}
+                  >
                     <Text style={[styles.resultCount, { color: colors.green }]}>
                       {result.imported}
                     </Text>
-                    <Text style={[styles.resultLabel, { color: colors.green }]}>Imported</Text>
+                    <Text style={[styles.resultLabel, { color: colors.green }]}>
+                      Imported
+                    </Text>
                   </View>
-                  <View style={[styles.resultTile, { borderColor: colors.red, backgroundColor: `${colors.red}1A` }]}>
+                  <View
+                    style={[
+                      styles.resultTile,
+                      {
+                        borderColor: colors.red,
+                        backgroundColor: `${colors.red}1A`,
+                      },
+                    ]}
+                  >
                     <Text style={[styles.resultCount, { color: colors.red }]}>
                       {result.failed}
                     </Text>
-                    <Text style={[styles.resultLabel, { color: colors.red }]}>Failed</Text>
+                    <Text style={[styles.resultLabel, { color: colors.red }]}>
+                      Failed
+                    </Text>
                   </View>
                 </View>
                 {result.failed > 0 && (
                   <View style={styles.table}>
-                    <View style={[styles.tableHeaderRow, { backgroundColor: colors.red }]}>
-                      <Text style={[styles.tableHeaderCell, { color: colors.white }]}>
+                    <View
+                      style={[
+                        styles.tableHeaderRow,
+                        { backgroundColor: colors.red },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.tableHeaderCell,
+                          { color: colors.white },
+                        ]}
+                      >
                         Failed Rows
                       </Text>
                     </View>
@@ -202,7 +269,9 @@ export function ImportExportModal({
                       .map(r => (
                         <View key={r.row} style={styles.tableRow}>
                           <Text style={styles.previewLine}>
-                            <Text style={{ fontWeight: '700', color: colors.red }}>
+                            <Text
+                              style={{ fontWeight: '700', color: colors.red }}
+                            >
                               Row {r.row}:{' '}
                             </Text>
                             {r.message}
@@ -234,7 +303,11 @@ export function ImportExportModal({
                     <ActivityIndicator color={colors.white} />
                   ) : (
                     <>
-                      <Upload size={16} color={colors.white} strokeWidth={2.5} />
+                      <Upload
+                        size={16}
+                        color={colors.white}
+                        strokeWidth={2.5}
+                      />
                       <Text style={styles.solidBtnText}>Choose File</Text>
                     </>
                   )}
@@ -244,7 +317,10 @@ export function ImportExportModal({
 
             {step === 'preview' && (
               <>
-                <TouchableOpacity style={styles.outlineBtn} onPress={() => setStep('guide')}>
+                <TouchableOpacity
+                  style={styles.outlineBtn}
+                  onPress={() => setStep('guide')}
+                >
                   <Text style={styles.outlineBtnText}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -265,7 +341,10 @@ export function ImportExportModal({
             )}
 
             {step === 'result' && (
-              <TouchableOpacity style={[styles.solidBtn, { flex: 1 }]} onPress={close}>
+              <TouchableOpacity
+                style={[styles.solidBtn, { flex: 1 }]}
+                onPress={close}
+              >
                 <Text style={styles.solidBtnText}>Done</Text>
               </TouchableOpacity>
             )}
@@ -297,8 +376,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.black, fontFamily: FONT.bold, flexShrink: 1 },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.black,
+    fontFamily: FONT.bold,
+    flexShrink: 1,
+  },
   body: { flexGrow: 0 },
   infoBox: {
     backgroundColor: colors.background,
@@ -308,15 +398,31 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 14,
   },
-  infoText: { fontSize: 13, color: colors.blue, fontWeight: '500', fontFamily: FONT.medium },
-  table: { borderWidth: 2, borderRadius: 8, borderColor: colors.black, marginBottom: 14 },
+  infoText: {
+    fontSize: 13,
+    color: colors.blue,
+    fontWeight: '500',
+    fontFamily: FONT.medium,
+  },
+  table: {
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    marginBottom: 14,
+  },
   tableHeaderRow: {
     flexDirection: 'row',
     backgroundColor: colors.blue,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  tableHeaderCell: { fontSize: 11, fontWeight: '700', color: colors.white, textTransform: 'uppercase', fontFamily: FONT.bold },
+  tableHeaderCell: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+    textTransform: 'uppercase',
+    fontFamily: FONT.bold,
+  },
   tableRow: {
     flexDirection: 'row',
     paddingHorizontal: 10,
@@ -332,9 +438,26 @@ const styles = StyleSheet.create({
     borderColor: '#F59E0B',
     padding: 10,
   },
-  notesTitle: { fontSize: 12, fontWeight: '700', color: '#92400E', marginBottom: 4, fontFamily: FONT.bold },
-  notesText: { fontSize: 11, color: '#92400E', marginBottom: 2, fontFamily: FONT.regular },
-  emptyText: { fontSize: 13, color: colors.muted, textAlign: 'center', paddingVertical: 24, fontFamily: FONT.regular },
+  notesTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 4,
+    fontFamily: FONT.bold,
+  },
+  notesText: {
+    fontSize: 11,
+    color: '#92400E',
+    marginBottom: 2,
+    fontFamily: FONT.regular,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: colors.muted,
+    textAlign: 'center',
+    paddingVertical: 24,
+    fontFamily: FONT.regular,
+  },
   previewRow: {
     flexDirection: 'row',
     gap: 10,
@@ -342,12 +465,33 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
-  previewIndex: { fontSize: 12, color: colors.muted, width: 20, fontFamily: FONT.regular },
-  previewLine: { fontSize: 13, color: colors.black, flex: 1, fontFamily: FONT.regular },
+  previewIndex: {
+    fontSize: 12,
+    color: colors.muted,
+    width: 20,
+    fontFamily: FONT.regular,
+  },
+  previewLine: {
+    fontSize: 13,
+    color: colors.black,
+    flex: 1,
+    fontFamily: FONT.regular,
+  },
   resultRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
-  resultTile: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 16, alignItems: 'center' },
+  resultTile: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
   resultCount: { fontSize: 28, fontWeight: '700', fontFamily: FONT.bold },
-  resultLabel: { fontSize: 11, fontWeight: '700', marginTop: 4, fontFamily: FONT.bold },
+  resultLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 4,
+    fontFamily: FONT.bold,
+  },
   footer: {
     flexDirection: 'row',
     gap: 10,
@@ -369,7 +513,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  outlineBtnText: { fontSize: 13, fontWeight: '700', color: colors.black, fontFamily: FONT.bold },
+  outlineBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   solidBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,5 +535,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  solidBtnText: { fontSize: 13, fontWeight: '700', color: colors.white, fontFamily: FONT.bold },
+  solidBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.white,
+    fontFamily: FONT.bold,
+  },
 });

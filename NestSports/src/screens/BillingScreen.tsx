@@ -97,15 +97,15 @@ export default function BillingScreen() {
                     subscription.isTrial
                       ? 'Trial'
                       : isActive
-                      ? 'Active'
-                      : 'Inactive'
+                        ? 'Active'
+                        : 'Inactive'
                   }
                   color={
                     subscription.isTrial
                       ? colors.yellow
                       : isActive
-                      ? colors.green
-                      : colors.red
+                        ? colors.green
+                        : colors.red
                   }
                 />
               </View>
@@ -186,8 +186,7 @@ export default function BillingScreen() {
         </Card>
 
         <Text style={styles.footnote}>
-          Manage your subscription and billing from the NestPlay web
-          dashboard.
+          Manage your subscription and billing from the NestPlay web dashboard.
         </Text>
       </ScrollView>
     </SafeAreaView>

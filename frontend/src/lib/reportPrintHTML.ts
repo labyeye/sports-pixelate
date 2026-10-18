@@ -321,7 +321,6 @@ export function buildReportHTML(
     <span>${esc(title)} · ${esc(period)}</span>
   </div>
 
-  <script>window.onload = function() { window.print(); }</script>
 </body>
 </html>`;
 }

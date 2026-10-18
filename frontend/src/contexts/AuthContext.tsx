@@ -131,7 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(mapUser(userData));
         return { success: true };
       } catch (err: unknown) {
-        return { success: false, error: getErrorMessage(err) || "Registration failed" };
+        return {
+          success: false,
+          error: getErrorMessage(err) || "Registration failed",
+        };
       }
     },
     [],

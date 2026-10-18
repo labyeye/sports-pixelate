@@ -17,13 +17,18 @@ function removeStoredUpload(ref, keepPath) {
   if (!ref || typeof ref !== "string") return;
   const at = ref.indexOf("uploads/");
   if (at === -1) return;
-  const abs = path.resolve(UPLOAD_DIR, ref.slice(at + "uploads/".length).split("?")[0]);
+  const abs = path.resolve(
+    UPLOAD_DIR,
+    ref.slice(at + "uploads/".length).split("?")[0],
+  );
   if (!abs.startsWith(UPLOAD_DIR + path.sep)) return;
   if (keepPath && path.resolve(keepPath) === abs) return;
   try {
     fs.rmSync(abs, { force: true });
   } catch (e) {
-    logger.warn(`[uploads] could not remove ${path.basename(abs)}: ${e.message}`);
+    logger.warn(
+      `[uploads] could not remove ${path.basename(abs)}: ${e.message}`,
+    );
   }
 }
 

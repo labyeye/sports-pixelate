@@ -207,7 +207,10 @@ export default function PlansScreen({ navigation }: any) {
             await sportsPlanAPI.delete(plan._id);
             setPlans(prev => prev.filter(p => p._id !== plan._id));
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Could not delete plan');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Could not delete plan',
+            );
           }
         },
       },

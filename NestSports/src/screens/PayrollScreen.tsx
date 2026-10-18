@@ -28,7 +28,20 @@ import { colors, FONT } from '../theme/colors';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 const PAY_MODES = ['bank_transfer', 'cash', 'upi'] as const;
 type PayMode = (typeof PAY_MODES)[number];
@@ -65,7 +78,9 @@ export default function PayrollScreen() {
   const [busy, setBusy] = useState<'preview' | 'process' | null>(null);
 
   // Mark-paid flow (single or bulk) with a payment mode, as on web.
-  const [paid, setPaid] = useState<{ id: string | null; bulk: boolean } | null>(null);
+  const [paid, setPaid] = useState<{ id: string | null; bulk: boolean } | null>(
+    null,
+  );
   const [payMode, setPayMode] = useState<PayMode>('bank_transfer');
   const [paying, setPaying] = useState(false);
 
@@ -128,7 +143,10 @@ export default function PayrollScreen() {
       });
       setPreview(res.data || []);
     } catch (e: unknown) {
-      Alert.alert('Preview Failed', (e as Error)?.message || 'Could not build preview');
+      Alert.alert(
+        'Preview Failed',
+        (e as Error)?.message || 'Could not build preview',
+      );
     } finally {
       setBusy(null);
     }
@@ -144,10 +162,16 @@ export default function PayrollScreen() {
         force: false,
       });
       setProcessOpen(false);
-      Alert.alert('Payroll Processed', res.message || 'Payroll processed successfully.');
+      Alert.alert(
+        'Payroll Processed',
+        res.message || 'Payroll processed successfully.',
+      );
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Failed to process payroll');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Failed to process payroll',
+      );
     } finally {
       setBusy(null);
     }
@@ -172,10 +196,21 @@ export default function PayrollScreen() {
     try {
       const res: any = await payrollAPI.markSlipReceived(id, s);
       setPayrolls(prev =>
-        prev.map(p => (p._id === id ? { ...p, slipReceived: s, slipReceivedAt: res.data?.slipReceivedAt } : p)),
+        prev.map(p =>
+          p._id === id
+            ? {
+                ...p,
+                slipReceived: s,
+                slipReceivedAt: res.data?.slipReceivedAt,
+              }
+            : p,
+        ),
       );
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not update slip status');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not update slip status',
+      );
     }
   };
 
@@ -192,8 +227,11 @@ export default function PayrollScreen() {
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return payrolls.filter(p => {
-      const name = `${p.employee?.firstName ?? ''} ${p.employee?.lastName ?? ''}`.toLowerCase();
-      return (!q || name.includes(q)) && (status === 'all' || p.status === status);
+      const name =
+        `${p.employee?.firstName ?? ''} ${p.employee?.lastName ?? ''}`.toLowerCase();
+      return (
+        (!q || name.includes(q)) && (status === 'all' || p.status === status)
+      );
     });
   }, [payrolls, search, status]);
 
@@ -206,14 +244,20 @@ export default function PayrollScreen() {
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.title}>Payroll</Text>
             <Text style={styles.subtitle}>Employee salary records</Text>
           </View>
-          <TouchableOpacity onPress={openProcess} style={styles.processBtn} hitSlop={8}>
+          <TouchableOpacity
+            onPress={openProcess}
+            style={styles.processBtn}
+            hitSlop={8}
+          >
             <Play size={12} color={colors.white} strokeWidth={2.5} />
             <Text style={styles.processBtnText}>Process</Text>
           </TouchableOpacity>
@@ -232,17 +276,41 @@ export default function PayrollScreen() {
         </View>
 
         <View style={styles.kpiRow}>
-          <KpiTile label="Gross" value={formatCurrency(totals.gross)} color={colors.blue} />
-          <KpiTile label="Deductions" value={formatCurrency(totals.ded)} color={colors.red} />
+          <KpiTile
+            label="Gross"
+            value={formatCurrency(totals.gross)}
+            color={colors.blue}
+          />
+          <KpiTile
+            label="Deductions"
+            value={formatCurrency(totals.ded)}
+            color={colors.red}
+          />
         </View>
         <View style={styles.kpiRow}>
-          <KpiTile label="Net Payable" value={formatCurrency(totals.net)} color={colors.green} />
-          <KpiTile label="Paid" value={`${totals.paid}/${payrolls.length}`} color={colors.purple} />
+          <KpiTile
+            label="Net Payable"
+            value={formatCurrency(totals.net)}
+            color={colors.green}
+          />
+          <KpiTile
+            label="Paid"
+            value={`${totals.paid}/${payrolls.length}`}
+            color={colors.purple}
+          />
         </View>
 
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search employee..." />
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search employee..."
+        />
         <View style={{ height: 8 }} />
-        <FilterPills options={STATUS_FILTERS} value={status} onChange={setStatus} />
+        <FilterPills
+          options={STATUS_FILTERS}
+          value={status}
+          onChange={setStatus}
+        />
         <View style={{ height: 12 }} />
 
         {unpaidCount > 0 && (
@@ -269,24 +337,59 @@ export default function PayrollScreen() {
               <Card key={p._id}>
                 <View style={styles.headerRowInner}>
                   <Text style={styles.name}>
-                    {p.employee ? `${p.employee.firstName} ${p.employee.lastName}` : '—'}
+                    {p.employee
+                      ? `${p.employee.firstName} ${p.employee.lastName}`
+                      : '—'}
                   </Text>
-                  <Badge label={p.status} color={isPaid ? colors.green : colors.orange} />
+                  <Badge
+                    label={p.status}
+                    color={isPaid ? colors.green : colors.orange}
+                  />
                 </View>
                 <Text style={styles.sub}>
-                  Present {p.presentDays ?? '-'}/{p.workingDays ?? '-'} days · Basic {formatCurrency(p.basicSalary)}
+                  Present {p.presentDays ?? '-'}/{p.workingDays ?? '-'} days ·
+                  Basic {formatCurrency(p.basicSalary)}
                 </Text>
                 <View style={styles.breakdown}>
                   <Line label="Gross" value={formatCurrency(p.grossSalary)} />
-                  <Line label="Late deduction" value={`-${formatCurrency(p.lateDeductionAmount)}`} hide={!p.lateDeductionAmount} />
-                  <Line label="Half-day deduction" value={`-${formatCurrency(p.halfDayDeduction)}`} hide={!p.halfDayDeduction} />
-                  <Line label="Penalty" value={`-${formatCurrency(p.penaltyAmount)}`} hide={!p.penaltyAmount} />
-                  <Line label="Loan / advance" value={`-${formatCurrency(p.loanDeduction)}`} hide={!p.loanDeduction} />
-                  <Line label="Allowances" value={`+${formatCurrency(p.otherAllowances)}`} hide={!p.otherAllowances} />
-                  <Line label="Overtime" value={`+${formatCurrency(p.otPay)}`} hide={!p.otPay} />
-                  <Line label="Total deductions" value={`-${formatCurrency(p.totalDeductions)}`} />
+                  <Line
+                    label="Late deduction"
+                    value={`-${formatCurrency(p.lateDeductionAmount)}`}
+                    hide={!p.lateDeductionAmount}
+                  />
+                  <Line
+                    label="Half-day deduction"
+                    value={`-${formatCurrency(p.halfDayDeduction)}`}
+                    hide={!p.halfDayDeduction}
+                  />
+                  <Line
+                    label="Penalty"
+                    value={`-${formatCurrency(p.penaltyAmount)}`}
+                    hide={!p.penaltyAmount}
+                  />
+                  <Line
+                    label="Loan / advance"
+                    value={`-${formatCurrency(p.loanDeduction)}`}
+                    hide={!p.loanDeduction}
+                  />
+                  <Line
+                    label="Allowances"
+                    value={`+${formatCurrency(p.otherAllowances)}`}
+                    hide={!p.otherAllowances}
+                  />
+                  <Line
+                    label="Overtime"
+                    value={`+${formatCurrency(p.otPay)}`}
+                    hide={!p.otPay}
+                  />
+                  <Line
+                    label="Total deductions"
+                    value={`-${formatCurrency(p.totalDeductions)}`}
+                  />
                 </View>
-                <Text style={styles.amount}>Net {formatCurrency(p.netSalary)}</Text>
+                <Text style={styles.amount}>
+                  Net {formatCurrency(p.netSalary)}
+                </Text>
                 {!isPaid && (
                   <Button
                     title="Mark Paid"
@@ -304,9 +407,17 @@ export default function PayrollScreen() {
                       <TouchableOpacity
                         key={s}
                         onPress={() => markSlip(p._id, s)}
-                        style={[styles.slipBtn, p.slipReceived === s && styles.slipBtnOn]}
+                        style={[
+                          styles.slipBtn,
+                          p.slipReceived === s && styles.slipBtnOn,
+                        ]}
                       >
-                        <Text style={[styles.slipBtnText, p.slipReceived === s && { color: colors.white }]}>
+                        <Text
+                          style={[
+                            styles.slipBtnText,
+                            p.slipReceived === s && { color: colors.white },
+                          ]}
+                        >
                           {s === 'received' ? 'Received' : 'Not received'}
                         </Text>
                       </TouchableOpacity>
@@ -335,11 +446,16 @@ export default function PayrollScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <ChipSelect
               label="Process for"
               options={['all', 'select'] as const}
-              labels={{ all: 'All active employees', select: 'Select employees' }}
+              labels={{
+                all: 'All active employees',
+                select: 'Select employees',
+              }}
               value={mode}
               onChange={m => {
                 setMode(m);
@@ -349,12 +465,18 @@ export default function PayrollScreen() {
             {mode === 'select' && (
               <Card>
                 <Row
-                  title={selected.size === employees.length ? 'Clear all' : 'Select all'}
+                  title={
+                    selected.size === employees.length
+                      ? 'Clear all'
+                      : 'Select all'
+                  }
                   subtitle={`${selected.size} of ${employees.length} selected`}
                   onPress={() => {
                     setPreview(null);
                     setSelected(
-                      selected.size === employees.length ? new Set() : new Set(employees.map(e => e._id)),
+                      selected.size === employees.length
+                        ? new Set()
+                        : new Set(employees.map(e => e._id)),
                     );
                   }}
                 />
@@ -363,7 +485,11 @@ export default function PayrollScreen() {
                     key={e._id}
                     title={`${e.firstName} ${e.lastName}`}
                     subtitle={e.employeeId || e.email}
-                    right={selected.has(e._id) ? <Check size={18} color={colors.green} strokeWidth={3} /> : undefined}
+                    right={
+                      selected.has(e._id) ? (
+                        <Check size={18} color={colors.green} strokeWidth={3} />
+                      ) : undefined
+                    }
                     onPress={() => {
                       setPreview(null);
                       setSelected(s => {
@@ -393,7 +519,9 @@ export default function PayrollScreen() {
                       right={
                         <Badge
                           label={p.alreadyProcessed ? 'Exists' : 'New'}
-                          color={p.alreadyProcessed ? colors.orange : colors.green}
+                          color={
+                            p.alreadyProcessed ? colors.orange : colors.green
+                          }
                         />
                       }
                     />
@@ -422,10 +550,17 @@ export default function PayrollScreen() {
       </Modal>
 
       {/* Mark paid: pick payment mode */}
-      <Modal visible={!!paid} animationType="fade" transparent onRequestClose={() => setPaid(null)}>
+      <Modal
+        visible={!!paid}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setPaid(null)}
+      >
         <View style={styles.backdrop}>
           <View style={styles.dialog}>
-            <Text style={styles.formTitle}>{paid?.bulk ? 'Mark All Paid' : 'Mark as Paid'}</Text>
+            <Text style={styles.formTitle}>
+              {paid?.bulk ? 'Mark All Paid' : 'Mark as Paid'}
+            </Text>
             <View style={{ height: 12 }} />
             <ChipSelect
               label="Payment mode"
@@ -434,9 +569,18 @@ export default function PayrollScreen() {
               value={payMode}
               onChange={setPayMode}
             />
-            <Button title="Confirm" color={colors.green} onPress={confirmPaid} loading={paying} />
+            <Button
+              title="Confirm"
+              color={colors.green}
+              onPress={confirmPaid}
+              loading={paying}
+            />
             <View style={{ height: 8 }} />
-            <Button title="Cancel" variant="outline" onPress={() => setPaid(null)} />
+            <Button
+              title="Cancel"
+              variant="outline"
+              onPress={() => setPaid(null)}
+            />
           </View>
         </View>
       </Modal>
@@ -444,7 +588,15 @@ export default function PayrollScreen() {
   );
 }
 
-function Line({ label, value, hide }: { label: string; value: string; hide?: boolean }) {
+function Line({
+  label,
+  value,
+  hide,
+}: {
+  label: string;
+  value: string;
+  hide?: boolean;
+}) {
   if (hide) return null;
   return (
     <View style={styles.line}>
@@ -456,7 +608,12 @@ function Line({ label, value, hide }: { label: string; value: string; hide?: boo
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
   processBtn: {
@@ -475,7 +632,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginTop: 4,
   },
-  processBtnText: { color: colors.white, fontSize: 12, fontFamily: FONT.bold, textTransform: 'uppercase' },
+  processBtnText: {
+    color: colors.white,
+    fontSize: 12,
+    fontFamily: FONT.bold,
+    textTransform: 'uppercase',
+  },
   stepper: {
     overflow: 'hidden',
     flexDirection: 'row',
@@ -490,17 +652,38 @@ const styles = StyleSheet.create({
   },
   stepperText: { fontSize: 16, fontFamily: FONT.bold, color: colors.black },
   kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  headerRowInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerRowInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   name: { fontSize: 16, fontWeight: '800', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4 },
   breakdown: { marginTop: 10, gap: 4 },
   line: { flexDirection: 'row', justifyContent: 'space-between' },
   lineLabel: { color: colors.muted, fontSize: 12, fontFamily: FONT.medium },
   lineValue: { color: colors.black, fontSize: 12, fontFamily: FONT.semiBold },
-  amount: { fontWeight: '800', color: colors.black, fontSize: 16, marginTop: 10, marginBottom: 12 },
+  amount: {
+    fontWeight: '800',
+    color: colors.black,
+    fontSize: 16,
+    marginTop: 10,
+    marginBottom: 12,
+  },
   slipRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  slipLabel: { flex: 1, color: colors.muted, fontSize: 12, fontFamily: FONT.medium },
-  slipBtn: { borderWidth: 2, borderRadius: 8, borderColor: colors.black, paddingHorizontal: 10, paddingVertical: 6 },
+  slipLabel: {
+    flex: 1,
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: FONT.medium,
+  },
+  slipBtn: {
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   slipBtnOn: { backgroundColor: colors.blue },
   slipBtnText: { fontSize: 11, fontFamily: FONT.bold, color: colors.black },
   formHeader: {
@@ -514,6 +697,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   formTitle: { fontSize: 17, color: colors.black, fontFamily: FONT.bold },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
-  dialog: { backgroundColor: colors.white, borderWidth: 2, borderRadius: 8, borderColor: colors.black, padding: 16 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  dialog: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    padding: 16,
+  },
 });

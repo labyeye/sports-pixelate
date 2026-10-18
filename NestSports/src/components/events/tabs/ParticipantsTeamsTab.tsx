@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { Plus, Trash2, UserPlus, UserMinus } from 'lucide-react-native';
 import { Card, SectionTitle, useToast } from '../../ui';
 import { colors, FONT } from '../../../theme/colors';
@@ -10,7 +18,13 @@ import { notifyError } from '../../../utils/notifyError';
 // Parent-facing: register/unregister their own children. Only requires the
 // child's `sport` match the event's activity when the event is a sports
 // event — dance/workshop/other events don't gate on that field.
-function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => void }) {
+function RegistrationPanel({
+  event,
+  onChanged,
+}: {
+  event: any;
+  onChanged: () => void;
+}) {
   const { toast } = useToast() as any;
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +44,9 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
   );
 
   const isSports = event.activityCategory === 'sports';
-  const eligible = isSports ? children.filter(c => c.sport === event.activity) : children;
+  const eligible = isSports
+    ? children.filter(c => c.sport === event.activity)
+    : children;
 
   const toggle = async (studentId: string, isRegistered: boolean) => {
     setBusyId(studentId);
@@ -68,10 +84,16 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
               <TouchableOpacity
                 onPress={() => toggle(c._id, isRegistered)}
                 disabled={busy || (!isRegistered && !event.registrationOpen)}
-                style={[styles.regBtn, isRegistered ? styles.regBtnRemove : styles.regBtnAdd]}
+                style={[
+                  styles.regBtn,
+                  isRegistered ? styles.regBtnRemove : styles.regBtnAdd,
+                ]}
               >
                 {busy ? (
-                  <ActivityIndicator color={isRegistered ? colors.red : colors.white} size="small" />
+                  <ActivityIndicator
+                    color={isRegistered ? colors.red : colors.white}
+                    size="small"
+                  />
                 ) : isRegistered ? (
                   <>
                     <UserMinus size={13} color={colors.red} strokeWidth={2.5} />
@@ -79,7 +101,11 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
                   </>
                 ) : (
                   <>
-                    <UserPlus size={13} color={colors.white} strokeWidth={2.5} />
+                    <UserPlus
+                      size={13}
+                      color={colors.white}
+                      strokeWidth={2.5}
+                    />
                     <Text style={styles.regBtnAddText}>Register</Text>
                   </>
                 )}
@@ -88,7 +114,11 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
           );
         })
       )}
-      {!event.registrationOpen && <Text style={styles.emptyHint}>Registration is closed for this event.</Text>}
+      {!event.registrationOpen && (
+        <Text style={styles.emptyHint}>
+          Registration is closed for this event.
+        </Text>
+      )}
     </Card>
   );
 }
@@ -96,7 +126,13 @@ function RegistrationPanel({ event, onChanged }: { event: any; onChanged: () => 
 // Staff-facing: manage the Teams roster (only meaningful when
 // participation.type === 'team' — Individual/Group participation just shows
 // the registration count, teams stay empty for those).
-function TeamsPanel({ event, onChanged }: { event: any; onChanged: () => void }) {
+function TeamsPanel({
+  event,
+  onChanged,
+}: {
+  event: any;
+  onChanged: () => void;
+}) {
   const { toast } = useToast() as any;
   const [newTeam, setNewTeam] = useState('');
   const [adding, setAdding] = useState(false);
@@ -135,13 +171,18 @@ function TeamsPanel({ event, onChanged }: { event: any; onChanged: () => void })
           <View key={t._id} style={styles.teamChip}>
             <Text style={styles.teamChipText}>{t.name}</Text>
             {!event.fixturesGenerated && (
-              <TouchableOpacity onPress={() => removeTeam(t._id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+              <TouchableOpacity
+                onPress={() => removeTeam(t._id)}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
                 <Trash2 size={12} color={colors.red} strokeWidth={2.5} />
               </TouchableOpacity>
             )}
           </View>
         ))}
-        {event.teams.length === 0 && <Text style={styles.emptyHint}>No teams added yet</Text>}
+        {event.teams.length === 0 && (
+          <Text style={styles.emptyHint}>No teams added yet</Text>
+        )}
       </View>
       {!event.fixturesGenerated && (
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -152,8 +193,16 @@ function TeamsPanel({ event, onChanged }: { event: any; onChanged: () => void })
             placeholder="Team name"
             onSubmitEditing={addTeam}
           />
-          <TouchableOpacity onPress={addTeam} disabled={adding || !newTeam.trim()} style={styles.addTeamBtn}>
-            {adding ? <ActivityIndicator color={colors.blue} size="small" /> : <Plus size={16} color={colors.blue} strokeWidth={2.5} />}
+          <TouchableOpacity
+            onPress={addTeam}
+            disabled={adding || !newTeam.trim()}
+            style={styles.addTeamBtn}
+          >
+            {adding ? (
+              <ActivityIndicator color={colors.blue} size="small" />
+            ) : (
+              <Plus size={16} color={colors.blue} strokeWidth={2.5} />
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -172,7 +221,9 @@ function RegistrantsList({ event }: { event: any }) {
         event.registrations.map((r: any) => (
           <View key={r._id} style={styles.regRow}>
             <Text style={styles.regName}>
-              {typeof r.student === 'object' ? `${r.student.firstName} ${r.student.lastName}` : 'Participant'}
+              {typeof r.student === 'object'
+                ? `${r.student.firstName} ${r.student.lastName}`
+                : 'Participant'}
             </Text>
             <Text style={styles.emptyHint}>{r.status}</Text>
           </View>
@@ -182,12 +233,19 @@ function RegistrantsList({ event }: { event: any }) {
   );
 }
 
-export default function ParticipantsTeamsTab({ event, onChanged }: { event: any; onChanged: () => void }) {
+export default function ParticipantsTeamsTab({
+  event,
+  onChanged,
+}: {
+  event: any;
+  onChanged: () => void;
+}) {
   const { user } = useAuth();
   const isParent = user?.role === 'parent';
   const isTeam = (event.participation?.type || 'team') === 'team';
 
-  if (isParent) return <RegistrationPanel event={event} onChanged={onChanged} />;
+  if (isParent)
+    return <RegistrationPanel event={event} onChanged={onChanged} />;
   if (isTeam) return <TeamsPanel event={event} onChanged={onChanged} />;
   return <RegistrantsList event={event} />;
 }
@@ -205,13 +263,41 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 8,
   },
-  regName: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
-  regBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
+  regName: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  regBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 2,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
   regBtnAdd: { backgroundColor: colors.blue, borderColor: colors.black },
   regBtnRemove: { backgroundColor: colors.white, borderColor: colors.red },
-  regBtnAddText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
-  regBtnRemoveText: { color: colors.red, fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
-  teamChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  regBtnAddText: {
+    color: colors.white,
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  regBtnRemoveText: {
+    color: colors.red,
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  teamChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
   teamChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -222,7 +308,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  teamChipText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12, color: colors.black },
+  teamChipText: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.black,
+  },
   teamInput: {
     flex: 1,
     borderWidth: 2,
@@ -237,5 +328,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONT.medium,
   },
-  addTeamBtn: { width: 40, borderWidth: 2, borderRadius: 8, borderColor: colors.black, alignItems: 'center', justifyContent: 'center' },
+  addTeamBtn: {
+    width: 40,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

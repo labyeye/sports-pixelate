@@ -1,6 +1,5 @@
 const DeductionRule = require("../models/DeductionRule");
 const StudentSubscription = require("../models/StudentSubscription");
-const Student = require("../models/Student");
 
 const mongoose = require("mongoose");
 
@@ -92,8 +91,11 @@ async function getOverdueStudents(companyId, studentIds, now = new Date()) {
   const today = utcDay(now);
   const grace = rule.feeGraceDays ?? 0;
   for (const [studentId, sub] of latest) {
-    const unpaid = sub.paymentStatus !== "completed" && sub.amountPaid < sub.amount;
-    const hasPendingPayment = (sub.payments || []).some((p) => p.status === "pending");
+    const unpaid =
+      sub.paymentStatus !== "completed" && sub.amountPaid < sub.amount;
+    const hasPendingPayment = (sub.payments || []).some(
+      (p) => p.status === "pending",
+    );
     const lapsed = !unpaid && new Date(sub.renewalDate).getTime() < today;
     if (!(unpaid && !hasPendingPayment) && !lapsed) continue;
 

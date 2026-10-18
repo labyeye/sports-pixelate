@@ -230,7 +230,11 @@ export function FixturesTab({ event, onChanged }: Props) {
       onChanged();
       toast({ title: "Fixtures generated" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setGenerating(false);
     }
@@ -247,7 +251,11 @@ export function FixturesTab({ event, onChanged }: Props) {
       onChanged();
       toast({ title: "Result saved" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

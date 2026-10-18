@@ -6,7 +6,11 @@ import { colors, FONT } from '../../../theme/colors';
 import { eventAPI } from '../../../api/client';
 import { notifyError } from '../../../utils/notifyError';
 
-const STATUS_COLOR: Record<string, string> = { paid: colors.green, pending: colors.yellow, failed: colors.red };
+const STATUS_COLOR: Record<string, string> = {
+  paid: colors.green,
+  pending: colors.yellow,
+  failed: colors.red,
+};
 
 // Read-only shell — no payment gateway wired up yet.
 export default function PaymentsTab({ eventId }: { eventId: string }) {
@@ -27,12 +31,23 @@ export default function PaymentsTab({ eventId }: { eventId: string }) {
       {loading ? (
         <ActivityIndicator color={colors.blue} />
       ) : items.length === 0 ? (
-        <EmptyState title="No payment records yet" sub="Enable Online Payments in Settings to start collecting fees" icon={CreditCard} />
+        <EmptyState
+          title="No payment records yet"
+          sub="Enable Online Payments in Settings to start collecting fees"
+          icon={CreditCard}
+        />
       ) : (
         items.map(p => (
           <View key={p._id} style={styles.row}>
             <Text style={styles.amount}>₹{p.amount}</Text>
-            <Text style={[styles.status, { color: STATUS_COLOR[p.status] || colors.muted }]}>{p.status}</Text>
+            <Text
+              style={[
+                styles.status,
+                { color: STATUS_COLOR[p.status] || colors.muted },
+              ]}
+            >
+              {p.status}
+            </Text>
           </View>
         ))
       )}
@@ -41,7 +56,27 @@ export default function PaymentsTab({ eventId }: { eventId: string }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  amount: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
-  status: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 11, textTransform: 'uppercase' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: '#0000001A',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  amount: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  status: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 11,
+    textTransform: 'uppercase',
+  },
 });

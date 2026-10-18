@@ -147,7 +147,8 @@ export function exportRowsToExcel(
       },
       {
         text: 'PDF',
-        onPress: () => printRowsAsPDF(headers, rows, filename).then(resolve, reject),
+        onPress: () =>
+          printRowsAsPDF(headers, rows, filename).then(resolve, reject),
       },
       { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
     ]);

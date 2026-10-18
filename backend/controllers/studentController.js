@@ -671,7 +671,11 @@ const bulkEnrollStudentFaces = asyncHandler(async (req, res) => {
       const code = codes[i];
       const student = byCode.get(code.toLowerCase());
       if (!student) {
-        results[i] = { file: file.originalname, status: "failed", error: `No student with ID "${code}"` };
+        results[i] = {
+          file: file.originalname,
+          status: "failed",
+          error: `No student with ID "${code}"`,
+        };
         continue;
       }
       try {
@@ -684,9 +688,18 @@ const bulkEnrollStudentFaces = asyncHandler(async (req, res) => {
           { _id: student._id },
           { $set: { faceDescriptor: encoding } },
         );
-        results[i] = { file: file.originalname, studentId: student.studentId, status: "enrolled" };
+        results[i] = {
+          file: file.originalname,
+          studentId: student.studentId,
+          status: "enrolled",
+        };
       } catch (err) {
-        results[i] = { file: file.originalname, studentId: student.studentId, status: "failed", error: err.message };
+        results[i] = {
+          file: file.originalname,
+          studentId: student.studentId,
+          status: "failed",
+          error: err.message,
+        };
       }
     }
   };

@@ -114,34 +114,43 @@ const processPayroll = asyncHandler(async (req, res) => {
 
   const payrolls = [];
 
-  for (const emp of employees) {
-    const existing = await Payroll.findOne({
-      employee: emp._id,
-      month: m,
-      year: y,
-    });
-    if (existing) continue;
-
-    const attendances = await Attendance.find({
-      employee: emp._id,
-      date: { $gte: startDate, $lte: endDate },
-    });
-
-    if (attendances.length === 0) continue;
-
-    const txMonthStart = new Date(y, m - 1, 1);
-    const txMonthEnd = new Date(y, m, 0, 23, 59, 59);
-    const pendingTx = await Transaction.find({
-      employee: emp._id,
+  // One query per collection for the whole run (was 4 sequential queries per employee).
+  const txMonthStart = new Date(y, m - 1, 1);
+  const txMonthEnd = new Date(y, m, 0, 23, 59, 59);
+  const empIdList = employees.map((e) => e._id);
+  const [existingRows, attRows, txRows, loanRows] = await Promise.all([
+    Payroll.find({ employee: { $in: empIdList }, month: m, year: y }).select("employee").lean(),
+    Attendance.find({ employee: { $in: empIdList }, date: { $gte: startDate, $lte: endDate } }),
+    Transaction.find({
+      employee: { $in: empIdList },
       company: req.user.company,
       status: "pending",
       date: { $gte: txMonthStart, $lte: txMonthEnd },
-    });
-    const activeLoans = await Loan.find({
-      employee: emp._id,
-      company: req.user.company,
-      status: "active",
-    });
+    }),
+    Loan.find({ employee: { $in: empIdList }, company: req.user.company, status: "active" }),
+  ]);
+  const groupByEmployee = (rows) => {
+    const map = new Map();
+    for (const r of rows) {
+      const k = String(r.employee);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
+    }
+    return map;
+  };
+  const alreadyProcessed = new Set(existingRows.map((r) => String(r.employee)));
+  const attByEmp = groupByEmployee(attRows);
+  const txByEmp = groupByEmployee(txRows);
+  const loansByEmp = groupByEmployee(loanRows);
+
+  for (const emp of employees) {
+    if (alreadyProcessed.has(String(emp._id))) continue;
+
+    const attendances = attByEmp.get(String(emp._id)) || [];
+    if (attendances.length === 0) continue;
+
+    const pendingTx = txByEmp.get(String(emp._id)) || [];
+    const activeLoans = loansByEmp.get(String(emp._id)) || [];
 
     const { record, loanUpdates, txIds } = computeEmployeePayroll({
       emp,

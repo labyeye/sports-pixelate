@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import SplashScreen from 'react-native-splash-screen';
 import { colors, FONT } from '../theme/colors';
 

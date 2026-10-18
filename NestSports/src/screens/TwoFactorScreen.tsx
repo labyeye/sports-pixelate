@@ -42,7 +42,10 @@ export default function TwoFactorScreen() {
       setQrCode(res?.data?.qr || null);
       setSecret(res?.data?.secret || null);
     } catch (e: unknown) {
-      Alert.alert('Setup failed', (e as Error)?.message || 'Could not start 2FA setup');
+      Alert.alert(
+        'Setup failed',
+        (e as Error)?.message || 'Could not start 2FA setup',
+      );
     } finally {
       setSettingUp(false);
     }

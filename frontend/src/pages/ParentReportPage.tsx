@@ -1,3 +1,4 @@
+import { writePrintDocument } from "@/lib/printWindow";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -53,7 +54,8 @@ function printReport(
 ) {
   const win = window.open("", "_blank");
   if (!win) return;
-  win.document.write(
+  writePrintDocument(
+    win,
     buildReportHTML(
       title,
       new Date().toLocaleDateString("en-IN"),
@@ -64,8 +66,8 @@ function printReport(
         reportCategory: "Student",
       },
     ),
+    true,
   );
-  win.document.close();
 }
 
 // Lets a parent generate the same "student report card" the academy can
@@ -88,7 +90,11 @@ export default function ParentReportPage() {
       setChildren(data);
       setSelectedChild((prev) => prev || data[0]?._id || "");
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -243,11 +249,7 @@ export default function ParentReportPage() {
           {loading || profileLoading ? (
             <div className="border-2 border-black bg-white flex items-center justify-center h-48">
               {loading ? (
-                <img
-                  src={nesthrlogo}
-                  alt="NestPlay"
-                  className="h-16 w-auto"
-                />
+                <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
               ) : (
                 <Loader2 className="w-8 h-8 animate-spin text-[#024BAB]" />
               )}

@@ -1,13 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const AuditLog = require("../models/AuditLog");
-const { safePagination } = require("../middleware/validate");
+const { safePagination, escapeRegex } = require("../middleware/validate");
 
 const getLogs = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
   const { action, entity, userId, startDate, endDate } = req.query;
 
   const filter = { company: req.user.company };
-  if (action) filter.action = { $regex: action, $options: "i" };
+  if (action) filter.action = { $regex: escapeRegex(String(action).slice(0, 100)), $options: "i" };
   if (entity) filter.entity = entity;
   if (userId) filter.user = userId;
   if (startDate || endDate) {

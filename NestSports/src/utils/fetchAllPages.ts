@@ -11,7 +11,7 @@ export async function fetchAllPages(
   fn: PageFn,
   params: Record<string, string> = {},
 ): Promise<any> {
-  const first = await fn({ ...params, page: "1", limit: String(PAGE_SIZE) });
+  const first = await fn({ ...params, page: '1', limit: String(PAGE_SIZE) });
   const pages = Number(first?.pages) || 1;
   if (!first?.success || !Array.isArray(first.data) || pages <= 1) return first;
 

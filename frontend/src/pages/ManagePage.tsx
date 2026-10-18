@@ -26,7 +26,6 @@ import {
   Edit,
   Trash2,
   X,
-  Loader2,
   CheckCircle,
   Search,
   ArrowUp,

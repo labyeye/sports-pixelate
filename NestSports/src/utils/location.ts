@@ -8,7 +8,8 @@ export async function requestSelfMarkPermissions(): Promise<boolean> {
     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
   ]);
   return (
-    results[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED &&
+    results[PermissionsAndroid.PERMISSIONS.CAMERA] ===
+      PermissionsAndroid.RESULTS.GRANTED &&
     results[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
       PermissionsAndroid.RESULTS.GRANTED
   );
@@ -58,7 +59,9 @@ export async function getCurrentPosition(): Promise<{
         );
       }
     }
-    if ((err as { code?: string | number })?.code === 2 /* POSITION_UNAVAILABLE */) {
+    if (
+      (err as { code?: string | number })?.code === 2 /* POSITION_UNAVAILABLE */
+    ) {
       throw new Error(
         'Location services are turned off on your device. Please enable Location/GPS and try again.',
       );

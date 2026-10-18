@@ -22,7 +22,11 @@ export function SportPicker({
   const [newName, setNewName] = useState("");
 
   useEffect(() => {
-    sportAPI.getAll().then((res: any) => setSports((res.data || []).filter((s: Sport) => s.active !== false)));
+    sportAPI
+      .getAll()
+      .then((res: any) =>
+        setSports((res.data || []).filter((s: Sport) => s.active !== false)),
+      );
   }, []);
 
   const selectClass =

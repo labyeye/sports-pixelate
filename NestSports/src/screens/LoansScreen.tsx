@@ -143,7 +143,10 @@ export default function LoansScreen() {
       await loanAPI.updateStatus(id, { status });
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', getErrorMessage(e) || 'Failed to update loan status');
+      Alert.alert(
+        'Error',
+        getErrorMessage(e) || 'Failed to update loan status',
+      );
     } finally {
       setUpdatingId(null);
     }
@@ -214,7 +217,10 @@ export default function LoansScreen() {
             await loanAPI.delete(l._id);
             await load();
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Could not delete loan');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Could not delete loan',
+            );
           }
         },
       },

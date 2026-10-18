@@ -342,7 +342,9 @@ export default function AddStudentScreen({ navigation, route }: any) {
       const student = res.data;
 
       if (avatarFile) {
-        await studentAPI.uploadAvatar(student._id, avatarFile).catch(notifyError);
+        await studentAPI
+          .uploadAvatar(student._id, avatarFile)
+          .catch(notifyError);
       }
       if (faceFile) {
         await studentAPI.enrollFace(student._id, faceFile).catch(notifyError);

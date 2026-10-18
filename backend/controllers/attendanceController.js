@@ -381,7 +381,8 @@ const markAttendance = asyncHandler(async (req, res) => {
     { upsert: true, new: true },
   ).populate({
     path: "employee",
-    select: "firstName lastName employeeId designation department avatar phone user",
+    select:
+      "firstName lastName employeeId designation department avatar phone user",
     populate: { path: "department", select: "name" },
   });
 
@@ -583,17 +584,18 @@ const selfMarkAttendance = asyncHandler(async (req, res) => {
   }
 
   await notifyAttendanceStatus(emp, d, record.status, req.user.company);
-  notifyEmployeeAttendanceMarkedInApp(req.user.company, emp, record.status).catch(
-    (err) => console.error("[notify] selfMarkAttendance:", err.message),
-  );
+  notifyEmployeeAttendanceMarkedInApp(
+    req.user.company,
+    emp,
+    record.status,
+  ).catch((err) => console.error("[notify] selfMarkAttendance:", err.message));
 
   res.json({ success: true, data: record });
 });
 
 const updateAttendance = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { status, checkIn, checkOut, notes, overtime, date, verifyMode } =
-    req.body;
+  const { status, checkIn, checkOut, notes, overtime, verifyMode } = req.body;
 
   const companyEmployees = await Employee.find({
     company: req.user.company,

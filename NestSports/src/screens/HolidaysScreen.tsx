@@ -135,7 +135,10 @@ export default function HolidaysScreen() {
             await holidayAPI.delete(h._id);
             setHolidays(prev => prev.filter(x => x._id !== h._id));
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Could not delete holiday');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Could not delete holiday',
+            );
           }
         },
       },
@@ -258,8 +261,8 @@ export default function HolidaysScreen() {
                 saving
                   ? 'Saving...'
                   : editingHoliday
-                  ? 'Update Holiday'
-                  : 'Save Holiday'
+                    ? 'Update Holiday'
+                    : 'Save Holiday'
               }
               onPress={save}
               disabled={saving}

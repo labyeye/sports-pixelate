@@ -39,9 +39,7 @@ export function FileUpload({
     e.target.value = "";
     if (!picked) return;
     // Images get a crop step first (non-image files pass through untouched).
-    const file = isImage
-      ? await cropImage(picked, { aspect: 16 / 9 })
-      : picked;
+    const file = isImage ? await cropImage(picked, { aspect: 16 / 9 }) : picked;
     if (!file) return;
     if (isImage) setLocalPreview(URL.createObjectURL(file));
     onFileSelected(file);

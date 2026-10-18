@@ -245,7 +245,10 @@ export default function StudentsScreen({ navigation }: any) {
               await studentAPI.delete(student._id);
               setStudents(prev => prev.filter(s => s._id !== student._id));
             } catch (e: unknown) {
-              Alert.alert('Error', (e as Error)?.message || 'Could not delete student');
+              Alert.alert(
+                'Error',
+                (e as Error)?.message || 'Could not delete student',
+              );
             }
           },
         },

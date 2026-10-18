@@ -1,15 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { studentAPI, sportsPlanAPI } from '../api/client';
-import { Card, SectionTitle, Button, LoadingView, EmptyState, ChipSelect } from '../components/ui';
+import {
+  Card,
+  SectionTitle,
+  Button,
+  LoadingView,
+  EmptyState,
+  ChipSelect,
+} from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
 type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 const WEEKDAY_LABELS: Record<Weekday, string> = {
-  mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun',
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
 };
 
 function scheduleLabel(p: any): string {
@@ -32,7 +51,9 @@ export default function ChoosePlanScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [studentId, setStudentId] = useState<string>('');
   const [planId, setPlanId] = useState<string>('');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
+    'monthly',
+  );
 
   const load = useCallback(async () => {
     const [studRes, planRes] = await Promise.all([
@@ -91,9 +112,14 @@ export default function ChoosePlanScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+      >
         <Text style={styles.title}>Choose a Plan</Text>
-        <Text style={styles.subtitle}>Subscribe your child to a coaching plan</Text>
+        <Text style={styles.subtitle}>
+          Subscribe your child to a coaching plan
+        </Text>
 
         <Card>
           <SectionTitle title="Child" />
@@ -106,7 +132,9 @@ export default function ChoosePlanScreen({ navigation }: any) {
                   onPress={() => setStudentId(c._id)}
                   style={[styles.pill, active && styles.pillActive]}
                 >
-                  <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                  <Text
+                    style={[styles.pillText, active && styles.pillTextActive]}
+                  >
                     {c.firstName} {c.lastName}
                   </Text>
                 </TouchableOpacity>
@@ -118,7 +146,10 @@ export default function ChoosePlanScreen({ navigation }: any) {
         <Card>
           <SectionTitle title="Coaching Plan" />
           {plans.length === 0 ? (
-            <EmptyState title="No coaching plans available yet" sub="Ask the club to add a plan." />
+            <EmptyState
+              title="No coaching plans available yet"
+              sub="Ask the club to add a plan."
+            />
           ) : (
             plans.map(p => {
               const active = p._id === planId;
@@ -134,7 +165,9 @@ export default function ChoosePlanScreen({ navigation }: any) {
                       {p.sport} · {scheduleLabel(p)}
                     </Text>
                   </View>
-                  <Text style={styles.planPrice}>{formatCurrency(p.monthlyPrice)}/mo</Text>
+                  <Text style={styles.planPrice}>
+                    {formatCurrency(p.monthlyPrice)}/mo
+                  </Text>
                 </TouchableOpacity>
               );
             })
@@ -157,7 +190,11 @@ export default function ChoosePlanScreen({ navigation }: any) {
           </Card>
         )}
 
-        <Button title="Continue to Payment" onPress={goToPayment} disabled={!canContinue} />
+        <Button
+          title="Continue to Payment"
+          onPress={goToPayment}
+          disabled={!canContinue}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -165,7 +202,12 @@ export default function ChoosePlanScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 22, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
@@ -187,7 +229,10 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
-  planRowActive: { backgroundColor: colors.blue + '14', borderColor: colors.blue },
+  planRowActive: {
+    backgroundColor: colors.blue + '14',
+    borderColor: colors.blue,
+  },
   planName: { fontSize: 14, fontWeight: '800', color: colors.black },
   planMeta: { fontSize: 11, color: colors.muted, marginTop: 2 },
   planPrice: { fontSize: 13, fontWeight: '800', color: colors.blue },

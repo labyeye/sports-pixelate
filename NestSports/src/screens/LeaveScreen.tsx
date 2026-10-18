@@ -199,7 +199,10 @@ export default function LeaveScreen() {
             await leaveAPI.delete(l._id);
             await load();
           } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || 'Failed to delete leave');
+            Alert.alert(
+              'Error',
+              (e as Error)?.message || 'Failed to delete leave',
+            );
           }
         },
       },
@@ -212,7 +215,9 @@ export default function LeaveScreen() {
       return;
     }
     try {
-      await leaveAPI.delete(cancelId, { cancellationReason: cancelReason.trim() });
+      await leaveAPI.delete(cancelId, {
+        cancellationReason: cancelReason.trim(),
+      });
       setCancelId(null);
       await load();
     } catch (e: unknown) {
@@ -237,7 +242,10 @@ export default function LeaveScreen() {
       setApplyVisible(false);
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not submit leave request');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not submit leave request',
+      );
     } finally {
       setSaving(false);
     }
@@ -315,12 +323,22 @@ export default function LeaveScreen() {
                     />
                   }
                 />
-                {l.reason ? <Text style={styles.reasonText}>{l.reason}</Text> : null}
+                {l.reason ? (
+                  <Text style={styles.reasonText}>{l.reason}</Text>
+                ) : null}
                 <View style={styles.iconActions}>
-                  <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(l)} hitSlop={6}>
+                  <TouchableOpacity
+                    style={styles.editBtn}
+                    onPress={() => openEdit(l)}
+                    hitSlop={6}
+                  >
                     <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(l)} hitSlop={6}>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleDelete(l)}
+                    hitSlop={6}
+                  >
                     <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
                   </TouchableOpacity>
                 </View>
@@ -388,7 +406,12 @@ export default function LeaveScreen() {
         </View>
       </Modal>
 
-      <Modal visible={!!cancelId} transparent animationType="fade" onRequestClose={() => setCancelId(null)}>
+      <Modal
+        visible={!!cancelId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCancelId(null)}
+      >
         <View style={styles.rejectBackdrop}>
           <View style={styles.rejectSheet}>
             <Text style={styles.formTitle}>Cancel Approved Leave</Text>
@@ -402,10 +425,18 @@ export default function LeaveScreen() {
             />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Button title="Back" variant="outline" onPress={() => setCancelId(null)} />
+                <Button
+                  title="Back"
+                  variant="outline"
+                  onPress={() => setCancelId(null)}
+                />
               </View>
               <View style={{ flex: 1 }}>
-                <Button title="Cancel Leave" color={colors.red} onPress={confirmCancel} />
+                <Button
+                  title="Cancel Leave"
+                  color={colors.red}
+                  onPress={confirmCancel}
+                />
               </View>
             </View>
           </View>
@@ -420,7 +451,9 @@ export default function LeaveScreen() {
       >
         <SafeAreaView edges={['top']} style={styles.screen}>
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>{editId ? 'Edit Leave' : 'Apply for Leave'}</Text>
+            <Text style={styles.formTitle}>
+              {editId ? 'Edit Leave' : 'Apply for Leave'}
+            </Text>
             <TouchableOpacity
               onPress={() => setApplyVisible(false)}
               hitSlop={8}
@@ -484,7 +517,11 @@ export default function LeaveScreen() {
               onChangeText={v => setForm(p => ({ ...p, days: v }))}
               keyboardType="numeric"
             />
-            <ToggleRow label="Half day" value={form.isHalfDay} onChange={v => setForm(p => ({ ...p, isHalfDay: v }))} />
+            <ToggleRow
+              label="Half day"
+              value={form.isHalfDay}
+              onChange={v => setForm(p => ({ ...p, isHalfDay: v }))}
+            />
             <TextField
               label="Reason"
               icon={FileText}
@@ -493,7 +530,13 @@ export default function LeaveScreen() {
               multiline
             />
             <Button
-              title={saving ? 'Saving...' : editId ? 'Save Changes' : 'Submit Request'}
+              title={
+                saving
+                  ? 'Saving...'
+                  : editId
+                    ? 'Save Changes'
+                    : 'Submit Request'
+              }
               onPress={submitApply}
               disabled={saving}
             />
@@ -557,10 +600,36 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   item: { marginBottom: 4 },
-  reasonText: { color: colors.muted, fontSize: 12, fontFamily: FONT.medium, marginBottom: 8 },
-  iconActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginBottom: 8 },
-  editBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  deleteBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: colors.red, alignItems: 'center', justifyContent: 'center' },
+  reasonText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: FONT.medium,
+    marginBottom: 8,
+  },
+  iconActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginBottom: 8,
+  },
+  editBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: colors.red,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actions: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   rejectBackdrop: {
     flex: 1,

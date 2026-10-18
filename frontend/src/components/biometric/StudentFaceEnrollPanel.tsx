@@ -7,7 +7,12 @@ interface FaceStatus {
   total: number;
   enrolled: number;
   missingCount: number;
-  missing: { _id: string; studentId: string; firstName: string; lastName: string }[];
+  missing: {
+    _id: string;
+    studentId: string;
+    firstName: string;
+    lastName: string;
+  }[];
 }
 
 interface RowResult {
@@ -50,7 +55,9 @@ export function StudentFaceEnrollPanel() {
     const collected: RowResult[] = [];
     try {
       for (let i = 0; i < all.length; i += BATCH) {
-        setProgress(`Enrolling ${Math.min(i + BATCH, all.length)} / ${all.length}…`);
+        setProgress(
+          `Enrolling ${Math.min(i + BATCH, all.length)} / ${all.length}…`,
+        );
         const res = await studentAPI.bulkEnrollFaces(all.slice(i, i + BATCH));
         collected.push(...res.data.results);
       }

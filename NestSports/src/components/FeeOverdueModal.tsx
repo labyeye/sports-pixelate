@@ -1,5 +1,12 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import { AlertTriangle } from 'lucide-react-native';
 import { colors, FONT } from '../theme/colors';
 
@@ -23,7 +30,12 @@ export default function FeeOverdueModal({
 }) {
   const list = students || [];
   return (
-    <Modal visible={list.length > 0} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={list.length > 0}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.backdrop}>
         <View style={styles.box}>
           <View style={styles.head}>
@@ -50,7 +62,11 @@ export default function FeeOverdueModal({
               </View>
             ))}
           </ScrollView>
-          <TouchableOpacity style={styles.btn} onPress={onClose} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={onClose}
+            activeOpacity={0.85}
+          >
             <Text style={styles.btnText}>OK</Text>
           </TouchableOpacity>
         </View>
@@ -60,14 +76,31 @@ export default function FeeOverdueModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  box: { backgroundColor: colors.white, borderWidth: 2, borderColor: colors.black, padding: 16 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  box: {
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.black,
+    padding: 16,
+  },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   title: { fontFamily: FONT.bold, fontSize: 18, color: colors.black },
   body: { fontSize: 13, color: '#374151', marginBottom: 12 },
   row: { borderWidth: 1, borderColor: '#E5E7EB', padding: 10, marginBottom: 6 },
   name: { fontFamily: FONT.bold, fontSize: 14, color: colors.black },
   meta: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  btn: { backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.black, paddingVertical: 10, alignItems: 'center', marginTop: 12 },
+  btn: {
+    backgroundColor: colors.blue,
+    borderWidth: 2,
+    borderColor: colors.black,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
   btnText: { fontFamily: FONT.bold, color: colors.white, fontSize: 14 },
 });

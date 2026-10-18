@@ -13,32 +13,6 @@ const FEE_RECEIPT_PATH = path.join(
   "../../frontend/assets/feereceipt.pdf",
 );
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-function fmt(n) {
-  return (
-    "Rs. " +
-    new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n || 0)
-  );
-}
-
-function fmtNum(n) {
-  return Number(n || 0).toLocaleString("en-IN");
-}
-
 function toIndianWords(n) {
   const ones = [
     "",
@@ -134,7 +108,6 @@ async function generatePayslipPdf(payroll, employee, company) {
   }
 
   const [chequePage] = pdfDoc.getPages();
-  const { height: ph } = chequePage.getSize();
   // MediaBox may have a non-zero y origin (this template has y≈7.71).
   // pdfjs accounts for this when rendering on canvas; pdf-lib getSize() does not.
   // Top of visible page in PDF coords = mediaBox.y + mediaBox.height.
@@ -252,7 +225,9 @@ async function generatePayslipPdf(payroll, employee, company) {
 // payroll cheque template used for employee payslips.
 async function generatePaymentReceiptPdf({ subscription, payment, company }) {
   const amount = Math.round(payment.amount || 0);
-  const verifiedOn = payment.verifiedAt ? new Date(payment.verifiedAt) : new Date();
+  const verifiedOn = payment.verifiedAt
+    ? new Date(payment.verifiedAt)
+    : new Date();
   const dd = String(verifiedOn.getDate()).padStart(2, "0");
   const mm = String(verifiedOn.getMonth() + 1).padStart(2, "0");
   const yyyy = String(verifiedOn.getFullYear());

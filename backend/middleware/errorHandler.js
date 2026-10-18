@@ -4,9 +4,19 @@
 
 // "firstName" -> "First name", "guardians.0.phone" -> "Phone"
 function humanizeField(path = "") {
-  const last = String(path).split(".").filter((p) => !/^\d+$/.test(p)).pop() || "";
-  const spaced = last.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").trim().toLowerCase();
-  return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : "This field";
+  const last =
+    String(path)
+      .split(".")
+      .filter((p) => !/^\d+$/.test(p))
+      .pop() || "";
+  const spaced = last
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+  return spaced
+    ? spaced.charAt(0).toUpperCase() + spaced.slice(1)
+    : "This field";
 }
 
 // One readable sentence per invalid field (max 3), e.g. "First name is required".
@@ -54,9 +64,12 @@ const errorHandler = (err, req, res, next) => {
     err.code === 11000 ||
     err.type === "entity.parse.failed" ||
     err.type === "entity.too.large" ||
-    (err.name === "MulterError");
+    err.name === "MulterError";
   if (status === 500 && isClientError) {
-    status = err.type === "entity.too.large" || err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    status =
+      err.type === "entity.too.large" || err.code === "LIMIT_FILE_SIZE"
+        ? 413
+        : 400;
   }
 
   if (process.env.NODE_ENV !== "test") {
@@ -91,7 +104,8 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === "ValidationError") message = validationMessage(err);
 
   if (err.type === "entity.parse.failed") {
-    message = "The information sent could not be read. Please check it and try again";
+    message =
+      "The information sent could not be read. Please check it and try again";
   }
   if (err.type === "entity.too.large") {
     message = "The data you sent is too large";

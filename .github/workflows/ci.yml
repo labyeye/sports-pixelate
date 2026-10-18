@@ -12,7 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+        with:
+          {
+            node-version: 22,
+            cache: npm,
+            cache-dependency-path: backend/package-lock.json,
+          }
       - run: npm ci
       - run: npm test
       - name: Dependency audit (high+)
@@ -24,7 +29,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+        with:
+          {
+            node-version: 22,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
       - run: npm ci
       - run: npm run lint -- --quiet
       - run: npm run typecheck
@@ -38,7 +48,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: NestSports/package-lock.json }
+        with:
+          {
+            node-version: 22,
+            cache: npm,
+            cache-dependency-path: NestSports/package-lock.json,
+          }
       # react-native-print has an optional Windows peer that npm can't resolve.
       - run: npm ci --legacy-peer-deps
       - run: npm run typecheck

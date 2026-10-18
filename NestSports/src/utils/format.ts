@@ -15,7 +15,10 @@ export function formatDateOrDash(d?: string | Date | null): string {
 }
 
 /** Best-effort message from a caught value (Error, API error object or anything else). */
-export function getErrorMessage(e: unknown, fallback = 'Something went wrong'): string {
+export function getErrorMessage(
+  e: unknown,
+  fallback = 'Something went wrong',
+): string {
   if (e instanceof Error && e.message) return e.message;
   if (typeof e === 'object' && e !== null && 'message' in e) {
     const m = (e as { message?: unknown }).message;

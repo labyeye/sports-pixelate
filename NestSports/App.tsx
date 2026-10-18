@@ -15,9 +15,15 @@ import { ToastProvider } from './src/components/ui';
 // screen's local styles — individual styles still override fontFamily for
 // bold/medium weights (see components/ui.tsx), same look as NestHR.
 (Text as any).defaultProps = (Text as any).defaultProps || {};
-(Text as any).defaultProps.style = [{ fontFamily: FONT.regular }, (Text as any).defaultProps.style];
+(Text as any).defaultProps.style = [
+  { fontFamily: FONT.regular },
+  (Text as any).defaultProps.style,
+];
 (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
-(TextInput as any).defaultProps.style = [{ fontFamily: FONT.regular }, (TextInput as any).defaultProps.style];
+(TextInput as any).defaultProps.style = [
+  { fontFamily: FONT.regular },
+  (TextInput as any).defaultProps.style,
+];
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';

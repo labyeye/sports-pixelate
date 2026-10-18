@@ -3,17 +3,14 @@ import { employeeAPI } from "@/services/api";
 import {
   Loader2,
   Save,
-  Plus,
-  Trash2,
   Award,
   BookOpen,
   Heart,
-  Shield,
   CreditCard,
   Briefcase,
   PlusCircle,
 } from "lucide-react";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Props {
   employee: any;

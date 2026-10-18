@@ -4,13 +4,18 @@ const Company = require("../models/Company");
 const Employee = require("../models/Employee");
 const Subscription = require("../models/Subscription");
 const Invoice = require("../models/Invoice");
+const Counter = require("../models/Counter");
 const User = require("../models/User");
 const OfferCode = require("../models/OfferCode");
 const PendingOrder = require("../models/PendingOrder");
 const hdfcPayment = require("../services/hdfcPaymentService");
 const razorpayService = require("../services/razorpayService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
-const { RATE_INAPP, RATE_WHATSAPP, calculatePricing } = require("../utils/pricing");
+const {
+  RATE_INAPP,
+  RATE_WHATSAPP,
+  calculatePricing,
+} = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 
 // Company-level SaaS billing (what an academy pays NestPlay). Priced per user
@@ -484,6 +489,7 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   }
 
   await _activateSubscription({
+    req,
     lookup: { razorpayOrderId },
     update: {
       razorpayPaymentId,
@@ -531,6 +537,7 @@ const verifyHdfcPayment = asyncHandler(async (req, res) => {
   }
 
   await _activateSubscription({
+    req,
     lookup: { hdfcOrderId: orderId },
     update: {
       hdfcTrackingId: verification.trackingId,
@@ -650,8 +657,8 @@ async function _createCompanyAndActivate({
     );
   }
 
-  const invoiceCount = await Invoice.countDocuments();
-  const invoiceNumber = `INV-SPORTS-${String(invoiceCount + 1).padStart(4, "0")}`;
+  const invoiceSeq = await Counter.next("sportsInvoice", () => Invoice.countDocuments());
+  const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
   await Invoice.create({
     company: company._id,
     subscription: subscription._id,
@@ -727,11 +734,24 @@ async function _createCompanyAndActivate({
 
 // Renewal / upgrade: activates the existing Subscription located by `lookup`,
 // applies `update`, extends the period (plus any bonus months) and issues the Invoice.
-async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
+async function _activateSubscription({ lookup, update, invoiceExtra, res, req }) {
   const subscription = await Subscription.findOne(lookup);
   if (!subscription) {
     res.status(404);
     throw new Error("Order not found. Please contact support.");
+  }
+  if (req?.user && String(subscription.company) !== String(req.user.company)) {
+    res.status(403);
+    throw new Error("This order does not belong to your academy.");
+  }
+  // A Razorpay/HDFC signature stays valid forever; without this, replaying an old (orderId, paymentId, signature)
+  // would re-activate an expired plan for free and stack invoices and offer-code usage.
+  if (subscription.paymentStatus === "completed") {
+    return res.json({
+      success: true,
+      message: "This payment was already processed.",
+      data: { plan: subscription.plan, billingCycle: subscription.billingCycle, renewalDate: subscription.renewalDate },
+    });
   }
 
   const company = await Company.findById(subscription.company);
@@ -781,8 +801,8 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res }) {
     subscription: updatedSub._id,
   });
 
-  const invoiceCount = await Invoice.countDocuments();
-  const invoiceNumber = `INV-SPORTS-${String(invoiceCount + 1).padStart(4, "0")}`;
+  const invoiceSeq = await Counter.next("sportsInvoice", () => Invoice.countDocuments());
+  const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
   await Invoice.create({
     company: company._id,
     subscription: updatedSub._id,

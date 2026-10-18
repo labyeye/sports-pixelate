@@ -425,17 +425,10 @@ export default function EmployeesPage() {
       customWorkDays: emp.customWorkDays || [],
       otRate: String(emp.otRate || ""),
       otEnabled: emp.otEnabled === true,
-      geofenceAttendanceEnabled:
-        emp.geofenceAttendanceEnabled === true,
+      geofenceAttendanceEnabled: emp.geofenceAttendanceEnabled === true,
       geofenceMode: emp.geofenceMode === "any" ? "any" : "specific",
-      geofenceLat:
-        emp.geofenceLat != null
-          ? String(emp.geofenceLat)
-          : "",
-      geofenceLng:
-        emp.geofenceLng != null
-          ? String(emp.geofenceLng)
-          : "",
+      geofenceLat: emp.geofenceLat != null ? String(emp.geofenceLat) : "",
+      geofenceLng: emp.geofenceLng != null ? String(emp.geofenceLng) : "",
       geofenceRadiusMeters: String(emp.geofenceRadiusMeters || 200),
       shift: (typeof emp.shift === "object" ? emp.shift?._id : emp.shift) || "",
       shiftName: emp.shiftName || "",
@@ -788,9 +781,7 @@ export default function EmployeesPage() {
     if (sortKey === "firstName")
       cmp = (a.firstName ?? "").localeCompare(b.firstName ?? "");
     else if (sortKey === "department")
-      cmp = (a.department?.name ?? "").localeCompare(
-        b.department?.name ?? "",
-      );
+      cmp = (a.department?.name ?? "").localeCompare(b.department?.name ?? "");
     else if (sortKey === "joinDate")
       cmp =
         new Date(a.joinDate ?? 0).getTime() -
@@ -798,23 +789,12 @@ export default function EmployeesPage() {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  const totalSalary = employees.reduce(
-    (s, e) => s + (e.salary ?? 0),
-    0,
-  );
-  const totalLoan = employees.reduce(
-    (s, e) => s + (e.loanBalance ?? 0),
-    0,
-  );
+  const totalSalary = employees.reduce((s, e) => s + (e.salary ?? 0), 0);
+  const totalLoan = employees.reduce((s, e) => s + (e.loanBalance ?? 0), 0);
   const totalEstBalance = employees.reduce((s, e) => {
     const id = e._id;
     const net = payrollNetMap[id];
-    return (
-      s +
-      (net != null
-        ? net
-        : (e.salary ?? 0) - (e.loanBalance ?? 0))
-    );
+    return s + (net != null ? net : (e.salary ?? 0) - (e.loanBalance ?? 0));
   }, 0);
 
   return (
@@ -3481,15 +3461,9 @@ export default function EmployeesPage() {
                       : []),
                     ["Nationality", viewEmp.nationality || "—"],
                     ["Religion", viewEmp.religion || "—"],
-                    [
-                      "Emergency Contact",
-                      viewEmp.emergencyContact || "—",
-                    ],
+                    ["Emergency Contact", viewEmp.emergencyContact || "—"],
                     ["Current Address", viewEmp.address || "—"],
-                    [
-                      "Permanent Address",
-                      viewEmp.permanentAddress || "—",
-                    ],
+                    ["Permanent Address", viewEmp.permanentAddress || "—"],
                     [
                       "City / State",
                       [viewEmp.city, viewEmp.state]
@@ -3524,10 +3498,7 @@ export default function EmployeesPage() {
                   {[
                     ["Bank", viewEmp.bankName || "—"],
                     ["Account No.", viewEmp.bankAccount || "—"],
-                    [
-                      "Account Holder",
-                      viewEmp.accountHolderName || "—",
-                    ],
+                    ["Account Holder", viewEmp.accountHolderName || "—"],
                     ["IFSC", viewEmp.ifscCode || "—"],
                     ["PAN", viewEmp.panNumber || "—"],
                     ["Aadhar", viewEmp.aadharNumber || "—"],
@@ -3686,7 +3657,8 @@ export default function EmployeesPage() {
                     show: true,
                     type: "error",
                     title: "Error",
-                    message: getErrorMessage(err) || "Failed to create loan entry.",
+                    message:
+                      getErrorMessage(err) || "Failed to create loan entry.",
                   });
                 }
                 setSavingLoan(false);

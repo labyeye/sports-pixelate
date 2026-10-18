@@ -27,11 +27,21 @@ const {
 // the student's parent(s), and the staff member who marked it (a manual
 // mark always has a marker; device/biometric marks are notified separately
 // in biometricController.js since markedBy is null there).
-async function notifyStudentAttendanceMarked(companyId, studentDoc, status, markedByUserId) {
+async function notifyStudentAttendanceMarked(
+  companyId,
+  studentDoc,
+  status,
+  markedByUserId,
+) {
   const studentName = `${studentDoc.firstName} ${studentDoc.lastName}`.trim();
   const title = "Student attendance marked";
   const message = `${studentName} was marked ${status} today.`;
-  const payload = { type: "student_attendance", title, message, student: studentDoc._id };
+  const payload = {
+    type: "student_attendance",
+    title,
+    message,
+    student: studentDoc._id,
+  };
 
   await Promise.all([
     notifyOwners(companyId, payload),
@@ -43,7 +53,12 @@ async function notifyStudentAttendanceMarked(companyId, studentDoc, status, mark
 // WhatsApp the opted-in guardian (receivesWhatsapp) for manual / bulk / face
 // marks, reusing the biometric check-in/check-out templates. Absent and
 // excused marks send nothing. Fire-and-forget: never blocks the response.
-async function notifyGuardianWhatsApp(companyId, studentDoc, status, { checkIn, checkOut } = {}) {
+async function notifyGuardianWhatsApp(
+  companyId,
+  studentDoc,
+  status,
+  { checkIn, checkOut } = {},
+) {
   const guardian = (studentDoc.guardians || []).find(
     (g) => g.receivesWhatsapp && g.phone,
   );
@@ -85,7 +100,9 @@ async function coachEmployeeId(user) {
 // student's fee is overdue past the grace period. Marking someone absent is
 // still allowed in bulk (see bulkMark) but a single "present" is blocked.
 async function assertFeesCleared(req, res, studentDoc) {
-  const { overdue } = await getOverdueStudents(req.user.company, [studentDoc._id]);
+  const { overdue } = await getOverdueStudents(req.user.company, [
+    studentDoc._id,
+  ]);
   const info = overdue.get(String(studentDoc._id));
   if (!info) return;
   const name = studentName(studentDoc);
@@ -95,7 +112,9 @@ async function assertFeesCleared(req, res, studentDoc) {
   );
   err.code = "FEE_OVERDUE";
   err.details = {
-    students: [{ _id: studentDoc._id, name, studentId: studentDoc.studentId, ...info }],
+    students: [
+      { _id: studentDoc._id, name, studentId: studentDoc.studentId, ...info },
+    ],
   };
   throw err;
 }
@@ -230,11 +249,15 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
     studentDoc,
     record.status,
     req.user._id,
-  ).catch((err) => console.error("[notify] markStudentAttendance:", err.message));
+  ).catch((err) =>
+    console.error("[notify] markStudentAttendance:", err.message),
+  );
   notifyGuardianWhatsApp(req.user.company, studentDoc, record.status, {
     checkIn: record.checkIn,
     checkOut: record.checkOut,
-  }).catch((err) => console.error("[whatsapp] markStudentAttendance:", err.message));
+  }).catch((err) =>
+    console.error("[whatsapp] markStudentAttendance:", err.message),
+  );
 
   res.json({ success: true, data: record });
 });
@@ -259,7 +282,9 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
   }).select("_id firstName lastName studentId guardians");
   const validMap = new Map(validStudents.map((s) => [s._id.toString(), s]));
 
-  const { overdue } = await getOverdueStudents(req.user.company, [...validMap.keys()]);
+  const { overdue } = await getOverdueStudents(req.user.company, [
+    ...validMap.keys(),
+  ]);
   const blocked = [];
   const validRecords = records.filter((r) => {
     if (!r.student || !validMap.has(r.student.toString())) return false;
@@ -311,7 +336,9 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
         req.user._id,
       ),
     ),
-  ).catch((err) => console.error("[notify] bulkMarkStudentAttendance:", err.message));
+  ).catch((err) =>
+    console.error("[notify] bulkMarkStudentAttendance:", err.message),
+  );
   Promise.all(
     validRecords.map((r) =>
       notifyGuardianWhatsApp(
@@ -321,7 +348,9 @@ const bulkMarkStudentAttendance = asyncHandler(async (req, res) => {
         { checkIn: r.checkIn || now },
       ),
     ),
-  ).catch((err) => console.error("[whatsapp] bulkMarkStudentAttendance:", err.message));
+  ).catch((err) =>
+    console.error("[whatsapp] bulkMarkStudentAttendance:", err.message),
+  );
 
   res.json({
     success: true,
@@ -429,10 +458,14 @@ const markStudentAttendanceByFace = asyncHandler(async (req, res) => {
     studentDoc,
     faceStatus,
     req.user._id,
-  ).catch((err) => console.error("[notify] markStudentAttendanceByFace:", err.message));
+  ).catch((err) =>
+    console.error("[notify] markStudentAttendanceByFace:", err.message),
+  );
   notifyGuardianWhatsApp(req.user.company, studentDoc, faceStatus, {
     checkIn: arrivedAt,
-  }).catch((err) => console.error("[whatsapp] markStudentAttendanceByFace:", err.message));
+  }).catch((err) =>
+    console.error("[whatsapp] markStudentAttendanceByFace:", err.message),
+  );
 
   res.json({ success: true, data: record, distance });
 });

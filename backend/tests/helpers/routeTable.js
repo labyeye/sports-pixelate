@@ -17,7 +17,9 @@ function load(file) {
 
 function buildRouteTable() {
   const rows = [];
-  for (const file of fs.readdirSync(ROUTES_DIR).filter((f) => f.endsWith(".js"))) {
+  for (const file of fs
+    .readdirSync(ROUTES_DIR)
+    .filter((f) => f.endsWith(".js"))) {
     const router = load(file);
     if (!router || router.__loadError || !router.stack) {
       rows.push({ file, error: router?.__loadError || "no router" });

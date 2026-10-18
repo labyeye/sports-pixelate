@@ -171,7 +171,9 @@ employeeSchema.index({ company: 1, status: 1 });
 // Keep the kiosk face index (services/faceIndex.js) in step with face/status edits.
 employeeSchema.pre("save", function (next) {
   this.$locals.faceIndexStale =
-    this.isNew || this.isModified("faceDescriptor") || this.isModified("status");
+    this.isNew ||
+    this.isModified("faceDescriptor") ||
+    this.isModified("status");
   next();
 });
 employeeSchema.post("save", function () {

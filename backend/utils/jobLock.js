@@ -9,7 +9,12 @@ async function acquire(name, ttlMs) {
   try {
     const doc = await JobLock.findOneAndUpdate(
       { name, lockedUntil: { $lt: now } },
-      { $set: { lockedUntil: until, expireAt: new Date(until.getTime() + 60000) } },
+      {
+        $set: {
+          lockedUntil: until,
+          expireAt: new Date(until.getTime() + 60000),
+        },
+      },
       { new: true },
     );
     if (doc) return true;

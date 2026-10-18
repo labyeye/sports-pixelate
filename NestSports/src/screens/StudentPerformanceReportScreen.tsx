@@ -123,7 +123,6 @@ export default function StudentPerformanceReportScreen() {
       </View>
 
       <FilterPills
-
         inset
         options={[
           { value: '', label: 'All Sports' },

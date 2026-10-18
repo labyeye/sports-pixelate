@@ -23,7 +23,9 @@ const monthKey = (d = new Date()) => {
 const endOfIstMonth = (d = new Date()) => {
   const ist = istShift(d);
   return new Date(
-    Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth() + 1, 1) - IST_OFFSET_MS - 1,
+    Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth() + 1, 1) -
+      IST_OFFSET_MS -
+      1,
   );
 };
 
@@ -125,7 +127,8 @@ async function sendPendingLinks(companyId, now = new Date()) {
       link.guardianPhone,
       {
         guardianName: link.guardianName,
-        studentName: `${link.student?.firstName || ""} ${link.student?.lastName || ""}`.trim(),
+        studentName:
+          `${link.student?.firstName || ""} ${link.student?.lastName || ""}`.trim(),
         planName: link.planName,
         amount: link.amount,
         url: linkUrl(link.token),
@@ -209,10 +212,13 @@ async function getPublicDetails(token) {
 }
 
 async function startPayment(token) {
-  const { getCompanyPaymentCreds } = require("../controllers/subscriptionController");
+  const {
+    getCompanyPaymentCreds,
+  } = require("../controllers/subscriptionController");
   const link = await loadLink(token);
   if (!link) return { error: "Payment link not found", code: 404 };
-  if (link.status === "paid") return { error: "This fee is already paid", code: 409 };
+  if (link.status === "paid")
+    return { error: "This fee is already paid", code: 409 };
   if (link.status === "expired") {
     return { error: "This payment link has expired", code: 410 };
   }

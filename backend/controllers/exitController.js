@@ -41,8 +41,16 @@ const STUDENT_CHECKLIST = [
   { key: "inventory", label: "Equipment & kit returned" },
   { key: "dues", label: "Fees / dues cleared" },
   { key: "subscription", label: "Subscription closed" },
-  { key: "documents", label: "Certificate / records handed over", required: false },
-  { key: "feedback", label: "Feedback collected from student / parent", required: false },
+  {
+    key: "documents",
+    label: "Certificate / records handed over",
+    required: false,
+  },
+  {
+    key: "feedback",
+    label: "Feedback collected from student / parent",
+    required: false,
+  },
 ];
 
 const buildChecklist = (personType) =>
@@ -89,9 +97,7 @@ async function outstandingFor(record) {
     _id: i._id,
     name: i.name,
     quantity: i.assignments
-      .filter(
-        (a) => String(a.assignedTo) === String(personId) && !a.returnedAt,
-      )
+      .filter((a) => String(a.assignedTo) === String(personId) && !a.returnedAt)
       .reduce((s, a) => s + (a.quantity || 1), 0),
   }));
 
@@ -130,7 +136,8 @@ const getExits = asyncHandler(async (req, res) => {
   const { personType, status, search } = req.query;
   const { page, limit, skip } = safePagination(req.query);
   const filter = { company: req.user.company };
-  if (["employee", "student"].includes(personType)) filter.personType = personType;
+  if (["employee", "student"].includes(personType))
+    filter.personType = personType;
   if (status) filter.status = status;
   if (search) {
     const re = new RegExp(escapeRegex(search), "i");
@@ -192,8 +199,15 @@ const getExit = asyncHandler(async (req, res) => {
 });
 
 const initiateExit = asyncHandler(async (req, res) => {
-  const { personType, personId, exitType, reason, noticeDate, exitDate, notes } =
-    req.body;
+  const {
+    personType,
+    personId,
+    exitType,
+    reason,
+    noticeDate,
+    exitDate,
+    notes,
+  } = req.body;
   if (!["employee", "student"].includes(personType) || !personId) {
     res.status(400);
     throw new Error("personType and personId are required");
@@ -213,7 +227,9 @@ const initiateExit = asyncHandler(async (req, res) => {
   const person = await loadPerson(personType, personId, req.user.company);
   if (!person) {
     res.status(404);
-    throw new Error(`${personType === "employee" ? "Staff member" : "Student"} not found`);
+    throw new Error(
+      `${personType === "employee" ? "Staff member" : "Student"} not found`,
+    );
   }
 
   const open = await ExitRecord.findOne({
@@ -231,7 +247,8 @@ const initiateExit = asyncHandler(async (req, res) => {
     personType,
     [personType]: person._id,
     personName: `${person.firstName} ${person.lastName}`.trim(),
-    personCode: personType === "employee" ? person.employeeId : person.studentId,
+    personCode:
+      personType === "employee" ? person.employeeId : person.studentId,
     exitType,
     reason: reason || "",
     noticeDate: noticeDate ? new Date(noticeDate) : undefined,
@@ -280,7 +297,9 @@ const updateExit = asyncHandler(async (req, res) => {
     if (req.body[f] === undefined) continue;
     if (f === "exitType") {
       const allowed =
-        record.personType === "employee" ? EMPLOYEE_EXIT_TYPES : STUDENT_EXIT_TYPES;
+        record.personType === "employee"
+          ? EMPLOYEE_EXIT_TYPES
+          : STUDENT_EXIT_TYPES;
       if (!allowed.includes(req.body[f])) {
         res.status(400);
         throw new Error("Invalid exit type for this person");
@@ -314,7 +333,9 @@ const updateExit = asyncHandler(async (req, res) => {
     }
   }
 
-  record.status = record.checklist.some((c) => c.done) ? "in_clearance" : "initiated";
+  record.status = record.checklist.some((c) => c.done)
+    ? "in_clearance"
+    : "initiated";
   await record.save();
   res.json({ success: true, data: withProgress(record) });
 });
@@ -359,7 +380,8 @@ const completeExit = asyncHandler(async (req, res) => {
       : "inactive";
     await person.save();
     // Staff can't log in once they've left.
-    if (person.user) await User.updateOne({ _id: person.user }, { status: "inactive" });
+    if (person.user)
+      await User.updateOne({ _id: person.user }, { status: "inactive" });
   } else {
     person.status = "inactive";
     await person.save();

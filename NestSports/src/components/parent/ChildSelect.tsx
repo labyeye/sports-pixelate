@@ -44,7 +44,9 @@ export function ChildSelect({
       icon={GraduationCap}
       value={current ? labelOf(current) : allowAll ? ALL : ''}
       options={[...(allowAll ? [ALL] : []), ...byLabel.keys()]}
-      onChange={label => onChange(label === ALL ? '' : byLabel.get(label) || '')}
+      onChange={label =>
+        onChange(label === ALL ? '' : byLabel.get(label) || '')
+      }
     />
   );
 }

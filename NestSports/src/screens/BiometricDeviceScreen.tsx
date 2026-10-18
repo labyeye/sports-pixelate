@@ -202,7 +202,10 @@ export default function BiometricDeviceScreen() {
   const handleSaveSerial = async () => {
     if (!syncDevice || serialSaving) return;
     if (!syncSerial.trim()) {
-      Alert.alert('Missing information', 'Please enter the device serial number.');
+      Alert.alert(
+        'Missing information',
+        'Please enter the device serial number.',
+      );
       return;
     }
     setSerialSaving(true);

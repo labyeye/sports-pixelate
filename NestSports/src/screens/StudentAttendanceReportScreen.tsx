@@ -214,7 +214,6 @@ export default function StudentAttendanceReportScreen() {
       </View>
 
       <FilterPills
-
         inset
         options={[
           { value: '', label: 'All Batches' },

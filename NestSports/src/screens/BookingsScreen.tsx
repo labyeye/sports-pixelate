@@ -222,7 +222,10 @@ export default function BookingsScreen() {
               await bookingAPI.cancel(id);
               await load();
             } catch (e: unknown) {
-              Alert.alert('Error', getErrorMessage(e) || 'Failed to cancel booking');
+              Alert.alert(
+                'Error',
+                getErrorMessage(e) || 'Failed to cancel booking',
+              );
             } finally {
               setCancellingId(null);
             }

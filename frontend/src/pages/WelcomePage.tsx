@@ -1,3 +1,4 @@
+import { writePrintDocument } from "@/lib/printWindow";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,9 +72,7 @@ export default function WelcomePage() {
       const html = buildInvoiceHTML(latestInvoice);
       const w = window.open("", "_blank");
       if (w) {
-        w.document.write(html);
-        w.document.close();
-        setTimeout(() => w.print(), 500);
+        writePrintDocument(w, html, true);
       }
     } finally {
       setDownloading(false);

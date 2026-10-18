@@ -83,7 +83,11 @@ export default function EventsPage() {
       setPages(r.pages || 1);
       setTotal(r.total ?? r.data.length);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -99,7 +103,11 @@ export default function EventsPage() {
       setPage(next);
       setPages(r.pages || 1);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setLoadingMore(false);
   };
@@ -130,7 +138,11 @@ export default function EventsPage() {
       setShowCreateModal(false);
       navigate(`/events/${id}`);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setCreating(false);
     }

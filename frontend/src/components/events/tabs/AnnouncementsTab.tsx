@@ -33,7 +33,11 @@ export function AnnouncementsTab({ eventId }: Props) {
       const res = await eventAPI.getAnnouncements(eventId);
       setItems(res.data || []);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -47,7 +51,11 @@ export function AnnouncementsTab({ eventId }: Props) {
   const post = async () => {
     if (posting) return;
     if (!title.trim() || !message.trim()) {
-      toast({ title: "Missing information", description: "Please enter both a title and a message.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please enter both a title and a message.",
+        variant: "destructive",
+      });
       return;
     }
     setPosting(true);
@@ -60,7 +68,11 @@ export function AnnouncementsTab({ eventId }: Props) {
       setMessage("");
       await load();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setPosting(false);
     }

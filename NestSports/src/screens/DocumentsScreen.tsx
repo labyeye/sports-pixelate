@@ -176,7 +176,10 @@ export default function DocumentsScreen() {
               await documentAPI.delete(doc._id);
               setDocuments(prev => prev.filter(d => d._id !== doc._id));
             } catch (e: unknown) {
-              Alert.alert('Error', (e as Error)?.message || 'Could not delete document');
+              Alert.alert(
+                'Error',
+                (e as Error)?.message || 'Could not delete document',
+              );
             }
           },
         },
@@ -237,7 +240,10 @@ export default function DocumentsScreen() {
       setFormVisible(false);
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not upload document');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not upload document',
+      );
     } finally {
       setUploading(false);
     }
@@ -253,7 +259,10 @@ export default function DocumentsScreen() {
         : `data:${mimeType || 'application/octet-stream'};base64,${fileData}`;
       await Share.share({ url: uri, title: name || doc.name });
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not download document');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not download document',
+      );
     } finally {
       setDownloadingId(null);
     }

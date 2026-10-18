@@ -96,7 +96,11 @@ export default function OverviewTab({ event }: { event: any }) {
         />
         <KpiTile
           label="Attendance"
-          value={stats?.attendancePercent != null ? `${stats.attendancePercent}%` : '—'}
+          value={
+            stats?.attendancePercent != null
+              ? `${stats.attendancePercent}%`
+              : '—'
+          }
           color={colors.muted}
           icon={Percent}
         />
@@ -106,7 +110,21 @@ export default function OverviewTab({ event }: { event: any }) {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  description: { fontFamily: FONT.medium, fontSize: 13, color: colors.black, marginBottom: 6 },
-  muted: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginBottom: 6 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  description: {
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    color: colors.black,
+    marginBottom: 6,
+  },
+  muted: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginBottom: 6,
+  },
 });

@@ -10,7 +10,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { IndianRupee, Wallet, CheckCircle2, Plus, X } from 'lucide-react-native';
+import {
+  IndianRupee,
+  Wallet,
+  CheckCircle2,
+  Plus,
+  X,
+} from 'lucide-react-native';
 import { loanAPI } from '../api/client';
 import {
   Badge,
@@ -86,7 +92,10 @@ export default function MyLoansScreen() {
       Alert.alert('Request sent', 'Your request is pending approval.');
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not submit the request');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not submit the request',
+      );
     } finally {
       setSaving(false);
     }
@@ -112,7 +121,11 @@ export default function MyLoansScreen() {
       >
         <View style={styles.headerRow}>
           <Text style={styles.title}>My Loans</Text>
-          <TouchableOpacity onPress={() => setFormOpen(true)} style={styles.addBtn} hitSlop={8}>
+          <TouchableOpacity
+            onPress={() => setFormOpen(true)}
+            style={styles.addBtn}
+            hitSlop={8}
+          >
             <Plus size={14} color={colors.white} strokeWidth={2.5} />
             <Text style={styles.addBtnText}>Request</Text>
           </TouchableOpacity>
@@ -152,15 +165,15 @@ export default function MyLoansScreen() {
                 title={`${
                   (l.type || 'loan') === 'advance' ? 'Advance' : 'Loan'
                 } · ${formatCurrency(l.amount)}`}
-                subtitle={
-                  [
-                    l.remainingBalance != null ? `Remaining: ${formatCurrency(l.remainingBalance)}` : '',
-                    l.tenureMonths ? `${l.tenureMonths} mo` : '',
-                    l.reason || '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')
-                }
+                subtitle={[
+                  l.remainingBalance != null
+                    ? `Remaining: ${formatCurrency(l.remainingBalance)}`
+                    : '',
+                  l.tenureMonths ? `${l.tenureMonths} mo` : '',
+                  l.reason || '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
                 right={
                   <Badge
                     label={l.status}
@@ -186,7 +199,10 @@ export default function MyLoansScreen() {
               <X size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+          >
             <ChipSelect
               label="Type"
               options={['loan', 'advance'] as const}
@@ -194,11 +210,28 @@ export default function MyLoansScreen() {
               value={type}
               onChange={setType}
             />
-            <TextField label="Amount (₹)" value={amount} onChangeText={setAmount} keyboardType="numeric" required />
+            <TextField
+              label="Amount (₹)"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              required
+            />
             {type === 'loan' && (
-              <TextField label="Repay over (months)" value={tenure} onChangeText={setTenure} keyboardType="numeric" />
+              <TextField
+                label="Repay over (months)"
+                value={tenure}
+                onChangeText={setTenure}
+                keyboardType="numeric"
+              />
             )}
-            <TextField label="Reason" value={reason} onChangeText={setReason} multiline required />
+            <TextField
+              label="Reason"
+              value={reason}
+              onChangeText={setReason}
+              multiline
+              required
+            />
             <Button title="Submit Request" onPress={submit} loading={saving} />
           </ScrollView>
         </SafeAreaView>
@@ -209,11 +242,43 @@ export default function MyLoansScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   title: { fontSize: 24, fontWeight: '800', color: colors.black },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.blue, borderWidth: 2, borderRadius: 8, borderRightWidth: 5, borderBottomWidth: 5, borderRightColor: '#0A0A0A', borderBottomColor: '#0A0A0A', borderColor: colors.black, paddingHorizontal: 12, paddingVertical: 8 },
-  addBtnText: { color: colors.white, fontSize: 12, fontFamily: FONT.bold, textTransform: 'uppercase' },
-  formHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: colors.black },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.blue,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderColor: colors.black,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addBtnText: {
+    color: colors.white,
+    fontSize: 12,
+    fontFamily: FONT.bold,
+    textTransform: 'uppercase',
+  },
+  formHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.black,
+  },
   formTitle: { fontSize: 17, color: colors.black, fontFamily: FONT.bold },
   kpiGrid: {
     flexDirection: 'row',

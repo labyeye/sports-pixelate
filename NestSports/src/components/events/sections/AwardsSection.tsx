@@ -30,7 +30,8 @@ export default function AwardsSection({
   value: AwardsData;
   onChange: (v: AwardsData) => void;
 }) {
-  const set = (key: keyof AwardsData, v: any) => onChange({ ...value, [key]: v });
+  const set = (key: keyof AwardsData, v: any) =>
+    onChange({ ...value, [key]: v });
 
   return (
     <CollapsibleSection title="Awards" icon={Award}>

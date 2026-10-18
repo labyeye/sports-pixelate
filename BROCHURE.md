@@ -25,6 +25,7 @@ NestPlay puts all of it on one login, one database, one app:
 Every student's academy journey — enrollment, guardians, sport, and history — lives in one searchable profile instead of a paper file or spreadsheet row. Admins can add a single student in seconds or bulk-import hundreds via Excel. Parents and guardians are linked directly to the student record, not tracked separately.
 
 **Features:**
+
 - Full student profiles: sport, batch, coach, blood group, address, and sports experience level
 - Multiple guardians per student with relation, phone, and photo
 - Face enrollment for attendance recognition, plus profile photo
@@ -36,6 +37,7 @@ Every student's academy journey — enrollment, guardians, sport, and history �
 Attendance is captured the way it actually happens on the ground — a coach's face-scan, a self check-in with GPS, or a biometric device at the gate — not a register filled in after the fact. Every record auto-calculates work hours, flags lateness, and respects each person's actual weekly schedule.
 
 **Features:**
+
 - Face-recognition check-in for students; geofenced selfie check-in for staff
 - Daily attendance grid with present/absent/late/half-day/leave/holiday states
 - Bulk marking for entire batches or teams in one tap
@@ -47,6 +49,7 @@ Attendance is captured the way it actually happens on the ground — a coach's f
 Fee collection moves from "chase the parent" to "scan and confirm." Plans, subscriptions, and renewals are all tracked against the student record, with online payment and QR-based renewal built in — so nothing depends on someone remembering to update a register.
 
 **Features:**
+
 - Coaching plan catalog with pricing, editable and bulk-importable
 - QR-code renewal: parent submits payment proof, admin verifies or rejects in-app
 - Razorpay/HDFC online payment with automatic verification
@@ -58,6 +61,7 @@ Fee collection moves from "chase the parent" to "scan and confirm." Plans, subsc
 Staff records, payroll, loans, and leave are handled without a separate HR system. Payroll pulls directly from actual attendance — present days, overtime, and deductions are calculated automatically instead of estimated by hand.
 
 **Features:**
+
 - Employee CRUD with document vault and Excel bulk import
 - Payroll preview → process → mark-paid, individually or in bulk
 - Automatic WhatsApp payslip delivery with PDF and salary breakdown
@@ -69,6 +73,7 @@ Staff records, payroll, loans, and leave are handled without a separate HR syste
 Tournaments, showcases, and camps are run inside the same system that holds the student roster — so registrations, fixtures, results, and fees never need to be tracked separately from everyday academy data.
 
 **Features:**
+
 - Configurable event types: tournaments, championships, dance showcases, workshops, camps
 - Automatic fixture generation and result recording
 - Team/participant registration with judges and officials management
@@ -80,6 +85,7 @@ Tournaments, showcases, and camps are run inside the same system that holds the 
 Parents, coaches, and staff stay informed without anyone manually sending a message. Every key event in the system — a check-in, a fee due, a payslip, a leave decision — can trigger a real WhatsApp message automatically.
 
 **Features:**
+
 - WhatsApp check-in/check-out alerts to parents in real time
 - Automated fee reminders and subscription confirmations
 - Payslip delivery via WhatsApp with PDF attachment
@@ -91,6 +97,7 @@ Parents, coaches, and staff stay informed without anyone manually sending a mess
 Owners and admins get a single dashboard for everything the academy is doing — attendance trends, fee collections, enrollment, and staff performance — instead of piecing it together from separate exports.
 
 **Features:**
+
 - Batch-wise and sport-wise summary reports
 - Student attendance, enrollment, and performance reports
 - Fee/payment history and outstanding dues tracking
@@ -102,6 +109,7 @@ Owners and admins get a single dashboard for everything the academy is doing —
 Equipment and facilities are tracked like everything else in NestPlay — assigned to a person, booked against a schedule, and accounted for — instead of managed off-system on a whiteboard or notebook.
 
 **Features:**
+
 - Inventory CRUD with photo per item and stock-in/out transactions
 - Equipment assignment to students/coaches with return tracking
 - Bulk import of inventory via Excel
@@ -113,6 +121,7 @@ Equipment and facilities are tracked like everything else in NestPlay — assign
 Physical access and attendance hardware plug directly into the same system as the rest of the academy — so a fingerprint or face scan at the gate updates the same attendance record used for payroll and parent alerts.
 
 **Features:**
+
 - Register and manage biometric devices across multiple locations
 - Push face templates, fingerprints, and RFID/NFC cards to hardware remotely
 - Real hardware protocol support (ADMS) for industry-standard biometric terminals

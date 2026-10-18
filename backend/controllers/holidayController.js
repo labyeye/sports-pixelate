@@ -5,7 +5,7 @@ const { safePagination } = require("../middleware/validate");
 const HOLIDAY_TYPES = ["national", "optional", "restricted"];
 
 const getHolidays = asyncHandler(async (req, res) => {
-  const { page, limit, skip } = safePagination(req.query, 100, 400);
+  const { limit, skip } = safePagination(req.query, 100, 400);
   const { year } = req.query;
   const filter = { company: req.user.company };
 

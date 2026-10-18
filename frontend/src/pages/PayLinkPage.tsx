@@ -84,7 +84,9 @@ export default function PayLinkPage() {
 
       if (order.gateway === "cashfree") {
         if (!(await loadCashfreeScript())) {
-          throw new Error("Couldn't load the payment page. Check your connection.");
+          throw new Error(
+            "Couldn't load the payment page. Check your connection.",
+          );
         }
         const cashfree = await (window as any).Cashfree({
           mode: import.meta.env.PROD ? "production" : "sandbox",
@@ -97,7 +99,9 @@ export default function PayLinkPage() {
         await payLinkAPI.verify(token);
       } else {
         if (!(await loadRazorpayScript())) {
-          throw new Error("Couldn't load the payment page. Check your connection.");
+          throw new Error(
+            "Couldn't load the payment page. Check your connection.",
+          );
         }
         await new Promise<void>((resolve, reject) => {
           const rzp = new window.Razorpay({
@@ -248,7 +252,11 @@ function Row({
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className="text-xs font-bold uppercase text-gray-500">{label}</span>
-      <span className={strong ? "font-bold text-lg text-black" : "font-semibold text-black"}>
+      <span
+        className={
+          strong ? "font-bold text-lg text-black" : "font-semibold text-black"
+        }
+      >
         {value}
       </span>
     </div>

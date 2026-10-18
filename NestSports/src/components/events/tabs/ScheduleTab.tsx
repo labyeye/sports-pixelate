@@ -36,7 +36,11 @@ export default function ScheduleTab({ event }: { event: any }) {
         <Row title="Event Date" subtitle={fmt(schedule.eventDate)} noBorder />
         <Row title="Start Time" subtitle={fmt(schedule.startTime)} noBorder />
         <Row title="End Time" subtitle={fmt(schedule.endTime)} noBorder />
-        <Row title="Check-in Time" subtitle={fmt(schedule.checkInTime)} noBorder />
+        <Row
+          title="Check-in Time"
+          subtitle={fmt(schedule.checkInTime)}
+          noBorder
+        />
         <Row
           title="Registration Opens"
           subtitle={fmt(schedule.registrationOpensAt)}

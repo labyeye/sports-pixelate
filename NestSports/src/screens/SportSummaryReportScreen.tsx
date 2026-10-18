@@ -124,7 +124,6 @@ export default function SportSummaryReportScreen() {
       </View>
 
       <FilterPills
-
         inset
         options={[
           { value: '', label: 'All Sports' },

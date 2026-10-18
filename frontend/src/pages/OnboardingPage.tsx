@@ -7,7 +7,6 @@ import { Toaster } from "@/components/ui/Toaster";
 import CompanyDetailsForm from "@/components/CompanyDetailsForm";
 import {
   Check,
-  Zap,
   Loader2,
   ChevronRight,
   ExternalLink,
@@ -16,7 +15,6 @@ import {
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import nestplayLogo from "../../assets/logo.png";
-import { Arrow } from "@radix-ui/react-select";
 declare global {
   interface Window {
     Razorpay: any;
@@ -255,11 +253,7 @@ export default function OnboardingPage() {
       <header className="bg-white border-b-2 border-black sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img
-              src={nestplayLogo}
-              alt="NestPlay"
-              className="w-full h-14"
-            />
+            <img src={nestplayLogo} alt="NestPlay" className="w-full h-14" />
           </div>
           <button
             onClick={logout}
@@ -340,7 +334,9 @@ export default function OnboardingPage() {
                 value={employeeCount}
                 onChange={(e) =>
                   setEmployeeCount(
-                    e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value) || 0),
+                    e.target.value === ""
+                      ? ""
+                      : Math.max(0, parseInt(e.target.value) || 0),
                   )
                 }
                 placeholder="e.g. 5"

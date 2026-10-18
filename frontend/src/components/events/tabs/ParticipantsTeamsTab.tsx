@@ -53,7 +53,11 @@ function RegistrationPanel({ event, onChanged }: Props) {
       else await eventAPI.register(event._id, studentId);
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setBusyId(null);
     }
@@ -128,7 +132,11 @@ function TeamsPanel({ event, onChanged }: Props) {
       setNewTeam("");
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setAddingTeam(false);
     }
@@ -139,7 +147,11 @@ function TeamsPanel({ event, onChanged }: Props) {
       await eventAPI.removeTeam(event._id, teamId);
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

@@ -129,7 +129,11 @@ export default function HolidaysPage() {
       const r = await holidayAPI.getAll({ year: String(year) });
       setHolidays(r.data);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -182,7 +186,11 @@ export default function HolidaysPage() {
       }
       resetForm();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -195,7 +203,11 @@ export default function HolidaysPage() {
       setHolidays((p) => p.filter((h) => h._id !== id));
       toast({ title: "Holiday deleted" });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
   };
 

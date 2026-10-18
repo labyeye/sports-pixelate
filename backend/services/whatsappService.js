@@ -673,7 +673,15 @@ async function sendSalaryPaid(
  */
 async function sendPaymentVerified(
   phone,
-  { guardianName, studentName, planName, amount, paymentMode, paidOn, balanceDue },
+  {
+    guardianName,
+    studentName,
+    planName,
+    amount,
+    paymentMode,
+    paidOn,
+    balanceDue,
+  },
   companyId,
   pdfBuffer = null,
 ) {
@@ -709,7 +717,11 @@ async function sendPaymentVerified(
       }
     }
 
-    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR", cash: "Cash" };
+    const MODE_LABELS = {
+      razorpay: "Online (Razorpay)",
+      qr: "UPI / QR",
+      cash: "Cash",
+    };
     const modeLabel = MODE_LABELS[paymentMode] || "UPI / QR";
     const toISTDateStr = (d) => {
       const ist = new Date(new Date(d).getTime() + 5.5 * 60 * 60 * 1000);
@@ -732,7 +744,9 @@ async function sendPaymentVerified(
       s.whatsappLang || "en",
       extraComponents,
     );
-    logger.debug(`[WA-DEBUG] ✅ Payment verified notification sent to ${phone}`);
+    logger.debug(
+      `[WA-DEBUG] ✅ Payment verified notification sent to ${phone}`,
+    );
   } catch (err) {
     console.error("[WhatsApp] sendPaymentVerified:", err.message);
   }
@@ -811,7 +825,11 @@ async function sendPaymentVerifiedAdmin(
       }
     }
 
-    const MODE_LABELS = { razorpay: "Online (Razorpay)", qr: "UPI / QR", cash: "Cash" };
+    const MODE_LABELS = {
+      razorpay: "Online (Razorpay)",
+      qr: "UPI / QR",
+      cash: "Cash",
+    };
     const modeLabel = MODE_LABELS[paymentMode] || "UPI / QR";
 
     await sendTemplate(
@@ -883,7 +901,9 @@ async function sendPaymentRejected(
       ],
       s.whatsappLang || "en",
     );
-    logger.debug(`[WA-DEBUG] ✅ Payment rejected notification sent to ${phone}`);
+    logger.debug(
+      `[WA-DEBUG] ✅ Payment rejected notification sent to ${phone}`,
+    );
   } catch (err) {
     console.error("[WhatsApp] sendPaymentRejected:", err.message);
   }
@@ -1127,7 +1147,10 @@ async function sendPhoneOtp(phone, { otp }) {
   // Meta stores templates per locale (en, en_US, en_GB…). If the configured
   // one isn't found (132001), try the other English variants.
   const primary = "en";
-  const langs = [primary, ...["en", "en_US", "en_GB"].filter((l) => l !== primary)];
+  const langs = [
+    primary,
+    ...["en", "en_US", "en_GB"].filter((l) => l !== primary),
+  ];
 
   try {
     let lastErr;

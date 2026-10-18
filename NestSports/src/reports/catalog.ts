@@ -25,7 +25,13 @@ export type ReportFilter =
       label: string;
       options: { value: string; label: string }[];
     }
-  | { kind: 'text'; key: string; label: string; placeholder?: string; numeric?: boolean }
+  | {
+      kind: 'text';
+      key: string;
+      label: string;
+      placeholder?: string;
+      numeric?: boolean;
+    }
   | { kind: 'ref'; key: string; label: string; load: () => Promise<any[]> };
 
 export type ReportCategory = 'payroll' | 'attendance' | 'employee' | 'student';
@@ -59,7 +65,10 @@ const date = (d?: string) =>
     : dash;
 const time = (d?: string, fallback = dash) =>
   d
-    ? new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(d).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : fallback;
 const person = (e?: any) => (e ? `${e.firstName} ${e.lastName}` : dash);
 const upper = (s?: string) => (s ? s.toUpperCase().replace(/_/g, ' ') : dash);
@@ -69,33 +78,47 @@ const deptParam = (f: Filters): Record<string, string> =>
   f.dept && f.dept !== 'all' ? { department: f.dept } : {};
 
 const payrolls = async (f: Filters): Promise<any[]> =>
-  ((await fetchAllPages(payrollAPI.getAll, { month: f.month, year: f.year, limit: '500' })) as any)
-    .data || [];
+  (
+    (await fetchAllPages(payrollAPI.getAll, {
+      month: f.month,
+      year: f.year,
+      limit: '500',
+    })) as any
+  ).data || [];
 
 // Payroll rows only populate a few employee fields (no bank / PF / ESIC), so the
 // statutory reports join the full employee record by id.
 const employeesById = async (): Promise<Map<string, any>> => {
   const list: any[] =
-    ((await fetchAllPages(employeeAPI.getAll, { limit: '500' })) as any).data || [];
+    ((await fetchAllPages(employeeAPI.getAll, { limit: '500' })) as any).data ||
+    [];
   return new Map(list.map(e => [e._id, e]));
 };
 
 const attendance = async (f: Filters): Promise<any[]> =>
-  ((await fetchAllPages(attendanceAPI.getAll, {
-    month: f.month,
-    year: f.year,
-    limit: '500',
-    ...deptParam(f),
-  })) as any).data || [];
+  (
+    (await fetchAllPages(attendanceAPI.getAll, {
+      month: f.month,
+      year: f.year,
+      limit: '500',
+      ...deptParam(f),
+    })) as any
+  ).data || [];
 
 // Per-employee status counts — shared by the two summary reports.
 const attendanceSummary = (recs: any[]): string[][] => {
   const byEmp = new Map<string, any>();
   for (const r of recs) {
     if (!r.employee) continue;
-    const e =
-      byEmp.get(r.employee._id) ||
-      { emp: r.employee, present: 0, late: 0, absent: 0, leave: 0, half: 0, total: 0 };
+    const e = byEmp.get(r.employee._id) || {
+      emp: r.employee,
+      present: 0,
+      late: 0,
+      absent: 0,
+      leave: 0,
+      half: 0,
+      total: 0,
+    };
     byEmp.set(r.employee._id, e);
     e.total++;
     if (r.status === 'present') e.present++;
@@ -114,7 +137,9 @@ const attendanceSummary = (recs: any[]): string[][] => {
     String(e.absent),
     String(e.leave),
     String(e.half),
-    e.total > 0 ? `${(((e.present + e.late) / e.total) * 100).toFixed(1)}%` : '0%',
+    e.total > 0
+      ? `${(((e.present + e.late) / e.total) * 100).toFixed(1)}%`
+      : '0%',
   ]);
 };
 
@@ -149,7 +174,22 @@ export const REPORTS: ReportDef[] = [
     category: 'payroll',
     filters: MONTH,
     run: async f => ({
-      headers: ['Employee', 'Emp ID', 'Department', 'Basic', 'HRA', 'DA', 'TA', 'Medical', 'Gross', 'PF', 'ESI', 'TDS', 'Net Pay', 'Status'],
+      headers: [
+        'Employee',
+        'Emp ID',
+        'Department',
+        'Basic',
+        'HRA',
+        'DA',
+        'TA',
+        'Medical',
+        'Gross',
+        'PF',
+        'ESI',
+        'TDS',
+        'Net Pay',
+        'Status',
+      ],
       rows: (await payrolls(f)).map(p => [
         person(p.employee),
         p.employee?.employeeId || dash,
@@ -175,7 +215,24 @@ export const REPORTS: ReportDef[] = [
     category: 'payroll',
     filters: MONTH,
     run: async f => ({
-      headers: ['Emp ID', 'Name', 'Dept', 'Basic', 'HRA', 'DA', 'TA', 'Medical', 'Other Allow.', 'Gross', 'PF Emp.', 'ESI Emp.', 'TDS', 'Prof Tax', 'Total Ded.', 'Net Pay'],
+      headers: [
+        'Emp ID',
+        'Name',
+        'Dept',
+        'Basic',
+        'HRA',
+        'DA',
+        'TA',
+        'Medical',
+        'Other Allow.',
+        'Gross',
+        'PF Emp.',
+        'ESI Emp.',
+        'TDS',
+        'Prof Tax',
+        'Total Ded.',
+        'Net Pay',
+      ],
       rows: (await payrolls(f)).map(p => [
         p.employee?.employeeId || dash,
         person(p.employee),
@@ -203,7 +260,16 @@ export const REPORTS: ReportDef[] = [
     category: 'payroll',
     filters: MONTH,
     run: async f => ({
-      headers: ['Emp ID', 'Employee Name', 'Department', 'Designation', 'Gross Salary', 'Total Deductions', 'Net Pay', 'Payment Status'],
+      headers: [
+        'Emp ID',
+        'Employee Name',
+        'Department',
+        'Designation',
+        'Gross Salary',
+        'Total Deductions',
+        'Net Pay',
+        'Payment Status',
+      ],
       rows: (await payrolls(f)).map(p => [
         p.employee?.employeeId || dash,
         person(p.employee),
@@ -225,7 +291,16 @@ export const REPORTS: ReportDef[] = [
     run: async f => {
       const [rows, emps] = await Promise.all([payrolls(f), employeesById()]);
       return {
-        headers: ['Emp ID', 'Employee Name', 'Department', 'UAN / PF No.', 'Basic Salary', 'PF (Employee 12%)', 'PF (Employer 12%)', 'Total PF'],
+        headers: [
+          'Emp ID',
+          'Employee Name',
+          'Department',
+          'UAN / PF No.',
+          'Basic Salary',
+          'PF (Employee 12%)',
+          'PF (Employer 12%)',
+          'Total PF',
+        ],
         rows: rows
           .filter(p => (p.pf || 0) > 0)
           .map(p => [
@@ -250,7 +325,16 @@ export const REPORTS: ReportDef[] = [
     run: async f => {
       const [rows, emps] = await Promise.all([payrolls(f), employeesById()]);
       return {
-        headers: ['Emp ID', 'Employee Name', 'Department', 'ESIC No.', 'Gross Salary', 'ESI (Employee 0.75%)', 'ESI (Employer 3.25%)', 'Total ESI'],
+        headers: [
+          'Emp ID',
+          'Employee Name',
+          'Department',
+          'ESIC No.',
+          'Gross Salary',
+          'ESI (Employee 0.75%)',
+          'ESI (Employer 3.25%)',
+          'Total ESI',
+        ],
         rows: rows
           .filter(p => (p.esi || 0) > 0)
           .map(p => {
@@ -278,7 +362,15 @@ export const REPORTS: ReportDef[] = [
     run: async f => {
       const [rows, emps] = await Promise.all([payrolls(f), employeesById()]);
       return {
-        headers: ['Emp ID', 'Employee Name', 'Bank Name', 'Account Number', 'IFSC Code', 'Net Pay', 'Payment Mode'],
+        headers: [
+          'Emp ID',
+          'Employee Name',
+          'Bank Name',
+          'Account Number',
+          'IFSC Code',
+          'Net Pay',
+          'Payment Mode',
+        ],
         rows: rows.map(p => {
           const e = emps.get(p.employee?._id) || p.employee || {};
           return [
@@ -312,12 +404,22 @@ export const REPORTS: ReportDef[] = [
     category: 'payroll',
     filters: MONTH_DEPT,
     run: async f => ({
-      headers: ['Date', 'Emp ID', 'Employee Name', 'Department', 'Check In Time', 'Expected Time', 'Late By'],
+      headers: [
+        'Date',
+        'Emp ID',
+        'Employee Name',
+        'Department',
+        'Check In Time',
+        'Expected Time',
+        'Late By',
+      ],
       rows: (await attendance(f))
         .filter(r => r.status === 'late')
         .map(r => {
           const c = r.checkIn ? new Date(r.checkIn) : null;
-          const late = c ? Math.max(0, (c.getHours() - 9) * 60 + c.getMinutes()) : 0;
+          const late = c
+            ? Math.max(0, (c.getHours() - 9) * 60 + c.getMinutes())
+            : 0;
           return [
             date(r.date),
             r.employee?.employeeId || dash,
@@ -338,17 +440,35 @@ export const REPORTS: ReportDef[] = [
     filters: [],
     run: async () => {
       const emps: any[] =
-        ((await fetchAllPages(employeeAPI.getAll, { limit: '500', status: 'active' })) as any).data || [];
-      const by = new Map<string, { count: number; total: number; dept: string }>();
+        (
+          (await fetchAllPages(employeeAPI.getAll, {
+            limit: '500',
+            status: 'active',
+          })) as any
+        ).data || [];
+      const by = new Map<
+        string,
+        { count: number; total: number; dept: string }
+      >();
       for (const e of emps) {
         const k = e.designation || 'Unknown';
-        const cur = by.get(k) || { count: 0, total: 0, dept: e.department?.name || dash };
+        const cur = by.get(k) || {
+          count: 0,
+          total: 0,
+          dept: e.department?.name || dash,
+        };
         cur.count++;
         cur.total += e.salary || 0;
         by.set(k, cur);
       }
       return {
-        headers: ['Designation', 'Department', 'Employee Count', 'Total Payroll (p.a.)', 'Avg. Salary (p.a.)'],
+        headers: [
+          'Designation',
+          'Department',
+          'Employee Count',
+          'Total Payroll (p.a.)',
+          'Avg. Salary (p.a.)',
+        ],
         rows: Array.from(by.entries()).map(([d, v]) => [
           d,
           v.dept,
@@ -368,7 +488,16 @@ export const REPORTS: ReportDef[] = [
     category: 'attendance',
     filters: MONTH_DEPT,
     run: async f => ({
-      headers: ['Date', 'Employee', 'Emp ID', 'Department', 'Status', 'Check In', 'Check Out', 'Work Hours'],
+      headers: [
+        'Date',
+        'Employee',
+        'Emp ID',
+        'Department',
+        'Status',
+        'Check In',
+        'Check Out',
+        'Work Hours',
+      ],
       rows: (await attendance(f)).map(r => [
         date(r.date),
         person(r.employee),
@@ -388,7 +517,16 @@ export const REPORTS: ReportDef[] = [
     category: 'attendance',
     filters: MONTH_DEPT,
     run: async f => ({
-      headers: ['Date', 'Employee', 'Emp ID', 'Department', 'In Time', 'Out Time', 'Total Hours', 'Status'],
+      headers: [
+        'Date',
+        'Employee',
+        'Emp ID',
+        'Department',
+        'In Time',
+        'Out Time',
+        'Total Hours',
+        'Status',
+      ],
       rows: (await attendance(f))
         .filter(r => r.checkIn)
         .map(r => [
@@ -425,7 +563,18 @@ export const REPORTS: ReportDef[] = [
         kind: 'select',
         key: 'leaveType',
         label: 'Leave type',
-        options: opts(['casual', 'sick', 'earned', 'maternity', 'paternity', 'unpaid', 'compensatory', 'hourly', 'wfh', 'outdoor_duty']),
+        options: opts([
+          'casual',
+          'sick',
+          'earned',
+          'maternity',
+          'paternity',
+          'unpaid',
+          'compensatory',
+          'hourly',
+          'wfh',
+          'outdoor_duty',
+        ]),
       },
       {
         kind: 'select',
@@ -438,9 +587,20 @@ export const REPORTS: ReportDef[] = [
       const params: Record<string, string> = { limit: '500', year: f.year };
       if (f.leaveType && f.leaveType !== 'all') params.leaveType = f.leaveType;
       if (f.status && f.status !== 'all') params.status = f.status;
-      const data: any[] = ((await fetchAllPages(leaveAPI.getAll, params)) as any).data || [];
+      const data: any[] =
+        ((await fetchAllPages(leaveAPI.getAll, params)) as any).data || [];
       return {
-        headers: ['Emp ID', 'Employee', 'Department', 'Leave Type', 'From', 'To', 'Days', 'Reason', 'Status'],
+        headers: [
+          'Emp ID',
+          'Employee',
+          'Department',
+          'Leave Type',
+          'From',
+          'To',
+          'Days',
+          'Reason',
+          'Status',
+        ],
         rows: data.map(l => [
           l.employee?.employeeId || dash,
           person(l.employee),
@@ -462,7 +622,15 @@ export const REPORTS: ReportDef[] = [
     category: 'attendance',
     filters: MONTH_DEPT,
     run: async f => ({
-      headers: ['Date', 'Emp ID', 'Employee', 'Department', 'Check In', 'Check Out', 'Remark'],
+      headers: [
+        'Date',
+        'Emp ID',
+        'Employee',
+        'Department',
+        'Check In',
+        'Check Out',
+        'Remark',
+      ],
       rows: (await attendance(f))
         .filter(r => r.checkIn && !r.checkOut)
         .map(r => [
@@ -495,9 +663,21 @@ export const REPORTS: ReportDef[] = [
     run: async f => {
       const params: Record<string, string> = { limit: '500', ...deptParam(f) };
       if (f.status && f.status !== 'all') params.status = f.status;
-      const data: any[] = ((await fetchAllPages(employeeAPI.getAll, params)) as any).data || [];
+      const data: any[] =
+        ((await fetchAllPages(employeeAPI.getAll, params)) as any).data || [];
       return {
-        headers: ['Emp ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Type', 'Join Date', 'Salary (p.a.)', 'Status'],
+        headers: [
+          'Emp ID',
+          'Name',
+          'Email',
+          'Phone',
+          'Department',
+          'Designation',
+          'Type',
+          'Join Date',
+          'Salary (p.a.)',
+          'Status',
+        ],
         rows: data.map(e => [
           e.employeeId || dash,
           `${e.firstName} ${e.lastName}`,
@@ -527,17 +707,40 @@ export const REPORTS: ReportDef[] = [
         label: 'Status',
         options: opts(['active', 'inactive', 'cancelled', 'pending_renewal']),
       },
-      { kind: 'text', key: 'from', label: 'From (YYYY-MM-DD)', placeholder: '2026-01-01' },
-      { kind: 'text', key: 'to', label: 'To (YYYY-MM-DD)', placeholder: '2026-12-31' },
+      {
+        kind: 'text',
+        key: 'from',
+        label: 'From (YYYY-MM-DD)',
+        placeholder: '2026-01-01',
+      },
+      {
+        kind: 'text',
+        key: 'to',
+        label: 'To (YYYY-MM-DD)',
+        placeholder: '2026-12-31',
+      },
     ],
     run: async f => {
       const params: Record<string, string> = { limit: '500' };
       if (f.status && f.status !== 'all') params.status = f.status;
       if (f.from) params.from = f.from;
       if (f.to) params.to = f.to;
-      const data: any[] = ((await reportAPI.studentFees(params)) as any).data || [];
+      const data: any[] =
+        ((await reportAPI.studentFees(params)) as any).data || [];
       return {
-        headers: ['Student', 'Student ID', 'Sport', 'Batch', 'Plan', 'Billing Cycle', 'Amount', 'Amount Paid', 'Status', 'Start Date', 'Renewal Date'],
+        headers: [
+          'Student',
+          'Student ID',
+          'Sport',
+          'Batch',
+          'Plan',
+          'Billing Cycle',
+          'Amount',
+          'Amount Paid',
+          'Status',
+          'Start Date',
+          'Renewal Date',
+        ],
         rows: data.map(s => [
           person(s.student),
           s.student?.studentId || dash,
@@ -559,13 +762,30 @@ export const REPORTS: ReportDef[] = [
     name: 'Student Outstanding Dues',
     desc: 'Students with unpaid balances.',
     category: 'student',
-    filters: [{ kind: 'text', key: 'minAmount', label: 'Minimum due (₹)', numeric: true }],
+    filters: [
+      {
+        kind: 'text',
+        key: 'minAmount',
+        label: 'Minimum due (₹)',
+        numeric: true,
+      },
+    ],
     run: async f => {
       const params: Record<string, string> = {};
       if (f.minAmount) params.minAmount = f.minAmount;
-      const data: any[] = ((await reportAPI.studentOutstanding(params)) as any).data || [];
+      const data: any[] =
+        ((await reportAPI.studentOutstanding(params)) as any).data || [];
       return {
-        headers: ['Student', 'Student ID', 'Plan', 'Amount', 'Amount Paid', 'Due', 'Status', 'Renewal Date'],
+        headers: [
+          'Student',
+          'Student ID',
+          'Plan',
+          'Amount',
+          'Amount Paid',
+          'Due',
+          'Status',
+          'Renewal Date',
+        ],
         rows: data.map(r => [
           person(r.student),
           r.student?.studentId || dash,
@@ -590,14 +810,26 @@ export const REPORTS: ReportDef[] = [
         key: 'tournamentId',
         label: 'Tournament',
         load: async () =>
-          ((await eventAPI.getAll({ eventType: 'tournament' })) as any).data || [],
+          ((await eventAPI.getAll({ eventType: 'tournament' })) as any).data ||
+          [],
       },
     ],
     run: async f => {
       if (!f.tournamentId) return { headers: ['Round'], rows: [] };
-      const data: any[] = ((await eventAPI.getFixtures(f.tournamentId)) as any).data || [];
+      const data: any[] =
+        ((await eventAPI.getFixtures(f.tournamentId)) as any).data || [];
       return {
-        headers: ['Round', 'Team A', 'Team B', 'Score A', 'Score B', 'Winner', 'Status', 'Date', 'Venue'],
+        headers: [
+          'Round',
+          'Team A',
+          'Team B',
+          'Score A',
+          'Score B',
+          'Winner',
+          'Status',
+          'Date',
+          'Venue',
+        ],
         rows: [...data]
           .sort((a, b) => a.round - b.round || a.matchIndex - b.matchIndex)
           .map(x => [
@@ -606,7 +838,11 @@ export const REPORTS: ReportDef[] = [
             x.teamB?.name || 'TBD',
             String(x.scoreA ?? dash),
             String(x.scoreB ?? dash),
-            x.winner === 'A' ? x.teamA?.name || 'A' : x.winner === 'B' ? x.teamB?.name || 'B' : dash,
+            x.winner === 'A'
+              ? x.teamA?.name || 'A'
+              : x.winner === 'B'
+                ? x.teamB?.name || 'B'
+                : dash,
             upper(x.status),
             date(x.date),
             x.venue || dash,

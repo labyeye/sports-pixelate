@@ -7,15 +7,12 @@ const getDesignations = asyncHandler(async (req, res) => {
   const desigs = await Designation.find({ company: req.user.company })
     .populate("department", "name")
     .sort({ createdAt: -1 });
-  const withCounts = await Promise.all(
-    desigs.map(async (d) => {
-      const count = await Employee.countDocuments({
-        company: req.user.company,
-        designation: d.name,
-      });
-      return { ...d.toObject(), employeeCount: count };
-    }),
-  );
+  const counts = await Employee.aggregate([
+    { $match: { company: req.user.company, designation: { $in: desigs.map((d) => d.name) } } },
+    { $group: { _id: "$designation", n: { $sum: 1 } } },
+  ]);
+  const byName = new Map(counts.map((c) => [c._id, c.n]));
+  const withCounts = desigs.map((d) => ({ ...d.toObject(), employeeCount: byName.get(d.name) || 0 }));
   res.json({ success: true, data: withCounts });
 });
 

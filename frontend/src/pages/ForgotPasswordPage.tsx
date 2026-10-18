@@ -59,7 +59,9 @@ export default function ForgotPasswordPage() {
     try {
       await fn();
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || "Something went wrong. Please try again.");
+      setError(
+        getErrorMessage(err) || "Something went wrong. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -244,7 +246,9 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleReset} className="space-y-4">
                 <div>
                   <label className={labelCls}>
-                    {method === "whatsapp" ? "WhatsApp code" : "Authenticator code"}
+                    {method === "whatsapp"
+                      ? "WhatsApp code"
+                      : "Authenticator code"}
                   </label>
                   <input
                     type="text"

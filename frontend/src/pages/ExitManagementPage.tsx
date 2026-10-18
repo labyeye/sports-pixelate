@@ -135,7 +135,11 @@ export default function ExitManagementPage() {
       setExits(res.data || []);
       if (res.summary) setSummary(res.summary);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -476,7 +480,11 @@ function InitiateModal({
       toast({ title: "Exit initiated" });
       onCreated(res.data._id);
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -682,7 +690,11 @@ function ExitDetailModal({
         notes: res.data.notes || "",
       });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
       onClose();
     }
   }, [id]);
@@ -713,7 +725,11 @@ function ExitDetailModal({
       await load();
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setBusy(null);
     }
@@ -775,12 +791,15 @@ function ExitDetailModal({
           <StatusBadge status={rec.status} />
           <TypeBadge type={rec.personType} />
           <span className="text-xs text-muted-foreground">
-            Exit date <b className="text-black">{formatDateOrDash(rec.exitDate)}</b>
+            Exit date{" "}
+            <b className="text-black">{formatDateOrDash(rec.exitDate)}</b>
             {rec.completedAt && (
               <>
                 {" "}
                 · Completed{" "}
-                <b className="text-black">{formatDateOrDash(rec.completedAt)}</b>
+                <b className="text-black">
+                  {formatDateOrDash(rec.completedAt)}
+                </b>
               </>
             )}
           </span>

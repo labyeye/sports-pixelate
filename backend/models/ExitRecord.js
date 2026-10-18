@@ -53,7 +53,13 @@ const exitRecordSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["initiated", "in_clearance", "completed", "cancelled", "reinstated"],
+      enum: [
+        "initiated",
+        "in_clearance",
+        "completed",
+        "cancelled",
+        "reinstated",
+      ],
       default: "initiated",
     },
     checklist: [checklistItemSchema],

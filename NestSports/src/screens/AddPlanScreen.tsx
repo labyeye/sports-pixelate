@@ -135,7 +135,10 @@ export default function AddPlanScreen({ navigation, route }: any) {
       );
       navigation.goBack();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not save coaching plan');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not save coaching plan',
+      );
     } finally {
       setSaving(false);
     }

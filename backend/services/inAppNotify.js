@@ -42,7 +42,11 @@ async function notifyOwners(companyId, payload) {
       company: companyId,
       role: { $in: ["super_admin", "hr_manager"] },
     }).select("_id");
-    await notifyUsers(companyId, owners.map((u) => u._id), payload);
+    await notifyUsers(
+      companyId,
+      owners.map((u) => u._id),
+      payload,
+    );
   } catch (err) {
     console.error("[inAppNotify] notifyOwners error:", err.message);
   }
@@ -58,7 +62,11 @@ async function notifyParentsOfStudent(studentId, companyId, payload) {
       role: "parent",
       children: studentId,
     }).select("_id");
-    await notifyUsers(companyId, parents.map((u) => u._id), payload);
+    await notifyUsers(
+      companyId,
+      parents.map((u) => u._id),
+      payload,
+    );
   } catch (err) {
     console.error("[inAppNotify] notifyParentsOfStudent error:", err.message);
   }

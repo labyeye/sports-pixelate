@@ -53,13 +53,19 @@ const userSchema = new mongoose.Schema(
     phoneVerifyOtpExpire: { type: Date, select: false },
     resetOtp: { type: String, select: false },
     resetOtpExpire: { type: Date, select: false },
+    // Bumped on every password change (pre-save hook); older JWTs carry the old value and are refused by `protect`.
+    tokenVersion: { type: Number, default: 0 },
+    // Brute-force guard: 10 wrong passwords lock the account for 15 minutes.
+    failedLogins: { type: Number, default: 0 },
+    lockUntil: { type: Date },
   },
   { timestamps: true },
 );
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
+  this.password = await bcrypt.hash(this.password, 12);
+  if (!this.isNew) this.tokenVersion = (this.tokenVersion || 0) + 1;
   next();
 });
 

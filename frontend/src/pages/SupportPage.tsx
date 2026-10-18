@@ -143,7 +143,11 @@ export default function SupportPage() {
   const handleSendReply = async () => {
     if (!selectedTicket) return;
     if (!replyMessage.trim()) {
-      toast({ title: "Missing information", description: "Please type your reply before sending.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please type your reply before sending.",
+        variant: "destructive",
+      });
       return;
     }
     setSendingReply(true);

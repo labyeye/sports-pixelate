@@ -47,18 +47,45 @@ export type VarCtx = Record<(typeof TEMPLATE_VARS)[number], string>;
 
 export function fillVars(text: string | undefined, ctx: VarCtx): string {
   if (!text) return "";
-  return text.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => ctx[key as keyof VarCtx] ?? "");
+  return text.replace(
+    /\{\{\s*([\w.]+)\s*\}\}/g,
+    (_, key) => ctx[key as keyof VarCtx] ?? "",
+  );
 }
 
 let seq = 0;
 const id = () => `f${Date.now().toString(36)}${(seq++).toString(36)}`;
 
 export function newTextField(patch: Partial<ChequeField> = {}): ChequeField {
-  return { id: id(), kind: "text", x: 20, y: 20, w: 30, h: 6, visible: true, text: "New text", size: 11, color: "#000000", bold: false, align: "left", ...patch };
+  return {
+    id: id(),
+    kind: "text",
+    x: 20,
+    y: 20,
+    w: 30,
+    h: 6,
+    visible: true,
+    text: "New text",
+    size: 11,
+    color: "#000000",
+    bold: false,
+    align: "left",
+    ...patch,
+  };
 }
 
 export function newImageField(patch: Partial<ChequeField> = {}): ChequeField {
-  return { id: id(), kind: "image", x: 5, y: 5, w: 15, h: 10, visible: true, src: "", ...patch };
+  return {
+    id: id(),
+    kind: "image",
+    x: 5,
+    y: 5,
+    w: 15,
+    h: 10,
+    visible: true,
+    src: "",
+    ...patch,
+  };
 }
 
 // The layout every company starts from — the same values that used to be hardcoded pixel
@@ -69,16 +96,84 @@ export function defaultTemplate(): ChequeTemplate {
     version: 1,
     fields: [
       newImageField({ x: 10, y: 8, w: 18, h: 12, usesCompanyLogo: true }),
-      newTextField({ x: 22, y: 6, w: 45, h: 5, text: "{{company.name}}", size: 13, bold: true }),
-      newTextField({ x: 22, y: 11, w: 45, h: 6, text: "{{company.address}}", size: 9, color: "#444444" }),
-      newTextField({ x: 78, y: 8, w: 18, h: 5, text: "{{issue.date}}", size: 10, align: "right" }),
-      newTextField({ x: 10, y: 32, w: 30, h: 5, text: "{{emp.name}}", size: 10 }),
+      newTextField({
+        x: 22,
+        y: 6,
+        w: 45,
+        h: 5,
+        text: "{{company.name}}",
+        size: 13,
+        bold: true,
+      }),
+      newTextField({
+        x: 22,
+        y: 11,
+        w: 45,
+        h: 6,
+        text: "{{company.address}}",
+        size: 9,
+        color: "#444444",
+      }),
+      newTextField({
+        x: 78,
+        y: 8,
+        w: 18,
+        h: 5,
+        text: "{{issue.date}}",
+        size: 10,
+        align: "right",
+      }),
+      newTextField({
+        x: 10,
+        y: 32,
+        w: 30,
+        h: 5,
+        text: "{{emp.name}}",
+        size: 10,
+      }),
       newTextField({ x: 42, y: 32, w: 20, h: 5, text: "{{emp.id}}", size: 10 }),
-      newTextField({ x: 64, y: 32, w: 30, h: 5, text: "{{emp.designation}}", size: 10 }),
-      newTextField({ x: 10, y: 40, w: 55, h: 6, text: "{{amount.words}}", size: 10 }),
-      newTextField({ x: 68, y: 40, w: 26, h: 6, text: "Rs. {{amount.net}}", size: 13, bold: true, align: "right" }),
-      newTextField({ x: 30, y: 48, w: 20, h: 5, text: "{{period.from}}", size: 10 }),
-      newTextField({ x: 55, y: 48, w: 20, h: 5, text: "{{period.to}}", size: 10 }),
+      newTextField({
+        x: 64,
+        y: 32,
+        w: 30,
+        h: 5,
+        text: "{{emp.designation}}",
+        size: 10,
+      }),
+      newTextField({
+        x: 10,
+        y: 40,
+        w: 55,
+        h: 6,
+        text: "{{amount.words}}",
+        size: 10,
+      }),
+      newTextField({
+        x: 68,
+        y: 40,
+        w: 26,
+        h: 6,
+        text: "Rs. {{amount.net}}",
+        size: 13,
+        bold: true,
+        align: "right",
+      }),
+      newTextField({
+        x: 30,
+        y: 48,
+        w: 20,
+        h: 5,
+        text: "{{period.from}}",
+        size: 10,
+      }),
+      newTextField({
+        x: 55,
+        y: 48,
+        w: 20,
+        h: 5,
+        text: "{{period.to}}",
+        size: 10,
+      }),
       newImageField({ x: 70, y: 62, w: 20, h: 10 }), // signature — blank by default
     ],
   };
@@ -98,7 +193,14 @@ export function normalizeTemplate(t: any): ChequeTemplate {
       visible: f.visible !== false,
       ...(f.kind === "image"
         ? { src: f.src || "", usesCompanyLogo: !!f.usesCompanyLogo }
-        : { text: f.text || "", size: Number(f.size) || 10, color: f.color || "#000000", bold: !!f.bold, align: f.align === "center" || f.align === "right" ? f.align : "left" }),
+        : {
+            text: f.text || "",
+            size: Number(f.size) || 10,
+            color: f.color || "#000000",
+            bold: !!f.bold,
+            align:
+              f.align === "center" || f.align === "right" ? f.align : "left",
+          }),
     })),
   };
 }

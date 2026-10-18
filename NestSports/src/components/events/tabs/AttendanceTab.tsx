@@ -25,14 +25,27 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
       {loading ? (
         <ActivityIndicator color={colors.blue} />
       ) : items.length === 0 ? (
-        <EmptyState title="No attendance recorded yet" sub="Enable QR Check-in in Settings to start" icon={ClipboardCheck} />
+        <EmptyState
+          title="No attendance recorded yet"
+          sub="Enable QR Check-in in Settings to start"
+          icon={ClipboardCheck}
+        />
       ) : (
         items.map(r => (
           <View key={r._id} style={styles.row}>
             <Text style={styles.name}>
-              {typeof r.student === 'object' ? `${r.student.firstName} ${r.student.lastName}` : 'Participant'}
+              {typeof r.student === 'object'
+                ? `${r.student.firstName} ${r.student.lastName}`
+                : 'Participant'}
             </Text>
-            <Text style={[styles.status, { color: r.status === 'present' ? colors.green : colors.red }]}>{r.status}</Text>
+            <Text
+              style={[
+                styles.status,
+                { color: r.status === 'present' ? colors.green : colors.red },
+              ]}
+            >
+              {r.status}
+            </Text>
           </View>
         ))
       )}
@@ -41,7 +54,27 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderRadius: 8, borderColor: '#0000001A', paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
-  name: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 13, color: colors.black },
-  status: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 11, textTransform: 'uppercase' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: '#0000001A',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  name: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.black,
+  },
+  status: {
+    fontFamily: FONT.bold,
+    fontWeight: '700',
+    fontSize: 11,
+    textTransform: 'uppercase',
+  },
 });

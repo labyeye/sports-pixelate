@@ -13,7 +13,6 @@ import {
   Landmark,
   Loader2,
   Save,
-  Plus,
   Trash2,
   CheckCircle,
   AlertCircle,
@@ -366,7 +365,10 @@ function PhoneVerifyPanel() {
       setOtp("");
       toast({ title: "Phone number verified" });
     } catch (err: unknown) {
-      toast({ title: getErrorMessage(err) || "Invalid code", variant: "destructive" });
+      toast({
+        title: getErrorMessage(err) || "Invalid code",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -485,7 +487,10 @@ function TwoFactorPanel() {
       setStep("backup");
       toast({ title: "2FA enabled successfully" });
     } catch (err: unknown) {
-      toast({ title: getErrorMessage(err) || "Invalid code", variant: "destructive" });
+      toast({
+        title: getErrorMessage(err) || "Invalid code",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -501,7 +506,10 @@ function TwoFactorPanel() {
       setDisableCode("");
       toast({ title: "2FA disabled" });
     } catch (err: unknown) {
-      toast({ title: getErrorMessage(err) || "Invalid code", variant: "destructive" });
+      toast({
+        title: getErrorMessage(err) || "Invalid code",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

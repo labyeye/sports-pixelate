@@ -58,7 +58,11 @@ export function FingerprintEnrollModal({ device, person, onClose }: Props) {
       setQueued(true);
       toast({ title: "Enrollment command sent", description: res.message });
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     }
     setSending(false);
   };

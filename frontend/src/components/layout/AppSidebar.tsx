@@ -76,7 +76,8 @@ export function AppSidebar({ mobileOpen, onClose }: AppSidebarProps) {
         <nav
           ref={navRef}
           onScroll={(e) => (navScrollTop = e.currentTarget.scrollTop)}
-          className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
+          className="flex-1 py-3 px-2 overflow-y-auto space-y-4"
+        >
           {groups.map((group) => (
             <div key={group.label}>
               {!collapsed && (

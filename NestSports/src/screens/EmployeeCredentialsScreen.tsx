@@ -219,7 +219,10 @@ export default function EmployeeCredentialsScreen() {
         parentPassword || '(unchanged)',
       );
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || 'Could not update credentials');
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || 'Could not update credentials',
+      );
     } finally {
       setSaving(false);
     }
@@ -246,7 +249,9 @@ export default function EmployeeCredentialsScreen() {
         <SearchBar
           value={searchInput}
           onChangeText={setSearchInput}
-          placeholder={tab === 'staff' ? 'Search staff...' : 'Search parents...'}
+          placeholder={
+            tab === 'staff' ? 'Search staff...' : 'Search parents...'
+          }
         />
 
         {tab === 'staff' ? (

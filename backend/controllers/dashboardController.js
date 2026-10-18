@@ -142,7 +142,9 @@ const getStats = asyncHandler(async (req, res) => {
       })
         .sort({ enrollmentDate: -1 })
         .limit(5)
-        .select("firstName lastName studentId sport batch enrollmentDate avatar")
+        .select(
+          "firstName lastName studentId sport batch enrollmentDate avatar",
+        )
         .catch(() => []),
       Student.countDocuments({
         company: companyId,
@@ -317,8 +319,18 @@ const getStats = asyncHandler(async (req, res) => {
 // dashboard chart. 1M = daily, 3M = weekly, 6M/1Y = monthly.
 const RANGES = { "1M": 1, "3M": 3, "6M": 6, "1Y": 12 };
 const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 const getTrend = asyncHandler(async (req, res) => {

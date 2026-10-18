@@ -302,7 +302,6 @@ export default function LoansPage() {
     (l) => l.status === "cleared",
   ).length;
 
-
   return (
     <AppLayout title="Loans & Advances">
       {/* Header */}
@@ -529,7 +528,9 @@ export default function LoansPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-700">
-                    {loan.monthlyEmi > 0 ? formatCurrency(loan.monthlyEmi) : "—"}
+                    {loan.monthlyEmi > 0
+                      ? formatCurrency(loan.monthlyEmi)
+                      : "—"}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-700">
                     {loan.disbursedOn

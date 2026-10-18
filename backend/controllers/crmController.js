@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const Invoice = require("../models/Invoice");
+const Counter = require("../models/Counter");
 const OfferCode = require("../models/OfferCode");
 const Company = require("../models/Company");
 const Subscription = require("../models/Subscription");
@@ -430,8 +431,8 @@ exports.createCrmCompany = async (req, res) => {
       );
     }
 
-    const invoiceCount = await Invoice.countDocuments();
-    const invoiceNumber = `INV-SPORTS-${String(invoiceCount + 1).padStart(4, "0")}`;
+    const invoiceSeq = await Counter.next("sportsInvoice", () => Invoice.countDocuments());
+    const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
     await Invoice.create({
       company: company._id,
       subscription: subscription._id,

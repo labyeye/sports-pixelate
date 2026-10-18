@@ -18,18 +18,43 @@ async function getCompanyPaymentCreds(company) {
   );
   const gateway = setting?.paymentGateway || "razorpay";
   let creds;
-  if (gateway === "razorpay" && setting?.razorpayKeyId && setting?.razorpayKeySecret) {
-    creds = { keyId: setting.razorpayKeyId, keySecret: setting.razorpayKeySecret };
-  } else if (gateway === "cashfree" && setting?.cashfreeAppId && setting?.cashfreeSecretKey) {
-    creds = { appId: setting.cashfreeAppId, secretKey: setting.cashfreeSecretKey };
-  } else if (gateway === "phonepe" && setting?.phonepeMerchantId && setting?.phonepeSaltKey) {
+  if (
+    gateway === "razorpay" &&
+    setting?.razorpayKeyId &&
+    setting?.razorpayKeySecret
+  ) {
+    creds = {
+      keyId: setting.razorpayKeyId,
+      keySecret: setting.razorpayKeySecret,
+    };
+  } else if (
+    gateway === "cashfree" &&
+    setting?.cashfreeAppId &&
+    setting?.cashfreeSecretKey
+  ) {
+    creds = {
+      appId: setting.cashfreeAppId,
+      secretKey: setting.cashfreeSecretKey,
+    };
+  } else if (
+    gateway === "phonepe" &&
+    setting?.phonepeMerchantId &&
+    setting?.phonepeSaltKey
+  ) {
     creds = {
       merchantId: setting.phonepeMerchantId,
       saltKey: setting.phonepeSaltKey,
       saltIndex: setting.phonepeSaltIndex,
     };
-  } else if (gateway === "paytm" && setting?.paytmMerchantId && setting?.paytmMerchantKey) {
-    creds = { merchantId: setting.paytmMerchantId, merchantKey: setting.paytmMerchantKey };
+  } else if (
+    gateway === "paytm" &&
+    setting?.paytmMerchantId &&
+    setting?.paytmMerchantKey
+  ) {
+    creds = {
+      merchantId: setting.paytmMerchantId,
+      merchantKey: setting.paytmMerchantKey,
+    };
   }
   return { gateway, creds };
 }
@@ -44,7 +69,6 @@ function toDateOnly(d) {
 function timesOverlap(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
 }
-
 
 // Restores stock for gear on a booking that hasn't been returned yet.
 // `onlyIds` limits it to specific booking-item subdocs; otherwise every
@@ -95,7 +119,10 @@ async function takeBookingItems(requested, { company, studentId, bookingId }) {
         { new: true },
       );
       if (!item) {
-        const existing = await InventoryItem.findOne({ _id: r.itemId, company });
+        const existing = await InventoryItem.findOne({
+          _id: r.itemId,
+          company,
+        });
         throw new Error(
           existing
             ? `Not enough stock for ${existing.name} (only ${existing.availableQuantity} available)`
@@ -103,7 +130,11 @@ async function takeBookingItems(requested, { company, studentId, bookingId }) {
         );
       }
       const assignment = item.assignments[item.assignments.length - 1];
-      taken.push({ item: item._id, quantity: qty, assignmentId: assignment._id });
+      taken.push({
+        item: item._id,
+        quantity: qty,
+        assignmentId: assignment._id,
+      });
     }
   } catch (err) {
     for (const t of taken) {

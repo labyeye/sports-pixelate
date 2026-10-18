@@ -46,9 +46,24 @@ const shifts: CrudConfig = {
   title: 'Shift',
   api: shiftAPI,
   fields: [
-    { key: 'name', label: 'Shift Name', required: true, placeholder: 'e.g. Morning Batch' },
-    { key: 'startTime', label: 'Start Time (HH:MM)', required: true, placeholder: '09:00' },
-    { key: 'endTime', label: 'End Time (HH:MM)', required: true, placeholder: '18:00' },
+    {
+      key: 'name',
+      label: 'Shift Name',
+      required: true,
+      placeholder: 'e.g. Morning Batch',
+    },
+    {
+      key: 'startTime',
+      label: 'Start Time (HH:MM)',
+      required: true,
+      placeholder: '09:00',
+    },
+    {
+      key: 'endTime',
+      label: 'End Time (HH:MM)',
+      required: true,
+      placeholder: '18:00',
+    },
     { key: 'breakMinutes', label: 'Break (minutes)', kind: 'number' },
     { key: 'workingHours', label: 'Working Hours', kind: 'number' },
     { key: 'otAfterHours', label: 'OT After (hours)', kind: 'number' },
@@ -77,14 +92,42 @@ const salaryHeads: CrudConfig = {
   title: 'Salary Head',
   api: salaryHeadAPI,
   fields: [
-    { key: 'name', label: 'Component Name', required: true, placeholder: 'e.g. HRA, Medical Allowance' },
-    { key: 'type', label: 'Type', kind: 'select', options: ['Earning', 'Deduction', 'Variable'] },
-    { key: 'calcMethod', label: 'Calculation', kind: 'select', options: Object.keys(CALC_LABELS), labels: CALC_LABELS },
-    { key: 'value', label: 'Value', kind: 'number', placeholder: 'e.g. 1600 or 12' },
+    {
+      key: 'name',
+      label: 'Component Name',
+      required: true,
+      placeholder: 'e.g. HRA, Medical Allowance',
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      kind: 'select',
+      options: ['Earning', 'Deduction', 'Variable'],
+    },
+    {
+      key: 'calcMethod',
+      label: 'Calculation',
+      kind: 'select',
+      options: Object.keys(CALC_LABELS),
+      labels: CALC_LABELS,
+    },
+    {
+      key: 'value',
+      label: 'Value',
+      kind: 'number',
+      placeholder: 'e.g. 1600 or 12',
+    },
     { key: 'taxable', label: 'Taxable', kind: 'toggle' },
     { key: 'status', label: 'Status', kind: 'select', options: STATUS },
   ],
-  defaults: { name: '', type: 'Earning', calcMethod: 'fixed', value: '', taxable: false, status: 'active' },
+  defaults: {
+    name: '',
+    type: 'Earning',
+    calcMethod: 'fixed',
+    value: '',
+    taxable: false,
+    status: 'active',
+  },
   row: h => ({
     title: h.name,
     subtitle: `${h.type} · ${CALC_LABELS[h.calcMethod] || h.calcMethod} · ${
@@ -99,14 +142,47 @@ const designations: CrudConfig = {
   api: designationAPI,
   refs: { departments: () => departmentAPI.getAll() },
   fields: [
-    { key: 'name', label: 'Designation Name', required: true, placeholder: 'e.g. Head Coach' },
-    { key: 'department', label: 'Department', kind: 'ref', ref: 'departments', required: true },
-    { key: 'grade', label: 'Grade', kind: 'select', options: ['L1', 'L2', 'L3', 'L4', 'L5'] },
-    { key: 'minSalary', label: 'Min Salary (₹)', kind: 'number', placeholder: '12000' },
-    { key: 'maxSalary', label: 'Max Salary (₹)', kind: 'number', placeholder: '30000' },
+    {
+      key: 'name',
+      label: 'Designation Name',
+      required: true,
+      placeholder: 'e.g. Head Coach',
+    },
+    {
+      key: 'department',
+      label: 'Department',
+      kind: 'ref',
+      ref: 'departments',
+      required: true,
+    },
+    {
+      key: 'grade',
+      label: 'Grade',
+      kind: 'select',
+      options: ['L1', 'L2', 'L3', 'L4', 'L5'],
+    },
+    {
+      key: 'minSalary',
+      label: 'Min Salary (₹)',
+      kind: 'number',
+      placeholder: '12000',
+    },
+    {
+      key: 'maxSalary',
+      label: 'Max Salary (₹)',
+      kind: 'number',
+      placeholder: '30000',
+    },
     { key: 'status', label: 'Status', kind: 'select', options: STATUS },
   ],
-  defaults: { name: '', department: '', grade: 'L1', minSalary: '', maxSalary: '', status: 'active' },
+  defaults: {
+    name: '',
+    department: '',
+    grade: 'L1',
+    minSalary: '',
+    maxSalary: '',
+    status: 'active',
+  },
   row: d => ({
     title: d.name,
     subtitle: `${d.department?.name || '—'} · ${
@@ -148,13 +224,55 @@ export default function ManageScreen({ navigation }: any) {
 
         <SectionTitle title="Modules" />
         {[
-          { title: 'Departments', sub: 'Manage teams and departments', screen: 'Departments', icon: Building2, color: colors.blue },
-          { title: 'Employees', sub: 'Manage staff and coaches', screen: 'Employees', icon: Users, color: colors.green },
-          { title: 'Facilities', sub: 'Sports facilities and rates', screen: 'Facilities', icon: MapPin, color: colors.orange },
-          { title: 'Groups', sub: 'Dance, Art, Cricket… classes & fees', screen: 'Groups', icon: Layers, color: colors.green },
-          { title: 'Coaching Plans', sub: 'Sports plans and pricing', screen: 'Plans', icon: Gift, color: colors.purple },
-          { title: 'Attendance Settings', sub: 'Shift, late & leave allowance rules', screen: 'AttendanceSettings', icon: Clock, color: colors.blue },
-          { title: 'User Roles & Permissions', sub: 'Who can see and do what', screen: 'Permissions', icon: ShieldCheck, color: colors.orange },
+          {
+            title: 'Departments',
+            sub: 'Manage teams and departments',
+            screen: 'Departments',
+            icon: Building2,
+            color: colors.blue,
+          },
+          {
+            title: 'Employees',
+            sub: 'Manage staff and coaches',
+            screen: 'Employees',
+            icon: Users,
+            color: colors.green,
+          },
+          {
+            title: 'Facilities',
+            sub: 'Sports facilities and rates',
+            screen: 'Facilities',
+            icon: MapPin,
+            color: colors.orange,
+          },
+          {
+            title: 'Groups',
+            sub: 'Dance, Art, Cricket… classes & fees',
+            screen: 'Groups',
+            icon: Layers,
+            color: colors.green,
+          },
+          {
+            title: 'Coaching Plans',
+            sub: 'Sports plans and pricing',
+            screen: 'Plans',
+            icon: Gift,
+            color: colors.purple,
+          },
+          {
+            title: 'Attendance Settings',
+            sub: 'Shift, late & leave allowance rules',
+            screen: 'AttendanceSettings',
+            icon: Clock,
+            color: colors.blue,
+          },
+          {
+            title: 'User Roles & Permissions',
+            sub: 'Who can see and do what',
+            screen: 'Permissions',
+            icon: ShieldCheck,
+            color: colors.orange,
+          },
         ].map(({ title, sub, screen, icon: Icon, color }) => (
           <TouchableOpacity
             key={screen}
@@ -211,5 +329,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.black,
   },
-  moduleSub: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 2 },
+  moduleSub: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
 });

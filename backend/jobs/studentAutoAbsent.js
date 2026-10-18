@@ -20,7 +20,10 @@ async function processDay(dateOnly, nowMinutes, isToday) {
     status: { $in: ["active", "pending_renewal"] },
   })
     .populate("plan", "scheduleType scheduleDays startTime endTime")
-    .populate("student", "company batch status enrollmentDate firstName lastName")
+    .populate(
+      "student",
+      "company batch status enrollmentDate firstName lastName",
+    )
     .lean();
 
   // One plan per student, preferring the paid ("active") subscription.
@@ -37,7 +40,11 @@ async function processDay(dateOnly, nowMinutes, isToday) {
   const meta = [];
   for (const { student, plan } of byStudent.values()) {
     if (student.status && student.status !== "active") continue;
-    if (student.enrollmentDate && new Date(student.enrollmentDate) > new Date(dateOnly.getTime() + 24 * 3600 * 1000))
+    if (
+      student.enrollmentDate &&
+      new Date(student.enrollmentDate) >
+        new Date(dateOnly.getTime() + 24 * 3600 * 1000)
+    )
       continue;
     if (!isScheduledOn(plan, dateOnly)) continue;
 
@@ -111,14 +118,16 @@ function startStudentAutoAbsentJob() {
   cron.schedule(
     "*/15 * * * *",
     () =>
-      withJobLock("student-auto-absent", 10 * 60 * 1000, runStudentAutoAbsent).catch(
-        (err) => {
-          console.error("[StudentAutoAbsent] failed:", err);
-          require("../utils/monitoring").captureError(err, {
-            job: "student-auto-absent",
-          });
-        },
-      ),
+      withJobLock(
+        "student-auto-absent",
+        10 * 60 * 1000,
+        runStudentAutoAbsent,
+      ).catch((err) => {
+        console.error("[StudentAutoAbsent] failed:", err);
+        require("../utils/monitoring").captureError(err, {
+          job: "student-auto-absent",
+        });
+      }),
     { timezone: "UTC" },
   );
   logger.info("[StudentAutoAbsent] Scheduled (every 15 minutes)");

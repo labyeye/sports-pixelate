@@ -10,21 +10,96 @@ export interface FeatureDef {
 }
 
 export const FEATURES: FeatureDef[] = [
-  { key: "leave", label: "Leave", description: "Staff leave requests & approvals", paths: ["/leave"] },
-  { key: "holidays", label: "Holidays", description: "Academy holiday calendar", paths: ["/holidays"] },
-  { key: "biometric", label: "Biometric Devices", description: "Biometric attendance devices", paths: ["/biometric"] },
-  { key: "late_approvals", label: "Late Approvals", description: "Late check-in approvals", paths: ["/late-approvals"] },
-  { key: "payroll", label: "Payroll", description: "Staff salaries & payslips", paths: ["/payroll", "/my-payroll"] },
-  { key: "loans", label: "Loans & Advances", description: "Staff loans and salary advances", paths: ["/loans", "/my-loans"] },
-  { key: "expenses", label: "Expenses", description: "Academy expense tracking", paths: ["/expenses"] },
-  { key: "inventory", label: "Inventory", description: "Equipment & gear tracking", paths: ["/inventory"] },
-  { key: "facilities", label: "Facilities", description: "Courts & facilities", paths: ["/facilities"] },
-  { key: "bookings", label: "Bookings", description: "Facility & court bookings", paths: ["/bookings"] },
-  { key: "events", label: "Events", description: "Tournaments & events", paths: ["/events"] },
-  { key: "documents", label: "Documents", description: "Staff & student document vault", paths: ["/documents"] },
-  { key: "exits", label: "Exit Management", description: "Offboarding staff & students", paths: ["/exits"] },
-  { key: "departments", label: "Departments", description: "Teams & department structure", paths: ["/departments"] },
-  { key: "reports", label: "Reports", description: "Analytics & exports", paths: ["/reports"] },
+  {
+    key: "leave",
+    label: "Leave",
+    description: "Staff leave requests & approvals",
+    paths: ["/leave"],
+  },
+  {
+    key: "holidays",
+    label: "Holidays",
+    description: "Academy holiday calendar",
+    paths: ["/holidays"],
+  },
+  {
+    key: "biometric",
+    label: "Biometric Devices",
+    description: "Biometric attendance devices",
+    paths: ["/biometric"],
+  },
+  {
+    key: "late_approvals",
+    label: "Late Approvals",
+    description: "Late check-in approvals",
+    paths: ["/late-approvals"],
+  },
+  {
+    key: "payroll",
+    label: "Payroll",
+    description: "Staff salaries & payslips",
+    paths: ["/payroll", "/my-payroll"],
+  },
+  {
+    key: "loans",
+    label: "Loans & Advances",
+    description: "Staff loans and salary advances",
+    paths: ["/loans", "/my-loans"],
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    description: "Academy expense tracking",
+    paths: ["/expenses"],
+  },
+  {
+    key: "inventory",
+    label: "Inventory",
+    description: "Equipment & gear tracking",
+    paths: ["/inventory"],
+  },
+  {
+    key: "facilities",
+    label: "Facilities",
+    description: "Courts & facilities",
+    paths: ["/facilities"],
+  },
+  {
+    key: "bookings",
+    label: "Bookings",
+    description: "Facility & court bookings",
+    paths: ["/bookings"],
+  },
+  {
+    key: "events",
+    label: "Events",
+    description: "Tournaments & events",
+    paths: ["/events"],
+  },
+  {
+    key: "documents",
+    label: "Documents",
+    description: "Staff & student document vault",
+    paths: ["/documents"],
+  },
+  {
+    key: "exits",
+    label: "Exit Management",
+    description: "Offboarding staff & students",
+    paths: ["/exits"],
+  },
+  {
+    key: "departments",
+    label: "Departments",
+    description: "Teams & department structure",
+    paths: ["/departments"],
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    description: "Analytics & exports",
+    paths: ["/reports"],
+  },
 ];
 
 export function isPathDisabled(pathname: string, disabled: string[]): boolean {

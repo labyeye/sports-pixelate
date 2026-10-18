@@ -112,7 +112,8 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
     // Ref fields default to the first record, as the web form does.
     const f = { ...config.defaults };
     for (const k of config.fields) {
-      if (k.kind === 'ref' && !f[k.key]) f[k.key] = refs[k.ref!]?.[0]?._id || '';
+      if (k.kind === 'ref' && !f[k.key])
+        f[k.key] = refs[k.ref!]?.[0]?._id || '';
     }
     setForm(f);
     setFormOpen(true);
@@ -140,28 +141,38 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
       setFormOpen(false);
       await load();
     } catch (e: unknown) {
-      Alert.alert('Error', (e as Error)?.message || `Could not save ${config.title}`);
+      Alert.alert(
+        'Error',
+        (e as Error)?.message || `Could not save ${config.title}`,
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const remove = (item: any) =>
-    Alert.alert(`Delete ${config.title}`, `Delete "${config.row(item).title}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await config.api.delete(item._id);
-            setItems(prev => prev.filter(x => x._id !== item._id));
-          } catch (e: unknown) {
-            Alert.alert('Error', (e as Error)?.message || `Could not delete ${config.title}`);
-          }
+    Alert.alert(
+      `Delete ${config.title}`,
+      `Delete "${config.row(item).title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await config.api.delete(item._id);
+              setItems(prev => prev.filter(x => x._id !== item._id));
+            } catch (e: unknown) {
+              Alert.alert(
+                'Error',
+                (e as Error)?.message || `Could not delete ${config.title}`,
+              );
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
 
   if (loading) return <LoadingView />;
 
@@ -198,7 +209,9 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
               activeOpacity={0.85}
               onPress={() => openEdit(item)}
             >
-              {r.dot ? <View style={[styles.dot, { backgroundColor: r.dot }]} /> : null}
+              {r.dot ? (
+                <View style={[styles.dot, { backgroundColor: r.dot }]} />
+              ) : null}
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.name} numberOfLines={1}>
                   {r.title}
@@ -207,11 +220,19 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
                   {r.subtitle}
                 </Text>
               </View>
-              {r.badge ? <Badge label={r.badge.label} color={r.badge.color} /> : null}
-              <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(item)}>
+              {r.badge ? (
+                <Badge label={r.badge.label} color={r.badge.color} />
+              ) : null}
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => openEdit(item)}
+              >
                 <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteBtn} onPress={() => remove(item)}>
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => remove(item)}
+              >
                 <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -225,7 +246,10 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
         presentationStyle="pageSheet"
         onRequestClose={() => setFormOpen(false)}
       >
-        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.white }}>
+        <SafeAreaView
+          edges={['top']}
+          style={{ flex: 1, backgroundColor: colors.white }}
+        >
           <View style={styles.formHeader}>
             <Text style={styles.formTitle}>
               {editing ? `Edit ${config.title}` : `Add ${config.title}`}
@@ -242,7 +266,12 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
               const set = (v: any) => setForm(f => ({ ...f, [k.key]: v }));
               if (k.kind === 'toggle')
                 return (
-                  <ToggleRow key={k.key} label={k.label} value={!!form[k.key]} onChange={set} />
+                  <ToggleRow
+                    key={k.key}
+                    label={k.label}
+                    value={!!form[k.key]}
+                    onChange={set}
+                  />
                 );
               if (k.kind === 'select')
                 return (
@@ -264,7 +293,9 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
                     required={k.required}
                     options={list.map(x => x.name)}
                     value={list.find(x => x._id === form[k.key])?.name || ''}
-                    onChange={name => set(list.find(x => x.name === name)?._id || '')}
+                    onChange={name =>
+                      set(list.find(x => x.name === name)?._id || '')
+                    }
                   />
                 );
               }
@@ -294,7 +325,12 @@ export default function ConfigCrud({ config }: { config: CrudConfig }) {
 }
 
 const styles = StyleSheet.create({
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -331,9 +367,20 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
   },
-  dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: colors.black },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.black,
+  },
   name: { fontSize: 15, color: colors.black, fontFamily: FONT.bold },
-  sub: { fontSize: 12, color: colors.muted, fontFamily: FONT.medium, marginTop: 2 },
+  sub: {
+    fontSize: 12,
+    color: colors.muted,
+    fontFamily: FONT.medium,
+    marginTop: 2,
+  },
   editBtn: {
     width: 30,
     height: 30,

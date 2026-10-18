@@ -189,13 +189,13 @@ export default function DashboardScreen() {
               <TouchableOpacity
                 key={s}
                 onPress={() => setSeries(s)}
-                style={[
-                  styles.pill,
-                  series === s && styles.pillActive,
-                ]}
+                style={[styles.pill, series === s && styles.pillActive]}
               >
                 <Text
-                  style={[styles.pillText, series === s && { color: colors.white }]}
+                  style={[
+                    styles.pillText,
+                    series === s && { color: colors.white },
+                  ]}
                 >
                   {s === 'income' ? 'Income' : 'Expense'}
                 </Text>
@@ -214,7 +214,10 @@ export default function DashboardScreen() {
                 ]}
               >
                 <Text
-                  style={[styles.pillText, range === r && { color: colors.white }]}
+                  style={[
+                    styles.pillText,
+                    range === r && { color: colors.white },
+                  ]}
                 >
                   {r}
                 </Text>
@@ -316,8 +319,8 @@ export default function DashboardScreen() {
                       {isPastDue
                         ? `${Math.abs(days)}d overdue`
                         : days === 0
-                        ? 'Due today'
-                        : `${days}d left`}
+                          ? 'Due today'
+                          : `${days}d left`}
                     </Text>
                   </View>
                 </View>

@@ -38,7 +38,9 @@ export default function BatchSummaryReportScreen() {
 
   const loadFilters = useCallback(async () => {
     try {
-      const res: any = await fetchAllPages(studentAPI.getAll, { limit: '1000' });
+      const res: any = await fetchAllPages(studentAPI.getAll, {
+        limit: '1000',
+      });
       const all: any[] = res.data || [];
       setBatches(
         Array.from(new Set(all.map(s => s.batch).filter(Boolean))) as string[],
@@ -127,7 +129,6 @@ export default function BatchSummaryReportScreen() {
       </View>
 
       <FilterPills
-
         inset
         options={[
           { value: '', label: 'All Batches' },

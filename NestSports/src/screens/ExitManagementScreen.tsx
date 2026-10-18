@@ -64,7 +64,8 @@ const STUDENT_EXIT_TYPES = [
 const labelOf = (v: string) =>
   v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 const today = () => new Date().toISOString().slice(0, 10);
-const toInput = (d?: string) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+const toInput = (d?: string) =>
+  d ? new Date(d).toISOString().slice(0, 10) : '';
 
 const STATUS_COLOR: Record<string, string> = {
   initiated: colors.yellow,
@@ -194,7 +195,10 @@ export default function ExitManagementScreen() {
             />
           }
           renderItem={({ item: x }) => (
-            <TouchableOpacity activeOpacity={0.85} onPress={() => setOpenId(x._id)}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setOpenId(x._id)}
+            >
               <Card>
                 <View style={styles.cardTop}>
                   <View style={{ flex: 1 }}>
@@ -281,7 +285,8 @@ function InitiateModal({
     setPersonLabel('');
     setPeople([]);
     setExitType(personType === 'employee' ? 'resignation' : 'withdrawn');
-    const fn = personType === 'employee' ? employeeAPI.getAll : studentAPI.getAll;
+    const fn =
+      personType === 'employee' ? employeeAPI.getAll : studentAPI.getAll;
     fetchAllPages(fn as any, { status: 'active' })
       .then((r: any) => setPeople(r.data || []))
       .catch(notifyError);
@@ -367,7 +372,9 @@ function InitiateModal({
             mode="date"
           />
           <DateTimeField
-            label={personType === 'employee' ? 'Last working day' : 'Last class'}
+            label={
+              personType === 'employee' ? 'Last working day' : 'Last class'
+            }
             value={exitDate}
             onChangeText={setExitDate}
             mode="date"
@@ -423,7 +430,8 @@ function DetailModal({
 
   useEffect(() => {
     setRec(null);
-    if (id) load().catch(e => Alert.alert('Error', e?.message || 'Could not load'));
+    if (id)
+      load().catch(e => Alert.alert('Error', e?.message || 'Could not load'));
   }, [id, load]);
 
   const run = async (fn: () => Promise<any>, closeAfter = false) => {
@@ -464,7 +472,8 @@ function DetailModal({
           {
             text: 'Complete anyway',
             style: 'destructive',
-            onPress: () => run(() => exitAPI.complete(id as string, true), true),
+            onPress: () =>
+              run(() => exitAPI.complete(id as string, true), true),
           },
         ],
       );
@@ -505,7 +514,9 @@ function DetailModal({
         {!rec ? (
           <LoadingView />
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
             <View style={styles.cardTop}>
               <Text style={styles.meta}>
                 {isStaff ? 'Staff' : 'Student'} · {rec.personCode} ·{' '}
@@ -518,7 +529,9 @@ function DetailModal({
             </View>
             <Text style={[styles.line, { marginBottom: 12 }]}>
               Exit date {formatDateOrDash(rec.exitDate)}
-              {rec.completedAt ? ` · Completed ${formatDateOrDash(rec.completedAt)}` : ''}
+              {rec.completedAt
+                ? ` · Completed ${formatDateOrDash(rec.completedAt)}`
+                : ''}
             </Text>
 
             {editable && hasOutstanding ? (
@@ -530,7 +543,8 @@ function DetailModal({
                 {outstanding.loans?.map((l: any) => (
                   <Text key={l._id} style={styles.warnLine}>
                     • {labelOf(l.type || 'loan')} — ₹
-                    {Number(l.remainingBalance).toLocaleString('en-IN')} remaining
+                    {Number(l.remainingBalance).toLocaleString('en-IN')}{' '}
+                    remaining
                   </Text>
                 ))}
                 {outstanding.inventory?.map((i: any) => (
@@ -541,8 +555,8 @@ function DetailModal({
                 {outstanding.subscriptions?.map((s: any) => (
                   <Text key={s._id} style={styles.warnLine}>
                     • {s.planName}: ₹
-                    {Number(s.amountPaid || 0).toLocaleString('en-IN')} paid of ₹
-                    {Number(s.amount).toLocaleString('en-IN')} — cancelled on
+                    {Number(s.amountPaid || 0).toLocaleString('en-IN')} paid of
+                    ₹{Number(s.amount).toLocaleString('en-IN')} — cancelled on
                     completion
                   </Text>
                 ))}
@@ -607,7 +621,11 @@ function DetailModal({
               onChangeText={setSettlementNotes}
             />
             <TextField
-              label={isStaff ? 'Exit interview feedback' : 'Parent / student feedback'}
+              label={
+                isStaff
+                  ? 'Exit interview feedback'
+                  : 'Parent / student feedback'
+              }
               value={feedback}
               onChangeText={setFeedback}
               multiline
@@ -615,7 +633,12 @@ function DetailModal({
 
             {editable ? (
               <>
-                <Button title="Save" onPress={save} loading={busy} variant="outline" />
+                <Button
+                  title="Save"
+                  onPress={save}
+                  loading={busy}
+                  variant="outline"
+                />
                 <View style={{ height: 10 }} />
                 <Button
                   title="Complete Exit"
@@ -627,15 +650,19 @@ function DetailModal({
                 <Button
                   title="Cancel Exit"
                   onPress={() =>
-                    Alert.alert('Cancel exit', 'The person stays as they are.', [
-                      { text: 'No', style: 'cancel' },
-                      {
-                        text: 'Cancel Exit',
-                        style: 'destructive',
-                        onPress: () =>
-                          run(() => exitAPI.cancel(id as string), true),
-                      },
-                    ])
+                    Alert.alert(
+                      'Cancel exit',
+                      'The person stays as they are.',
+                      [
+                        { text: 'No', style: 'cancel' },
+                        {
+                          text: 'Cancel Exit',
+                          style: 'destructive',
+                          onPress: () =>
+                            run(() => exitAPI.cancel(id as string), true),
+                        },
+                      ],
+                    )
                   }
                   color={colors.red}
                   variant="outline"
@@ -715,9 +742,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black, fontFamily: FONT.bold },
+  name: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.black,
+    fontFamily: FONT.bold,
+  },
   meta: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted },
-  line: { fontFamily: FONT.medium, fontSize: 12, color: colors.black, marginTop: 4 },
+  line: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.black,
+    marginTop: 4,
+  },
   bar: {
     height: 8,
     marginTop: 6,
@@ -778,5 +815,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boxOn: { backgroundColor: colors.blue },
-  checkText: { flex: 1, fontFamily: FONT.medium, fontSize: 13, color: colors.black },
+  checkText: {
+    flex: 1,
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    color: colors.black,
+  },
 });

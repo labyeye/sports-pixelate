@@ -98,7 +98,9 @@ guardianSchema.index({ company: 1, batch: 1 });
 // Keep the kiosk face index (services/faceIndex.js) in step with face/status edits.
 studentSchema.pre("save", function (next) {
   this.$locals.faceIndexStale =
-    this.isNew || this.isModified("faceDescriptor") || this.isModified("status");
+    this.isNew ||
+    this.isModified("faceDescriptor") ||
+    this.isModified("status");
   next();
 });
 studentSchema.post("save", function () {

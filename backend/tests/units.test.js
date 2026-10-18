@@ -23,10 +23,22 @@ test("calculatePricing: ₹30/user, ₹50 with WhatsApp, +18% GST", () => {
 
 test("subscription is live only when paid, current and not past grace", () => {
   const { evaluate } = require("../utils/subscriptionStatus");
-  const ok = { status: "active", paymentStatus: "completed", renewalDate: days(10) };
+  const ok = {
+    status: "active",
+    paymentStatus: "completed",
+    renewalDate: days(10),
+  };
   assert.strictEqual(evaluate(ok).live, true);
-  assert.strictEqual(evaluate({ ...ok, renewalDate: days(-3) }).live, true, "inside 7-day grace");
-  assert.strictEqual(evaluate({ ...ok, renewalDate: days(-9) }).live, false, "past grace");
+  assert.strictEqual(
+    evaluate({ ...ok, renewalDate: days(-3) }).live,
+    true,
+    "inside 7-day grace",
+  );
+  assert.strictEqual(
+    evaluate({ ...ok, renewalDate: days(-9) }).live,
+    false,
+    "past grace",
+  );
   assert.strictEqual(evaluate({ ...ok, status: "cancelled" }).live, false);
   assert.strictEqual(evaluate({ ...ok, paymentStatus: "pending" }).live, false);
   assert.strictEqual(evaluate(null).live, false);
@@ -38,7 +50,11 @@ test("subscription is live only when paid, current and not past grace", () => {
 
 test("WhatsApp is only enabled when the academy bought it", () => {
   const { evaluate } = require("../utils/subscriptionStatus");
-  const base = { status: "active", paymentStatus: "completed", renewalDate: days(30) };
+  const base = {
+    status: "active",
+    paymentStatus: "completed",
+    renewalDate: days(30),
+  };
   assert.strictEqual(evaluate(base).whatsapp, false);
   assert.strictEqual(evaluate({ ...base, wantsWhatsapp: true }).whatsapp, true);
   assert.strictEqual(
@@ -73,20 +89,40 @@ test("private upload folders are closed, proofs need a token", async () => {
   const run = (path, extra = {}) =>
     new Promise((resolve) => {
       const res = {
-        status(c) { this.code = c; return this; },
-        json() { resolve(this.code); },
-        sendStatus(c) { resolve(c); },
+        status(c) {
+          this.code = c;
+          return this;
+        },
+        json() {
+          resolve(this.code);
+        },
+        sendStatus(c) {
+          resolve(c);
+        },
       };
-      uploadGuard({ path, headers: {}, query: {}, ...extra }, res, () => resolve("next"));
+      uploadGuard({ path, headers: {}, query: {}, ...extra }, res, () =>
+        resolve("next"),
+      );
     });
   assert.strictEqual(await run("/employee-aadhaar/x.pdf"), 403);
   assert.strictEqual(await run("/employee-docs/x.pdf"), 403);
-  assert.strictEqual(await run("/payment-screenshots/c1_x.jpg"), 401, "no token");
-  assert.strictEqual(await run("/avatars/a.jpg"), "next", "public media stays public");
+  assert.strictEqual(
+    await run("/payment-screenshots/c1_x.jpg"),
+    401,
+    "no token",
+  );
+  assert.strictEqual(
+    await run("/avatars/a.jpg"),
+    "next",
+    "public media stays public",
+  );
 });
 
 test("computeEmployeePayroll: hours earned, absent credit/deduction, loan EMI", () => {
-  const { computeEmployeePayroll, IST_OFFSET_MS } = require("../utils/payrollCalc");
+  const {
+    computeEmployeePayroll,
+    IST_OFFSET_MS,
+  } = require("../utils/payrollCalc");
   // Jan 2026, Mon-Sat week = 27 working days -> daily rate 1000, 9h shift.
   const ist = (d, h) => new Date(Date.UTC(2026, 0, d, h) - IST_OFFSET_MS);
   const day = (d, extra) => ({ date: ist(d, 0), status: "present", ...extra });
@@ -96,7 +132,11 @@ test("computeEmployeePayroll: hours earned, absent credit/deduction, loan EMI", 
     day(7, { status: "absent" }),
   ];
   const { record, loanUpdates } = computeEmployeePayroll({
-    emp: { salary: 27000, workDaysPerWeek: 6, shift: { startTime: "09:00", endTime: "18:00" } },
+    emp: {
+      salary: 27000,
+      workDaysPerWeek: 6,
+      shift: { startTime: "09:00", endTime: "18:00" },
+    },
     attendances,
     year: 2026,
     month: 1,
@@ -110,7 +150,9 @@ test("computeEmployeePayroll: hours earned, absent credit/deduction, loan EMI", 
   assert.strictEqual(record.absentDeduction, 1000);
   assert.strictEqual(record.loanDeduction, 500);
   assert.strictEqual(record.netSalary, 1500);
-  assert.deepStrictEqual(loanUpdates, [{ id: "L1", newBalance: 4500, cleared: false }]);
+  assert.deepStrictEqual(loanUpdates, [
+    { id: "L1", newBalance: 4500, cleared: false },
+  ]);
 });
 
 test("errorHandler turns database validation errors into plain messages", () => {
@@ -120,25 +162,49 @@ test("errorHandler turns database validation errors into plain messages", () => 
     let out;
     const res = {
       statusCode: code,
-      status(c) { this.statusCode = c; return this; },
-      json(b) { out = { status: this.statusCode, message: b.message }; },
+      status(c) {
+        this.statusCode = c;
+        return this;
+      },
+      json(b) {
+        out = { status: this.statusCode, message: b.message };
+      },
     };
     errorHandler(err, { method: "POST", originalUrl: "/x" }, res, () => {});
     return out;
   };
   const Model = mongoose.model(
     "ErrorHandlerProbe",
-    new mongoose.Schema({ firstName: { type: String, required: true }, age: { type: Number, min: 5 } }),
+    new mongoose.Schema({
+      firstName: { type: String, required: true },
+      age: { type: Number, min: 5 },
+    }),
   );
   assert.deepStrictEqual(send(new Model({ age: 1 }).validateSync()), {
     status: 400,
     message: "First name is required. Age is too small",
   });
   assert.deepStrictEqual(
-    send(Object.assign(new Error("dup"), { code: 11000, keyValue: { phone: "1" } })),
-    { status: 400, message: "Phone already exists. Please use a different one" },
+    send(
+      Object.assign(new Error("dup"), {
+        code: 11000,
+        keyValue: { phone: "1" },
+      }),
+    ),
+    {
+      status: 400,
+      message: "Phone already exists. Please use a different one",
+    },
   );
-  assert.strictEqual(send(Object.assign(new Error("x"), { name: "MulterError", code: "LIMIT_FILE_SIZE" })).status, 413);
+  assert.strictEqual(
+    send(
+      Object.assign(new Error("x"), {
+        name: "MulterError",
+        code: "LIMIT_FILE_SIZE",
+      }),
+    ).status,
+    413,
+  );
 });
 
 test("uploads are encrypted at rest, tamper-proof, and legacy plaintext still reads", async () => {
@@ -161,10 +227,20 @@ test("uploads are encrypted at rest, tamper-proof, and legacy plaintext still re
 
   assert.strictEqual(fc.encryptFileInPlace(file), true);
   const onDisk = fs.readFileSync(file);
-  assert.ok(fc.isEncryptedBuffer(onDisk), "file on disk carries the encryption header");
+  assert.ok(
+    fc.isEncryptedBuffer(onDisk),
+    "file on disk carries the encryption header",
+  );
   assert.ok(!onDisk.includes(png), "plaintext bytes are not present on disk");
-  assert.strictEqual(fc.encryptFileInPlace(file), false, "second run is a no-op");
-  assert.ok(fc.readDecrypted(file).equals(png), "decrypts back to the original");
+  assert.strictEqual(
+    fc.encryptFileInPlace(file),
+    false,
+    "second run is a no-op",
+  );
+  assert.ok(
+    fc.readDecrypted(file).equals(png),
+    "decrypts back to the original",
+  );
   await validateMagicBytes(file); // type check still works on an encrypted file
 
   const tampered = Buffer.from(onDisk);
@@ -173,7 +249,10 @@ test("uploads are encrypted at rest, tamper-proof, and legacy plaintext still re
 
   const legacy = path.join(dir, "old.png");
   fs.writeFileSync(legacy, png);
-  assert.ok(fc.readDecrypted(legacy).equals(png), "legacy plaintext passes through");
+  assert.ok(
+    fc.readDecrypted(legacy).equals(png),
+    "legacy plaintext passes through",
+  );
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -189,7 +268,10 @@ test("removeStoredUpload deletes the old file, but only inside the uploads folde
   fs.writeFileSync(oldFile, "old");
   fs.writeFileSync(newFile, "new");
 
-  removeStoredUpload("http://localhost:5000/uploads/avatars/test_old_avatar.jpg", newFile);
+  removeStoredUpload(
+    "http://localhost:5000/uploads/avatars/test_old_avatar.jpg",
+    newFile,
+  );
   assert.ok(!fs.existsSync(oldFile), "old photo removed (URL form)");
   assert.ok(fs.existsSync(newFile), "new photo untouched");
 
@@ -198,7 +280,10 @@ test("removeStoredUpload deletes the old file, but only inside the uploads folde
 
   const outside = path.join(UPLOAD_DIR, "..", "package.json");
   removeStoredUpload("/uploads/../package.json");
-  assert.ok(fs.existsSync(outside), "paths outside the uploads folder are never deleted");
+  assert.ok(
+    fs.existsSync(outside),
+    "paths outside the uploads folder are never deleted",
+  );
   removeStoredUpload(undefined);
   removeStoredUpload("not-an-upload");
 

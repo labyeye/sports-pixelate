@@ -33,8 +33,12 @@ function serveEncryptedUpload(req, res, next) {
     res.setHeader("Cache-Control", "private, max-age=300");
     return res.send(plain);
   } catch (e) {
-    logger.error(`[uploads] could not decrypt ${path.basename(abs)}: ${e.message}`);
-    return res.status(500).json({ success: false, message: "This file could not be opened." });
+    logger.error(
+      `[uploads] could not decrypt ${path.basename(abs)}: ${e.message}`,
+    );
+    return res
+      .status(500)
+      .json({ success: false, message: "This file could not be opened." });
   }
 }
 

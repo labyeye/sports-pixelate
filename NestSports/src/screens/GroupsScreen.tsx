@@ -110,7 +110,7 @@ export default function GroupsScreen() {
       </View>
       <FlatList
         data={groups}
-        keyExtractor={(g) => g._id}
+        keyExtractor={g => g._id}
         contentContainerStyle={{ padding: 16 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -174,8 +174,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  head: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   name: { fontSize: 17, fontWeight: '800', color: colors.black },
-  counts: { flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 8 },
+  counts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 8,
+  },
   count: { fontFamily: FONT.medium, fontSize: 13, marginRight: 10 },
 });

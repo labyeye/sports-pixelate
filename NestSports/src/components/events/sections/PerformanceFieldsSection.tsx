@@ -1,6 +1,11 @@
 import React from 'react';
 import { Mic2 } from 'lucide-react-native';
-import { CollapsibleSection, TextField, DateTimeField, ToggleRow } from '../../ui';
+import {
+  CollapsibleSection,
+  TextField,
+  DateTimeField,
+  ToggleRow,
+} from '../../ui';
 
 export interface PerformanceFieldsData {
   performanceOrder?: string | number;

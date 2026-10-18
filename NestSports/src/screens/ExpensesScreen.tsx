@@ -155,7 +155,10 @@ export default function ExpensesScreen() {
             await expenseAPI.delete(e._id);
             await load();
           } catch (err: unknown) {
-            Alert.alert('Error', (err as Error)?.message || 'Could not delete expense');
+            Alert.alert(
+              'Error',
+              (err as Error)?.message || 'Could not delete expense',
+            );
           }
         },
       },
@@ -321,8 +324,8 @@ export default function ExpensesScreen() {
                 saving
                   ? 'Saving...'
                   : editingExpense
-                  ? 'Update Expense'
-                  : 'Save Expense'
+                    ? 'Update Expense'
+                    : 'Save Expense'
               }
               onPress={save}
               disabled={saving}

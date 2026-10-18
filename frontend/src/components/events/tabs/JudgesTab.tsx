@@ -37,7 +37,11 @@ export function JudgesTab({ event, onChanged }: Props) {
   const add = async () => {
     if (adding) return;
     if (!draft.name.trim()) {
-      toast({ title: "Missing information", description: "Please enter the name.", variant: "destructive" });
+      toast({
+        title: "Missing information",
+        description: "Please enter the name.",
+        variant: "destructive",
+      });
       return;
     }
     setAdding(true);
@@ -49,7 +53,11 @@ export function JudgesTab({ event, onChanged }: Props) {
       setDraft({ name: "", role: "", phone: "", email: "" });
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setAdding(false);
     }
@@ -72,7 +80,11 @@ export function JudgesTab({ event, onChanged }: Props) {
       setEditingId(null);
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setBusyId(null);
     }
@@ -84,7 +96,11 @@ export function JudgesTab({ event, onChanged }: Props) {
       await eventAPI.removeOfficial(event._id, id);
       onChanged();
     } catch (e: unknown) {
-      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
     } finally {
       setBusyId(null);
     }

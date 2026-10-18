@@ -107,14 +107,17 @@ export function buildInvoiceHTML(inv: any): string {
   const taxAmt = cgst + sgst + igst;
 
   const planName = inv.plan
-    ? esc(String(inv.plan).charAt(0).toUpperCase() + String(inv.plan).slice(1)) + " Plan"
+    ? esc(
+        String(inv.plan).charAt(0).toUpperCase() + String(inv.plan).slice(1),
+      ) + " Plan"
     : "Subscription Plan";
   const cycle = inv.billingCycle === "yearly" ? "Annual" : "Monthly";
   const description = `${planName} — ${cycle} Subscription`;
 
   const invoiceDate = fmtDate(inv.paidAt || inv.createdAt);
-  const invoiceNumber =
-    esc(inv.invoiceNumber || inv._id?.toString().slice(-8).toUpperCase() || "—");
+  const invoiceNumber = esc(
+    inv.invoiceNumber || inv._id?.toString().slice(-8).toUpperCase() || "—",
+  );
 
   const clientName = esc(company.name || "—");
   const clientAddress = [

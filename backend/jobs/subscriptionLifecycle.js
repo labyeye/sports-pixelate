@@ -1,6 +1,9 @@
 const cron = require("node-cron");
 const StudentSubscription = require("../models/StudentSubscription");
-const { notifyParentsOfStudent, notifyOwners } = require("../services/inAppNotify");
+const {
+  notifyParentsOfStudent,
+  notifyOwners,
+} = require("../services/inAppNotify");
 const { acquire, withJobLock } = require("../utils/jobLock");
 const logger = require("../utils/logger");
 
@@ -118,12 +121,16 @@ async function runSubscriptionLifecycle() {
 
 function startSubscriptionLifecycleJob() {
   const tick = () =>
-    withJobLock("subscription-lifecycle", 55 * 60 * 1000, runSubscriptionLifecycle).catch(
-      (err) => {
-        console.error("[Subscriptions] job failed:", err.message);
-        require("../utils/monitoring").captureError(err, { job: "subscription-lifecycle" });
-      },
-    );
+    withJobLock(
+      "subscription-lifecycle",
+      55 * 60 * 1000,
+      runSubscriptionLifecycle,
+    ).catch((err) => {
+      console.error("[Subscriptions] job failed:", err.message);
+      require("../utils/monitoring").captureError(err, {
+        job: "subscription-lifecycle",
+      });
+    });
   // Hourly; the lock keeps it to one run per hour across instances.
   cron.schedule("5 * * * *", tick, { timezone: "UTC" });
   setTimeout(tick, 15000);

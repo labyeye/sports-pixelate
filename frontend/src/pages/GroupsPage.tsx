@@ -64,8 +64,14 @@ export default function GroupsPage() {
 
   const active = groups.filter((g) => g.active !== false);
   const inactive = groups.filter((g) => g.active === false);
-  const totalCollected = active.reduce((s, g) => s + (g.collectedThisMonth || 0), 0);
-  const totalRemaining = active.reduce((s, g) => s + (g.remainingThisMonth || 0), 0);
+  const totalCollected = active.reduce(
+    (s, g) => s + (g.collectedThisMonth || 0),
+    0,
+  );
+  const totalRemaining = active.reduce(
+    (s, g) => s + (g.remainingThisMonth || 0),
+    0,
+  );
 
   return (
     <AppLayout title="Groups">
@@ -90,7 +96,11 @@ export default function GroupsPage() {
             disabled={saving || !name.trim()}
             className="border-2 border-black bg-[#A3E635] px-3 text-sm font-bold flex items-center gap-1 disabled:opacity-50"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
             Add
           </button>
         </form>
@@ -98,12 +108,20 @@ export default function GroupsPage() {
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="border-2 border-black p-3 bg-[#00C48C]/10">
-          <p className="text-xs font-bold uppercase text-muted-foreground">Collected this month</p>
-          <p className="font-display font-bold text-xl text-[#00A070]">{formatCurrency(totalCollected)}</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Collected this month
+          </p>
+          <p className="font-display font-bold text-xl text-[#00A070]">
+            {formatCurrency(totalCollected)}
+          </p>
         </div>
         <div className="border-2 border-black p-3 bg-[#FA731C]/10">
-          <p className="text-xs font-bold uppercase text-muted-foreground">Remaining</p>
-          <p className="font-display font-bold text-xl text-[#FA731C]">{formatCurrency(totalRemaining)}</p>
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Remaining
+          </p>
+          <p className="font-display font-bold text-xl text-[#FA731C]">
+            {formatCurrency(totalRemaining)}
+          </p>
         </div>
       </div>
 
@@ -126,7 +144,9 @@ export default function GroupsPage() {
 
       {inactive.length > 0 && (
         <div className="mt-6">
-          <h2 className="font-bold text-sm text-muted-foreground mb-2">Inactive groups</h2>
+          <h2 className="font-bold text-sm text-muted-foreground mb-2">
+            Inactive groups
+          </h2>
           <div className="flex flex-wrap gap-2">
             {inactive.map((g) => (
               <button
@@ -145,7 +165,13 @@ export default function GroupsPage() {
   );
 }
 
-function GroupCard({ group, onToggle }: { group: Sport; onToggle: () => void }) {
+function GroupCard({
+  group,
+  onToggle,
+}: {
+  group: Sport;
+  onToggle: () => void;
+}) {
   const collected = group.collectedThisMonth || 0;
   const remaining = group.remainingThisMonth || 0;
   const expected = collected + remaining;
@@ -153,7 +179,9 @@ function GroupCard({ group, onToggle }: { group: Sport; onToggle: () => void }) 
   return (
     <div className="border-2 bg-white p-4">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-display font-bold text-lg text-black">{group.name}</h3>
+        <h3 className="font-display font-bold text-lg text-black">
+          {group.name}
+        </h3>
         <button
           onClick={onToggle}
           title="Deactivate group"
@@ -163,7 +191,10 @@ function GroupCard({ group, onToggle }: { group: Sport; onToggle: () => void }) 
         </button>
       </div>
       <div className="flex gap-4 text-sm mb-3">
-        <Link to={`/students?sport=${encodeURIComponent(group.name)}`} className="flex items-center gap-1 hover:underline">
+        <Link
+          to={`/students?sport=${encodeURIComponent(group.name)}`}
+          className="flex items-center gap-1 hover:underline"
+        >
           <Users className="w-4 h-4" /> {group.studentCount} students
         </Link>
         <span className="flex items-center gap-1">
@@ -171,8 +202,12 @@ function GroupCard({ group, onToggle }: { group: Sport; onToggle: () => void }) 
         </span>
       </div>
       <div className="flex justify-between text-sm">
-        <span className="text-[#00A070] font-bold">{formatCurrency(collected)} collected</span>
-        <span className="text-[#FA731C] font-bold">{formatCurrency(remaining)} remaining</span>
+        <span className="text-[#00A070] font-bold">
+          {formatCurrency(collected)} collected
+        </span>
+        <span className="text-[#FA731C] font-bold">
+          {formatCurrency(remaining)} remaining
+        </span>
       </div>
       <div className="h-2 border border-black mt-2 bg-white">
         <div className="h-full bg-[#00C48C]" style={{ width: `${pct}%` }} />
