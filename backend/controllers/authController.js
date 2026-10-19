@@ -28,6 +28,11 @@ const loginSchema = {
 
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
+// 3 wrong passwords are allowed; the 4th wrong one locks the account for 30 min.
+// A WhatsApp OTP login or reset lifts the lock.
+const MAX_LOGIN_FAILS = 4;
+const LOGIN_LOCK_MS = 30 * 60 * 1000;
+const LOCKED_MSG = "Account locked for 30 minutes after too many wrong passwords. Unlock it now with a WhatsApp OTP.";
 const generateOtp = () => String(crypto.randomInt(100000, 1000000));
 const hashOtp = (otp) =>
   crypto.createHash("sha256").update(String(otp).trim()).digest("hex");
@@ -214,7 +219,7 @@ const login = [
 
     if (user && user.lockUntil && user.lockUntil > new Date()) {
       res.status(429);
-      throw new Error("Too many failed attempts. Try again in a few minutes.");
+      throw new Error(LOCKED_MSG);
     }
 
     // Compare against a dummy hash for unknown e-mails so the response time doesn't reveal whether one exists.
@@ -223,13 +228,17 @@ const login = [
       : (await bcrypt.compare(password, DUMMY_HASH), false);
     if (!passwordOk) {
       if (user) {
-        const locked = (user.failedLogins || 0) + 1 >= 10;
+        const locked = (user.failedLogins || 0) + 1 >= MAX_LOGIN_FAILS;
         await User.updateOne(
           { _id: user._id },
           locked
-            ? { $set: { failedLogins: 0, lockUntil: new Date(Date.now() + 15 * 60 * 1000) } }
+            ? { $set: { failedLogins: 0, lockUntil: new Date(Date.now() + LOGIN_LOCK_MS) } }
             : { $inc: { failedLogins: 1 } },
         );
+        if (locked) {
+          res.status(429);
+          throw new Error(LOCKED_MSG);
+        }
       }
       res.status(401);
       throw new Error("Invalid email or password");
@@ -711,8 +720,8 @@ const verifyOtp = asyncHandler(async (req, res) => {
   await User.updateMany(
     { _id: { $in: targetIds } },
     {
-      $set: { phoneOtpAttempts: 0 },
-      $unset: { phoneOtp: 1, phoneOtpExpire: 1 },
+      $set: { phoneOtpAttempts: 0, failedLogins: 0 },
+      $unset: { phoneOtp: 1, phoneOtpExpire: 1, lockUntil: 1 },
     },
   );
 
@@ -896,6 +905,8 @@ const resetPasswordWithOtp = asyncHandler(async (req, res) => {
   user.password = password;
   user.resetOtp = undefined;
   user.resetOtpExpire = undefined;
+  user.failedLogins = 0;
+  user.lockUntil = undefined;
   await user.save();
 
   res.json({

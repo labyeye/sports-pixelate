@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import "./index.css";
 import App from "./App.tsx";
+import { installFieldIcons } from "./lib/fieldIcons";
 
 // Error monitoring is optional: set VITE_SENTRY_DSN to enable it.
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -34,6 +35,7 @@ function CrashScreen() {
   );
 }
 
+installFieldIcons();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Sentry.ErrorBoundary fallback={<CrashScreen />}>

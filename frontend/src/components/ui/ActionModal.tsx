@@ -29,12 +29,10 @@ export function ActionModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4"
-      style={{ animation: "fadeIn 0.15s ease-out" }}
+      className="nb-backdrop fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4"
     >
       <div
-        className="border-2 border-black bg-white w-full max-w-sm p-8 flex flex-col items-center justify-center text-center relative"
-        style={{ animation: "slideUp 0.2s ease-out" }}
+        className="nb-modal border-2 border-black bg-white w-full max-w-sm p-8 flex flex-col items-center justify-center text-center relative"
       >
         {type === "error" && (
           <button
