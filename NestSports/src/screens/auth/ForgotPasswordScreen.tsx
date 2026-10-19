@@ -71,7 +71,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
   };
 
   const onContinue = () => {
-    if (!email.trim()) return setError('Please enter your email');
+    if (!email.trim()) return setError('Please Enter Email address');
     run(async () => {
       const res: any = await authAPI.forgotPasswordMethods(email.trim());
       setMethods(res.data.methods);

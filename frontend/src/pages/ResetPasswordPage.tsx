@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import nesthrlogo from "../../assets/logo.png";
 import { getErrorMessage } from "@/lib/utils";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 export default function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
@@ -57,8 +58,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F6FF] flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
+    <AuthShell>
         <div className="flex justify-center mb-8">
           <img
             src={nesthrlogo}
@@ -98,12 +98,12 @@ export default function ResetPasswordPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5 login-anim">
                 <div>
                   <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">
                     New Password
                   </label>
-                  <div className="flex border-2 border-black focus-within:border-[#024BAB] transition-colors">
+                  <div className="flex border-2 border-black transition-colors">
                     <input
                       type={showPw ? "text" : "password"}
                       value={password}
@@ -142,7 +142,7 @@ export default function ResetPasswordPage() {
                       setError("");
                     }}
                     placeholder="Repeat your new password"
-                    className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
+                    className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
                     required
                   />
                 </div>
@@ -176,7 +176,6 @@ export default function ResetPasswordPage() {
             </>
           )}
         </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

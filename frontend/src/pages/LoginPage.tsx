@@ -221,7 +221,7 @@ export default function LoginPage() {
     { icon: Users, label: "Employee Management" },
     { icon: Clock, label: "Attendance Tracking" },
     { icon: IndianRupee, label: "Payroll Processing" },
-    { icon: Wallet, label: "Coaching Plan Management" },
+    { icon: Wallet, label: "Fees Management" },
     { icon: BarChart2, label: "Reports & Analytics" },
   ];
 
@@ -250,11 +250,9 @@ export default function LoginPage() {
 
         {}
         <div className="relative z-10">
-          <h1 className="text-4xl xl:text-5xl font-display font-bold text-white leading-tight mb-5">
-            Every employee.
-            <br />
-            Every payslip.
-            <br />
+          <h1 className="text-3xl xl:text-4xl font-display font-bold text-white leading-tight mb-5">
+            Every Student.
+            Every Fees.
             One place.
           </h1>
           <p className="text-white/70 text-base font-medium max-w-sm">
@@ -324,7 +322,7 @@ export default function LoginPage() {
                       setError("");
                     }}
                     placeholder="000000"
-                    className="w-full px-4 py-3 border-2 border-black text-lg font-bold tracking-[0.5em] text-center bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
+                    className="w-full px-4 py-3 border-2 border-black text-lg font-bold tracking-[0.5em] text-center bg-white focus:outline-none transition-colors"
                     autoFocus
                     maxLength={8}
                   />
@@ -422,7 +420,7 @@ export default function LoginPage() {
                         setError("");
                       }}
                       placeholder="+91 98765 43210"
-                      className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
+                      className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
                       required
                       autoFocus
                     />
@@ -456,7 +454,10 @@ export default function LoginPage() {
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-5 login-anim">
+                <form
+                  onSubmit={handleVerifyOtp}
+                  className="space-y-5 login-anim"
+                >
                   <div>
                     <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">
                       WhatsApp OTP
@@ -469,7 +470,7 @@ export default function LoginPage() {
                         setError("");
                       }}
                       placeholder="000000"
-                      className="w-full px-4 py-3 border-2 border-black text-lg font-bold tracking-[0.5em] text-center bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
+                      className="w-full px-4 py-3 border-2 border-black text-lg font-bold tracking-[0.5em] text-center bg-white focus:outline-none transition-colors"
                       autoFocus
                       maxLength={6}
                     />
@@ -538,8 +539,8 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       setError("");
                     }}
-                    placeholder="Enter your Email address"
-                    className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none focus:border-[#024BAB] transition-colors"
+                    placeholder="Enter Email address"
+                    className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
                     required
                     autoComplete="email"
                     autoFocus
@@ -551,7 +552,7 @@ export default function LoginPage() {
                   <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">
                     Password
                   </label>
-                  <div className="flex border-2 border-black focus-within:border-[#024BAB] transition-colors">
+                  <div className="flex border-2 border-black transition-colors">
                     <input
                       type={showPw ? "text" : "password"}
                       value={password}
@@ -608,7 +609,7 @@ export default function LoginPage() {
               </form>
 
               {/* Alternate login options */}
-              <div className="mt-6 space-y-2 text-center">
+              <div className="mt-6 grid grid-cols-2 gap-2 text-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -618,7 +619,7 @@ export default function LoginPage() {
                   className="w-full py-2.5 px-4 bg-white border-2 border-black text-xs font-bold text-black flex items-center justify-center gap-2"
                 >
                   <WhatsAppIcon className="w-4 h-4 text-[#25D366]" /> Login with
-                  Phone OTP (WhatsApp)
+                  WhatsApp
                 </button>
                 <button
                   type="button"
@@ -634,7 +635,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       <KeyRound className="w-4 h-4 text-[#024BAB]" /> Sign in
-                      with Passkey / WebAuthn
+                      with Passkey
                     </>
                   )}
                 </button>

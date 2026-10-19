@@ -11,6 +11,7 @@ import {
 import { authAPI } from "@/services/api";
 import nesthrlogo from "../../assets/logo.png";
 import { getErrorMessage } from "@/lib/utils";
+import { AuthShell } from "@/components/auth/AuthShell";
 
 type Step = "email" | "choose" | "email_sent" | "code" | "done";
 type CodeMethod = "whatsapp" | "totp";
@@ -111,8 +112,7 @@ export default function ForgotPasswordPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F0F6FF] flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
+    <AuthShell>
         <div className="flex justify-center mb-8">
           <img
             src={nesthrlogo}
@@ -136,14 +136,14 @@ export default function ForgotPasswordPage() {
                   Forgot password?
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Enter your email to see how you can reset your password.
+                  Enter Email address to see how you can reset your password.
                 </p>
               </div>
 
-              <form onSubmit={handleEmail} className="space-y-5">
+              <form onSubmit={handleEmail} className="space-y-5 login-anim">
                 <div>
                   <label className={labelCls}>Email</label>
-                  <div className="flex border-2 border-black focus-within:border-[#024BAB] transition-colors">
+                  <div className="flex border-2 border-black transition-colors">
                     <span className="flex items-center px-3 border-r-2 border-black bg-gray-50">
                       <Mail className="w-4 h-4 text-gray-500" />
                     </span>
@@ -243,7 +243,7 @@ export default function ForgotPasswordPage() {
                   ? "We sent a 6-digit code to your verified WhatsApp number."
                   : "Open your authenticator app and enter the current 6-digit code (or a backup code)."}
               </p>
-              <form onSubmit={handleReset} className="space-y-4">
+              <form onSubmit={handleReset} className="space-y-5 login-anim">
                 <div>
                   <label className={labelCls}>
                     {method === "whatsapp"
@@ -257,7 +257,7 @@ export default function ForgotPasswordPage() {
                     value={code}
                     onChange={(e) => setCode(e.target.value.trim())}
                     placeholder="123456"
-                    className="w-full px-3 py-3 border-2 border-black text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-[#024BAB]"
+                    className="w-full px-3 py-3 border-2 border-black text-center text-lg font-bold tracking-[0.3em] outline-none"
                     required
                     autoFocus
                   />
@@ -269,7 +269,7 @@ export default function ForgotPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="8+ chars, upper, lower & a number"
-                    className="w-full px-3 py-3 border-2 border-black text-sm outline-none focus:border-[#024BAB]"
+                    className="w-full px-3 py-3 border-2 border-black text-sm outline-none"
                     required
                     autoComplete="new-password"
                   />
@@ -280,7 +280,7 @@ export default function ForgotPasswordPage() {
                     type="password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
-                    className="w-full px-3 py-3 border-2 border-black text-sm outline-none focus:border-[#024BAB]"
+                    className="w-full px-3 py-3 border-2 border-black text-sm outline-none"
                     required
                     autoComplete="new-password"
                   />
@@ -316,7 +316,6 @@ export default function ForgotPasswordPage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

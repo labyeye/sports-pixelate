@@ -1,6 +1,6 @@
 import { compressImageFile } from "@/lib/imageCompress";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = "http://localhost:5002/api";
 
 export const getToken = () => localStorage.getItem("hrms_token");
 export const setToken = (t: string) => localStorage.setItem("hrms_token", t);
