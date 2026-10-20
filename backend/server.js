@@ -116,6 +116,7 @@ const tele = require("./utils/telemetry")("CRM_API_SECRET");
 app.use(tele.middleware);
 app.use("/api/telemetry", tele.ingest);
 app.use("/api/crm/metrics", tele.metrics);
+app.use("/api/crm/accounts", require("./utils/crmAccounts")("CRM_API_SECRET", require("./utils/crmAdapter")));
 
 app.use("/iclock", require("./routes/admsRoutes"));
 app.use("/internal/stats", require("./routes/statsRoutes"));
