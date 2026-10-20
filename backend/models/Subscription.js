@@ -44,6 +44,9 @@ const subscriptionSchema = new mongoose.Schema(
     amountPaid: { type: Number, default: 0 },
     notes: { type: String },
     isTrial: { type: Boolean, default: false },
+    // Set from the CRM dashboard for custom deals; shown on the customer's billing page instead of the defaults.
+    customPlanName: { type: String, trim: true },
+    customFeatures: { type: [String], default: undefined },
     trialEndDate: { type: Date },
     hdfcOrderId: { type: String, index: true },
     hdfcTrackingId: { type: String },

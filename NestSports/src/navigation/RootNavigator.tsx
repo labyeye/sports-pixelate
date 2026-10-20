@@ -1,4 +1,6 @@
 import React, { useCallback, useState } from 'react';
+import { API_BASE_URL as TRACK_BASE } from '../config';
+import { initUsageTracker, setUsageIdentity, trackNavState } from '../utils/usageTracker';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
@@ -87,6 +89,8 @@ import AuditLogScreen from '../screens/AuditLogScreen';
 import SupportScreen from '../screens/SupportScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
 
+initUsageTracker(TRACK_BASE);
+
 const Stack = createNativeStackNavigator();
 
 function LoadingScreen() {
@@ -122,6 +126,7 @@ export default function RootNavigator() {
 
 function RootNavigatorContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  setUsageIdentity(user);
 
   if (isLoading) return <LoadingScreen />;
 
@@ -132,7 +137,7 @@ function RootNavigatorContent() {
 
   return (
     // Keyed on the account so switching academy remounts every screen.
-    <NavigationContainer key={user?.id}>
+    <NavigationContainer key={user?.id} onStateChange={trackNavState}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
