@@ -142,7 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Drop this device from the signed-in devices list (best effort)
+    try {
+      await authAPI.removeCurrentSession();
+    } catch {}
     removeToken();
     resetDisabledFeatures();
     setUser(null);

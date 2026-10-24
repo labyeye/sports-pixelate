@@ -490,7 +490,11 @@ function printReport(
 ) {
   const win = window.open("", "_blank");
   if (!win) return;
-  writePrintDocument(win, buildReportHTML(title, period, headers, rows, opts), true);
+  writePrintDocument(
+    win,
+    buildReportHTML(title, period, headers, rows, opts),
+    true,
+  );
 }
 
 function NbSelect({
@@ -1175,7 +1179,9 @@ function SalarySlipGen({
       minute: "2-digit",
       hour12: true,
     });
-    writePrintDocument(win, `<!DOCTYPE html>
+    writePrintDocument(
+      win,
+      `<!DOCTYPE html>
 <html><head><title>Salary Slip</title><style>
   @page { size: A4; margin: 15mm 15mm 22mm; @bottom-right { content: "Page " counter(page); font-size: 9px; color: #6B7280; } }
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -1253,7 +1259,9 @@ function SalarySlipGen({
     <span>${companyName} — Confidential</span>
     <span>Salary Slip · ${MONTHS[+month - 1]} ${year}</span>
   </div>
-</body></html>`, true);
+</body></html>`,
+      true,
+    );
   }
 
   return (

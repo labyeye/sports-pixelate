@@ -1,4 +1,11 @@
-import { Users, Clock, IndianRupee, BarChart2, Baby, Wallet } from "lucide-react";
+import {
+  Users,
+  Clock,
+  IndianRupee,
+  BarChart2,
+  Baby,
+  Wallet,
+} from "lucide-react";
 import nesthrlogo from "../../../assets/logo.png";
 import loginDash from "../../../assets/login-dash.png";
 
@@ -32,11 +39,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         />
         <div className="relative z-10">
           <h1 className="text-3xl xl:text-4xl font-display font-bold text-white leading-tight mb-5">
-            Every Student.
-            
-            Every Fees.
-            
-            One place.
+            Every Student. Every Fees. One place.
           </h1>
           <p className="text-white/70 text-base font-medium max-w-sm">
             Manage your entire workforce — attendance, leaves, payroll and

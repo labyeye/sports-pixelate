@@ -94,7 +94,9 @@ async function processDate(targetDate, istMinutesNow) {
     ]);
     const attByEmp = new Map(attRows.map((a) => [String(a.employee), a]));
     const leaveByEmp = new Map();
-    for (const l of leaveRows) if (!leaveByEmp.has(String(l.employee))) leaveByEmp.set(String(l.employee), l);
+    for (const l of leaveRows)
+      if (!leaveByEmp.has(String(l.employee)))
+        leaveByEmp.set(String(l.employee), l);
 
     for (const emp of companyEmps) {
       // Skip days outside the employee's employment period entirely.

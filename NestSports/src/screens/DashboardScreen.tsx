@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   RefreshControl,
   StyleSheet,
@@ -11,32 +10,36 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import {
-  Settings,
-  Sun,
-  CloudSun,
-  Moon,
   IndianRupee,
   Wallet,
   UserPlus,
   Users,
   UserCheck,
   UserX,
+  CreditCard,
+  CalendarClock,
   Phone,
 } from 'lucide-react-native';
-import { dashboardAPI } from '../api/client';
+import { dashboardAPI, notificationAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  KpiTile,
-  Card,
-  SectionTitle,
-  StatusPill,
-  Avatar,
-  LoadingView,
-} from '../components/ui';
-import { AreaChart } from '../components/charts';
+import { Card, SectionTitle, StatusPill, LoadingView } from '../components/ui';
+import AppHeader from '../components/common/AppHeader';
+import StatTile from '../components/common/StatTile';
+import AnimatedBarChart from '../components/common/AnimatedBarChart';
+import FadeInUp from '../components/motion/FadeInUp';
 import { colors, FONT } from '../theme/colors';
 import { formatCurrency, formatDateOrDash } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+
+// ₹6.4k / ₹1.2L — four cards share a row, so money is shortened.
+const compactInr = (n: number) =>
+  n >= 10000000
+    ? `₹${(n / 10000000).toFixed(1).replace(/\.0$/, '')}Cr`
+    : n >= 100000
+    ? `₹${(n / 100000).toFixed(1).replace(/\.0$/, '')}L`
+    : n >= 1000
+    ? `₹${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
+    : `₹${Math.round(n)}`;
 
 type Series = 'income' | 'expense';
 type Range = '1M' | '3M' | '6M' | '1Y';
@@ -51,6 +54,7 @@ export default function DashboardScreen() {
   const [series, setSeries] = useState<Series>('income');
   const [range, setRange] = useState<Range>('6M');
   const [trend, setTrend] = useState<any>(null);
+  const [unread, setUnread] = useState(0);
 
   const loadStats = useCallback(() => {
     return dashboardAPI
@@ -75,6 +79,13 @@ export default function DashboardScreen() {
   }, [loadStats]);
 
   useEffect(() => {
+    notificationAPI
+      .getAll({ limit: '1' })
+      .then((r: any) => setUnread(r?.unreadCount || 0))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     loadTrend();
   }, [loadTrend]);
 
@@ -87,12 +98,6 @@ export default function DashboardScreen() {
   if (loading || !data) return <LoadingView />;
 
   const { stats, feeSummary, subscriptionAlerts = [] } = data;
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const GreetIcon = hour < 12 ? Sun : hour < 17 ? CloudSun : Moon;
-  const greetColor =
-    hour < 12 ? colors.orange : hour < 17 ? colors.blue : colors.purple;
   const chartColor = series === 'income' ? colors.green : colors.red;
   const points = (trend?.points || []).map((p: any) => ({
     label: p.label,
@@ -101,6 +106,16 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <AppHeader
+        name={user?.name}
+        avatar={user?.avatar}
+        title="Dashboard"
+        unread={unread}
+        onMenu={() => navigation.navigate('Menu')}
+        onSearch={() => navigation.navigate('StudentAttendanceTab')}
+        onBell={() => navigation.navigate('Notifications')}
+        onAvatar={() => navigation.navigate('Profile')}
+      />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -108,79 +123,48 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.header}>
-          <Image
-            source={require('../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.navigate('Settings')}
-              accessibilityLabel="Settings"
-            >
-              <Settings size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            <Avatar
-              uri={user?.avatar}
-              name={user?.name}
-              size={38}
-              onPress={undefined}
+        <Text style={styles.sectionLabel}>Overview · This Month</Text>
+        <View style={styles.row4}>
+          <FadeInUp delay={0 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="FEES COLLECTED"
+              value={compactInr(feeSummary?.collected || 0)}
+              color={colors.green}
+              icon={IndianRupee}
             />
-          </View>
-        </View>
-
-        <View style={styles.greetRow}>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {greeting}, {user?.name?.split(' ')[0]}
-          </Text>
-          <GreetIcon size={30} color={greetColor} strokeWidth={2.5} />
-        </View>
-
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Fee Collected (This Month)"
-            value={formatCurrency(feeSummary?.collected || 0)}
-            color={colors.green}
-            solid
-            icon={IndianRupee}
-          />
-          <KpiTile
-            label="Fee Remaining (This Month)"
-            value={formatCurrency(feeSummary?.remaining || 0)}
-            color={colors.orange}
-            solid
-            icon={Wallet}
-          />
-          <KpiTile
-            label="New Students (This Month)"
-            value={stats.newStudents ?? 0}
-            color={colors.purple}
-            solid
-            icon={UserPlus}
-          />
-          <KpiTile
-            label="Total Students"
-            value={stats.totalStudents ?? 0}
-            color={colors.blue}
-            solid
-            icon={Users}
-          />
-          <KpiTile
-            label="Present Today"
-            value={stats.studentsPresentToday ?? 0}
-            color={colors.green}
-            solid
-            icon={UserCheck}
-          />
-          <KpiTile
-            label="Absent Today"
-            value={stats.studentsAbsentToday ?? 0}
-            color={colors.red}
-            solid
-            icon={UserX}
-          />
+          </FadeInUp>
+          <FadeInUp delay={1 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="FEE REMAINING"
+              value={compactInr(feeSummary?.remaining || 0)}
+              color={colors.orange}
+              icon={Wallet}
+            />
+          </FadeInUp>
+          <FadeInUp delay={2 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="NEW STUDENTS"
+              value={stats.newStudents ?? 0}
+              color={colors.purple}
+              icon={UserPlus}
+            />
+          </FadeInUp>
+          <FadeInUp delay={3 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="TOTAL STUDENTS"
+              value={stats.totalStudents ?? 0}
+              color={colors.blue}
+              icon={Users}
+            />
+          </FadeInUp>
         </View>
 
         <View style={styles.chartHead}>
@@ -229,18 +213,140 @@ export default function DashboardScreen() {
         <Card>
           <SectionTitle
             title={series === 'income' ? 'Income' : 'Expense'}
-            sub={`${formatCurrency(trend?.totals?.[series] || 0)} in the last ${range}`}
+            sub={`${formatCurrency(
+              trend?.totals?.[series] || 0,
+            )} in the last ${range}`}
           />
           {points.length > 0 ? (
-            <AreaChart
-              data={points}
-              color={chartColor}
+            <AnimatedBarChart
+              key={`${series}-${range}`}
+              series={[
+                {
+                  key: 'v',
+                  label: series === 'income' ? 'Income' : 'Expense',
+                  color: chartColor,
+                },
+              ]}
+              data={points.map((p: any) => ({
+                label: p.label,
+                values: { v: p.value },
+              }))}
               format={n => (n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`)}
             />
           ) : (
             <Text style={styles.empty}>No data for this period</Text>
           )}
         </Card>
+
+        <Text style={styles.sectionLabel}>Today & Subscriptions</Text>
+        <View style={styles.row4}>
+          <FadeInUp delay={0 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="Present Today"
+              value={stats.studentsPresentToday ?? 0}
+              color={colors.green}
+              icon={UserCheck}
+            />
+          </FadeInUp>
+          <FadeInUp delay={1 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="Absent Today"
+              value={stats.studentsAbsentToday ?? 0}
+              color={colors.red}
+              icon={UserX}
+            />
+          </FadeInUp>
+          <FadeInUp delay={2 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="Active Plans"
+              value={stats.activeSubscriptions ?? 0}
+              color={colors.blue}
+              icon={CreditCard}
+            />
+          </FadeInUp>
+          <FadeInUp delay={3 * 70} style={styles.tileCell4}>
+            <StatTile
+              compact
+              width="100%"
+              label="Ending Soon"
+              value={stats.endingSoon ?? 0}
+              color={colors.orange}
+              icon={CalendarClock}
+            />
+          </FadeInUp>
+        </View>
+
+        <Text style={styles.sectionLabel}>Recent Students</Text>
+        <FadeInUp delay={80} style={styles.tableCard}>
+          <View style={[styles.tr, styles.thRow]}>
+            <Text style={[styles.th, { flex: 2.2 }]}>Student</Text>
+            <Text style={[styles.th, { flex: 1.3 }]}>Sport</Text>
+            <Text style={[styles.th, { flex: 1.2, textAlign: 'right' }]}>
+              Joined
+            </Text>
+          </View>
+          {(data.latestStudents || []).length === 0 ? (
+            <Text style={styles.empty}>No students yet</Text>
+          ) : (
+            (data.latestStudents || []).map(
+              (st: any, i: number, arr: any[]) => (
+                <View
+                  key={st._id}
+                  style={[styles.tr, i < arr.length - 1 && styles.trBorder]}
+                >
+                  <View style={[styles.tdName, { flex: 2.2 }]}>
+                    <View style={styles.tdAvatar}>
+                      <Text style={styles.tdAvatarText}>
+                        {(st.firstName?.[0] || '?').toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.td} numberOfLines={1}>
+                        {st.firstName} {st.lastName}
+                      </Text>
+                      <Text style={styles.tdSub} numberOfLines={1}>
+                        {st.studentId}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.td, { flex: 1.3 }]} numberOfLines={1}>
+                    {st.sport || '—'}
+                  </Text>
+                  <Text
+                    style={[styles.tdSub, { flex: 1.2, textAlign: 'right' }]}
+                    numberOfLines={1}
+                  >
+                    {formatDateOrDash(st.enrollmentDate)}
+                  </Text>
+                </View>
+              ),
+            )
+          )}
+        </FadeInUp>
+
+        <Text style={styles.sectionLabel}>Student Growth · Last 6 Months</Text>
+        <FadeInUp delay={120} style={styles.tableCard}>
+          <Text style={styles.growthSub}>
+            New registrations vs students who subscribed again
+          </Text>
+          <AnimatedBarChart
+            legend
+            series={[
+              { key: 'new', label: 'New students', color: colors.purple },
+              { key: 'repeat', label: 'Repeat students', color: colors.green },
+            ]}
+            data={(data.studentGrowth || []).map((g: any) => ({
+              label: g.label,
+              values: { new: g.newStudents, repeat: g.repeatStudents },
+            }))}
+          />
+        </FadeInUp>
 
         <View style={styles.renewHead}>
           <SectionTitle
@@ -319,8 +425,8 @@ export default function DashboardScreen() {
                       {isPastDue
                         ? `${Math.abs(days)}d overdue`
                         : days === 0
-                          ? 'Due today'
-                          : `${days}d left`}
+                        ? 'Due today'
+                        : `${days}d left`}
                     </Text>
                   </View>
                 </View>
@@ -373,7 +479,7 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  content: { padding: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 },
   renewInfo: { flex: 1, minWidth: 0 },
   header: {
     flexDirection: 'row',
@@ -405,6 +511,80 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.black,
   },
+  sectionLabel: {
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: colors.black,
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  row4: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+  tileCell4: { flex: 1, minWidth: 0 },
+  tableCard: {
+    borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    padding: 12,
+    marginBottom: 16,
+  },
+  growthSub: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: colors.muted,
+    marginBottom: 8,
+  },
+  tr: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 8,
+  },
+  trBorder: { borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  thRow: {
+    borderBottomWidth: 2,
+    borderBottomColor: colors.black,
+    paddingTop: 0,
+  },
+  th: {
+    fontFamily: FONT.bold,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: colors.black,
+  },
+  td: {
+    fontFamily: FONT.bold,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  tdSub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
+  tdName: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tdAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.blue + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tdAvatarText: {
+    fontFamily: FONT.bold,
+    fontWeight: '800',
+    color: colors.blue,
+  },
+  tileCell: { width: '48.5%' },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

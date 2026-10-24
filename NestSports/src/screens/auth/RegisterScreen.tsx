@@ -3,160 +3,223 @@ import {
   View,
   Text,
   TextInput,
+  TouchableOpacity,
   StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LottieView from 'lottie-react-native';
+import { User, Mail, Lock, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../../components/ui';
 import { colors } from '../../theme/colors';
+
+// Same palette names NestPlay's auth screens were written with, on NestSports' tokens.
+const C = {
+  primary: colors.blue,
+  success: colors.green,
+  black: colors.black,
+  white: colors.white,
+  textMuted: colors.black,
+  textLight: '#94a3b8',
+};
+
+const loginAnim = require('../../assets/lottie/login.json');
 
 export default function RegisterScreen({ navigation }: any) {
   const { register } = useAuth();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = async () => {
-    setError('');
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all fields');
+  const handleRegister = async () => {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      Alert.alert('Validation', 'All fields are required');
       return;
     }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+      Alert.alert(
+        'Validation',
+        'Password must be at least 8 characters and include uppercase, lowercase, and a number',
+      );
       return;
     }
     setLoading(true);
-    const res = await register({
+    const result = await register({
       name: name.trim(),
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password,
     });
     setLoading(false);
-    if (!res.success) {
-      setError(res.error || 'Registration failed');
-    }
-    // On success, AuthContext flips isAuthenticated and RootNavigator swaps
-    // to the main app / onboarding automatically.
+    if (!result.success)
+      Alert.alert(
+        'Registration Failed',
+        result.error || 'Something went wrong',
+      );
   };
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={{ flex: 1, backgroundColor: colors.background }}
+    <KeyboardAvoidingView
+      style={styles.safe}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 24 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.logo}>
-            Nest<Text style={{ color: colors.orange }}>Sports</Text>
-          </Text>
-          <Text style={styles.subtitle}>Create your academy account</Text>
+        <LottieView source={loginAnim} autoPlay loop style={styles.lottie} />
+        <Text style={styles.title}>Create Account</Text>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Jane Doe"
-            />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-            />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-            />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="••••••••"
-            />
-          </View>
+        <View style={styles.card}>
+          {[
+            {
+              label: 'Full Name',
+              icon: <User size={16} color={C.textMuted} />,
+              value: name,
+              setter: setName,
+              placeholder: 'John Doe',
+              keyboard: 'default' as const,
+            },
+            {
+              label: 'Work Email',
+              icon: <Mail size={16} color={C.textMuted} />,
+              value: email,
+              setter: setEmail,
+              placeholder: 'Enter Email Address',
+              keyboard: 'email-address' as const,
+            },
+            {
+              label: 'Password',
+              icon: <Lock size={16} color={C.textMuted} />,
+              value: password,
+              setter: setPassword,
+              placeholder: '••••••••',
+              keyboard: 'default' as const,
+              secure: true,
+            },
+          ].map(f => (
+            <View key={f.label} style={styles.field}>
+              <Text style={styles.label}>{f.label}</Text>
+              <View style={styles.inputRow}>
+                <View style={styles.inputIcon}>{f.icon}</View>
+                <TextInput
+                  style={styles.input}
+                  value={f.value}
+                  onChangeText={f.setter}
+                  placeholder={f.placeholder}
+                  placeholderTextColor={C.textLight}
+                  keyboardType={f.keyboard}
+                  autoCapitalize={
+                    f.keyboard === 'email-address' ? 'none' : 'words'
+                  }
+                  secureTextEntry={f.secure}
+                />
+              </View>
+            </View>
+          ))}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <TouchableOpacity
+            style={styles.btnPrimary}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={C.white} />
+            ) : (
+              <Text style={styles.btnPrimaryText}>Create Account</Text>
+            )}
+          </TouchableOpacity>
 
-          <Button title="Create Account" onPress={onSubmit} loading={loading} />
-
-          <Text
-            style={styles.link}
+          <TouchableOpacity
+            style={styles.backLink}
             onPress={() => navigation.navigate('Login')}
           >
-            Already have an account? Sign in
-          </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            <ArrowLeft size={14} color={C.primary} />
+            <Text style={styles.backLinkText}>Back to Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: colors.background,
+  safe: { flex: 1, backgroundColor: '#fff' },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, backgroundColor: '#fff' },
+  lottie: { width: '100%', height: 220, alignSelf: 'center' },
+  title: {
+    fontSize: 36,
+    fontWeight: '600',
+    color: C.black,
+    marginTop: 12,
+    marginBottom: 18,
   },
-  logo: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.blue,
-    textAlign: 'center',
-    marginBottom: 4,
+  card: {},
+  field: { marginBottom: 16 },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    color: C.black,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    textAlign: 'center',
-    color: colors.muted,
-    marginBottom: 24,
-  },
-  field: { marginBottom: 14 },
-  label: { fontWeight: '700', marginBottom: 6, color: colors.black },
-  input: {
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 2,
     borderRadius: 8,
     borderRightWidth: 5,
     borderBottomWidth: 5,
     borderRightColor: '#0A0A0A',
     borderBottomColor: '#0A0A0A',
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderColor: C.black,
   },
-  error: { color: colors.red, marginBottom: 12, fontWeight: '600' },
-  link: {
-    textAlign: 'center',
-    marginTop: 16,
-    color: colors.blue,
+  inputIcon: { marginHorizontal: 10 },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingRight: 12,
+    fontSize: 14,
+    fontWeight: '500',
+    color: C.black,
+  },
+  btnPrimary: {
+    backgroundColor: C.primary,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderColor: C.black,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  btnPrimaryText: {
+    color: C.white,
     fontWeight: '700',
+    fontSize: 14,
+    textTransform: 'uppercase',
   },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 20,
+  },
+  backLinkText: { fontSize: 13, color: C.primary, fontWeight: '700' },
 });

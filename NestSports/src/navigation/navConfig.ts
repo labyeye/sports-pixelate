@@ -330,6 +330,13 @@ export const navGroups: NavGroup[] = [
         desc: 'Subscription & invoices',
       },
       {
+        title: 'Account Security',
+        screen: 'AccountSecurity',
+        icon: ShieldCheck,
+        roles: ALL,
+        desc: 'Passkey, devices, backup codes & verification',
+      },
+      {
         title: 'Settings',
         screen: 'Settings',
         icon: Settings,

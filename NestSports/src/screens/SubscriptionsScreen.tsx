@@ -444,25 +444,6 @@ export default function SubscriptionsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.summaryStrip}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{activeCount}</Text>
-            <Text style={styles.summaryLabel}>Active</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{pendingRenewalCount}</Text>
-            <Text style={styles.summaryLabel}>Renewal due</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue} numberOfLines={1}>
-              {formatCurrency(collectedThisMonth)}
-            </Text>
-            <Text style={styles.summaryLabel}>Collected this month</Text>
-          </View>
-        </View>
-
         <FilterPills
           options={STATUS_OPTIONS}
           value={status}
@@ -511,36 +492,42 @@ export default function SubscriptionsScreen({ navigation }: any) {
           renderItem={({ item: s }) => (
             <Card>
               <View style={styles.cardHeaderRow}>
-                <Text style={styles.name}>
-                  {s.student?.firstName} {s.student?.lastName}
-                </Text>
+                {s.student?.avatar ? (
+                  <Image
+                    source={{ uri: s.student.avatar }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarFallback]}>
+                    <Text style={styles.avatarText}>
+                      {`${s.student?.firstName?.[0] || ''}${
+                        s.student?.lastName?.[0] || ''
+                      }`.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {s.student?.firstName} {s.student?.lastName}
+                  </Text>
+                  <Text style={styles.planName} numberOfLines={1}>
+                    {s.planName} · Renews{' '}
+                    {s.renewalDate
+                      ? new Date(s.renewalDate).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                        })
+                      : '—'}
+                  </Text>
+                </View>
                 <Badge
                   label={s.status?.replace('_', ' ')}
                   color={STATUS_COLORS[s.status] || colors.muted}
                 />
               </View>
-              <Text style={styles.planName}>{s.planName}</Text>
-              <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>AMOUNT PAID</Text>
-                  <Text style={styles.statValue}>
-                    {formatCurrency(s.amountPaid || 0)} /{' '}
-                    {formatCurrency(s.amount)}
-                  </Text>
-                </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>RENEWAL</Text>
-                  <Text style={styles.statValue}>
-                    {s.renewalDate
-                      ? new Date(s.renewalDate).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : '—'}
-                  </Text>
-                </View>
-              </View>
+              <Text style={styles.amountLine}>
+                {formatCurrency(s.amountPaid || 0)} / {formatCurrency(s.amount)}
+              </Text>
 
               {Array.isArray(s.payments) && s.payments.length > 0 && (
                 <View style={styles.paymentHistory}>
@@ -888,7 +875,16 @@ export default function SubscriptionsScreen({ navigation }: any) {
               <TextField
                 label="Amount Received"
                 value={cashAmount}
-                onChangeText={setCashAmount}
+                onChangeText={v => {
+                  const max = cashTopUpSub
+                    ? cashTopUpSub.amount - (cashTopUpSub.amountPaid || 0)
+                    : selectedCashPlan
+                      ? cashBillingCycle === 'yearly'
+                        ? selectedCashPlan.yearlyPrice
+                        : selectedCashPlan.monthlyPrice
+                      : Infinity;
+                  setCashAmount(Number(v) > max ? String(max) : v);
+                }}
                 placeholder="e.g. 2000"
                 keyboardType="numeric"
                 required
@@ -916,6 +912,20 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
   },
   subtitle: { color: colors.muted, marginTop: 2 },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.black,
+    marginRight: 10,
+  },
+  avatarFallback: {
+    backgroundColor: '#E8F0FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 13, fontWeight: '800', color: colors.blue },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -994,26 +1004,25 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderColor: colors.black,
   },
   cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   name: { fontSize: 16, fontWeight: '800', color: colors.black },
   planName: {
     color: colors.muted,
     fontSize: 12,
-    marginTop: 2,
-    marginBottom: 10,
+    marginTop: 3,
+  },
+  amountLine: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.black,
+    marginTop: 14,
+    marginBottom: 12,
   },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   statBox: {
@@ -1035,7 +1044,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statValue: { fontSize: 15, fontWeight: '800', color: colors.black },
-  paymentHistory: { marginBottom: 12, gap: 8 },
+  paymentHistory: { marginBottom: 14, gap: 8 },
   paymentEntryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1044,7 +1053,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: colors.black,
     backgroundColor: colors.background,
-    padding: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   paymentEntryAmount: { fontSize: 13, fontWeight: '800', color: colors.black },
   paymentEntryDate: { fontSize: 10, color: colors.muted, marginTop: 1 },
@@ -1068,6 +1078,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 2,
   },
   reviewBtn: {
     flexDirection: 'row',

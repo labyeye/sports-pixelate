@@ -104,6 +104,7 @@ interface Subscription {
     firstName: string;
     lastName: string;
     studentId?: string;
+    avatar?: string;
   };
   plan: { _id: string; name: string };
   planName: string;
@@ -965,7 +966,14 @@ export default function SubscriptionsPage() {
               <input
                 type="number"
                 value={qrAmount}
-                onChange={(e) => setQrAmount(e.target.value)}
+                onChange={(e) => {
+                  const max = qrTopUpSub
+                    ? qrTopUpSub.amount - (qrTopUpSub.amountPaid || 0)
+                    : Infinity;
+                  setQrAmount(
+                    Number(e.target.value) > max ? String(max) : e.target.value,
+                  );
+                }}
                 placeholder="e.g. 800"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               />
@@ -1154,7 +1162,14 @@ export default function SubscriptionsPage() {
               <input
                 type="number"
                 value={cashAmount}
-                onChange={(e) => setCashAmount(e.target.value)}
+                onChange={(e) => {
+                  const max = cashTopUpSub
+                    ? cashTopUpSub.amount - (cashTopUpSub.amountPaid || 0)
+                    : Infinity;
+                  setCashAmount(
+                    Number(e.target.value) > max ? String(max) : e.target.value,
+                  );
+                }}
                 placeholder="e.g. 2000"
                 className="w-full border-2 border-black px-3 py-2 text-sm font-medium bg-white outline-none"
               />
@@ -1398,13 +1413,28 @@ export default function SubscriptionsPage() {
                   return (
                     <tr
                       key={s._id}
+                      style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}
                       className={cn(
-                        "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                        "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
                         idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
                       )}
                     >
                       <td className="px-4 py-3 font-bold text-black">
-                        {s.student?.firstName} {s.student?.lastName}
+                        <div className="flex items-center gap-2">
+                          {s.student?.avatar ? (
+                            <img
+                              src={s.student.avatar}
+                              alt=""
+                              className="h-7 w-7 rounded-full border border-black object-cover"
+                            />
+                          ) : (
+                            <span className="h-7 w-7 rounded-full border border-black bg-[#E8F0FB] text-[#024BAB] text-[10px] flex items-center justify-center">
+                              {(s.student?.firstName?.[0] || "") +
+                                (s.student?.lastName?.[0] || "")}
+                            </span>
+                          )}
+                          {s.student?.firstName} {s.student?.lastName}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-black">{s.planName}</td>
                       <td className="px-4 py-3 text-black capitalize">

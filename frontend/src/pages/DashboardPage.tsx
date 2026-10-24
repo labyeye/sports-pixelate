@@ -19,6 +19,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
   Area,
   AreaChart,
 } from "recharts";
@@ -250,6 +251,7 @@ export default function DashboardPage() {
     attTrend = [],
     payTrend = [],
     subscriptionAlerts = [],
+    studentGrowth = [],
   } = data;
 
   const MONTH_LABELS = [
@@ -650,6 +652,58 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* New vs repeat students, last 6 months */}
+      <div className="border-2 bg-white p-5 mb-4">
+        <h3 className="font-display font-bold text-base text-black mb-1">
+          Student Growth
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          New registrations vs students who subscribed again, last 6 months
+        </p>
+        {studentGrowth.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={studentGrowth} barCategoryGap="30%">
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#E5E7EB"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 12, fontWeight: 700 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={false}
+                width={28}
+              />
+              <Tooltip content={<NbTooltip />} cursor={{ fill: "#024BAB11" }} />
+              <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700 }} />
+              <Bar
+                dataKey="newStudents"
+                name="New students"
+                fill="#A855F7"
+                stroke="#0A0A0A"
+                strokeWidth={2}
+              />
+              <Bar
+                dataKey="repeatStudents"
+                name="Repeat students"
+                fill="#00C48C"
+                stroke="#0A0A0A"
+                strokeWidth={2}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-muted-foreground">No data yet</p>
+        )}
       </div>
 
       {/* Dept chart + Notifications row */}

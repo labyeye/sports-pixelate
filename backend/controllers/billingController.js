@@ -657,7 +657,9 @@ async function _createCompanyAndActivate({
     );
   }
 
-  const invoiceSeq = await Counter.next("sportsInvoice", () => Invoice.countDocuments());
+  const invoiceSeq = await Counter.next("sportsInvoice", () =>
+    Invoice.countDocuments(),
+  );
   const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
   await Invoice.create({
     company: company._id,
@@ -734,7 +736,13 @@ async function _createCompanyAndActivate({
 
 // Renewal / upgrade: activates the existing Subscription located by `lookup`,
 // applies `update`, extends the period (plus any bonus months) and issues the Invoice.
-async function _activateSubscription({ lookup, update, invoiceExtra, res, req }) {
+async function _activateSubscription({
+  lookup,
+  update,
+  invoiceExtra,
+  res,
+  req,
+}) {
   const subscription = await Subscription.findOne(lookup);
   if (!subscription) {
     res.status(404);
@@ -750,7 +758,11 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res, req })
     return res.json({
       success: true,
       message: "This payment was already processed.",
-      data: { plan: subscription.plan, billingCycle: subscription.billingCycle, renewalDate: subscription.renewalDate },
+      data: {
+        plan: subscription.plan,
+        billingCycle: subscription.billingCycle,
+        renewalDate: subscription.renewalDate,
+      },
     });
   }
 
@@ -801,7 +813,9 @@ async function _activateSubscription({ lookup, update, invoiceExtra, res, req })
     subscription: updatedSub._id,
   });
 
-  const invoiceSeq = await Counter.next("sportsInvoice", () => Invoice.countDocuments());
+  const invoiceSeq = await Counter.next("sportsInvoice", () =>
+    Invoice.countDocuments(),
+  );
   const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
   await Invoice.create({
     company: company._id,

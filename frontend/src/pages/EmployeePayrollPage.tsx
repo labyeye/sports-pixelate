@@ -97,7 +97,9 @@ export default function EmployeePayrollPage() {
   const handlePrint = (p: PayrollRecord) => {
     const win = window.open("", "_blank");
     if (!win) return;
-    writePrintDocument(win, `
+    writePrintDocument(
+      win,
+      `
       <html>
       <head><title>Salary Slip — ${MONTHS[p.month - 1]} ${p.year}</title>
       <style>
@@ -130,7 +132,9 @@ export default function EmployeePayrollPage() {
           ${p.paidAt ? `<tr><td>Paid On</td><td>${new Date(p.paidAt).toLocaleDateString("en-IN")}</td></tr>` : ""}
         </table>
       </body></html>
-    `, true);
+    `,
+      true,
+    );
   };
 
   const totalEarned = payrolls

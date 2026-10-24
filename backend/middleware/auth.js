@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/User");
 const Company = require("../models/Company");
+const Session = require("../models/Session");
 const { getCompanyFeatures } = require("../utils/planFeatures");
 const { getCompanyAccess } = require("../utils/subscriptionStatus");
 
@@ -26,8 +27,11 @@ const protect = asyncHandler(async (req, res, next) => {
     res.status(401);
     throw new Error("Not authorized, no token");
   }
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
     // A purpose-bound token (2FA step) is not a session.
     if (decoded.purpose) throw new Error("Not a session token");
     req.user = await User.findById(decoded.id).select("-password");
@@ -44,6 +48,25 @@ const protect = asyncHandler(async (req, res, next) => {
   } catch (err) {
     res.status(401);
     throw new Error("Not authorized, token invalid");
+  }
+
+  // Tokens issued to a device carry its session id; a removed device is rejected here.
+  if (decoded.sid) {
+    const session = await Session.findOne({
+      _id: decoded.sid,
+      userId: req.user._id,
+    }).select("lastActiveAt");
+    if (!session) {
+      res.status(401);
+      throw new Error("This device was signed out. Please log in again.");
+    }
+    if (Date.now() - session.lastActiveAt.getTime() > 5 * 60 * 1000) {
+      Session.updateOne(
+        { _id: session._id },
+        { lastActiveAt: new Date(), ip: req.ip || "" },
+      ).catch(() => {});
+    }
+    req.sessionId = String(session._id);
   }
 
   // The web UI already redirects lapsed academies to Billing; enforce it on the
@@ -75,7 +98,9 @@ const protectCompany = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, no token");
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
     if (decoded.purpose) throw new Error("Not a session token");
     req.company = await Company.findById(decoded.id).select("-password");
     if (!req.company) {

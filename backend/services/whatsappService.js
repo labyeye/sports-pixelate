@@ -1072,8 +1072,12 @@ async function sendPhoneOtp(phone, { otp }) {
     `[WA-OTP] token=${accessToken ? accessToken.slice(0, 8) + "..." : "MISSING"} phoneId=${phoneNumberId || "MISSING"} to=${phone}`,
   );
   if (!accessToken || !phoneNumberId) {
-    console.warn("[WA-DEBUG] ABORT: META_WA_TOKEN or META_WA_PHONE_ID not set");
-    return;
+    console.error("[WA-OTP] Not configured — cannot send OTP", {
+      hasToken: !!accessToken,
+      hasPhoneNumberId: !!phoneNumberId,
+      hint: "set META_WA_TOKEN and META_WA_PHONE_ID",
+    });
+    throw new Error("WhatsApp is not configured on the server");
   }
 
   let toNumber = phone.replace(/^\+/, "").replace(/\s/g, "");

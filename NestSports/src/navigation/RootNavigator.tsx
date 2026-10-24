@@ -1,6 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { API_BASE_URL as TRACK_BASE } from '../config';
-import { initUsageTracker, setUsageIdentity, trackNavState } from '../utils/usageTracker';
+import {
+  initUsageTracker,
+  setUsageIdentity,
+  trackNavState,
+} from '../utils/usageTracker';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
@@ -11,7 +15,6 @@ import MainTabs from './MainTabs';
 
 // Auth / onboarding
 import LoginScreen from '../screens/auth/LoginScreen';
-import PhoneOtpLoginScreen from '../screens/auth/PhoneOtpLoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
@@ -83,6 +86,8 @@ import StudentPaymentHistoryScreen from '../screens/StudentPaymentHistoryScreen'
 import ManageScreen from '../screens/ManageScreen';
 import BillingScreen from '../screens/BillingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AccountSecurityScreen from '../screens/AccountSecurityScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import TwoFactorScreen from '../screens/TwoFactorScreen';
 import PermissionsScreen from '../screens/PermissionsScreen';
@@ -157,11 +162,6 @@ function RootNavigatorContent() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="PhoneOtpLogin"
-              component={PhoneOtpLoginScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
               name="Register"
               component={RegisterScreen}
               options={{ title: 'Create Account' }}
@@ -188,11 +188,6 @@ function RootNavigatorContent() {
             <Stack.Screen
               name="Login"
               component={LoginScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="PhoneOtpLogin"
-              component={PhoneOtpLoginScreen}
               options={{ headerShown: false }}
             />
           </>
@@ -409,6 +404,16 @@ function RootNavigatorContent() {
             <Stack.Screen name="Manage" component={ManageScreen} />
             <Stack.Screen name="Billing" component={BillingScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AccountSecurity"
+              component={AccountSecurityScreen}
+              options={{ title: 'Account Security' }}
+            />
             <Stack.Screen
               name="Profile"
               component={ProfileScreen}

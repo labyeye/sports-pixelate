@@ -28,12 +28,8 @@ export function ActionModal({
   if (!show) return null;
 
   return (
-    <div
-      className="nb-backdrop fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4"
-    >
-      <div
-        className="nb-modal border-2 border-black bg-white w-full max-w-sm p-8 flex flex-col items-center justify-center text-center relative"
-      >
+    <div className="nb-backdrop fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
+      <div className="nb-modal border-2 border-black bg-white w-full max-w-sm p-8 flex flex-col items-center justify-center text-center relative">
         {type === "error" && (
           <button
             onClick={onClose}

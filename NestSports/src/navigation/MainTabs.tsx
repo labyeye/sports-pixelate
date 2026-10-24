@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Home,
   Menu,
@@ -10,6 +9,7 @@ import {
   Package,
   Clock,
   Wallet,
+  IndianRupee,
   CalendarClock,
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,9 +25,15 @@ import AttendanceScreen from '../screens/AttendanceScreen';
 import InventoryScreen from '../screens/InventoryScreen';
 import MenuScreen from '../screens/MenuScreen';
 import { useDisabledFeatures } from '../utils/disabledFeatures';
-import { colors, FONT } from '../theme/colors';
+import CustomTabBar from '../components/common/CustomTabBar';
 
 const Tab = createBottomTabNavigator();
+const tabIconWrap = {
+  width: 32,
+  height: 28,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+};
 
 const OWNER: UserRole[] = ['super_admin', 'hr_manager'];
 const OWNER_STAFF: UserRole[] = ['super_admin', 'hr_manager', 'employee'];
@@ -49,28 +55,18 @@ export default function MainTabs() {
   const { user } = useAuth();
   const role = user?.role;
   const disabledFeatures = useDisabledFeatures(!!user);
-  const insets = useSafeAreaInsets();
-  const tabBarHeight = 64 + insets.bottom;
 
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.blue,
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarStyle: [
-          styles.tabBar,
-          { height: tabBarHeight, paddingBottom: insets.bottom + 4 },
-        ],
-        tabBarLabelStyle: styles.tabLabel,
-      }}
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen
         name="Home"
         component={HomeTabScreen}
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+          tabBarIcon: ({ color }) => (
+            <View style={tabIconWrap}>
               <Home color={color} size={20} strokeWidth={2} />
             </View>
           ),
@@ -83,8 +79,8 @@ export default function MainTabs() {
           options={{
             title: 'Attendance',
             tabBarLabel: 'Attendance',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+            tabBarIcon: ({ color }) => (
+              <View style={tabIconWrap}>
                 <Clock color={color} size={20} strokeWidth={2} />
               </View>
             ),
@@ -98,8 +94,8 @@ export default function MainTabs() {
           options={{
             title: 'Subscriptions',
             tabBarLabel: 'Wallet',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+            tabBarIcon: ({ color }) => (
+              <View style={tabIconWrap}>
                 <Wallet color={color} size={20} strokeWidth={2} />
               </View>
             ),
@@ -115,10 +111,8 @@ export default function MainTabs() {
             options={{
               title: 'Bookings',
               tabBarLabel: 'Bookings',
-              tabBarIcon: ({ color, focused }) => (
-                <View
-                  style={[styles.iconWrap, focused && styles.iconWrapActive]}
-                >
+              tabBarIcon: ({ color }) => (
+                <View style={tabIconWrap}>
                   <CalendarClock color={color} size={20} strokeWidth={2} />
                 </View>
               ),
@@ -132,9 +126,24 @@ export default function MainTabs() {
           options={{
             title: 'Student Attendance',
             tabBarLabel: 'Students',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+            tabBarIcon: ({ color }) => (
+              <View style={tabIconWrap}>
                 <ClipboardCheck color={color} size={20} strokeWidth={2} />
+              </View>
+            ),
+          }}
+        />
+      )}
+      {role && OWNER.includes(role) && (
+        <Tab.Screen
+          name="FeesTab"
+          component={SubscriptionsScreen}
+          options={{
+            title: 'Fees',
+            tabBarLabel: 'Fees',
+            tabBarIcon: ({ color }) => (
+              <View style={tabIconWrap}>
+                <IndianRupee color={color} size={20} strokeWidth={2} />
               </View>
             ),
           }}
@@ -147,8 +156,8 @@ export default function MainTabs() {
           options={{
             title: 'Staff Attendance',
             tabBarLabel: 'Staff',
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+            tabBarIcon: ({ color }) => (
+              <View style={tabIconWrap}>
                 <UserCheck color={color} size={20} strokeWidth={2} />
               </View>
             ),
@@ -157,6 +166,7 @@ export default function MainTabs() {
       )}
       {role &&
         OWNER_STAFF.includes(role) &&
+        !OWNER.includes(role) &&
         !disabledFeatures.includes('inventory') && (
           <Tab.Screen
             name="InventoryTab"
@@ -164,10 +174,8 @@ export default function MainTabs() {
             options={{
               title: 'Inventory',
               tabBarLabel: 'Inventory',
-              tabBarIcon: ({ color, focused }) => (
-                <View
-                  style={[styles.iconWrap, focused && styles.iconWrapActive]}
-                >
+              tabBarIcon: ({ color }) => (
+                <View style={tabIconWrap}>
                   <Package color={color} size={20} strokeWidth={2} />
                 </View>
               ),
@@ -179,8 +187,8 @@ export default function MainTabs() {
         component={MenuScreen}
         options={{
           tabBarLabel: 'More',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+          tabBarIcon: ({ color }) => (
+            <View style={tabIconWrap}>
               <Menu color={color} size={20} strokeWidth={2} />
             </View>
           ),
@@ -189,27 +197,3 @@ export default function MainTabs() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    overflow: 'hidden',
-    borderTopWidth: 2,
-    borderTopColor: colors.black,
-    backgroundColor: colors.white,
-    paddingTop: 4,
-  },
-  tabLabel: {
-    fontFamily: FONT.bold,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  iconWrap: {
-    width: 32,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWrapActive: {},
-});

@@ -1,5 +1,5 @@
 const express = require("express");
-const { getLogs } = require("../controllers/auditController");
+const { getLogs, getActivity } = require("../controllers/auditController");
 const {
   protect,
   authorize,
@@ -13,6 +13,14 @@ router.get(
   requirePlanFeature("auditLog"),
   authorize("super_admin", "hr_manager"),
   getLogs,
+);
+
+router.get(
+  "/activity",
+  protect,
+  requirePlanFeature("auditLog"),
+  authorize("super_admin", "hr_manager"),
+  getActivity,
 );
 
 module.exports = router;

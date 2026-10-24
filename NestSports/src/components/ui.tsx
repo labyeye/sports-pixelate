@@ -1,3 +1,4 @@
+import FadeInUp from './motion/FadeInUp';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -52,17 +53,19 @@ export function Card({
   accentColor?: string;
 }) {
   return (
-    <View
-      style={[
-        styles.card,
-        accentColor
-          ? { borderLeftWidth: 4, borderLeftColor: accentColor }
-          : null,
-        style,
-      ]}
-    >
-      {children}
-    </View>
+    <FadeInUp distance={10} duration={350}>
+      <View
+        style={[
+          styles.card,
+          accentColor
+            ? { borderLeftWidth: 4, borderLeftColor: accentColor }
+            : null,
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    </FadeInUp>
   );
 }
 

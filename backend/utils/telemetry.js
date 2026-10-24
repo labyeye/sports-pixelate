@@ -39,14 +39,21 @@ const minuteSchema = new mongoose.Schema({
 });
 minuteSchema.index({ platform: 1, minute: 1 }, { unique: true });
 
-const Event = mongoose.models.UsageEvent || mongoose.model("UsageEvent", eventSchema);
-const Minute = mongoose.models.UsageMinute || mongoose.model("UsageMinute", minuteSchema);
+const Event =
+  mongoose.models.UsageEvent || mongoose.model("UsageEvent", eventSchema);
+const Minute =
+  mongoose.models.UsageMinute || mongoose.model("UsageMinute", minuteSchema);
 
 const clip = (v, n) => (v == null ? undefined : String(v).slice(0, n));
 const platformOf = (v) => (String(v).toLowerCase() === "app" ? "app" : "web");
 // Query-less path with ids collapsed, so /employees/64af... counts as /employees/:id.
 const normPath = (p) =>
-  String(p || "/").split("?")[0].split("#")[0].replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id").replace(/\/\d+(?=\/|$)/g, "/:id").slice(0, 120);
+  String(p || "/")
+    .split("?")[0]
+    .split("#")[0]
+    .replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id")
+    .replace(/\/\d+(?=\/|$)/g, "/:id")
+    .slice(0, 120);
 
 module.exports = (secretEnv) => {
   const guard = (req, res, next) => {
@@ -69,7 +76,16 @@ module.exports = (secretEnv) => {
         [...batch.values()].map((c) => ({
           updateOne: {
             filter: { minute: c.minute, platform: c.platform },
-            update: { $inc: { n: c.n, ok: c.ok, c4: c.c4, c5: c.c5, ms: c.ms, slow: c.slow } },
+            update: {
+              $inc: {
+                n: c.n,
+                ok: c.ok,
+                c4: c.c4,
+                c5: c.c5,
+                ms: c.ms,
+                slow: c.slow,
+              },
+            },
             upsert: true,
           },
         })),
@@ -82,17 +98,34 @@ module.exports = (secretEnv) => {
   setInterval(flush, 30000).unref();
 
   const middleware = (req, res, next) => {
-    if (!req.originalUrl.startsWith("/api/") || req.originalUrl.startsWith("/api/telemetry") || req.originalUrl.startsWith("/api/crm")) return next();
+    if (
+      !req.originalUrl.startsWith("/api/") ||
+      req.originalUrl.startsWith("/api/telemetry") ||
+      req.originalUrl.startsWith("/api/crm")
+    )
+      return next();
     const t0 = Date.now();
     res.on("finish", () => {
       const platform = platformOf(req.headers["x-client"]);
       const minute = new Date(Math.floor(t0 / 60000) * 60000);
       const key = `${platform}|${minute.getTime()}`;
-      const c = pending.get(key) || { minute, platform, n: 0, ok: 0, c4: 0, c5: 0, ms: 0, slow: 0 };
+      const c = pending.get(key) || {
+        minute,
+        platform,
+        n: 0,
+        ok: 0,
+        c4: 0,
+        c5: 0,
+        ms: 0,
+        slow: 0,
+      };
       const ms = Date.now() - t0;
-      c.n++; c.ms += ms;
+      c.n++;
+      c.ms += ms;
       if (ms > 1000) c.slow++;
-      if (res.statusCode >= 500) c.c5++; else if (res.statusCode >= 400) c.c4++; else c.ok++;
+      if (res.statusCode >= 500) c.c5++;
+      else if (res.statusCode >= 400) c.c4++;
+      else c.ok++;
       pending.set(key, c);
     });
     next();
@@ -108,7 +141,9 @@ module.exports = (secretEnv) => {
     if (!h || now - h[1] > 60000) hits.set(ip, [1, now]);
     else if (++h[0] > 120) return res.status(429).json({ success: false });
     if (hits.size > 5000) hits.clear();
-    const list = Array.isArray(req.body?.events) ? req.body.events.slice(0, 20) : [];
+    const list = Array.isArray(req.body?.events)
+      ? req.body.events.slice(0, 20)
+      : [];
     const docs = list
       .filter((e) => e && TYPES.includes(e.type))
       .map((e) => ({
@@ -122,7 +157,8 @@ module.exports = (secretEnv) => {
         stack: clip(e.stack, 1500),
         version: clip(e.version, 20),
       }));
-    if (docs.length) await Event.insertMany(docs, { ordered: false }).catch(() => {});
+    if (docs.length)
+      await Event.insertMany(docs, { ordered: false }).catch(() => {});
     res.json({ success: true });
   });
 
@@ -133,9 +169,27 @@ module.exports = (secretEnv) => {
       const platform = platformOf(req.query.platform);
       const now = Date.now();
       const since = (ms) => new Date(now - ms);
-      const distinctUsers = async (ms) => (await Event.distinct("userId", { platform, ts: { $gte: since(ms) }, userId: { $ne: null } })).length;
+      const distinctUsers = async (ms) =>
+        (
+          await Event.distinct("userId", {
+            platform,
+            ts: { $gte: since(ms) },
+            userId: { $ne: null },
+          })
+        ).length;
       const User = mongoose.models.User;
-      const [activeNow, active24h, active7d, active30d, totalUsers, topPages, hourly, crashes, crashCount, api] = await Promise.all([
+      const [
+        activeNow,
+        active24h,
+        active7d,
+        active30d,
+        totalUsers,
+        topPages,
+        hourly,
+        crashes,
+        crashCount,
+        api,
+      ] = await Promise.all([
         distinctUsers(5 * 60000),
         distinctUsers(DAY),
         distinctUsers(7 * DAY),
@@ -143,21 +197,53 @@ module.exports = (secretEnv) => {
         User ? User.countDocuments() : 0,
         Event.aggregate([
           { $match: { platform, type: "page", ts: { $gte: since(DAY) } } },
-          { $group: { _id: "$path", views: { $sum: 1 }, users: { $addToSet: "$userId" } } },
+          {
+            $group: {
+              _id: "$path",
+              views: { $sum: 1 },
+              users: { $addToSet: "$userId" },
+            },
+          },
           { $project: { views: 1, users: { $size: "$users" } } },
           { $sort: { views: -1 } },
           { $limit: 20 },
         ]),
         Event.aggregate([
           { $match: { platform, ts: { $gte: since(DAY) } } },
-          { $group: { _id: { $dateToString: { format: "%Y-%m-%dT%H:00:00Z", date: "$ts" } }, views: { $sum: { $cond: [{ $eq: ["$type", "page"] }, 1, 0] } }, crashes: { $sum: { $cond: [{ $eq: ["$type", "page"] }, 0, 1] } } } },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%m-%dT%H:00:00Z", date: "$ts" },
+              },
+              views: { $sum: { $cond: [{ $eq: ["$type", "page"] }, 1, 0] } },
+              crashes: { $sum: { $cond: [{ $eq: ["$type", "page"] }, 0, 1] } },
+            },
+          },
           { $sort: { _id: 1 } },
         ]),
-        Event.find({ platform, type: { $in: ["crash", "error"] } }).sort({ ts: -1 }).limit(25).select("-__v").lean(),
-        Event.countDocuments({ platform, type: { $in: ["crash", "error"] }, ts: { $gte: since(DAY) } }),
+        Event.find({ platform, type: { $in: ["crash", "error"] } })
+          .sort({ ts: -1 })
+          .limit(25)
+          .select("-__v")
+          .lean(),
+        Event.countDocuments({
+          platform,
+          type: { $in: ["crash", "error"] },
+          ts: { $gte: since(DAY) },
+        }),
         Minute.aggregate([
           { $match: { platform, minute: { $gte: since(DAY) } } },
-          { $group: { _id: null, n: { $sum: "$n" }, ok: { $sum: "$ok" }, c4: { $sum: "$c4" }, c5: { $sum: "$c5" }, ms: { $sum: "$ms" }, slow: { $sum: "$slow" } } },
+          {
+            $group: {
+              _id: null,
+              n: { $sum: "$n" },
+              ok: { $sum: "$ok" },
+              c4: { $sum: "$c4" },
+              c5: { $sum: "$c5" },
+              ms: { $sum: "$ms" },
+              slow: { $sum: "$slow" },
+            },
+          },
         ]),
       ]);
       const a = api[0] || { n: 0, ok: 0, c4: 0, c5: 0, ms: 0, slow: 0 };
@@ -165,9 +251,24 @@ module.exports = (secretEnv) => {
         success: true,
         platform,
         generatedAt: new Date(),
-        users: { total: totalUsers, activeNow, active24h, active7d, active30d, inactive30d: Math.max(0, totalUsers - active30d) },
-        topPages: topPages.map((p) => ({ path: p._id, views: p.views, users: p.users })),
-        hourly: hourly.map((h) => ({ hour: h._id, views: h.views, crashes: h.crashes })),
+        users: {
+          total: totalUsers,
+          activeNow,
+          active24h,
+          active7d,
+          active30d,
+          inactive30d: Math.max(0, totalUsers - active30d),
+        },
+        topPages: topPages.map((p) => ({
+          path: p._id,
+          views: p.views,
+          users: p.users,
+        })),
+        hourly: hourly.map((h) => ({
+          hour: h._id,
+          views: h.views,
+          crashes: h.crashes,
+        })),
         crashes: { last24h: crashCount, recent: crashes },
         api: {
           requests24h: a.n,

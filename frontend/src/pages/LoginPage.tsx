@@ -17,32 +17,15 @@ import {
 } from "lucide-react";
 import nesthrlogo from "../../assets/logo.png";
 import loginDash from "../../assets/login-dash.png";
-import { authAPI } from "@/services/api";
+import { authAPI, saveTrustedDevice } from "@/services/api";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { getErrorMessage } from "@/lib/utils";
 
-function bufferToBase64Url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function base64UrlToBuffer(base64url: string): ArrayBuffer {
-  const padding = "=".repeat((4 - (base64url.length % 4)) % 4);
-  const base64 = (base64url + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray.buffer;
-}
+import {
+  passkeysSupported,
+  serializeAssertion,
+  toRequestOptions,
+} from "@/lib/webauthn";
 
 export default function LoginPage() {
   const { login, completeLogin } = useAuth();
@@ -55,6 +38,8 @@ export default function LoginPage() {
 
   // 2FA state
   const [needs2FA, setNeeds2FA] = useState(false);
+  // Keep this device trusted after the authenticator step, so it isn't asked again for 30 days.
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [pending2FAUserId, setPending2FAUserId] = useState("");
   const [tfaCode, setTfaCode] = useState("");
 
@@ -69,52 +54,35 @@ export default function LoginPage() {
     selectionToken: string;
     accounts: { userId: string; academy: { id: string; name: string } }[];
   } | null>(null);
+  const [otpVia, setOtpVia] = useState<"whatsapp" | "email">("whatsapp");
   const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   const handlePasskeyLogin = async () => {
     setError("");
     setPasskeyLoading(true);
     try {
-      if (!window.PublicKeyCredential) {
+      if (!passkeysSupported()) {
         throw new Error("Passkeys are not supported on this browser/device.");
       }
-      const optionsRes = await authAPI.passkeyLoginOptions(email || undefined);
-      const options = optionsRes.data;
-
+      const { data: options } = await authAPI.passkeyLoginOptions();
       const credential = (await navigator.credentials.get({
-        publicKey: {
-          challenge: base64UrlToBuffer(options.challenge),
-          rpId: options.rpId || window.location.hostname,
-          userVerification: "preferred",
-          allowCredentials: options.allowCredentials?.map((c: any) => ({
-            id: base64UrlToBuffer(c.id),
-            type: c.type || "public-key",
-          })),
-        },
-      })) as PublicKeyCredential;
-
+        publicKey: toRequestOptions(options),
+      })) as PublicKeyCredential | null;
       if (!credential) throw new Error("Passkey authentication was cancelled.");
-      const response = credential.response as AuthenticatorAssertionResponse;
 
       const res = await authAPI.passkeyLogin({
-        id: credential.id,
-        rawId: bufferToBase64Url(credential.rawId),
-        response: {
-          clientDataJSON: bufferToBase64Url(response.clientDataJSON),
-          authenticatorData: bufferToBase64Url(response.authenticatorData),
-          signature: bufferToBase64Url(response.signature),
-          userHandle: response.userHandle
-            ? bufferToBase64Url(response.userHandle)
-            : null,
-        },
-        type: credential.type,
+        challengeToken: options.challengeToken,
+        ...serializeAssertion(credential),
       });
-
       const { token, ...userData } = res.data;
       completeLogin(userData, token);
       navigate("/");
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || "Passkey login failed.");
+      setError(
+        (err as { name?: string })?.name === "NotAllowedError"
+          ? "Passkey authentication was cancelled."
+          : getErrorMessage(err) || "Passkey login failed.",
+      );
     } finally {
       setPasskeyLoading(false);
     }
@@ -146,8 +114,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await authAPI.verify2FA(pending2FAUserId, tfaCode);
-      const { token, ...userData } = res.data;
+      const res = await authAPI.verify2FA(
+        pending2FAUserId,
+        tfaCode,
+        keepSignedIn,
+      );
+      const { token, trustedDevice, ...userData } = res.data;
+      if (trustedDevice) saveTrustedDevice(email, trustedDevice);
       completeLogin(userData, token);
       navigate("/");
     } catch (err: unknown) {
@@ -162,7 +135,9 @@ export default function LoginPage() {
     setError("");
     setOtpLoading(true);
     try {
-      await authAPI.sendPhoneOtp(phone.trim());
+      if (otpVia === "email")
+        await authAPI.loginSendEmailOtp(email.trim().toLowerCase());
+      else await authAPI.sendPhoneOtp(phone.trim());
       setOtpSent(true);
     } catch (err: unknown) {
       setError(getErrorMessage(err) || "Failed to send OTP. Please try again.");
@@ -176,7 +151,13 @@ export default function LoginPage() {
     setError("");
     setOtpLoading(true);
     try {
-      const res = await authAPI.verifyPhoneOtp(phone.trim(), otp.trim());
+      const res =
+        otpVia === "email"
+          ? await authAPI.loginVerifyEmailOtp(
+              email.trim().toLowerCase(),
+              otp.trim(),
+            )
+          : await authAPI.verifyPhoneOtp(phone.trim(), otp.trim());
       if (res.data.requiresAcademySelection) {
         setAcademyChoice({
           selectionToken: res.data.selectionToken,
@@ -251,9 +232,7 @@ export default function LoginPage() {
         {}
         <div className="relative z-10">
           <h1 className="text-3xl xl:text-4xl font-display font-bold text-white leading-tight mb-5">
-            Every Student.
-            Every Fees.
-            One place.
+            Every Student. Every Fees. One place.
           </h1>
           <p className="text-white/70 text-base font-medium max-w-sm">
             Manage your entire workforce — attendance, leaves, payroll and
@@ -370,15 +349,17 @@ export default function LoginPage() {
                       ? "Select Academy"
                       : otpSent
                         ? "Enter OTP"
-                        : "Phone Login"}
+                        : otpVia === "email"
+                          ? "Email OTP Login"
+                          : "Phone Login"}
                   </h2>
                 </div>
                 <p className="text-sm text-gray-500 font-medium">
                   {academyChoice
                     ? "This number is enrolled in more than one academy. Choose where to continue."
                     : otpSent
-                      ? "We sent a 6-digit OTP to your WhatsApp."
-                      : "We'll send a one-time password to your WhatsApp."}
+                      ? `We sent a 6-digit OTP to your ${otpVia === "email" ? "email" : "WhatsApp"}.`
+                      : `We'll send a one-time password to your ${otpVia === "email" ? "email" : "WhatsApp"}.`}
                 </p>
               </div>
 
@@ -410,24 +391,42 @@ export default function LoginPage() {
                 <form onSubmit={handleSendOtp} className="space-y-5 login-anim">
                   <div>
                     <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">
-                      Phone Number
+                      {otpVia === "email" ? "Email" : "Phone Number"}
                     </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => {
-                        setPhone(e.target.value);
-                        setError("");
-                      }}
-                      placeholder="+91 98765 43210"
-                      className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
-                      required
-                      autoFocus
-                    />
+                    {otpVia === "email" ? (
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="you@academy.com"
+                        className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
+                        required
+                        autoFocus
+                      />
+                    ) : (
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => {
+                          setPhone(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
+                        required
+                        autoFocus
+                      />
+                    )}
                   </div>
                   <button
                     type="submit"
-                    disabled={otpLoading || !phone.trim()}
+                    disabled={
+                      otpLoading ||
+                      (otpVia === "email" ? !email.trim() : !phone.trim())
+                    }
                     className="w-full bg-[#024BAB] text-white py-3.5 text-sm font-bold border-2 border-black hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_#0a0a0a] transition-all flex items-center justify-center gap-2"
                   >
                     {otpLoading ? (
@@ -437,14 +436,31 @@ export default function LoginPage() {
                       </>
                     ) : (
                       <>
-                        Send OTP on WhatsApp <ArrowRight className="w-4 h-4" />
+                        {otpVia === "email"
+                          ? "Send OTP to Email"
+                          : "Send OTP on WhatsApp"}{" "}
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
+                      setOtpVia(otpVia === "email" ? "whatsapp" : "email");
+                      setError("");
+                    }}
+                    className="w-full py-2 text-xs font-bold text-[#024BAB] hover:underline transition-colors"
+                  >
+                    {otpVia === "email"
+                      ? "Use WhatsApp OTP instead"
+                      : "Use email OTP instead"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       setLoginMode("email");
+                      setOtpVia("whatsapp");
+                      setOtpSent(false);
                       setError("");
                       setPhone("");
                     }}
@@ -460,7 +476,7 @@ export default function LoginPage() {
                 >
                   <div>
                     <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">
-                      WhatsApp OTP
+                      {otpVia === "email" ? "Email OTP" : "WhatsApp OTP"}
                     </label>
                     <input
                       type="text"
@@ -523,6 +539,18 @@ export default function LoginPage() {
                 <div className="flex items-center gap-2 bg-red-50 border-2 border-red-400 text-red-600 text-sm px-3 py-2.5 mb-5">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span className="font-medium">{error}</span>
+                  {/blocked/i.test(error) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginMode("phone");
+                        setError("");
+                      }}
+                      className="ml-auto shrink-0 underline font-bold"
+                    >
+                      Use an OTP
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -580,7 +608,16 @@ export default function LoginPage() {
                 </div>
 
                 {}
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-xs font-bold text-black cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={keepSignedIn}
+                      onChange={(e) => setKeepSignedIn(e.target.checked)}
+                      className="w-4 h-4 accent-[#024BAB]"
+                    />
+                    Keep me signed in on this device
+                  </label>
                   <Link
                     to="/forgot-password"
                     className="text-xs font-bold text-[#024BAB] hover:underline"

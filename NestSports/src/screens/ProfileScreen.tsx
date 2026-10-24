@@ -297,6 +297,10 @@ export default function ProfileScreen({ navigation }: any) {
     },
     { label: '2FA', value: me?.twoFactorEnabled ? 'Enabled' : 'Off' },
     {
+      label: 'Email',
+      value: me?.emailVerified ? 'Verified' : 'Not verified',
+    },
+    {
       label: 'WhatsApp',
       value: me?.phoneVerified ? 'Verified' : 'Not verified',
     },
@@ -385,7 +389,13 @@ export default function ProfileScreen({ navigation }: any) {
             sub="Authenticator app"
             onPress={() => navigation.navigate('TwoFactor')}
           />
-          <View style={{ flex: 1 }} />
+          <ActionTile
+            brutal
+            icon={ShieldCheck}
+            title="Account Security"
+            sub="Passkey, devices, email"
+            onPress={() => navigation.navigate('AccountSecurity')}
+          />
         </View>
       </ScrollView>
 

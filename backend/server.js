@@ -80,7 +80,9 @@ app.use(
 app.use(timeout("30s"));
 // Access log without query strings: they can carry ?token= (payment-proof images) and OTP/reset parameters.
 morgan.token("path", (req) => String(req.originalUrl || req.url).split("?")[0]);
-app.use(morgan(":method :path :status :res[content-length] - :response-time ms"));
+app.use(
+  morgan(":method :path :status :res[content-length] - :response-time ms"),
+);
 app.use(
   express.json({
     limit: "5mb",
@@ -116,7 +118,13 @@ const tele = require("./utils/telemetry")("CRM_API_SECRET");
 app.use(tele.middleware);
 app.use("/api/telemetry", tele.ingest);
 app.use("/api/crm/metrics", tele.metrics);
-app.use("/api/crm/accounts", require("./utils/crmAccounts")("CRM_API_SECRET", require("./utils/crmAdapter")));
+app.use(
+  "/api/crm/accounts",
+  require("./utils/crmAccounts")(
+    "CRM_API_SECRET",
+    require("./utils/crmAdapter"),
+  ),
+);
 
 app.use("/iclock", require("./routes/admsRoutes"));
 app.use("/internal/stats", require("./routes/statsRoutes"));
@@ -138,6 +146,31 @@ app.use(
   "/api/hrms/whatsapp-webhook",
   require("./routes/whatsappWebhookRoutes"),
 );
+{
+  console.log("[Startup] WhatsApp OTP config", {
+    token: !!process.env.META_WA_TOKEN,
+    phoneNumberId: !!process.env.META_WA_PHONE_ID,
+  });
+  console.log("[Startup] Email OTP config", {
+    smtpHost: !!process.env.SMTP_HOST,
+    smtpUser: !!process.env.SMTP_USER,
+    smtpPass: !!process.env.SMTP_PASS,
+  });
+}
+
+// Lets iOS trust this domain for passkeys (webcredentials) — see PASSKEY_RP_ID.
+// Set PASSKEY_IOS_APP_IDS to "<TeamID>.<bundle id>" (comma separated).
+app.get("/.well-known/apple-app-site-association", (req, res) =>
+  res.json({
+    webcredentials: {
+      apps: (process.env.PASSKEY_IOS_APP_IDS || "")
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    },
+  }),
+);
+
 app.use("/api/auth", authRateLimit, require("./routes/authRoutes"));
 app.use(apiRateLimit);
 app.use("/api/company", require("./routes/companyRoutes"));

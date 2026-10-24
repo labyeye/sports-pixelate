@@ -1541,6 +1541,28 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-passkey (3.6.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-print (0.11.0):
     - React-Core
   - react-native-razorpay (2.3.1):
@@ -2294,6 +2316,7 @@ DEPENDENCIES:
   - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - react-native-passkey (from `../node_modules/react-native-passkey`)
   - react-native-print (from `../node_modules/react-native-print`)
   - react-native-razorpay (from `../node_modules/react-native-razorpay`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
@@ -2440,6 +2463,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/geolocation"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-passkey:
+    :path: "../node_modules/react-native-passkey"
   react-native-print:
     :path: "../node_modules/react-native-print"
   react-native-razorpay:
@@ -2585,6 +2610,7 @@ SPEC CHECKSUMS:
   react-native-document-picker: c3a7536f3ee52525b4714c3720537f941d0cb094
   react-native-geolocation: c41d1ad8e832fa800b4e457c721e348bcc5aa147
   react-native-image-picker: 23540feacc79c63c60857f318fdfa8477c26e70a
+  react-native-passkey: 8ef46387d60680e39493c6b4982e01c22eb1fe72
   react-native-print: 692e8782bc89872ea01738c6759631388e77358c
   react-native-razorpay: 376ba84b614ef8a22b5701df4ffee10f4c116d14
   react-native-safe-area-context: 0dd5d7db903a6289e798e934356cd80cf23a31d3

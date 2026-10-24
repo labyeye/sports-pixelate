@@ -22,7 +22,11 @@ export default function PageTransition({
   }, [location.pathname, isAuth]);
 
   return (
-    <div ref={ref} className={isAuth ? "" : "page-transition"} style={{ minHeight: "100%" }}>
+    <div
+      ref={ref}
+      className={isAuth ? "" : "page-transition"}
+      style={{ minHeight: "100%" }}
+    >
       {children}
     </div>
   );

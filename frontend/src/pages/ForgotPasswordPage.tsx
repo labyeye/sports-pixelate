@@ -7,14 +7,20 @@ import {
   CheckCircle,
   KeyRound,
   MessageCircle,
+  FileText,
+  Fingerprint,
 } from "lucide-react";
 import { authAPI } from "@/services/api";
 import nesthrlogo from "../../assets/logo.png";
-import { getErrorMessage } from "@/lib/utils";
 import { AuthShell } from "@/components/auth/AuthShell";
+import {
+  passkeysSupported,
+  serializeAssertion,
+  toRequestOptions,
+} from "@/lib/webauthn";
 
 type Step = "email" | "choose" | "email_sent" | "code" | "done";
-type CodeMethod = "whatsapp" | "totp";
+type CodeMethod = "whatsapp" | "totp" | "backup" | "passkey";
 
 // Only methods the account has actually set up are offered (see /methods).
 const METHOD_INFO: Record<
@@ -35,6 +41,16 @@ const METHOD_INFO: Record<
     label: "Authenticator app",
     desc: "Enter the code from your authenticator app",
     icon: <KeyRound className="w-5 h-5" />,
+  },
+  backup: {
+    label: "Backup code",
+    desc: "Use one of your saved one-time backup codes",
+    icon: <FileText className="w-5 h-5" />,
+  },
+  passkey: {
+    label: "Passkey",
+    desc: "Verify with Face ID, fingerprint or your screen lock",
+    icon: <Fingerprint className="w-5 h-5" />,
   },
 };
 
@@ -59,10 +75,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       await fn();
-    } catch (err: unknown) {
-      setError(
-        getErrorMessage(err) || "Something went wrong. Please try again.",
-      );
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +109,31 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     if (password !== confirm) return setError("Passwords don't match");
     run(async () => {
-      if (method === "whatsapp")
+      if (method === "passkey") {
+        if (!passkeysSupported())
+          throw new Error("Passkeys are not supported by your browser.");
+        const { data: o } = (await authAPI.resetPasskeyOptions()) as any;
+        let credential: PublicKeyCredential | null;
+        try {
+          credential = (await navigator.credentials.get({
+            publicKey: toRequestOptions(o),
+          })) as PublicKeyCredential | null;
+        } catch (err: any) {
+          throw new Error(
+            err?.name === "NotAllowedError"
+              ? "Passkey verification was cancelled."
+              : err.message,
+          );
+        }
+        if (!credential) throw new Error("Passkey prompt was cancelled.");
+        await authAPI.resetPasswordWithPasskey({
+          challengeToken: o.challengeToken,
+          password,
+          ...serializeAssertion(credential),
+        });
+      } else if (method === "backup")
+        await authAPI.resetPasswordWithBackupCode(email, code.trim(), password);
+      else if (method === "whatsapp")
         await authAPI.resetPasswordWithOtp(email, code, password);
       else await authAPI.resetPasswordWithTotp(email, code, password);
       setStep("done");
@@ -236,32 +274,52 @@ export default function ForgotPasswordPage() {
               <h2 className="text-2xl font-bold text-black mb-1">
                 {method === "whatsapp"
                   ? "Enter WhatsApp code"
-                  : "Enter authenticator code"}
+                  : method === "backup"
+                    ? "Enter a backup code"
+                    : method === "passkey"
+                      ? "Choose a new password"
+                      : "Enter authenticator code"}
               </h2>
               <p className="text-sm text-gray-500 mb-6">
                 {method === "whatsapp"
                   ? "We sent a 6-digit code to your verified WhatsApp number."
-                  : "Open your authenticator app and enter the current 6-digit code (or a backup code)."}
+                  : method === "backup"
+                    ? "Enter one of your saved backup codes. It stops working after this."
+                    : method === "passkey"
+                      ? "Pick a new password, then confirm it with your passkey."
+                      : "Open your authenticator app and enter the current 6-digit code (or a backup code)."}
               </p>
               <form onSubmit={handleReset} className="space-y-5 login-anim">
-                <div>
-                  <label className={labelCls}>
-                    {method === "whatsapp"
-                      ? "WhatsApp code"
-                      : "Authenticator code"}
-                  </label>
-                  <input
-                    type="text"
-                    inputMode={method === "whatsapp" ? "numeric" : "text"}
-                    maxLength={method === "whatsapp" ? 6 : 8}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.trim())}
-                    placeholder="123456"
-                    className="w-full px-3 py-3 border-2 border-black text-center text-lg font-bold tracking-[0.3em] outline-none"
-                    required
-                    autoFocus
-                  />
-                </div>
+                {method !== "passkey" && (
+                  <div>
+                    <label className={labelCls}>
+                      {method === "whatsapp"
+                        ? "WhatsApp code"
+                        : method === "backup"
+                          ? "Backup code"
+                          : "Authenticator code"}
+                    </label>
+                    <input
+                      type="text"
+                      inputMode={method === "whatsapp" ? "numeric" : "text"}
+                      maxLength={
+                        method === "whatsapp" ? 6 : method === "backup" ? 11 : 8
+                      }
+                      value={code}
+                      onChange={(e) =>
+                        setCode(
+                          method === "backup"
+                            ? e.target.value.toUpperCase().trim()
+                            : e.target.value.trim(),
+                        )
+                      }
+                      placeholder={method === "backup" ? "XXXXX-XXXXX" : "123456"}
+                      className="w-full px-3 py-3 border-2 border-black text-center text-lg font-bold tracking-[0.3em] outline-none"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                )}
                 <div>
                   <label className={labelCls}>New password</label>
                   <input
@@ -286,7 +344,11 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
                 <button type="submit" disabled={loading} className={btnCls}>
-                  {loading ? "Resetting..." : "Reset Password"}
+                  {loading
+                    ? "Resetting..."
+                    : method === "passkey"
+                      ? "Verify & Reset"
+                      : "Reset Password"}
                 </button>
               </form>
               <button

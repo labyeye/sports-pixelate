@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Dimensions,
+  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   SafeAreaView,
@@ -11,7 +12,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
+const illustration1 = require('../../assets/images/1.png');
+const illustration2 = require('../../assets/images/2.png');
+const illustration3 = require('../../assets/images/3.png');
+const nestplaylogo = require('../../assets/logo.png');
 const { width } = Dimensions.get('window');
 const ONBOARDING_KEY = '@nestplay/onboarding-complete';
 
@@ -21,18 +25,21 @@ const slides = [
     title: 'Run your academy with ease',
     body: 'Bring students, coaches, attendance, schedules and daily operations together in one place.',
     color: '#EAF2FF',
+    illustration: illustration1,
   },
   {
     number: '02',
     title: 'Build better athletes',
     body: 'Track performance, participation and progress so every student gets the support they need to improve.',
     color: '#FFF1E8',
+    illustration: illustration2,
   },
   {
     number: '03',
     title: 'Keep families involved',
     body: 'Share updates, events, payments and reports with parents through a clear and connected experience.',
     color: '#E9F9F3',
+    illustration: illustration3,
   },
 ];
 
@@ -74,9 +81,7 @@ export default function IntroOnboardingScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.logo}>
-          Nest<Text style={styles.logoAccent}>Play</Text>
-        </Text>
+        <Image source={nestplaylogo} style={styles.logo} />
         <TouchableOpacity onPress={finish} accessibilityRole="button">
           <Text style={styles.skip}>Skip</Text>
         </TouchableOpacity>
@@ -91,16 +96,11 @@ export default function IntroOnboardingScreen({ navigation }: any) {
       >
         {slides.map(slide => (
           <View style={styles.slide} key={slide.number}>
-            <View style={[styles.illustration, { backgroundColor: slide.color }]}>
+            <View
+              style={[styles.illustration, { backgroundColor: slide.color }]}
+            >
               <Text style={styles.slideNumber}>{slide.number}</Text>
-              <View style={styles.illustrationCard}>
-                <View style={styles.illustrationLineLong} />
-                <View style={styles.illustrationLineShort} />
-                <View style={styles.illustrationRow}>
-                  <View style={styles.illustrationDot} />
-                  <View style={styles.illustrationLineMedium} />
-                </View>
-              </View>
+              <Image source={slide.illustration} style={styles.illustrationImage} />
             </View>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.body}>{slide.body}</Text>
@@ -116,7 +116,11 @@ export default function IntroOnboardingScreen({ navigation }: any) {
             />
           ))}
         </View>
-        <TouchableOpacity style={styles.button} onPress={next} accessibilityRole="button">
+        <TouchableOpacity
+          style={styles.button}
+          onPress={next}
+          accessibilityRole="button"
+        >
           <Text style={styles.buttonText}>
             {current === slides.length - 1 ? 'Get started' : 'Next'}
           </Text>
@@ -136,7 +140,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
   },
-  logo: { fontSize: 26, fontWeight: '800', color: '#0A4EAD' },
+
+  logo: { width: 100, height: 40 },
   logoAccent: { color: '#FA731C' },
   skip: { fontWeight: '700', color: '#64748B', fontSize: 14 },
   slides: { flex: 1 },
@@ -156,6 +161,7 @@ const styles = StyleSheet.create({
     color: '#0A4EAD',
     fontSize: 16,
   },
+  illustrationImage: { width: '100%', height: '100%', resizeMode: 'contain' },
   illustrationCard: {
     width: '68%',
     height: 145,
@@ -169,12 +175,38 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 4,
   },
-  illustrationLineLong: { width: '75%', height: 12, borderRadius: 6, backgroundColor: '#0A4EAD' },
-  illustrationLineShort: { width: '48%', height: 8, borderRadius: 4, backgroundColor: '#B9C8DC' },
+  illustrationLineLong: {
+    width: '75%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#0A4EAD',
+  },
+  illustrationLineShort: {
+    width: '48%',
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#B9C8DC',
+  },
   illustrationRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  illustrationDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FA731C' },
-  illustrationLineMedium: { width: '55%', height: 8, borderRadius: 4, backgroundColor: '#B9C8DC' },
-  title: { fontSize: 30, lineHeight: 36, fontWeight: '800', color: '#0F172A', marginBottom: 14 },
+  illustrationDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FA731C',
+  },
+  illustrationLineMedium: {
+    width: '55%',
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#B9C8DC',
+  },
+  title: {
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 14,
+  },
   body: { fontSize: 16, lineHeight: 25, color: '#64748B' },
   footer: { padding: 24, gap: 24 },
   dots: { flexDirection: 'row', gap: 8 },

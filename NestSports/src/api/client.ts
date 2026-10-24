@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { API_BASE_URL } from '../config';
 
@@ -113,6 +114,10 @@ async function request<T = any>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Device-Platform': Platform.OS,
+      'X-Device-Name': `${Platform.OS === 'ios' ? 'iOS' : 'Android'} ${
+        Platform.Version
+      }`,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
@@ -169,18 +174,50 @@ function toFormDataWithFields(
   return form;
 }
 
+// Secret this device earns by passing 2FA with "keep me signed in", kept per email; sent with the next
+// password login so the authenticator code isn't asked again for 30 days.
+const TRUST_KEY = 'np_trusted_devices';
+async function readTrust(): Promise<Record<string, string>> {
+  try {
+    return JSON.parse((await AsyncStorage.getItem(TRUST_KEY)) || '{}');
+  } catch {
+    return {};
+  }
+}
+export async function saveTrustedDevice(email: string, token: string) {
+  try {
+    await AsyncStorage.setItem(
+      TRUST_KEY,
+      JSON.stringify({
+        ...(await readTrust()),
+        [email.trim().toLowerCase()]: token,
+      }),
+    );
+  } catch {
+    /* storage unavailable: the code is simply asked next time */
+  }
+}
+
 export const authAPI = {
-  login: (email: string, password: string) =>
+  login: async (email: string, password: string) =>
     request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password, client: 'mobile' }),
+      body: JSON.stringify({
+        email,
+        password,
+        client: 'mobile',
+        trustedDevice: (await readTrust())[email.trim().toLowerCase()],
+      }),
     }),
   register: (body: { name: string; email: string; password: string }) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   getMe: () => request('/auth/me'),
   // A password change retires old tokens server-side and answers with a fresh one, so keep this session alive.
   updateProfile: async (body: object) => {
-    const res = await request('/auth/profile', { method: 'PUT', body: JSON.stringify(body) });
+    const res = await request('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
     if (res?.token) await setToken(res.token);
     return res;
   },
@@ -205,11 +242,14 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ token }),
     }),
-  verify2FA: (userId: string, token: string) =>
+  verify2FA: (userId: string, token: string, remember = false) =>
     request('/auth/2fa/verify', {
       method: 'POST',
-      body: JSON.stringify({ userId, token }),
+      body: JSON.stringify({ userId, token, remember }),
     }),
+  trustedDevices: () => request('/auth/trusted-devices'),
+  forgetTrustedDevices: () =>
+    request('/auth/trusted-devices', { method: 'DELETE' }),
   sendPhoneOtp: (phone: string) =>
     request('/auth/otp/send', {
       method: 'POST',
@@ -262,15 +302,77 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ otp }),
     }),
-  passkeyLoginOptions: (email?: string) =>
-    request('/auth/passkey/login-options', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
+  passkeyLoginOptions: () => request('/auth/passkey/login-options'),
   biometricLogin: (credential: any) =>
     request('/auth/passkey/login', {
       method: 'POST',
       body: JSON.stringify(credential),
+    }),
+  passkeyRegisterOptions: () =>
+    request('/auth/passkey/register-options', { method: 'POST' }),
+  passkeyRegister: (payload: any) =>
+    request('/auth/passkey/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  passkeyList: () => request('/auth/passkey'),
+  passkeyDelete: (id: string) =>
+    request(`/auth/passkey/${id}`, { method: 'DELETE' }),
+
+  // Signed-in devices
+  sessions: () => request('/auth/sessions'),
+  removeSession: (id: string) =>
+    request(`/auth/sessions/${id}`, { method: 'DELETE' }),
+  removeOtherSessions: () => request('/auth/sessions', { method: 'DELETE' }),
+  removeCurrentSession: async () => {
+    const list: any = await request('/auth/sessions');
+    const cur = (list.data || []).find((s: any) => s.current);
+    if (cur) await request(`/auth/sessions/${cur._id}`, { method: 'DELETE' });
+  },
+
+  // Backup codes
+  backupCodesStatus: () => request('/auth/backup-codes'),
+  generateBackupCodes: (password: string) =>
+    request('/auth/backup-codes', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+
+  // Email OTP sign-in
+  loginSendEmailOtp: (email: string) =>
+    request('/auth/login/email-otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  loginVerifyEmailOtp: (email: string, otp: string) =>
+    request('/auth/login/email-otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    }),
+
+  // Verify the current / a new email with a code sent to it
+  sendEmailVerifyOtp: (email: string) =>
+    request('/auth/contact/email/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  verifyEmailVerifyOtp: (otp: string) =>
+    request('/auth/contact/email/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    }),
+
+  // Password reset via backup code / passkey
+  resetWithBackupCode: (email: string, code: string, password: string) =>
+    request('/auth/reset/backup', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, password }),
+    }),
+  resetPasskeyOptions: () => request('/auth/reset/passkey-options'),
+  resetWithPasskey: (payload: any) =>
+    request('/auth/reset/passkey', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 };
 
@@ -578,6 +680,20 @@ export const auditAPI = {
     const q = params ? '?' + new URLSearchParams(params).toString() : '';
     return request(`/audit${q}`);
   },
+  getActivity: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/audit/activity${q}`);
+  },
+};
+
+export const notificationAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/notifications${q}`);
+  },
+  markRead: (id: string) =>
+    request(`/notifications/${id}/read`, { method: 'POST' }),
+  markAllRead: () => request('/notifications/read-all', { method: 'POST' }),
 };
 
 export const supportAPI = {

@@ -320,7 +320,9 @@ export default function QrRenewalScreen({ route, navigation }: any) {
             <TextField
               label="Amount to Pay"
               value={amountToPay}
-              onChangeText={setAmountToPay}
+              onChangeText={v =>
+                setAmountToPay(Number(v) > remaining ? String(remaining) : v)
+              }
               placeholder={`Up to ${remaining}`}
               keyboardType="numeric"
               required

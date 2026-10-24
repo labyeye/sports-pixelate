@@ -7,6 +7,8 @@ const QRCode = require("qrcode");
 const User = require("../models/User");
 const Employee = require("../models/Employee");
 const Subscription = require("../models/Subscription");
+const Session = require("../models/Session");
+const { startSession, signInPayload } = require("../utils/signIn");
 const generateToken = require("../utils/generateToken");
 const { generatePendingToken, verifyPendingToken } = generateToken;
 const { validateBody } = require("../middleware/validate");
@@ -28,14 +30,45 @@ const loginSchema = {
 
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-// 3 wrong passwords are allowed; the 4th wrong one locks the account for 30 min.
-// A WhatsApp OTP login or reset lifts the lock.
+// 3 wrong passwords are allowed; the 4th wrong one blocks the account for 10 min.
+// Signing in with a WhatsApp/email OTP, or any password reset, lifts the block.
 const MAX_LOGIN_FAILS = 4;
-const LOGIN_LOCK_MS = 30 * 60 * 1000;
-const LOCKED_MSG = "Account locked for 30 minutes after too many wrong passwords. Unlock it now with a WhatsApp OTP.";
+const LOGIN_LOCK_MS = 10 * 60 * 1000;
+const LOCKED_MSG =
+  "Too many wrong passwords. Your account is blocked for 10 minutes. Recover access now with an OTP on your phone (WhatsApp) or email.";
 const generateOtp = () => String(crypto.randomInt(100000, 1000000));
+// Keyed hash: a leaked database can't be turned back into the 6-digit codes with a rainbow table.
 const hashOtp = (otp) =>
-  crypto.createHash("sha256").update(String(otp).trim()).digest("hex");
+  crypto
+    .createHmac("sha256", process.env.JWT_SECRET)
+    .update(String(otp).trim())
+    .digest("hex");
+const otpMatches = (stored, otp) => {
+  const a = Buffer.from(String(stored || ""), "hex");
+  const b = Buffer.from(hashOtp(otp), "hex");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+const MAX_OTP_TRIES = 5;
+
+// Compares `otp` with the code stored on `user`, counting wrong tries in user[triesField]; after MAX_OTP_TRIES
+// misses the code is burned and a new one must be requested. Resolves true only for a live, matching code.
+async function checkOtp(user, otp, { hashField, expireField, triesField }) {
+  const live =
+    user[hashField] &&
+    user[expireField] &&
+    user[expireField] > new Date() &&
+    (user[triesField] || 0) < MAX_OTP_TRIES;
+  if (!live) return false;
+  if (otpMatches(user[hashField], otp)) return true;
+  user[triesField] = (user[triesField] || 0) + 1;
+  if (user[triesField] >= MAX_OTP_TRIES) {
+    user[hashField] = undefined;
+    user[expireField] = undefined;
+    user[triesField] = 0;
+  }
+  await user.save();
+  return false;
+}
 // 10-digit national number, which is what sendPhoneOtp expects (it adds 91).
 const to10 = (phone) =>
   String(phone).replace(/\s/g, "").replace(/^\+91/, "").slice(-10);
@@ -101,20 +134,12 @@ async function companyAccessError(user) {
 // `otp: true` marks a session whose phone ownership was proven by a WhatsApp
 // code — only those sessions may hop between a parent's academies.
 // Valid bcrypt hash used only to burn the same time as a real comparison when the e-mail is unknown.
-const DUMMY_HASH = "$2a$12$CwTycUXWue0Thq9StjUM0uJ8.G1c/3d1Hn5X9lq0Yx1y6k8mQ5G1e";
+const DUMMY_HASH =
+  "$2a$12$CwTycUXWue0Thq9StjUM0uJ8.G1c/3d1Hn5X9lq0Yx1y6k8mQ5G1e";
 
-const sessionPayload = (user, { viaOtp = false } = {}) => ({
-  _id: user._id,
-  name: user.name,
-  email: user.email,
-  role: user.role,
-  avatar: user.avatar,
-  phone: user.phone,
-  status: user.status,
-  department: user.department,
-  company: user.company,
-  token: generateToken(user._id, viaOtp ? { otp: true } : {}, user.tokenVersion),
-});
+// Opens a device session and returns the sign-in response body for it.
+const sessionPayload = async (req, user, opts = {}) =>
+  signInPayload(user, await startSession(req, user), opts);
 
 const academyChoice = (u) => ({
   userId: u._id,
@@ -202,12 +227,51 @@ const register = [
   }),
 ];
 
+const TRUST_MS = 30 * 24 * 60 * 60 * 1000;
+const hashDeviceToken = (t) =>
+  crypto.createHash("sha256").update(String(t)).digest("hex");
+const deviceLabel = (req) =>
+  String(req.headers["x-device-name"] || "").trim().slice(0, 80) ||
+  String(req.headers["user-agent"] || "").slice(0, 80) ||
+  "Unknown device";
+
+// True when `token` is a live trusted-device secret of `user` (and extends it, so a device in regular use
+// stays trusted). Caller saves the user.
+function useTrustedDevice(user, token) {
+  if (!token || typeof token !== "string") return false;
+  const h = hashDeviceToken(token);
+  const d = (user.trustedDevices || []).find(
+    (x) => x.hash === h && x.expiresAt > new Date(),
+  );
+  if (!d) return false;
+  d.lastUsedAt = new Date();
+  d.expiresAt = new Date(Date.now() + TRUST_MS);
+  return true;
+}
+
+// Registers the current device as trusted and returns its secret (shown once, stored client-side).
+function trustThisDevice(req, user) {
+  const token = crypto.randomBytes(32).toString("hex");
+  user.trustedDevices = [
+    ...(user.trustedDevices || []).filter((x) => x.expiresAt > new Date()),
+    {
+      hash: hashDeviceToken(token),
+      name: deviceLabel(req),
+      lastUsedAt: new Date(),
+      expiresAt: new Date(Date.now() + TRUST_MS),
+    },
+  ].slice(-10);
+  return token;
+}
+
 const login = [
   validateBody(loginSchema),
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() }).populate({
+    const user = await User.findOne({ email: email.toLowerCase() })
+      .select("+trustedDevices")
+      .populate({
       path: "company",
       select: "name email phone status subscription website",
       populate: {
@@ -232,7 +296,12 @@ const login = [
         await User.updateOne(
           { _id: user._id },
           locked
-            ? { $set: { failedLogins: 0, lockUntil: new Date(Date.now() + LOGIN_LOCK_MS) } }
+            ? {
+                $set: {
+                  failedLogins: 0,
+                  lockUntil: new Date(Date.now() + LOGIN_LOCK_MS),
+                },
+              }
             : { $inc: { failedLogins: 1 } },
         );
         if (locked) {
@@ -285,9 +354,11 @@ const login = [
     user.lastLogin = new Date();
     user.failedLogins = 0;
     user.lockUntil = undefined;
+    const trusted =
+      user.twoFactorEnabled && useTrustedDevice(user, req.body.trustedDevice);
     await user.save();
 
-    if (user.twoFactorEnabled) {
+    if (user.twoFactorEnabled && !trusted) {
       // `userId` keeps its name for the existing web/mobile clients, but it now carries a 5-minute signed token
       // proving the password step passed — a bare user id can no longer be used to start the 2FA step.
       return res.json({
@@ -296,21 +367,7 @@ const login = [
       });
     }
 
-    res.json({
-      success: true,
-      data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        phone: user.phone,
-        status: user.status,
-        department: user.department,
-        company: user.company,
-        token: generateToken(user._id, {}, user.tokenVersion),
-      },
-    });
+    res.json({ success: true, data: await sessionPayload(req, user) });
   }),
 ];
 
@@ -390,12 +447,27 @@ const updateProfile = asyncHandler(async (req, res) => {
 
   const passwordChanged = user.isModified("password");
   await user.save();
+  if (passwordChanged)
+    await Session.deleteMany(
+      req.sessionId
+        ? { userId: user._id, _id: { $ne: req.sessionId } }
+        : { userId: user._id },
+    );
   const updated = user.toObject();
   delete updated.password;
   res.json({
     success: true,
     data: updated,
-    ...(passwordChanged && { token: generateToken(user._id, {}, user.tokenVersion) }),
+    ...(passwordChanged && {
+      token: generateToken(
+        user._id,
+        {
+          ...(req.sessionId && { sid: req.sessionId }),
+          ...(req.tokenClaims?.otp && { otp: true }),
+        },
+        user.tokenVersion,
+      ),
+    }),
   });
 });
 
@@ -461,7 +533,10 @@ const resetPassword = asyncHandler(async (req, res) => {
   user.password = password;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
+  user.failedLogins = 0;
+  user.lockUntil = undefined;
   await user.save();
+  await Session.deleteMany({ userId: user._id });
 
   res.json({
     success: true,
@@ -543,6 +618,7 @@ const disable2FA = asyncHandler(async (req, res) => {
   }
 
   user.twoFactorEnabled = false;
+  user.trustedDevices = [];
   user.twoFactorSecret = undefined;
   user.twoFactorBackupCodes = [];
   user.pendingTwoFactor = false;
@@ -567,7 +643,7 @@ const verify2FA = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(userId)
-    .select("+twoFactorSecret +twoFactorBackupCodes")
+    .select("+twoFactorSecret +twoFactorBackupCodes +trustedDevices")
     .populate({
       path: "company",
       select: "name email phone status subscription website",
@@ -583,22 +659,14 @@ const verify2FA = asyncHandler(async (req, res) => {
   }
 
   await checkTwoFactorCode(user, token, res);
+  // "Keep me signed in": remember this device so the next password login skips the code.
+  const trustedDevice = req.body.remember ? trustThisDevice(req, user) : undefined;
   await user.save();
 
+  const payload = await sessionPayload(req, user);
   res.json({
     success: true,
-    data: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      phone: user.phone,
-      status: user.status,
-      department: user.department,
-      company: user.company,
-      token: generateToken(user._id, {}, user.tokenVersion),
-    },
+    data: trustedDevice ? { ...payload, trustedDevice } : payload,
   });
 });
 
@@ -744,7 +812,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
   const user = eligible[0];
   user.lastLogin = new Date();
   await user.save();
-  res.json({ success: true, data: sessionPayload(user, { viaOtp: true }) });
+  res.json({
+    success: true,
+    data: await sessionPayload(req, user, { viaOtp: true }),
+  });
 });
 
 // Phone OTP — step 3 (only when verifyOtp offered several academies).
@@ -784,7 +855,10 @@ const selectAcademy = asyncHandler(async (req, res) => {
 
   user.lastLogin = new Date();
   await user.save();
-  res.json({ success: true, data: sessionPayload(user, { viaOtp: true }) });
+  res.json({
+    success: true,
+    data: await sessionPayload(req, user, { viaOtp: true }),
+  });
 });
 
 // Other academy accounts on the signed-in user's phone. Only OTP sessions
@@ -829,7 +903,10 @@ const switchAcademy = asyncHandler(async (req, res) => {
   }
   target.lastLogin = new Date();
   await target.save();
-  res.json({ success: true, data: sessionPayload(target, { viaOtp: true }) });
+  res.json({
+    success: true,
+    data: await sessionPayload(req, target, { viaOtp: true }),
+  });
 });
 
 // ── Password reset via WhatsApp code / authenticator app ──────────────────
@@ -847,10 +924,14 @@ const forgotPasswordMethods = asyncHandler(async (req, res) => {
     throw new Error("Please provide a valid email address");
   }
 
-  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
+    "+backupCodes +passkeys",
+  );
   const methods = ["email"];
   if (user?.phoneVerified) methods.push("whatsapp");
   if (user?.twoFactorEnabled) methods.push("totp");
+  if (user?.backupCodes?.some((c) => !c.usedAt)) methods.push("backup");
+  if (user?.passkeys?.length) methods.push("passkey");
 
   res.json({ success: true, data: { methods } });
 });
@@ -908,6 +989,7 @@ const resetPasswordWithOtp = asyncHandler(async (req, res) => {
   user.failedLogins = 0;
   user.lockUntil = undefined;
   await user.save();
+  await Session.deleteMany({ userId: user._id });
 
   res.json({
     success: true,
@@ -937,7 +1019,10 @@ const resetPasswordWithTotp = asyncHandler(async (req, res) => {
 
   await checkTwoFactorCode(user, token, res);
   user.password = password;
+  user.failedLogins = 0;
+  user.lockUntil = undefined;
   await user.save();
+  await Session.deleteMany({ userId: user._id });
 
   res.json({
     success: true,
@@ -985,6 +1070,13 @@ const verifyPhoneVerifyOtp = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  // shared with securityController / passkeyController
+  generateOtp,
+  hashOtp,
+  checkOtp,
+  isEmail,
+  STRONG_PASSWORD_RE,
+  STRONG_PASSWORD_MSG,
   register,
   login,
   getMe,

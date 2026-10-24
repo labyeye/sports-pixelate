@@ -152,6 +152,93 @@ const getStats = asyncHandler(async (req, res) => {
       }).catch(() => 0),
     ]);
 
+    // Latest enrolments regardless of month (mobile "Recent students" table) and the
+    // last six months of new vs repeat students (first subscription ever vs a later one).
+    const latestStudents = await Student.find({ company: companyId })
+      .sort({ enrollmentDate: -1 })
+      .limit(8)
+      .select("firstName lastName studentId sport batch enrollmentDate avatar")
+      .lean()
+      .catch(() => []);
+
+    const growthStarts = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return d;
+    });
+    const growthFrom = growthStarts[0];
+    const [newByMonth, subsInRange, firstStartAgg, activeSubscriptions] =
+      await Promise.all([
+        Student.aggregate([
+          {
+            $match: {
+              company: companyId,
+              enrollmentDate: { $gte: growthFrom },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                y: { $year: "$enrollmentDate" },
+                m: { $month: "$enrollmentDate" },
+              },
+              n: { $sum: 1 },
+            },
+          },
+        ]).catch(() => []),
+        StudentSubscription.find({
+          company: companyId,
+          startDate: { $gte: growthFrom },
+        })
+          .select("student startDate")
+          .lean()
+          .catch(() => []),
+        StudentSubscription.aggregate([
+          { $match: { company: companyId } },
+          { $group: { _id: "$student", first: { $min: "$startDate" } } },
+        ]).catch(() => []),
+        StudentSubscription.countDocuments({
+          company: companyId,
+          status: "active",
+        }).catch(() => 0),
+      ]);
+    const firstStart = new Map(
+      firstStartAgg.map((r) => [String(r._id), r.first]),
+    );
+    const monthLabels = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const studentGrowth = growthStarts.map((start) => {
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+      const repeat = new Set();
+      for (const sub of subsInRange) {
+        if (sub.startDate < start || sub.startDate >= end) continue;
+        const first = firstStart.get(String(sub.student));
+        if (first && first < start) repeat.add(String(sub.student));
+      }
+      const row = newByMonth.find(
+        (r) =>
+          r._id.y === start.getFullYear() && r._id.m === start.getMonth() + 1,
+      );
+      return {
+        month: start.getMonth() + 1,
+        year: start.getFullYear(),
+        label: monthLabels[start.getMonth()],
+        newStudents: row?.n || 0,
+        repeatStudents: repeat.size,
+      };
+    });
+
     const pendingLeaveList = await Leave.find({
       company: companyId,
       status: "pending",
@@ -274,8 +361,12 @@ const getStats = asyncHandler(async (req, res) => {
           newStudents,
           studentsPresentToday,
           studentsAbsentToday,
+          activeSubscriptions,
+          endingSoon: subscriptionAlerts.length,
         },
         feeSummary,
+        latestStudents,
+        studentGrowth,
         recentHires,
         recentStudents,
         pendingLeaveList,

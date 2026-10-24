@@ -431,7 +431,9 @@ exports.createCrmCompany = async (req, res) => {
       );
     }
 
-    const invoiceSeq = await Counter.next("sportsInvoice", () => Invoice.countDocuments());
+    const invoiceSeq = await Counter.next("sportsInvoice", () =>
+      Invoice.countDocuments(),
+    );
     const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
     await Invoice.create({
       company: company._id,

@@ -51,6 +51,54 @@ const userSchema = new mongoose.Schema(
     // Separate from phoneOtp (login) so the two code purposes can't be crossed.
     phoneVerifyOtp: { type: String, select: false },
     phoneVerifyOtpExpire: { type: Date, select: false },
+    // Email proven via a code sent to it (after a change, or on demand).
+    emailVerified: { type: Boolean, default: false },
+    pendingEmail: { type: String, select: false },
+    contactOtp: { type: String, select: false },
+    contactOtpExpire: { type: Date, select: false },
+    contactOtpTries: { type: Number, default: 0, select: false },
+    // Email OTP sign-in
+    emailLoginOtp: { type: String, select: false },
+    emailLoginOtpExpire: { type: Date, select: false },
+    emailLoginOtpTries: { type: Number, default: 0, select: false },
+    // One-time recovery codes (hashes only) — separate from the authenticator's backup codes.
+    backupCodes: {
+      type: [{ hash: String, usedAt: Date }],
+      default: [],
+      select: false,
+    },
+    backupCodesGeneratedAt: { type: Date },
+    // WebAuthn passkeys; publicKey is base64url of the COSE key.
+    passkeys: {
+      type: [
+        {
+          credentialId: { type: String, required: true },
+          publicKey: { type: String, required: true },
+          counter: { type: Number, default: 0 },
+          transports: [String],
+          name: { type: String, default: "Passkey" },
+          createdAt: { type: Date, default: Date.now },
+          lastUsedAt: { type: Date },
+        },
+      ],
+      default: [],
+      select: false,
+    },
+    // Devices that passed the authenticator step and were marked "keep me signed in": only the
+    // SHA-256 of the device secret is stored, and a device is trusted for 30 days from its last 2FA.
+    trustedDevices: {
+      type: [
+        {
+          hash: { type: String, required: true },
+          name: { type: String, default: "Unknown device" },
+          createdAt: { type: Date, default: Date.now },
+          lastUsedAt: { type: Date },
+          expiresAt: { type: Date, required: true },
+        },
+      ],
+      default: [],
+      select: false,
+    },
     resetOtp: { type: String, select: false },
     resetOtpExpire: { type: Date, select: false },
     // Bumped on every password change (pre-save hook); older JWTs carry the old value and are refused by `protect`.
@@ -65,7 +113,11 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
-  if (!this.isNew) this.tokenVersion = (this.tokenVersion || 0) + 1;
+  if (!this.isNew) {
+    this.tokenVersion = (this.tokenVersion || 0) + 1;
+    // A new password ends every "keep me signed in" trust.
+    this.trustedDevices = [];
+  }
   next();
 });
 

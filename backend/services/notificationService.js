@@ -472,7 +472,71 @@ async function sendLeaveAppliedEmail({
   }
 }
 
+// One-time code emails (sign-in / unlock, verifying an email address).
+// Throws when SMTP isn't configured or the send fails, so callers can tell the user.
+async function sendOtpEmail({ to, name, otp, purpose }) {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.error("[Email OTP] SMTP not configured", {
+      hasHost: !!process.env.SMTP_HOST,
+      hasUser: !!process.env.SMTP_USER,
+      hasPass: !!process.env.SMTP_PASS,
+    });
+    throw new Error("Email is not configured on the server");
+  }
+  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const esc = (v) =>
+    String(v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  const verify = purpose === "verify-email";
+  const subject = verify
+    ? "NestPlay — Verify your email"
+    : "NestPlay — Your sign-in code";
+  const intro = verify
+    ? "Use this code to verify your email address."
+    : "Use this code to sign in to your account. It also unlocks your account if it was temporarily blocked.";
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head>
+<body style="font-family:Arial,sans-serif;background:#F0F6FF;margin:0;padding:24px">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:2px solid #000">
+<div style="background:#024BAB;padding:20px 28px;border-bottom:2px solid #000"><h1 style="color:#fff;margin:0;font-size:18px;font-weight:900">${esc(subject)}</h1></div>
+<div style="padding:28px">
+<p style="font-size:14px;color:#333">Hello ${esc(name || "there")},</p>
+<p style="font-size:14px;color:#555;line-height:1.6">${intro}</p>
+<p style="text-align:center;font-size:34px;font-weight:900;letter-spacing:8px;color:#024BAB;margin:24px 0">${esc(otp)}</p>
+<p style="font-size:12px;color:#888;line-height:1.6">This code expires in 10 minutes. If you didn't request it, ignore this email — nobody can sign in without it.</p>
+</div></div></body></html>`;
+
+  const masked = String(to).replace(/^(.).*(@.*)$/, "$1***$2");
+  console.log(
+    `[Email OTP] Sending (${purpose}) to ${masked} via ${process.env.SMTP_HOST}`,
+  );
+  try {
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject,
+      html,
+      text: `Your NestPlay code is ${otp}. It expires in 10 minutes.`,
+    });
+    console.log(
+      `[Email OTP] Accepted by SMTP to ${masked} id=${info.messageId}`,
+    );
+  } catch (err) {
+    console.error(
+      `[Email OTP] FAILED to ${masked}: ${err.code || ""} ${err.message}`,
+      err.code === "EAUTH"
+        ? "— SMTP login rejected; check SMTP_USER / SMTP_PASS (Google app password)"
+        : "",
+    );
+    throw err;
+  }
+}
+
 module.exports = {
+  sendOtpEmail,
   sendPaymentConfirmations,
   sendCrmAccountCreatedEmail,
   sendPasswordResetEmail,

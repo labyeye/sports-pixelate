@@ -621,19 +621,6 @@ export default function StudentAttendanceScreen() {
                 <View style={styles.cardActions}>
                   <View style={styles.cardLeft}>
                     <View style={styles.planChips}>
-                      {!!st?.activePlan && (
-                        <View style={styles.planChip}>
-                          <Text style={styles.planChipText} numberOfLines={1}>
-                            {st.activePlan.name}
-                            {st.activePlan.startTime &&
-                              ` · ${formatTime12(st.activePlan.startTime)}${
-                                st.activePlan.endTime
-                                  ? `–${formatTime12(st.activePlan.endTime)}`
-                                  : ''
-                              }`}
-                          </Text>
-                        </View>
-                      )}
                       {!!st?.activePlan && !sessionDay && (
                         <View style={[styles.planChip, styles.planChipWarn]}>
                           <Text

@@ -284,7 +284,7 @@ const getSubscriptions = asyncHandler(async (req, res) => {
   const sort = safeSort(req.query, SUBSCRIPTION_SORT_FIELDS, { createdAt: -1 });
   const total = await StudentSubscription.countDocuments(filter);
   const subscriptions = await StudentSubscription.find(filter)
-    .populate("student", "firstName lastName studentId sport")
+    .populate("student", "firstName lastName studentId sport avatar")
     .populate("plan", "name sport")
     .sort(sort)
     .skip(skip)

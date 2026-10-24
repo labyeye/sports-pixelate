@@ -119,15 +119,24 @@ const processPayroll = asyncHandler(async (req, res) => {
   const txMonthEnd = new Date(y, m, 0, 23, 59, 59);
   const empIdList = employees.map((e) => e._id);
   const [existingRows, attRows, txRows, loanRows] = await Promise.all([
-    Payroll.find({ employee: { $in: empIdList }, month: m, year: y }).select("employee").lean(),
-    Attendance.find({ employee: { $in: empIdList }, date: { $gte: startDate, $lte: endDate } }),
+    Payroll.find({ employee: { $in: empIdList }, month: m, year: y })
+      .select("employee")
+      .lean(),
+    Attendance.find({
+      employee: { $in: empIdList },
+      date: { $gte: startDate, $lte: endDate },
+    }),
     Transaction.find({
       employee: { $in: empIdList },
       company: req.user.company,
       status: "pending",
       date: { $gte: txMonthStart, $lte: txMonthEnd },
     }),
-    Loan.find({ employee: { $in: empIdList }, company: req.user.company, status: "active" }),
+    Loan.find({
+      employee: { $in: empIdList },
+      company: req.user.company,
+      status: "active",
+    }),
   ]);
   const groupByEmployee = (rows) => {
     const map = new Map();

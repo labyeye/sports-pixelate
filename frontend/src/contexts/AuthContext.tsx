@@ -140,7 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Records the sign-out in the audit log and drops this device (best effort)
+    try {
+      await authAPI.removeCurrentSession();
+    } catch {}
     removeToken();
     resetDisabledFeatures();
     setUser(null);

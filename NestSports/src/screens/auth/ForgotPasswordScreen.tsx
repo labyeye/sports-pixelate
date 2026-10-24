@@ -3,20 +3,34 @@ import {
   View,
   Text,
   TextInput,
+  TouchableOpacity,
   StyleSheet,
+  ScrollView,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
-import Mail from 'lucide-react-native/icons/mail';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { authAPI } from '../../api/client';
-import { Button, TextField } from '../../components/ui';
-import { colors } from '../../theme/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
-import { Smartphone } from 'lucide-react-native';
+import { Passkey } from 'react-native-passkey';
+import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
+import { authAPI } from '../../api/client';
 import { getErrorMessage } from '../../utils/format';
+import { colors } from '../../theme/colors';
+
+// Same palette names NestHR's auth screens were written with, on NestSports' tokens.
+const C = {
+  primary: colors.blue,
+  success: colors.green,
+  danger: colors.red,
+  black: colors.black,
+  white: colors.white,
+  textMuted: colors.black,
+  textLight: '#94a3b8',
+};
+
+const forgotAnim = require('../../assets/lottie/forgot.json');
 
 type Step = 'email' | 'choose' | 'code' | 'done';
 
@@ -34,13 +48,43 @@ const METHOD_INFO: Record<string, { label: string; desc: string }> = {
     label: 'Authenticator app',
     desc: 'Enter the code from your authenticator app',
   },
+  backup: {
+    label: 'Backup code',
+    desc: 'Use one of your saved one-time backup codes',
+  },
+  passkey: {
+    label: 'Passkey',
+    desc: 'Verify with Face ID, fingerprint or your screen lock',
+  },
 };
 
+type CodeMethod = 'whatsapp' | 'totp' | 'backup' | 'passkey';
+
+function Field({
+  label,
+  ...props
+}: { label: string } & React.ComponentProps<typeof TextInput>) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputRow}>
+        <TextInput
+          style={[styles.input, { paddingLeft: 12 }]}
+          placeholderTextColor="#9CA3AF"
+          autoCapitalize="none"
+          {...props}
+        />
+      </View>
+    </View>
+  );
+}
+
 export default function ForgotPasswordScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [methods, setMethods] = useState<string[]>([]);
-  const [method, setMethod] = useState<'whatsapp' | 'totp'>('whatsapp');
+  const [method, setMethod] = useState<CodeMethod>('whatsapp');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -53,302 +97,418 @@ export default function ForgotPasswordScreen({ navigation }: any) {
     setLoading(true);
     try {
       await fn();
-    } catch (err: unknown) {
-      setError(
-        getErrorMessage(err) || 'Something went wrong. Please try again.',
-      );
+    } catch (e: any) {
+      setError(getErrorMessage(e) || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const sendLink = async () => {
-    await authAPI.forgotPassword(email.trim());
+  const sendLink = async (addr: string) => {
+    await authAPI.forgotPassword(addr);
     setDoneMsg(
-      'If an account exists for that email, a reset link has been sent.',
+      `If an account with ${addr} exists, you'll receive a password reset link shortly. The link expires in 1 hour.`,
     );
     setStep('done');
   };
 
   const onContinue = () => {
-    if (!email.trim()) return setError('Please Enter Email address');
+    const addr = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) {
+      return setError('Please enter a valid email address');
+    }
     run(async () => {
-      const res: any = await authAPI.forgotPasswordMethods(email.trim());
+      const res: any = await authAPI.forgotPasswordMethods(addr);
       setMethods(res.data.methods);
       if (res.data.methods.length > 1) return setStep('choose');
-      await sendLink();
+      await sendLink(addr);
     });
   };
 
   const choose = (m: string) =>
     run(async () => {
-      if (m === 'email') return sendLink();
-      if (m === 'whatsapp') await authAPI.forgotPasswordWhatsapp(email.trim());
-      setMethod(m as 'whatsapp' | 'totp');
+      const addr = email.trim().toLowerCase();
+      if (m === 'email') return sendLink(addr);
+      if (m === 'whatsapp') await authAPI.forgotPasswordWhatsapp(addr);
+      setMethod(m as CodeMethod);
       setCode('');
       setStep('code');
     });
 
   const onReset = () => {
     if (password !== confirm) return setError("Passwords don't match");
+    const addr = email.trim().toLowerCase();
     run(async () => {
-      if (method === 'whatsapp')
-        await authAPI.resetPasswordWithOtp(email.trim(), code.trim(), password);
-      else
-        await authAPI.resetPasswordWithTotp(
-          email.trim(),
-          code.trim(),
+      if (method === 'passkey') {
+        if (!Passkey.isSupported())
+          throw new Error('Passkeys are not supported on this device.');
+        const { data: o }: any = await authAPI.resetPasskeyOptions();
+        let r: any;
+        try {
+          r = await Passkey.get({
+            rpId: o.rpId,
+            challenge: o.challenge,
+            allowCredentials: o.allowCredentials,
+            userVerification: o.userVerification,
+            timeout: o.timeout,
+          });
+        } catch (e: any) {
+          throw new Error(
+            e?.error === 'UserCancelled'
+              ? 'Passkey verification was cancelled.'
+              : e?.message || 'Passkey verification failed.',
+          );
+        }
+        await authAPI.resetWithPasskey({
+          challengeToken: o.challengeToken,
           password,
-        );
-      setDoneMsg('Your password has been reset. You can now log in.');
+          id: r.id,
+          rawId: r.rawId,
+          type: 'public-key',
+          response: {
+            clientDataJSON: r.response.clientDataJSON,
+            authenticatorData: r.response.authenticatorData,
+            signature: r.response.signature,
+            userHandle: r.response.userHandle ?? null,
+          },
+          clientExtensionResults: {},
+        });
+      } else if (method === 'backup')
+        await authAPI.resetWithBackupCode(addr, code.trim(), password);
+      else if (method === 'whatsapp')
+        await authAPI.resetPasswordWithOtp(addr, code.trim(), password);
+      else await authAPI.resetPasswordWithTotp(addr, code.trim(), password);
+      setDoneMsg('Your password has been reset. You can now sign in.');
       setStep('done');
     });
   };
 
   const title =
     step === 'email'
-      ? 'Reset your password'
+      ? 'Forgot password?'
       : step === 'choose'
-        ? 'How do you want to reset it?'
-        : step === 'code'
-          ? method === 'whatsapp'
-            ? 'Enter WhatsApp code'
-            : 'Enter authenticator code'
-          : 'All set';
+      ? 'How do you want to reset it?'
+      : step === 'code'
+      ? method === 'whatsapp'
+        ? 'Enter WhatsApp code'
+        : method === 'backup'
+        ? 'Enter a backup code'
+        : method === 'passkey'
+        ? 'Choose a new password'
+        : 'Enter authenticator code'
+      : 'All set';
+
+  const sub =
+    step === 'email'
+      ? 'Enter the email address you registered with to see how you can reset your password.'
+      : step === 'choose'
+      ? 'Choose one of the methods set up on your account.'
+      : step === 'code'
+      ? method === 'whatsapp'
+        ? 'We sent a 6-digit code to your verified WhatsApp number.'
+        : method === 'backup'
+        ? 'Enter one of your saved backup codes. It stops working after this.'
+        : method === 'passkey'
+        ? 'Pick a new password, then confirm it with your passkey.'
+        : 'Open your authenticator app and enter the current 6-digit code (or a backup code).'
+      : '';
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={{ flex: 1, backgroundColor: colors.white }}
+    <KeyboardAvoidingView
+      style={styles.safe}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 24 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
-          <LottieView
-            source={require('../../assets/lottie/forgot.json')}
-            autoPlay
-            loop
-            style={{
-              width: '100%',
-              height: 250,
-              marginTop: -204,
-              marginBottom: 24,
-            }}
-          />
-          <Text style={styles.title}>{title}</Text>
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {step === 'email' && (
-            <>
-              <View style={styles.field}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@example.com"
-                />
+        <LottieView source={forgotAnim} autoPlay loop style={styles.lottie} />
+        <View style={styles.card}>
+          {step === 'done' ? (
+            <View style={styles.successBlock}>
+              <View style={styles.successIcon}>
+                <CheckCircle2 size={32} color={C.success} />
               </View>
-
-              <Button title="Continue" onPress={onContinue} loading={loading} />
-
-              <Text
-                style={{
-                  textAlign: 'center',
-                  marginVertical: 16,
-                  color: colors.muted,
-                  marginTop: 25,
-                }}
+              <Text style={styles.cardTitle}>{title}</Text>
+              <Text style={styles.cardSub}>{doneMsg}</Text>
+              <TouchableOpacity
+                style={styles.btnPrimary}
+                onPress={() => navigation.navigate('Login')}
               >
-                ----------------------------------- Or Login With
-                ---------------------------------
-              </Text>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  gap: 20,
-                }}
-              >
-                <View>
-                  <TouchableOpacity
-                    style={styles.round}
-                    onPress={() => navigation.navigate('Login')}
-                  >
-                    <Mail color={colors.white} size={26} />
-                  </TouchableOpacity>
-                  <Text style={styles.roundLabel}>Email</Text>
-                </View>
-                <View>
-                  <TouchableOpacity
-                    style={styles.round}
-                    onPress={() => navigation.navigate('PhoneOtpLogin')}
-                  >
-                    <Smartphone color={colors.white} size={26} />
-                  </TouchableOpacity>
-                  <Text style={styles.roundLabel}>Phone</Text>
-                </View>
-              </View>
-            </>
-          )}
-
-          {step === 'choose' && (
+                <Text style={styles.btnPrimaryText}>Back to Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
             <>
-              {methods.map(m => (
-                <TouchableOpacity
-                  key={m}
-                  style={styles.method}
-                  onPress={() => choose(m)}
-                  disabled={loading}
-                >
-                  <Text style={styles.methodLabel}>
-                    {METHOD_INFO[m]?.label ?? m}
-                  </Text>
-                  <Text style={styles.methodDesc}>{METHOD_INFO[m]?.desc}</Text>
-                </TouchableOpacity>
-              ))}
-              <Text style={styles.link} onPress={() => setStep('email')}>
-                ← Back
-              </Text>
-            </>
-          )}
+              <Text style={styles.cardTitle}>{title}</Text>
+              <Text style={styles.cardSub}>{sub}</Text>
 
-          {step === 'code' && (
-            <>
-              <TextField
-                label={
-                  method === 'whatsapp' ? 'WhatsApp Code' : 'Authenticator Code'
-                }
-                value={code}
-                onChangeText={setCode}
-                keyboardType={method === 'whatsapp' ? 'number-pad' : 'default'}
-                placeholder="123456"
-              />
-              <TextField
-                label="New Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="8+ chars, upper, lower & a number"
-              />
-              <TextField
-                label="Confirm New Password"
-                value={confirm}
-                onChangeText={setConfirm}
-                secureTextEntry
-              />
-              <Button
-                title="Reset Password"
-                onPress={onReset}
-                loading={loading}
-              />
-              <Text
-                style={styles.link}
+              {!!error && <Text style={styles.errorText}>{error}</Text>}
+
+              {step === 'email' && (
+                <>
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Email Address</Text>
+                    <View style={styles.inputRow}>
+                      <Mail
+                        size={16}
+                        color={C.textMuted}
+                        style={styles.inputIcon}
+                      />
+                      <TextInput
+                        style={styles.input}
+                        value={email}
+                        onChangeText={v => {
+                          setEmail(v);
+                          setError('');
+                        }}
+                        placeholder="Enter Email Address"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        returnKeyType="send"
+                        onSubmitEditing={onContinue}
+                      />
+                    </View>
+                  </View>
+                  <Primary
+                    title="Continue"
+                    loading={loading}
+                    onPress={onContinue}
+                  />
+                </>
+              )}
+
+              {step === 'choose' &&
+                methods.map(m => (
+                  <TouchableOpacity
+                    key={m}
+                    style={styles.method}
+                    onPress={() => choose(m)}
+                    disabled={loading}
+                  >
+                    <Text style={styles.methodLabel}>
+                      {METHOD_INFO[m]?.label ?? m}
+                    </Text>
+                    <Text style={styles.methodDesc}>
+                      {METHOD_INFO[m]?.desc}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+              {step === 'code' && (
+                <>
+                  {method !== 'passkey' && (
+                    <Field
+                      label={
+                        method === 'whatsapp'
+                          ? 'WhatsApp Code'
+                          : method === 'backup'
+                          ? 'Backup Code'
+                          : 'Authenticator Code'
+                      }
+                      value={code}
+                      onChangeText={setCode}
+                      keyboardType={
+                        method === 'whatsapp' ? 'number-pad' : 'default'
+                      }
+                      autoCapitalize={
+                        method === 'backup' ? 'characters' : 'none'
+                      }
+                      placeholder={
+                        method === 'backup' ? 'XXXXX-XXXXX' : '123456'
+                      }
+                    />
+                  )}
+                  <Field
+                    label="New Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    placeholder="8+ chars, upper, lower & a number"
+                  />
+                  <Field
+                    label="Confirm New Password"
+                    value={confirm}
+                    onChangeText={setConfirm}
+                    secureTextEntry
+                  />
+                  <Primary
+                    title={
+                      method === 'passkey' ? 'Verify & Reset' : 'Reset Password'
+                    }
+                    loading={loading}
+                    onPress={onReset}
+                  />
+                </>
+              )}
+
+              <TouchableOpacity
+                style={styles.backLink}
                 onPress={() => {
                   setError('');
-                  setStep('choose');
+                  if (step === 'code') setStep('choose');
+                  else if (step === 'choose') setStep('email');
+                  else navigation.goBack();
                 }}
               >
-                ← Choose a different method
-              </Text>
+                <ArrowLeft size={14} color={C.primary} />
+                <Text style={styles.backLinkText}>
+                  {step === 'code'
+                    ? 'Choose a different method'
+                    : step === 'choose'
+                    ? 'Back'
+                    : 'Back to Sign In'}
+                </Text>
+              </TouchableOpacity>
             </>
           )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
 
-          {step === 'done' && (
-            <>
-              <Text style={styles.success}>{doneMsg}</Text>
-              <Button
-                title="Back to Login"
-                onPress={() => navigation.navigate('Login')}
-              />
-            </>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+function Primary({
+  title,
+  loading,
+  onPress,
+}: {
+  title: string;
+  loading: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.btnPrimary}
+      onPress={onPress}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator color={C.white} />
+      ) : (
+        <Text style={styles.btnPrimaryText}>{title}</Text>
+      )}
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: colors.white,
-  },
-  logo: {
+  safe: { flex: 1, backgroundColor: '#fff' },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, backgroundColor: '#fff' },
+  lottie: { width: '100%', height: 240, alignSelf: 'center' },
+  card: { marginTop: 24 },
+  cardTitle: {
     fontSize: 32,
-    fontWeight: '800',
-    color: colors.blue,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.black,
+    fontWeight: '600',
+    color: C.black,
     marginBottom: 8,
   },
-  field: { marginBottom: 14 },
-  label: { fontWeight: '700', marginBottom: 6, color: colors.black },
-  input: {
+  cardSub: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  errorText: {
+    color: C.danger,
+    fontWeight: '600',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  field: { marginBottom: 16 },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    color: C.black,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 2,
     borderRadius: 8,
     borderRightWidth: 5,
     borderBottomWidth: 5,
     borderRightColor: '#0A0A0A',
     borderBottomColor: '#0A0A0A',
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderColor: C.black,
+    backgroundColor: C.white,
   },
-  error: { color: colors.red, marginBottom: 12, fontWeight: '600' },
-  success: {
-    color: colors.green,
-    marginBottom: 12,
-    fontWeight: '600',
-    textAlign: 'center',
+  inputIcon: { marginHorizontal: 10 },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingRight: 12,
+    fontSize: 14,
+    fontWeight: '500',
+    color: C.black,
   },
-  link: {
-    textAlign: 'center',
-    marginTop: 16,
-    color: colors.blue,
-    fontWeight: '700',
-  },
-  round: {
-    alignSelf: 'center',
-    marginBottom: 16,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.blue,
+  btnPrimary: {
+    backgroundColor: C.primary,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderRightWidth: 5,
+    borderBottomWidth: 5,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderColor: C.black,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
-  roundLabel: { color: colors.muted, marginTop: 0, textAlign: 'center' },
+  btnPrimaryText: {
+    color: C.white,
+    fontWeight: '700',
+    fontSize: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   method: {
     borderWidth: 2,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
     borderRightColor: '#0A0A0A',
     borderBottomColor: '#0A0A0A',
     borderRadius: 8,
-    borderColor: colors.black,
+    borderColor: C.black,
     padding: 14,
     marginBottom: 12,
   },
-  methodLabel: { fontWeight: '700', fontSize: 15, color: colors.black },
-  methodDesc: { color: colors.muted, marginTop: 2, fontSize: 12 },
+  methodLabel: { fontWeight: '700', fontSize: 15, color: C.black },
+  methodDesc: { color: '#6B7280', marginTop: 2, fontSize: 12 },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+  },
+  backLinkText: { fontSize: 13, fontWeight: '700', color: C.primary },
+  successBlock: { alignItems: 'center', gap: 12 },
+  successIcon: {
+    width: 64,
+    height: 64,
+    borderWidth: 2,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderRightColor: '#0A0A0A',
+    borderBottomColor: '#0A0A0A',
+    borderRadius: 8,
+    borderColor: C.success,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
 });

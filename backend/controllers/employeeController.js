@@ -558,7 +558,9 @@ const bulkImportEmployees = asyncHandler(async (req, res) => {
           String(existingUser.company) !== String(req.user.company) ||
           existingUser.role !== "employee"
         ) {
-          throw new Error("This email is already registered to another account");
+          throw new Error(
+            "This email is already registered to another account",
+          );
         }
         userId = existingUser._id;
       } else {

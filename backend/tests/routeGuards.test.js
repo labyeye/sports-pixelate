@@ -44,6 +44,23 @@ const ANY_LOGGED_IN_WRITES = new Set([
   "auth POST /2fa/confirm",
   "auth POST /2fa/disable",
   "auth POST /2fa/verify",
+  // passkeys, device sessions, backup codes, email OTP: own-credential flows scoped to the caller
+  "auth POST /passkey/register-options",
+  "auth POST /passkey/register",
+  "auth DELETE /passkey/:id",
+  "auth POST /passkey/login",
+  "auth POST /reset/passkey",
+  "auth DELETE /sessions",
+  "auth DELETE /trusted-devices",
+  "auth DELETE /trusted-devices/:id",
+  "auth DELETE /sessions/:id",
+  "auth POST /backup-codes",
+  "auth POST /login/backup",
+  "auth POST /reset/backup",
+  "auth POST /login/email-otp/send",
+  "auth POST /login/email-otp/verify",
+  "auth POST /contact/email/send-otp",
+  "auth POST /contact/email/verify-otp",
   // other auth schemes
   "admin POST /offer-codes",
   "admin PATCH /offer-codes/:id", // platform-admin JWT
