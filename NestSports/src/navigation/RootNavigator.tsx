@@ -16,6 +16,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
+import IntroOnboardingScreen from '../screens/auth/IntroOnboardingScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import PaymentSuccessScreen from '../screens/PaymentSuccessScreen';
 import PaymentFailedScreen from '../screens/PaymentFailedScreen';
@@ -145,6 +146,11 @@ function RootNavigatorContent() {
       >
         {!isAuthenticated ? (
           <>
+            <Stack.Screen
+              name="IntroOnboarding"
+              component={IntroOnboardingScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="Login"
               component={LoginScreen}
