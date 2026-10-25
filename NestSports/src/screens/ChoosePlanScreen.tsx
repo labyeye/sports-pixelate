@@ -17,6 +17,7 @@ import {
   ChipSelect,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -112,11 +113,11 @@ export default function ChoosePlanScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Choose a Plan" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
       >
-        <Text style={styles.title}>Choose a Plan</Text>
         <Text style={styles.subtitle}>
           Subscribe your child to a coaching plan
         </Text>

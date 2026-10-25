@@ -8,6 +8,8 @@ const {
 const { protect, authorize } = require("../middleware/auth");
 const { uploadDocumentVault } = require("../middleware/upload");
 
+const { sendDocOtp, verifyDocOtp, requireDocAccess } = require("../utils/docAccess");
+
 const router = express.Router();
 const NON_PARENT = [
   "super_admin",
@@ -17,6 +19,8 @@ const NON_PARENT = [
   "employee",
 ];
 
+router.post("/otp/send", protect, sendDocOtp);
+router.post("/otp/verify", protect, verifyDocOtp);
 router.get("/", protect, authorize(...NON_PARENT), getDocuments);
 router.post(
   "/",
@@ -29,6 +33,7 @@ router.get(
   "/:id/download",
   protect,
   authorize(...NON_PARENT),
+  requireDocAccess,
   downloadDocument,
 );
 router.delete(

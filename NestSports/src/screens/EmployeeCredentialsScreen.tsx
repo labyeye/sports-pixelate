@@ -27,8 +27,10 @@ import {
   TextField,
   Button,
   SectionTitle,
+  Avatar,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 const SORT_OPTIONS: SortOption[] = [
@@ -38,13 +40,19 @@ const SORT_OPTIONS: SortOption[] = [
 
 let searchDebounce: ReturnType<typeof setTimeout>;
 
-const PWD_CHARS =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
-const generatePassword = () =>
-  Array.from(
-    { length: 12 },
-    () => PWD_CHARS[Math.floor(Math.random() * PWD_CHARS.length)],
-  ).join('');
+const pickFrom = (set: string) => set[Math.floor(Math.random() * set.length)];
+// Always one uppercase, lowercase, digit and special character (matches the server policy).
+const generatePassword = () => {
+  const all = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+  const chars = [
+    pickFrom('ABCDEFGHJKLMNPQRSTUVWXYZ'),
+    pickFrom('abcdefghijkmnpqrstuvwxyz'),
+    pickFrom('23456789'),
+    pickFrom('!@#$%'),
+  ];
+  while (chars.length < 12) chars.push(pickFrom(all));
+  return chars.sort(() => Math.random() - 0.5).join('');
+};
 
 // The web page copies credentials to the clipboard; on mobile the share sheet
 // is the equivalent way to hand them to the person securely.
@@ -157,8 +165,19 @@ export default function EmployeeCredentialsScreen() {
 
   const submitReset = async () => {
     if (!resetFor) return;
-    if (newPassword.length < 6) {
-      Alert.alert('Weak password', 'Password must be at least 6 characters');
+    if (
+      !(
+        newPassword.length >= 8 &&
+        /[A-Z]/.test(newPassword) &&
+        /[a-z]/.test(newPassword) &&
+        /\d/.test(newPassword) &&
+        /[^A-Za-z0-9]/.test(newPassword)
+      )
+    ) {
+      Alert.alert(
+        'Weak password',
+        'Password must be at least 8 characters with uppercase, lowercase, a number and a special character',
+      );
       return;
     }
     setSaving(true);
@@ -232,18 +251,21 @@ export default function EmployeeCredentialsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Credentials"
+        right={
+          <>
+            <TouchableOpacity
+              onPress={() => setSortVisible(true)}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </>
+        }
+      />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Credentials</Text>
-          <TouchableOpacity
-            onPress={() => setSortVisible(true)}
-            style={styles.iconBtn}
-            hitSlop={8}
-          >
-            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-
         <FilterPills options={TABS} value={tab} onChange={setTab} />
         <View style={{ height: 10 }} />
         <SearchBar
@@ -273,6 +295,13 @@ export default function EmployeeCredentialsScreen() {
               <Row
                 title={`${e.firstName} ${e.lastName}`}
                 subtitle={`${e.employeeId || '-'} · ${e.email || '-'}`}
+                left={
+                  <Avatar
+                    uri={e.avatar}
+                    name={`${e.firstName} ${e.lastName}`}
+                    size={40}
+                  />
+                }
                 onPress={() => openReset(e)}
                 right={
                   <TouchableOpacity onPress={() => openReset(e)} hitSlop={8}>
@@ -297,6 +326,13 @@ export default function EmployeeCredentialsScreen() {
                     ? ` · ${p.children.map((c: any) => c.firstName).join(', ')}`
                     : ''
                 }`}
+                left={
+                  <Avatar
+                    uri={p.avatar || p.children?.[0]?.avatar}
+                    name={p.name || p.email}
+                    size={40}
+                  />
+                }
                 onPress={() => openParent(p)}
                 right={
                   <TouchableOpacity onPress={() => openParent(p)} hitSlop={8}>
@@ -348,7 +384,7 @@ export default function EmployeeCredentialsScreen() {
               label="New Password"
               value={newPassword}
               onChangeText={setNewPassword}
-              placeholder="At least 6 characters"
+              placeholder="8+ chars: Aa, 1, !"
               secureTextEntry={!showPwd}
               required
             />

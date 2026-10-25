@@ -32,6 +32,7 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 const MONTHS = [
@@ -159,7 +160,7 @@ export default function ParentAttendanceScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Attendance</Text>
+        <BackTitle title="Attendance" />
       </View>
 
       {children.length === 0 ? (

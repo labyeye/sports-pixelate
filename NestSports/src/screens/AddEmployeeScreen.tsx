@@ -29,6 +29,7 @@ import {
 import { getCurrentPosition } from '../utils/location';
 import { colors, FONT } from '../theme/colors';
 import { notifyError } from '../utils/notifyError';
+import ScreenHeader from '../components/ScreenHeader';
 
 const ROLES = ['coach', 'staff'] as const;
 const EMPLOYMENT_TYPES = [
@@ -217,8 +218,20 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
         return;
       }
     }
-    if (form.password && form.password.length < 6) {
-      Alert.alert('Weak password', 'Password must be at least 6 characters');
+    if (
+      form.password &&
+      !(
+        form.password.length >= 8 &&
+        /[A-Z]/.test(form.password) &&
+        /[a-z]/.test(form.password) &&
+        /\d/.test(form.password) &&
+        /[^A-Za-z0-9]/.test(form.password)
+      )
+    ) {
+      Alert.alert(
+        'Weak password',
+        'Password must be at least 8 characters with uppercase, lowercase, a number and a special character',
+      );
       return;
     }
     const custom = form.shiftId === 'custom';
@@ -332,6 +345,7 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title={editing ? 'Edit Staff' : 'Add Staff'} />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}

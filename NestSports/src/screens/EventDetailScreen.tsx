@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingView, Badge } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { eventAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { eventTypes } from '../config/eventTypeConfig';
@@ -92,6 +93,7 @@ export default function EventDetailScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Event" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ paddingBottom: 40 }}

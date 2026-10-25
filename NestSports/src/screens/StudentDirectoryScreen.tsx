@@ -25,6 +25,7 @@ import { StudentProfileView } from '../components/StudentProfileView';
 import { SOFT } from '../components/profile';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle } from '../components/ScreenHeader';
 import { fetchAllPages } from '../utils/fetchAllPages';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -163,7 +164,7 @@ export default function StudentDirectoryScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Student Directory</Text>
+        <BackTitle title="Student Directory" />
       </View>
 
       <View style={styles.searchWrap}>

@@ -21,6 +21,7 @@ const {
   uploadAvatar,
   uploadFaceEnrollPhoto,
 } = require("../middleware/upload");
+const { requireDocAccess } = require("../utils/docAccess");
 const router = express.Router();
 const NON_PARENT = [
   "super_admin",
@@ -113,6 +114,7 @@ router.get(
   "/:id/documents/:type",
   protect,
   authorize("super_admin", "hr_manager", "hr_executive"),
+  requireDocAccess,
   downloadEmployeeDocument,
 );
 

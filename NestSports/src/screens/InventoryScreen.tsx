@@ -65,6 +65,7 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { notifyError } from '../utils/notifyError';
 
@@ -472,78 +473,64 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Inventory"
+        right={
+          <>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <TouchableOpacity
+                onPress={() =>
+                  exportRowsToExcel(
+                    INVENTORY_IMPORT_HEADERS.map(h => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
+                    items,
+                    'inventory_export.xlsx',
+                    'Inventory',
+                  )
+                }
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <Download size={20} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+              {isOwner && (
+                <TouchableOpacity
+                  onPress={() => setImportVisible(true)}
+                  style={headerBtn}
+                  hitSlop={8}
+                >
+                  <FileSpreadsheet
+                    size={18}
+                    color={colors.black}
+                    strokeWidth={2.5}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => setSortVisible(true)}
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+              {isOwner && (
+                <TouchableOpacity
+                  onPress={openAdd}
+                  style={headerBtn}
+                  hitSlop={8}
+                >
+                  <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        }
+      />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <View style={{ marginBottom: 12 }}>
-            <Text style={styles.title}>Inventory</Text>
-            <Text style={styles.subtitle}>
-              Sports equipment and stock levels
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() =>
-                exportRowsToExcel(
-                  INVENTORY_IMPORT_HEADERS.map(h => ({
-                    key: h.key,
-                    label: h.label,
-                  })),
-                  items,
-                  'inventory_export.xlsx',
-                  'Inventory',
-                )
-              }
-              style={styles.addBtn}
-              hitSlop={8}
-            >
-              <Download size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            {isOwner && (
-              <TouchableOpacity
-                onPress={() => setImportVisible(true)}
-                style={styles.addBtn}
-                hitSlop={8}
-              >
-                <FileSpreadsheet
-                  size={18}
-                  color={colors.black}
-                  strokeWidth={2.5}
-                />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={() => setSortVisible(true)}
-              style={styles.addBtn}
-              hitSlop={8}
-            >
-              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            {isOwner && (
-              <TouchableOpacity
-                onPress={openAdd}
-                style={styles.addBtn}
-                hitSlop={8}
-              >
-                <Plus size={20} color={colors.blue} strokeWidth={2.5} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <Text style={styles.summaryText}>
-          {items.length} items ·{' '}
-          {items.reduce((t, i) => t + (i.availableQuantity || 0), 0)} units
-          available ·{' '}
-          <Text style={{ color: colors.red }}>
-            {
-              items.filter(
-                i => (i.availableQuantity ?? 0) <= (i.reorderThreshold ?? 0),
-              ).length
-            }{' '}
-            low stock
-          </Text>
-        </Text>
-
         <SearchBar
           value={searchInput}
           onChangeText={setSearchInput}
@@ -560,23 +547,6 @@ export default function InventoryScreen() {
           value={category}
           onChange={setCategory}
         />
-        <TouchableOpacity
-          onPress={() => setLowStockOnly(v => !v)}
-          style={[
-            styles.lowStockToggle,
-            lowStockOnly && styles.lowStockToggleActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.lowStockToggleText,
-              lowStockOnly && { color: colors.white },
-            ]}
-          >
-            Low stock only
-          </Text>
-        </TouchableOpacity>
-
         <FlatList
           data={
             lowStockOnly
@@ -1197,21 +1167,10 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderColor: colors.black,
   },
   lowStockToggle: {
     alignSelf: 'flex-start',
-    borderWidth: 2,
-    borderRadius: 10,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
+
     paddingHorizontal: 16,
     paddingVertical: 9,
     minHeight: 38,

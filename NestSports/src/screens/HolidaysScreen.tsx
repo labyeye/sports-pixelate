@@ -31,6 +31,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 const TYPE_OPTIONS = ['national', 'optional', 'restricted'] as const;
@@ -150,10 +151,9 @@ export default function HolidaysScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Holidays</Text>
-        <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
-          <Plus size={14} color={colors.white} strokeWidth={2.5} />
-          <Text style={styles.addBtnText}>Add</Text>
+        <BackTitle title="Holidays" />
+        <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
+          <Plus size={20} color={colors.black} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -261,8 +261,8 @@ export default function HolidaysScreen() {
                 saving
                   ? 'Saving...'
                   : editingHoliday
-                    ? 'Update Holiday'
-                    : 'Save Holiday'
+                  ? 'Update Holiday'
+                  : 'Save Holiday'
               }
               onPress={save}
               disabled={saving}

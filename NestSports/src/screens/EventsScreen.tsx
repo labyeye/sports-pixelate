@@ -37,6 +37,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { eventTypes } from '../config/eventTypeConfig';
 import { notifyError } from '../utils/notifyError';
@@ -120,21 +121,6 @@ export default function EventsScreen({ navigation }: any) {
     return () => clearTimeout(searchDebounce);
   }, [searchInput]);
 
-  useLayoutEffect(() => {
-    if (isParent) return;
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('EventForm')}
-          style={styles.addBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Plus size={20} color={colors.blue} strokeWidth={2.5} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isParent]);
-
   const onRefresh = async () => {
     setRefreshing(true);
     await load().catch(notifyError);
@@ -163,6 +149,22 @@ export default function EventsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Events"
+        right={
+          !isParent && (
+            
+            <TouchableOpacity
+              onPress={() => navigation.navigate('EventForm')}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            
+          )
+        }
+      />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <View style={styles.headerRow}>
           <SearchBar
@@ -179,13 +181,7 @@ export default function EventsScreen({ navigation }: any) {
               onChange={setStatus}
             />
           </View>
-          <TouchableOpacity
-            onPress={() => setSortVisible(true)}
-            style={styles.sortBtn}
-            hitSlop={8}
-          >
-            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-          </TouchableOpacity>
+          
         </View>
 
         <View style={styles.kpiGrid}>
@@ -211,7 +207,7 @@ export default function EventsScreen({ navigation }: any) {
             icon={PlayCircle}
           />
           <KpiTile
-            label="Completed"
+            label="Complete"
             value={events.filter(e => e.status === 'completed').length}
             sub="Finished"
             color={colors.purple}
@@ -306,6 +302,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginBottom:15,
   },
   sortBtn: {
     width: 36,

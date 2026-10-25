@@ -19,6 +19,7 @@ import {
 } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -117,9 +118,9 @@ export default function SportSummaryReportScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Sport-wise Summary</Text>
-        <TouchableOpacity onPress={onExport} style={styles.iconBtn} hitSlop={8}>
-          <Download size={18} color={colors.black} strokeWidth={2.5} />
+        <BackTitle title="Sport-wise Summary" />
+        <TouchableOpacity onPress={onExport} style={headerBtn} hitSlop={8}>
+          <Download size={20} color={colors.black} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 

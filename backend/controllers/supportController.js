@@ -131,7 +131,13 @@ exports.getTicket = asyncHandler(async (req, res) => {
 // Called by CRM via webhook to update ticket status
 exports.updateTicketStatus = asyncHandler(async (req, res) => {
   const apiKey = req.headers["x-api-key"];
-  if (!apiKey || apiKey !== process.env.CRM_API_SECRET) {
+  const expectedKey = Buffer.from(String(process.env.CRM_API_SECRET || ""));
+  const givenKey = Buffer.from(String(apiKey || ""));
+  if (
+    !expectedKey.length ||
+    expectedKey.length !== givenKey.length ||
+    !require("crypto").timingSafeEqual(expectedKey, givenKey)
+  ) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 

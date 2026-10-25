@@ -45,6 +45,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { notifyError } from '../utils/notifyError';
 
@@ -217,33 +218,35 @@ export default function FacilitiesScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Facilities</Text>
-            <Text style={styles.subtitle}>
-              Sports facilities and hourly rates
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => setSortVisible(true)}
-              style={styles.iconBtn}
-              hitSlop={8}
+      <ScreenHeader
+        title="Facilities"
+        right={
+          <>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
-              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            {isOwner && (
               <TouchableOpacity
-                onPress={openAdd}
-                style={styles.iconBtn}
+                onPress={() => setSortVisible(true)}
+                style={headerBtn}
                 hitSlop={8}
               >
-                <Plus size={20} color={colors.blue} strokeWidth={2.5} />
+                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
               </TouchableOpacity>
-            )}
-          </View>
-        </View>
+              {isOwner && (
+                <TouchableOpacity
+                  onPress={openAdd}
+                  style={headerBtn}
+                  hitSlop={8}
+                >
+                  <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        }
+      />
+      <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
+        <Text style={styles.subtitle}>Sports facilities and hourly rates</Text>
 
         <View style={styles.kpiGrid}>
           <KpiTile
@@ -407,8 +410,8 @@ export default function FacilitiesScreen() {
                 saving
                   ? 'Saving...'
                   : editingFacility
-                    ? 'Update Facility'
-                    : 'Save Facility'
+                  ? 'Update Facility'
+                  : 'Save Facility'
               }
               onPress={save}
               disabled={saving}

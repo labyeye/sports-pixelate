@@ -108,4 +108,10 @@ studentSchema.post("save", function () {
     require("../services/faceIndex").invalidateFaceIndex();
 });
 
+require("../utils/fieldCrypto").fieldEncryption(studentSchema, [
+  "medicalNotes",
+]);
+
+require("../utils/fieldCrypto").maskBiometrics(studentSchema);
+
 module.exports = mongoose.model("Student", studentSchema);

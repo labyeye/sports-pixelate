@@ -37,7 +37,22 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
+import { StatRow } from '../components/common/StatTile';
+import {
+  Users as SUsers,
+  UserCheck as SUserCheck,
+  UserX as SUserX,
+  Pause as SPause,
+  CheckCircle2 as SCheck,
+  XCircle as SX,
+  AlertCircle as SAlert,
+  Calendar as SCal,
+  Wallet as SWallet,
+  Repeat as SRepeat,
+  IndianRupee as SRupee,
+} from 'lucide-react-native';
 
 const EMPLOYEE_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Rahul' },
@@ -223,7 +238,7 @@ export default function EmployeesScreen({ navigation }: any) {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Staff</Text>
+        <BackTitle title="Staff" />
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() =>
@@ -237,36 +252,63 @@ export default function EmployeesScreen({ navigation }: any) {
                 'Employees',
               )
             }
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
-            <Download size={18} color={colors.black} strokeWidth={2.5} />
+            <Download size={20} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setImportVisible(true)}
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
             <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortVisible(true)}
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
             <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('AddEmployee')}
-            style={styles.addBtn}
+            style={headerBtn}
             hitSlop={8}
           >
-            <Plus size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Add</Text>
+            <Plus size={20} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>
 
+      <StatRow
+        items={[
+          {
+            label: 'Total',
+            value: totalCount,
+            color: colors.blue,
+            icon: SUsers,
+          },
+          {
+            label: 'Active',
+            value: counts.active || 0,
+            color: colors.green,
+            icon: SUserCheck,
+          },
+          {
+            label: 'On Leave',
+            value: counts.on_leave || 0,
+            color: colors.orange,
+            icon: SPause,
+          },
+          {
+            label: 'Inactive',
+            value: counts.inactive || 0,
+            color: colors.muted,
+            icon: SUserX,
+          },
+        ]}
+      />
       <View style={styles.searchWrap}>
         <SearchBar
           value={searchInput}

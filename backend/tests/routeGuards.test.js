@@ -101,6 +101,15 @@ const ANY_LOGGED_IN_WRITES = new Set([
   "subscription POST /verify-payment",
   "subscription POST /qr-renewal",
   "subscription POST /:id/payments",
+  // WhatsApp OTP gate for confidential documents: any signed-in user, own phone only.
+  "document POST /otp/send",
+  "document POST /otp/verify",
+  // Accepting the terms of service: any signed-in user, only affects their own record.
+  "legal POST /accept",
+  // Deleting your own account: any signed-in user, password-confirmed, own record only.
+  "privacy POST /delete-account",
+  // Swaps a legacy localStorage token for the httpOnly cookie: any signed-in web user.
+  "auth POST /web-session",
 ]);
 
 test("no new unguarded write endpoints", () => {

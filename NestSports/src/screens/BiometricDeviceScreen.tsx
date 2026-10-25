@@ -43,6 +43,7 @@ import {
   PersonType,
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { Button, ChipSelect, LoadingView, KpiTile } from '../components/ui';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -486,6 +487,7 @@ export default function BiometricDeviceScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScreenHeader title="Biometric Devices" />
       {/* Tabs */}
       <View style={styles.tabs}>
         {(

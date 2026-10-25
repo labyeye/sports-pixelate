@@ -7,7 +7,10 @@ async function apiPost(endpoint: string, body: object): Promise<void> {
   const token = getToken();
   await fetch(`${BASE_URL}${endpoint}`, {
     method: "POST",
+    credentials: "include",
     headers: {
+      "x-client": "web",
+      "x-requested-with": "nest-web",
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -18,7 +21,11 @@ async function apiPost(endpoint: string, body: object): Promise<void> {
 async function apiGet<T>(endpoint: string): Promise<T> {
   const token = getToken();
   const res = await fetch(`${BASE_URL}${endpoint}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "include",
+    headers: {
+      "x-client": "web",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   return res.json();
 }

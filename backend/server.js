@@ -79,6 +79,7 @@ app.use(
   }),
 );
 app.use(timeout("30s"));
+app.use(require("./utils/sessionCookie").webSessionMiddleware);
 // Access log without query strings: they can carry ?token= (payment-proof images) and OTP/reset parameters.
 morgan.token("path", (req) => String(req.originalUrl || req.url).split("?")[0]);
 app.use(
@@ -129,9 +130,17 @@ app.use(
   ),
 );
 
-app.use("/iclock", require("./routes/admsRoutes"));
-app.use("/internal/stats", require("./routes/statsRoutes"));
-app.use("/api/crm", require("./routes/crmRoutes"));
+// These mounts sit before the main limiter, so each gets its own ceiling.
+// Biometric devices poll constantly (and several share one office IP), hence the high cap.
+const deviceRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 20000 });
+const integrationRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 });
+app.use("/iclock", deviceRateLimit, require("./routes/admsRoutes"));
+app.use(
+  "/internal/stats",
+  integrationRateLimit,
+  require("./routes/statsRoutes"),
+);
+app.use("/api/crm", integrationRateLimit, require("./routes/crmRoutes"));
 
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -144,7 +153,11 @@ const authRateLimit = rateLimit({
 
 const apiRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 5000 });
 
-app.use("/api/whatsapp-webhook", require("./routes/whatsappWebhookRoutes"));
+app.use(
+  "/api/whatsapp-webhook",
+  integrationRateLimit,
+  require("./routes/whatsappWebhookRoutes"),
+);
 app.use(
   "/api/hrms/whatsapp-webhook",
   require("./routes/whatsappWebhookRoutes"),
@@ -176,7 +189,9 @@ app.get("/.well-known/apple-app-site-association", (req, res) =>
 
 app.use("/api/auth", authRateLimit, require("./routes/authRoutes"));
 app.use("/api/legal", require("./routes/legalRoutes"));
+app.use("/api/privacy", require("./routes/privacyRoutes"));
 app.use(apiRateLimit);
+app.use(require("./middleware/auditWrites"));
 app.use("/api/company", require("./routes/companyRoutes"));
 app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 app.use("/api/employees", require("./routes/employeeRoutes"));

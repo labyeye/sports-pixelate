@@ -22,6 +22,7 @@ import {
   EmptyState,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency, getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -209,8 +210,8 @@ export default function QrRenewalScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title={`Renew ${subscription.planName}`} />
       <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16 }}>
-        <Text style={styles.title}>Renew {subscription.planName}</Text>
         <Text style={styles.subtitle}>
           For {subscription.student?.firstName} {subscription.student?.lastName}
         </Text>

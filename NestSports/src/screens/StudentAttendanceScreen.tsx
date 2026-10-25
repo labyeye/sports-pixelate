@@ -40,6 +40,7 @@ import {
 } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { DateTimeField, FilterPills, StatusPill } from '../components/ui';
 import FeeOverdueModal, {
   FeeOverdueStudent,
@@ -47,6 +48,20 @@ import FeeOverdueModal, {
 import { requestSelfMarkPermissions } from '../utils/location';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import { StatRow } from '../components/common/StatTile';
+import {
+  Users as SUsers,
+  UserCheck as SUserCheck,
+  UserX as SUserX,
+  Pause as SPause,
+  CheckCircle2 as SCheck,
+  XCircle as SX,
+  AlertCircle as SAlert,
+  Calendar as SCal,
+  Wallet as SWallet,
+  Repeat as SRepeat,
+  IndianRupee as SRupee,
+} from 'lucide-react-native';
 
 // Mirrors AttendanceScreen's (staff) STATUS_CONFIG 1:1 — same colors, same
 // bg tints, same icon set — so the two attendance screens read as one
@@ -318,6 +333,19 @@ export default function StudentAttendanceScreen() {
     );
   };
 
+  const checkOutNow = async (studentId: string) => {
+    try {
+      await studentAttendanceAPI.mark({
+        student: studentId,
+        date: dateFilter,
+        checkOut: new Date().toISOString(),
+      });
+      await load(false);
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e));
+    }
+  };
+
   const openEdit = (record: any) => {
     setEditRecord(record);
     const st = record.student;
@@ -426,17 +454,43 @@ export default function StudentAttendanceScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Clock size={20} color={colors.blue} strokeWidth={2.5} />
-          <Text style={styles.headerTitle}>Student Attendance</Text>
+          <BackTitle title="Student Attendance" />
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={styles.addBtn} onPress={openNew}>
-            <CheckCircle2 size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Mark</Text>
+          <TouchableOpacity style={headerBtn} onPress={openNew}>
+            <CheckCircle2 size={20} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>
 
+      <StatRow
+        items={[
+          {
+            label: 'Present',
+            value: summary.present || 0,
+            color: colors.green,
+            icon: SCheck,
+          },
+          {
+            label: 'Absent',
+            value: summary.absent || 0,
+            color: colors.red,
+            icon: SX,
+          },
+          {
+            label: 'Late',
+            value: summary.late || 0,
+            color: colors.orange,
+            icon: SAlert,
+          },
+          {
+            label: 'Excused',
+            value: summary.excused || 0,
+            color: colors.blue,
+            icon: SCal,
+          },
+        ]}
+      />
       <View style={styles.dateRow}>
         <TouchableOpacity
           onPress={() => shiftDate(-1)}
@@ -719,13 +773,36 @@ export default function StudentAttendanceScreen() {
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      style={styles.editBtn}
-                      onPress={() => openEdit(item)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Pencil size={14} color={colors.blue} strokeWidth={2.5} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {!singleTime &&
+                        !!item.checkIn &&
+                        !item.checkOut &&
+                        (item.status === 'present' ||
+                          item.status === 'late') && (
+                          <TouchableOpacity
+                            style={styles.absentBtn}
+                            onPress={() => checkOutNow(item.student?._id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <LogOut
+                              size={13}
+                              color={colors.white}
+                              strokeWidth={2.5}
+                            />
+                          </TouchableOpacity>
+                        )}
+                      <TouchableOpacity
+                        style={styles.editBtn}
+                        onPress={() => openEdit(item)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Pencil
+                          size={14}
+                          color={colors.blue}
+                          strokeWidth={2.5}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
 
@@ -1011,26 +1088,28 @@ export default function StudentAttendanceScreen() {
               <Text style={styles.editInfoValue}>{dateFilter}</Text>
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <DateTimeField
-                  label={singleTime ? 'Time' : 'Check In'}
-                  mode="time"
-                  value={form.checkIn}
-                  onChangeText={v => setForm(p => ({ ...p, checkIn: v }))}
-                />
-              </View>
-              {!singleTime && (
+            {!!editRecord && (
+              <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <DateTimeField
-                    label="Check Out"
+                    label={singleTime ? 'Time' : 'Check In'}
                     mode="time"
-                    value={form.checkOut}
-                    onChangeText={v => setForm(p => ({ ...p, checkOut: v }))}
+                    value={form.checkIn}
+                    onChangeText={v => setForm(p => ({ ...p, checkIn: v }))}
                   />
                 </View>
-              )}
-            </View>
+                {!singleTime && (
+                  <View style={{ flex: 1 }}>
+                    <DateTimeField
+                      label="Check Out"
+                      mode="time"
+                      value={form.checkOut}
+                      onChangeText={v => setForm(p => ({ ...p, checkOut: v }))}
+                    />
+                  </View>
+                )}
+              </View>
+            )}
 
             <View>
               <Text style={styles.fieldLabel}>Notes</Text>
@@ -1056,8 +1135,8 @@ export default function StudentAttendanceScreen() {
                   {editRecord
                     ? 'Update Attendance'
                     : selectedIds.length > 1
-                      ? `Mark ${selectedIds.length} Students`
-                      : 'Save Attendance'}
+                    ? `Mark ${selectedIds.length} Students`
+                    : 'Save Attendance'}
                 </Text>
               )}
             </TouchableOpacity>

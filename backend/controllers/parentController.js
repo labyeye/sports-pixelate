@@ -1,3 +1,4 @@
+const { passwordProblem } = require("../utils/password");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/User");
 const { escapeRegex } = require("../middleware/validate");
@@ -21,7 +22,7 @@ const getParents = asyncHandler(async (req, res) => {
 
   const parents = await User.find(filter)
     .select("name email phone avatar lastLogin children createdAt")
-    .populate("children", "firstName lastName studentId")
+    .populate("children", "firstName lastName studentId avatar")
     .sort({ createdAt: -1 });
 
   res.json({ success: true, data: parents });
@@ -60,13 +61,10 @@ const updateParentCredentials = asyncHandler(async (req, res) => {
   }
 
   if (password !== undefined) {
-    if (typeof password !== "string" || password.length < 6) {
+    const pwProblem = passwordProblem(password);
+    if (pwProblem) {
       res.status(400);
-      throw new Error("Password must be at least 6 characters");
-    }
-    if (password.length > 128) {
-      res.status(400);
-      throw new Error("Password too long");
+      throw new Error(pwProblem);
     }
     parent.password = password;
   }

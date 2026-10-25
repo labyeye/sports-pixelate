@@ -57,7 +57,7 @@ async function notifyGuardianWhatsApp(
   companyId,
   studentDoc,
   status,
-  { checkIn, checkOut } = {},
+  { checkIn, checkOut, onlyCheckOut } = {},
 ) {
   const guardian = (studentDoc.guardians || []).find(
     (g) => g.receivesWhatsapp && g.phone,
@@ -69,7 +69,7 @@ async function notifyGuardianWhatsApp(
     studentName: `${studentDoc.firstName} ${studentDoc.lastName}`.trim(),
     locationName: company?.name || "the academy",
   };
-  if (status === "present" || status === "late") {
+  if (!onlyCheckOut && (status === "present" || status === "late")) {
     await sendStudentCheckIn(
       guardian.phone,
       { ...base, time: checkIn || new Date() },
@@ -217,6 +217,31 @@ const markStudentAttendance = asyncHandler(async (req, res) => {
   await assertFeesCleared(req, res, studentDoc);
 
   const d = toDateOnly(date || Date.now());
+
+  // Check-out punch (parent picking the student up): only stamps checkOut on
+  // the existing check-in record, leaving its status and check-in untouched.
+  if (checkOut && !checkIn && !status) {
+    const existing = await StudentAttendance.findOne({ student, date: d });
+    if (!existing || !existing.checkIn) {
+      res.status(400);
+      throw new Error("Student has not been checked in yet");
+    }
+    existing.checkOut = checkOut;
+    if (notes !== undefined) existing.notes = notes;
+    await existing.save();
+    notifyGuardianWhatsApp(req.user.company, studentDoc, existing.status, {
+      checkOut: existing.checkOut,
+      onlyCheckOut: true,
+    }).catch((err) =>
+      console.error("[whatsapp] markStudentAttendance checkout:", err.message),
+    );
+    const populated = await existing.populate(
+      "student",
+      "firstName lastName studentId sport batch avatar",
+    );
+    return res.json({ success: true, data: populated });
+  }
+
   // A "present" mark arriving >15 min after the session start is "late".
   let finalStatus = status || "present";
   if (finalStatus === "present") {

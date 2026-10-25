@@ -23,6 +23,7 @@ import {
   type PickedImage,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { eventAPI } from '../api/client';
 import {
   eventTypes,
@@ -220,6 +221,7 @@ export default function EventFormScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title={isEdit ? 'Edit Event' : 'New Event'} />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}

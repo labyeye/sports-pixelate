@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { subscriptionAPI } from '../api/client';
 import { LoadingView } from '../components/ui';
+import ScreenHeader from '../components/ScreenHeader';
 
 // Hosts a redirect/hosted-checkout gateway (Cashfree, PhonePe, Paytm) in a
 // WebView. Paytm needs a POST with a form body, which a plain WebView
@@ -22,7 +23,10 @@ function buildAutoSubmitHtml(
   const inputs = Object.entries(fields)
     .map(
       ([k, v]) =>
-        `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, '&quot;')}" />`,
+        `<input type="hidden" name="${k}" value="${String(v).replace(
+          /"/g,
+          '&quot;',
+        )}" />`,
     )
     .join('');
   return `<!DOCTYPE html><html><body onload="document.forms[0].submit()">
@@ -69,6 +73,7 @@ export default function PaymentWebViewScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Complete Payment" />
       <View style={{ flex: 1 }}>
         <WebView
           source={{ html }}

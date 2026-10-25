@@ -16,8 +16,8 @@ const VERIFY_TOKEN = process.env.META_WA_VERIFY_TOKEN;
 function validSignature(req) {
   const secret = process.env.META_APP_SECRET;
   if (!secret) {
-    // Fail closed in production; allow local development without a secret.
-    return process.env.NODE_ENV !== "production";
+    // Fail closed everywhere except an explicit local development run.
+    return process.env.NODE_ENV === "development";
   }
   const header = req.headers["x-hub-signature-256"];
   if (!header || !req.rawBody) return false;

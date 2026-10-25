@@ -40,7 +40,22 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
+import { StatRow } from '../components/common/StatTile';
+import {
+  Users as SUsers,
+  UserCheck as SUserCheck,
+  UserX as SUserX,
+  Pause as SPause,
+  CheckCircle2 as SCheck,
+  XCircle as SX,
+  AlertCircle as SAlert,
+  Calendar as SCal,
+  Wallet as SWallet,
+  Repeat as SRepeat,
+  IndianRupee as SRupee,
+} from 'lucide-react-native';
 
 const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Aarav' },
@@ -97,7 +112,6 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   on_hold: { color: colors.orange, label: 'On Hold' },
   inactive: { color: colors.muted, label: 'Inactive' },
 };
-const STATUS_ORDER = ['active', 'on_hold', 'inactive'];
 
 const SORT_OPTIONS: SortOption[] = [
   { key: 'firstName', label: 'Name' },
@@ -257,22 +271,13 @@ export default function StudentsScreen({ navigation }: any) {
   };
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const statPillOptions = [
-    { value: '', label: 'All', count: totalCount, color: colors.blue },
-    ...STATUS_ORDER.map(s => ({
-      value: s,
-      label: STATUS_CONFIG[s].label,
-      count: counts[s] || 0,
-      color: STATUS_CONFIG[s].color,
-    })),
-  ];
 
   if (loading) return <LoadingView />;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Students</Text>
+        <BackTitle title="Students" />
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() =>
@@ -286,49 +291,68 @@ export default function StudentsScreen({ navigation }: any) {
                 'Students',
               )
             }
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
-            <Download size={18} color={colors.black} strokeWidth={2.5} />
+            <Download size={20} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setImportVisible(true)}
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
             <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortVisible(true)}
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
             <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('AddStudent')}
-            style={styles.addBtn}
+            style={headerBtn}
             hitSlop={8}
           >
-            <Plus size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Add</Text>
+            <Plus size={20} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>
 
+      <StatRow
+        items={[
+          {
+            label: 'Total',
+            value: totalCount,
+            color: colors.blue,
+            icon: SUsers,
+          },
+          {
+            label: 'Active',
+            value: counts.active || 0,
+            color: colors.green,
+            icon: SUserCheck,
+          },
+          {
+            label: 'On Hold',
+            value: counts.on_hold || 0,
+            color: colors.orange,
+            icon: SPause,
+          },
+          {
+            label: 'Inactive',
+            value: counts.inactive || 0,
+            color: colors.muted,
+            icon: SUserX,
+          },
+        ]}
+      />
       <View style={styles.searchWrap}>
         <SearchBar
           value={searchInput}
           onChangeText={setSearchInput}
           placeholder="Search by name or student ID..."
-        />
-      </View>
-
-      <View style={styles.pillWrap}>
-        <StatPills
-          options={statPillOptions}
-          value={status}
-          onChange={setStatus}
         />
       </View>
 
@@ -371,10 +395,18 @@ export default function StudentsScreen({ navigation }: any) {
                   <Text style={styles.empName}>
                     {s.firstName} {s.lastName}
                   </Text>
-                  <Text style={styles.empId}>{s.studentId}</Text>
-                  <Text style={styles.empDesig} numberOfLines={1}>
-                    {s.batch || 'No batch'}
-                  </Text>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <Text style={styles.empId}>{s.studentId}</Text>
+                    <Text style={styles.empDesig} numberOfLines={1}>
+                      {s.batch || 'No batch'}
+                    </Text>
+                  </View>
                 </View>
                 <View
                   style={[styles.statusBadge, { backgroundColor: statusColor }]}
@@ -506,22 +538,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderColor: colors.black,
   },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.blue,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderColor: colors.black,
+
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -580,12 +602,11 @@ const styles = StyleSheet.create({
     color: colors.black,
     fontFamily: FONT.bold,
   },
-  empId: { fontSize: 11, color: colors.muted, fontFamily: 'monospace' },
+  empId: { fontSize: 12, color: colors.muted, fontFamily: 'monospace' },
   empDesig: {
     fontSize: 12,
     color: colors.muted,
     fontWeight: '500',
-    marginTop: 1,
   },
   statusBadge: {
     borderWidth: 2,

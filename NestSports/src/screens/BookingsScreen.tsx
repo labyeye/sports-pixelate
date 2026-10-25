@@ -45,6 +45,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -239,30 +240,29 @@ export default function BookingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Bookings"
+        right={
+          <>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <TouchableOpacity
+                onPress={() => setSortVisible(true)}
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
+                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </>
+        }
+      />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Bookings</Text>
-            <Text style={styles.subtitle}>Facility bookings and schedules</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => setSortVisible(true)}
-              style={styles.sortBtn}
-              hitSlop={8}
-            >
-              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={openAdd}
-              style={styles.addBtn}
-              hitSlop={8}
-            >
-              <Plus size={14} color={colors.white} strokeWidth={2.5} />
-              <Text style={styles.addBtnText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Text style={styles.subtitle}>Facility bookings and schedules</Text>
 
         <View style={styles.kpiGrid}>
           <KpiTile

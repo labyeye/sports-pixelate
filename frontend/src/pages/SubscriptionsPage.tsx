@@ -558,7 +558,11 @@ export default function SubscriptionsPage() {
     try {
       const token = getToken();
       const res = await fetch(subscriptionAPI.receiptUrl(subId, paymentId), {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+        headers: {
+          "x-client": "web",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (!res.ok) throw new Error("Failed to download receipt");
       const blob = await res.blob();

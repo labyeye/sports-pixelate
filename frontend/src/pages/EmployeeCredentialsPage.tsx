@@ -172,22 +172,32 @@ export default function EmployeeCredentialsPage() {
   };
 
   const generatePassword = () => {
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
-    let pwd = "";
-    for (let i = 0; i < 12; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const pick = (set: string) =>
+      set.charAt(Math.floor(Math.random() * set.length));
+    const all = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+    const chars = [
+      pick("ABCDEFGHJKLMNPQRSTUVWXYZ"),
+      pick("abcdefghijkmnpqrstuvwxyz"),
+      pick("23456789"),
+      pick("!@#$%"),
+    ];
+    while (chars.length < 12) chars.push(pick(all));
+    const pwd = chars.sort(() => Math.random() - 0.5).join("");
     setNewPassword(pwd);
   };
 
   const generateParentPassword = () => {
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
-    let pwd = "";
-    for (let i = 0; i < 12; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const pick = (set: string) =>
+      set.charAt(Math.floor(Math.random() * set.length));
+    const all = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+    const chars = [
+      pick("ABCDEFGHJKLMNPQRSTUVWXYZ"),
+      pick("abcdefghijkmnpqrstuvwxyz"),
+      pick("23456789"),
+      pick("!@#$%"),
+    ];
+    while (chars.length < 12) chars.push(pick(all));
+    const pwd = chars.sort(() => Math.random() - 0.5).join("");
     setParentPassword(pwd);
   };
 

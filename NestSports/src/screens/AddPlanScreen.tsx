@@ -27,6 +27,7 @@ import {
   DateTimeField,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 type ScheduleType = 'unlimited' | 'sessions_per_week' | 'custom_days';
 type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
@@ -146,6 +147,7 @@ export default function AddPlanScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title={isEditing ? 'Edit Plan' : 'Add Plan'} />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}

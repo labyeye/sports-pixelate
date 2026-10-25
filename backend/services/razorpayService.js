@@ -45,7 +45,9 @@ function verifySignature(
     .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest("hex");
 
-  return expected === razorpaySignature;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(String(razorpaySignature || ""));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 module.exports = { createOrder, verifySignature };

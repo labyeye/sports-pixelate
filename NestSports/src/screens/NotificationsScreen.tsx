@@ -13,6 +13,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Bell, CheckCheck, ChevronLeft } from 'lucide-react-native';
 import { notificationAPI } from '../api/client';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 function relativeTime(iso: string) {
@@ -76,20 +77,19 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10}>
-          <ChevronLeft size={26} color={colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Notifications</Text>
-        <TouchableOpacity
-          onPress={readAll}
-          disabled={unread === 0}
-          hitSlop={10}
-          style={[styles.readAll, unread === 0 && { opacity: 0.35 }]}
-        >
-          <CheckCheck size={20} color={colors.blue} />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Notifications"
+        right={
+          <TouchableOpacity
+            onPress={readAll}
+            disabled={unread === 0}
+            hitSlop={10}
+            style={[styles.readAll, unread === 0 && { opacity: 0.35 }]}
+          >
+            <CheckCheck size={20} color={colors.black} />
+          </TouchableOpacity>
+        }
+      />
       {loading ? (
         <ActivityIndicator style={styles.loader} color={colors.blue} />
       ) : (

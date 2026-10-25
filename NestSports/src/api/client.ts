@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { API_BASE_URL } from '../config';
+import { withDocAccess } from './docAccess';
 import { announceRefund, isRefundMessage } from '../utils/refundNotice';
 
 const TOKEN_KEY = 'hrms_token'; // legacy AsyncStorage key (migrated away from)
@@ -199,6 +200,15 @@ export async function saveTrustedDevice(email: string, token: string) {
     /* storage unavailable: the code is simply asked next time */
   }
 }
+
+export const privacyAPI = {
+  exportMyData: () => request('/privacy/export'),
+  deleteAccount: (password: string) =>
+    request('/privacy/delete-account', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+};
 
 export const authAPI = {
   login: async (email: string, password: string) =>
@@ -727,7 +737,17 @@ export const documentAPI = {
     mimeType: string;
     fileData: string;
   }) => request('/documents', { method: 'POST', body: JSON.stringify(body) }),
-  download: (id: string) => request(`/documents/${id}/download`),
+  sendOtp: () => request('/documents/otp/send', { method: 'POST' }),
+  verifyOtp: (otp: string) =>
+    request('/documents/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    }),
+  // Confidential: needs the WhatsApp OTP (asked for automatically).
+  download: (id: string) =>
+    withDocAccess(t =>
+      request(`/documents/${id}/download`, { headers: { 'x-doc-access': t } }),
+    ),
   delete: (id: string) => request(`/documents/${id}`, { method: 'DELETE' }),
 };
 

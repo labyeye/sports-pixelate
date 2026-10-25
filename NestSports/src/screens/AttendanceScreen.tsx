@@ -44,10 +44,25 @@ import {
   RNFile,
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { DateTimeField, FilterPills, StatusPill } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import { StatRow } from '../components/common/StatTile';
+import {
+  Users as SUsers,
+  UserCheck as SUserCheck,
+  UserX as SUserX,
+  Pause as SPause,
+  CheckCircle2 as SCheck,
+  XCircle as SX,
+  AlertCircle as SAlert,
+  Calendar as SCal,
+  Wallet as SWallet,
+  Repeat as SRepeat,
+  IndianRupee as SRupee,
+} from 'lucide-react-native';
 
 function openLocationInMaps(loc: { lat: number; lng: number }) {
   Linking.openURL(
@@ -583,28 +598,53 @@ export default function AttendanceScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Clock size={20} color={colors.blue} strokeWidth={2.5} />
-          <Text style={styles.headerTitle}>Attendance</Text>
+          <BackTitle title="Attendance" />
         </View>
         {!isEmployee && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity style={styles.addBtn} onPress={openNew}>
-              <CheckCircle2 size={14} color={colors.white} strokeWidth={2.5} />
-              <Text style={styles.addBtnText}>Mark</Text>
+            <TouchableOpacity style={headerBtn} onPress={openNew}>
+              <CheckCircle2 size={20} color={colors.black} strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
         )}
         {isEmployee && (
           <TouchableOpacity
-            style={styles.addBtn}
+            style={headerBtn}
             onPress={() => setShowCorrectionModal(true)}
           >
-            <Clock size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Correction</Text>
+            <Clock size={14} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
         )}
       </View>
 
+      <StatRow
+        items={[
+          {
+            label: 'Present',
+            value: summary.present || 0,
+            color: colors.green,
+            icon: SCheck,
+          },
+          {
+            label: 'Absent',
+            value: summary.absent || 0,
+            color: colors.red,
+            icon: SX,
+          },
+          {
+            label: 'Late',
+            value: summary.late || 0,
+            color: colors.orange,
+            icon: SAlert,
+          },
+          {
+            label: 'Excused',
+            value: summary.excused || 0,
+            color: colors.blue,
+            icon: SCal,
+          },
+        ]}
+      />
       <View style={styles.dateRow}>
         <TouchableOpacity
           onPress={() => shiftDate(-1)}
@@ -1370,8 +1410,8 @@ export default function AttendanceScreen() {
                     {editRecord
                       ? 'Update Attendance'
                       : selectedIds.length > 1
-                        ? `Mark ${selectedIds.length} Employees`
-                        : 'Save Attendance'}
+                      ? `Mark ${selectedIds.length} Employees`
+                      : 'Save Attendance'}
                   </Text>
                 )}
               </TouchableOpacity>

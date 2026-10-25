@@ -4,6 +4,7 @@ const User = require("../models/User");
 const terms = require("../utils/terms");
 const Company = require("../models/Company");
 const Session = require("../models/Session");
+const { readCookie, SENTINEL } = require("../utils/sessionCookie");
 const { getCompanyFeatures } = require("../utils/planFeatures");
 const { getCompanyAccess } = require("../utils/subscriptionStatus");
 
@@ -23,6 +24,19 @@ const protect = asyncHandler(async (req, res, next) => {
   let token;
   if (req.headers.authorization?.startsWith("Bearer ")) {
     token = req.headers.authorization.split(" ")[1];
+  }
+  // Web sessions: the token sits in an httpOnly cookie (the page only holds a
+  // placeholder). Cookie auth is only honoured together with the custom
+  // header below, which a cross-site form or image cannot add (CSRF defence).
+  if (!token || token === SENTINEL) {
+    const fromCookie = readCookie(req);
+    token = fromCookie || (token === SENTINEL ? undefined : token);
+    if (fromCookie && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+      if (req.headers["x-requested-with"] !== "nest-web") {
+        res.status(403);
+        throw new Error("Blocked: missing request header");
+      }
+    }
   }
   if (!token) {
     res.status(401);

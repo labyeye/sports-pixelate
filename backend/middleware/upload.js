@@ -1,7 +1,12 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const { fromBuffer } = require("file-type");
+// file-type is ESM-only from v17, so it is loaded on first use.
+let fileTypeModule;
+const fromBuffer = async (buf) =>
+  (fileTypeModule ||= import("file-type")).then((m) =>
+    m.fileTypeFromBuffer(buf),
+  );
 const { readDecrypted, encryptUploadedFiles } = require("../utils/fileCrypto");
 
 // Allowed MIME types matched against actual file magic bytes

@@ -15,6 +15,7 @@ import { AlertOctagon, Clock, ListChecks, Timer } from 'lucide-react-native';
 import { lateApprovalAPI } from '../api/client';
 import { Card, EmptyState, LoadingView, KpiTile } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 const RESOLUTIONS: { key: string; label: string; color: string }[] = [
   { key: 'present', label: 'Present', color: colors.green },
@@ -74,6 +75,7 @@ export default function LateApprovalsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Late Approvals" />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

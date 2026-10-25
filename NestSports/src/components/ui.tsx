@@ -36,6 +36,7 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import { colors, FONT } from '../theme/colors';
 import { cropFile } from '../utils/cropImage';
+import StatTile from './common/StatTile';
 
 export function ScreenContainer({ children }: { children: React.ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
@@ -207,34 +208,17 @@ export function KpiTile({
   // plain color dot when no icon is given.
   icon?: LucideIcon;
 }) {
+  // Same card as the Dashboard stat tiles.
   return (
-    <View style={styles.kpi}>
-      {Icon ? (
-        <View
-          style={[
-            styles.kpiIconWrap,
-            solid
-              ? { backgroundColor: color, borderColor: colors.black }
-              : { backgroundColor: color + '1A', borderColor: color },
-          ]}
-        >
-          <Icon
-            size={20}
-            color={solid ? colors.white : color}
-            strokeWidth={2.5}
-          />
-        </View>
-      ) : (
-        <View style={[styles.kpiDot, { backgroundColor: color }]} />
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.kpiValue} numberOfLines={1}>
-          {value}
-        </Text>
-        <Text style={styles.kpiLabel} numberOfLines={2}>
-          {label}
-        </Text>
-      </View>
+    <View style={styles.kpiCell}>
+      <StatTile
+        compact
+        width="100%"
+        label={label}
+        value={value}
+        color={color}
+        icon={Icon}
+      />
     </View>
   );
 }
@@ -1097,8 +1081,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     toast?.type === 'error'
       ? colors.red
       : toast?.type === 'info'
-        ? colors.blue
-        : colors.green;
+      ? colors.blue
+      : colors.green;
 
   return (
     <ToastContext.Provider value={api}>
@@ -1271,6 +1255,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  kpiCell: { flexBasis: '22%', flexGrow: 1, minWidth: 0, margin: 3 },
   kpi: {
     flexBasis: '48%',
     backgroundColor: colors.white,

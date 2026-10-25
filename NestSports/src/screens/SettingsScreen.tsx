@@ -64,6 +64,7 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 type TabKey =
   | 'general'
@@ -373,8 +374,8 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Settings" />
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-        <Text style={styles.title}>Settings</Text>
         <Text style={styles.subtitle}>SportsClub & app configuration</Text>
       </View>
 

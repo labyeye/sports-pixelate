@@ -140,11 +140,42 @@ const styles = StyleSheet.create({
   },
   value: { fontSize: 22, fontWeight: '800', color: C.black },
   label: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '700',
     color: C.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   sub: { fontSize: 10, color: C.textMuted },
+});
+
+export interface StatRowItem {
+  label: string;
+  value: string | number;
+  color?: string;
+  icon?: Props['icon'];
+}
+
+/** Dashboard-style row of compact stat cards (up to four per row). */
+export function StatRow({ items }: { items: StatRowItem[] }) {
+  return (
+    <View style={rowStyles.row}>
+      {items.map(it => (
+        <View key={it.label} style={rowStyles.cell}>
+          <StatTile compact width="100%" {...it} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const rowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  cell: { flex: 1, minWidth: 0 },
 });

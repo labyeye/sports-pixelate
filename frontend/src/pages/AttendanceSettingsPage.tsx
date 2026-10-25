@@ -787,30 +787,21 @@ export default function AttendanceSettingsPage() {
                       Student Attendance Time
                     </h2>
                     <p className="text-xs text-gray-500">
-                      Choose whether students have a check-in and check-out, or
-                      just one time.
+                      Record a check-out time when the parent picks the student
+                      up, or only the check-in time.
                     </p>
                   </div>
-                  <div className="p-5 flex gap-2">
-                    {(
-                      [
-                        ["in_out", "Check In & Check Out"],
-                        ["single", "Single Time"],
-                      ] as const
-                    ).map(([val, label]) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => set({ studentAttendanceTimeMode: val })}
-                        className={`border-2 border-black px-4 py-2 text-xs font-bold uppercase ${
-                          settings.studentAttendanceTimeMode === val
-                            ? "bg-[#024BAB] text-white"
-                            : "bg-white"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                  <div className="p-5">
+                    <Toggle
+                      label="Track check-out time"
+                      description="On: first mark is check-in, second mark (when the parent picks the student up) is check-out. Off: only check-in time is recorded. Save settings after changing."
+                      checked={settings.studentAttendanceTimeMode === "in_out"}
+                      onChange={(v) =>
+                        set({
+                          studentAttendanceTimeMode: v ? "in_out" : "single",
+                        })
+                      }
+                    />
                   </div>
                 </div>
 

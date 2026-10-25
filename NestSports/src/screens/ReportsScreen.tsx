@@ -27,6 +27,7 @@ import {
 } from '../components/ui';
 import { CATEGORY_LABELS, REPORTS, ReportCategory } from '../reports/catalog';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -68,6 +69,7 @@ export default function ReportsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Reports" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -75,7 +77,6 @@ export default function ReportsScreen({ navigation }: any) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.title}>Reports</Text>
         <Text style={styles.subtitle}>Summary and downloadable reports</Text>
 
         {stats ? (

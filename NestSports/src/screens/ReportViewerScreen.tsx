@@ -27,6 +27,7 @@ import {
   ReportTable,
 } from '../reports/catalog';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 const MONTHS = [
@@ -277,8 +278,8 @@ export default function ReportViewerScreen({ route, navigation }: any) {
         {loading
           ? 'Loading…'
           : error
-            ? error
-            : `${table?.rows.length ?? 0} records`}
+          ? error
+          : `${table?.rows.length ?? 0} records`}
       </Text>
       <Button
         title="Export to Excel"
@@ -292,14 +293,7 @@ export default function ReportViewerScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10}>
-          <ArrowLeft size={22} color={colors.black} strokeWidth={2.5} />
-        </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>
-          {def.name}
-        </Text>
-      </View>
+      <ScreenHeader title={def.name} />
       <FlatList
         data={loading ? [] : table?.rows || []}
         keyExtractor={(_, i) => String(i)}

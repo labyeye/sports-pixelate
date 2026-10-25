@@ -40,6 +40,7 @@ import {
   CollapsibleSection,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import {
   INDIA_STATES,
   INDIA_STATES_AND_CITIES,
@@ -271,10 +272,22 @@ export default function AddStudentScreen({ navigation, route }: any) {
       Alert.alert('Missing fields', 'Every guardian needs a name');
       return;
     }
-    if (guardians.some(g => g.password && g.password.length < 6)) {
+    if (
+      guardians.some(
+        g =>
+          g.password &&
+          !(
+            g.password.length >= 8 &&
+            /[A-Z]/.test(g.password) &&
+            /[a-z]/.test(g.password) &&
+            /\d/.test(g.password) &&
+            /[^A-Za-z0-9]/.test(g.password)
+          ),
+      )
+    ) {
       Alert.alert(
         'Weak password',
-        'Guardian login password must be at least 6 characters',
+        'Guardian login password must be at least 8 characters with uppercase, lowercase, a number and a special character',
       );
       return;
     }
@@ -381,6 +394,7 @@ export default function AddStudentScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title={isEditing ? 'Edit Student' : 'Add Student'} />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}

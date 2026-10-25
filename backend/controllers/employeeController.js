@@ -3,6 +3,7 @@ const { generatePassword } = require("../utils/passwordPolicy");
 const { removeStoredUpload } = require("../utils/uploadFiles");
 const fs = require("fs");
 const path = require("path");
+const { passwordProblem } = require("../utils/password");
 const asyncHandler = require("express-async-handler");
 const Employee = require("../models/Employee");
 const User = require("../models/User");
@@ -243,10 +244,14 @@ const createEmployee = [
       userId = existingUser._id;
     } else {
       const { password: providedPassword } = req.body;
-      const tempPassword =
-        providedPassword
-          ? providedPassword
-          : generatePassword();
+      if (providedPassword) {
+        const pwProblem = passwordProblem(providedPassword);
+        if (pwProblem) {
+          res.status(400);
+          throw new Error(pwProblem);
+        }
+      }
+      const tempPassword = providedPassword ? providedPassword : generatePassword();
       const user = await User.create({
         name: `${firstName.trim()} ${lastName.trim()}`,
         email: normalizedEmail,
@@ -470,13 +475,10 @@ const resetEmployeePassword = asyncHandler(async (req, res) => {
   }
 
   const { password } = req.body;
-  if (!password || typeof password !== "string" || password.length < 6) {
+  const pwProblem = passwordProblem(password);
+  if (pwProblem) {
     res.status(400);
-    throw new Error("Password must be at least 6 characters");
-  }
-  if (password.length > 128) {
-    res.status(400);
-    throw new Error("Password too long");
+    throw new Error(pwProblem);
   }
 
   const linkedUser = await User.findOne({

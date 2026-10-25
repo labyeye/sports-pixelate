@@ -47,6 +47,7 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatCurrency, getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -239,6 +240,58 @@ export default function LoansScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Loans & Advances"
+        right={
+          <>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            >
+              <TouchableOpacity
+                onPress={() =>
+                  exportRowsToExcel(
+                    LOAN_IMPORT_HEADERS.map(h => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
+                    loans.map((l: any) => ({
+                      employeeId: l.employee?.employeeId || '',
+                      type: l.type,
+                      amount: l.amount,
+                      remainingBalance: l.remainingBalance,
+                      monthlyEmi: l.monthlyEmi,
+                      tenureMonths: l.tenureMonths,
+                      reason: l.reason,
+                      disbursedOn: l.disbursedOn?.slice(0, 10),
+                      status: l.status,
+                    })),
+                    'loans_export.xlsx',
+                    'Loans',
+                  )
+                }
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <Download size={20} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setImportVisible(true)}
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <FileSpreadsheet
+                  size={16}
+                  color={colors.black}
+                  strokeWidth={2.5}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
+                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </>
+        }
+      />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -246,62 +299,7 @@ export default function LoansScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>Loans & Advances</Text>
-            <Text style={styles.subtitle}>
-              Employee loan and advance requests
-            </Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TouchableOpacity
-              onPress={() =>
-                exportRowsToExcel(
-                  LOAN_IMPORT_HEADERS.map(h => ({
-                    key: h.key,
-                    label: h.label,
-                  })),
-                  loans.map((l: any) => ({
-                    employeeId: l.employee?.employeeId || '',
-                    type: l.type,
-                    amount: l.amount,
-                    remainingBalance: l.remainingBalance,
-                    monthlyEmi: l.monthlyEmi,
-                    tenureMonths: l.tenureMonths,
-                    reason: l.reason,
-                    disbursedOn: l.disbursedOn?.slice(0, 10),
-                    status: l.status,
-                  })),
-                  'loans_export.xlsx',
-                  'Loans',
-                )
-              }
-              style={styles.iconBtn}
-              hitSlop={8}
-            >
-              <Download size={16} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setImportVisible(true)}
-              style={styles.iconBtn}
-              hitSlop={8}
-            >
-              <FileSpreadsheet
-                size={16}
-                color={colors.black}
-                strokeWidth={2.5}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={openAdd}
-              style={styles.addBtn}
-              hitSlop={8}
-            >
-              <Plus size={14} color={colors.white} strokeWidth={2.5} />
-              <Text style={styles.addBtnText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Text style={styles.subtitle}>Employee loan and advance requests</Text>
 
         <View style={styles.kpiGrid}>
           <KpiTile

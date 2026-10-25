@@ -16,6 +16,7 @@ import { EmptyState, LoadingView } from '../components/ui';
 import { StudentProfileView } from '../components/StudentProfileView';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -125,11 +126,11 @@ export default function ParentReportScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Student Report</Text>
+        <BackTitle title="Student Report" />
         {profile ? (
           <TouchableOpacity
             onPress={onExportProfile}
-            style={styles.iconBtn}
+            style={headerBtn}
             hitSlop={8}
           >
             <Share2 size={18} color={colors.black} strokeWidth={2.5} />

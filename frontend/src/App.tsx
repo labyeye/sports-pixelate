@@ -74,6 +74,7 @@ const BiometricDevicePage = lazy(() => import("./pages/BiometricDevicePage"));
 import nesthrlogo from "../assets/nesthr.png";
 import PageTransition from "@/components/layout/PageTransition";
 import RefundNotice from "@/components/RefundNotice";
+import DocOtpHost from "@/components/DocOtpHost";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
@@ -560,9 +561,10 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
-            <TermsGate />
-            <IntroOnboarding />
-            <RefundNotice />
+          <TermsGate />
+          <IntroOnboarding />
+          <RefundNotice />
+          <DocOtpHost />
           <ImageCropHost />
         </BrowserRouter>
       </AuthProvider>

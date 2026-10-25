@@ -13,6 +13,7 @@ import {
   LoadMoreFooter,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 function actionLabel(action: string) {
@@ -110,8 +111,8 @@ export default function AuditLogScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Audit Log" />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <Text style={styles.title}>Audit Log</Text>
         <Text style={styles.subtitle}>Track who changed what and when</Text>
 
         <SearchBar

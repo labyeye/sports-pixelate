@@ -19,6 +19,7 @@ import { employeeAPI, attendanceAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { KpiTile, LoadingView, EmptyState } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 export default function MyReportScreen() {
@@ -83,6 +84,7 @@ export default function MyReportScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="My Report" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -90,7 +92,6 @@ export default function MyReportScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.title}>My Report</Text>
         <Text style={styles.subtitle}>Attendance summary for this month</Text>
 
         <View style={styles.kpiGrid}>

@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Button } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 type Role =
   | 'super_admin'
@@ -95,8 +96,8 @@ export default function PermissionsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Permissions" />
       <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-        <Text style={styles.title}>Permissions</Text>
         <Text style={styles.subtitle}>Per-role access matrix</Text>
       </View>
 

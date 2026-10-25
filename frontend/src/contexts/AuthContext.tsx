@@ -88,6 +88,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = getToken();
       if (token) {
         try {
+          // A token still sitting in localStorage (from before sessions moved
+          // to an httpOnly cookie) is swapped for the cookie, then dropped.
+          if (token !== "cookie-session") {
+            try {
+              const r = await authAPI.toWebSession();
+              if (r?.data?.token) setToken(r.data.token);
+            } catch {
+              /* keep the old token; it still works */
+            }
+          }
           const res = await authAPI.getMe();
           setUser(mapUser(res.data));
         } catch (err: unknown) {

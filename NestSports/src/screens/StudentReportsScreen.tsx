@@ -21,6 +21,7 @@ import {
   LucideIcon,
 } from 'lucide-react-native';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle } from '../components/ScreenHeader';
 
 // The hub for the new Student Reports section — a simple catalog of the 9
 // report screens. Each entry navigates to its own dedicated report screen;
@@ -103,7 +104,7 @@ export default function StudentReportsScreen({ navigation }: any) {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Student Reports</Text>
+        <BackTitle title="Student Reports" />
         <Text style={styles.headerSub}>
           9 reports across attendance, fees & performance
         </Text>

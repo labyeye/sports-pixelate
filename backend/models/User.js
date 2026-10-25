@@ -100,6 +100,11 @@ const userSchema = new mongoose.Schema(
       default: [],
       select: false,
     },
+    // WhatsApp OTP gate for confidential documents (see utils/docAccess.js).
+    docOtp: { type: String, select: false },
+    docOtpExpire: { type: Date, select: false },
+    docOtpTries: { type: Number, default: 0, select: false },
+    docOtpSentAt: { type: Date, select: false },
     resetOtp: { type: String, select: false },
     resetOtpExpire: { type: Date, select: false },
     // Bumped on every password change (pre-save hook); older JWTs carry the old value and are refused by `protect`.

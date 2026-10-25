@@ -30,6 +30,8 @@ import { authAPI } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import WhatsAppIcon from '../components/common/WhatsAppIcon';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
+import PrivacyDataSection from '../components/PrivacyDataSection';
 
 // Same palette names the Nest Academy screen was written with, mapped onto NestSports' tokens.
 const C = {
@@ -92,9 +94,7 @@ export default function AccountSecurityScreen() {
       Icon: ShieldCheck,
       color: C.primary,
       title: 'Authenticator App',
-      status: me.twoFactorEnabled
-        ? 'Enabled — tap to remove'
-        : 'Not set up',
+      status: me.twoFactorEnabled ? 'Enabled — tap to remove' : 'Not set up',
       on: !!me.twoFactorEnabled,
       body: <AuthenticatorBody me={me} onChanged={loadMe} />,
     },
@@ -160,15 +160,7 @@ export default function AccountSecurityScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <ChevronLeft size={20} color={C.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account Security</Text>
-      </View>
+      <ScreenHeader title="Account Security" />
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 14 }}
         keyboardShouldPersistTaps="handled"
@@ -213,6 +205,7 @@ export default function AccountSecurityScreen() {
             </View>
           );
         })}
+        <PrivacyDataSection />
       </ScrollView>
     </SafeAreaView>
   );

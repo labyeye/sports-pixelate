@@ -30,6 +30,7 @@ import {
   TextField,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -112,6 +113,20 @@ export default function MyLoansScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="My Loans"
+        right={
+          <>
+            <TouchableOpacity
+              onPress={() => setFormOpen(true)}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </>
+        }
+      />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -119,18 +134,6 @@ export default function MyLoansScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>My Loans</Text>
-          <TouchableOpacity
-            onPress={() => setFormOpen(true)}
-            style={styles.addBtn}
-            hitSlop={8}
-          >
-            <Plus size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Request</Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.kpiGrid}>
           <KpiTile
             label="Total Borrowed"

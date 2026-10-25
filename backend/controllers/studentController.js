@@ -1,6 +1,7 @@
 const path = require("path");
 const { removeStoredUpload } = require("../utils/uploadFiles");
 const crypto = require("crypto");
+const { passwordProblem } = require("../utils/password");
 const asyncHandler = require("express-async-handler");
 const { stripProtected } = require("../middleware/validate");
 const Student = require("../models/Student");
@@ -59,12 +60,8 @@ function sanitizeGuardians(input) {
     if (email && !EMAIL_RE.test(email))
       throw new Error(`guardians[${i}].email must be a valid email`);
     if (password !== undefined && password !== "") {
-      if (typeof password !== "string" || password.length < 6)
-        throw new Error(
-          `guardians[${i}].password must be at least 6 characters`,
-        );
-      if (password.length > 128)
-        throw new Error(`guardians[${i}].password is too long`);
+      const pwProblem = passwordProblem(password);
+      if (pwProblem) throw new Error(`guardians[${i}].password: ${pwProblem}`);
     }
     return {
       relation,

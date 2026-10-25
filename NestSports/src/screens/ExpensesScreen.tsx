@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Plus,
+  Download,
   Edit2,
   Trash2,
   X,
@@ -40,6 +41,8 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
+import { exportRowsToExcel } from '../utils/excelImportExport';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -64,6 +67,15 @@ const EMPTY_FORM = {
   date: toDateStr(new Date()),
   description: '',
 };
+
+const EXPENSE_EXPORT_COLUMNS = [
+  { key: 'date', label: 'Date' },
+  { key: 'title', label: 'Title' },
+  { key: 'category', label: 'Category' },
+  { key: 'amount', label: 'Amount' },
+  { key: 'status', label: 'Status' },
+  { key: 'description', label: 'Description' },
+];
 
 export default function ExpensesScreen() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -171,6 +183,37 @@ export default function ExpensesScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Expenses"
+        right={
+          <>
+            <TouchableOpacity
+              onPress={() =>
+                exportRowsToExcel(
+                  EXPENSE_EXPORT_COLUMNS,
+                  expenses.map(e => ({
+                    date: e.date ? String(e.date).slice(0, 10) : '',
+                    title: e.title,
+                    category: String(e.category || '').replace(/_/g, ' '),
+                    amount: e.amount,
+                    status: e.status,
+                    description: e.description || '',
+                  })),
+                  'expenses_export.xlsx',
+                  'Expenses',
+                )
+              }
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <Download size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
+              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </>
+        }
+      />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -178,22 +221,9 @@ export default function ExpensesScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>Expenses</Text>
-            <Text style={styles.subtitle}>
-              Spent this month: {formatCurrency(totalAmount)}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={openAdd} style={styles.addBtn} hitSlop={8}>
-            <Plus size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Add</Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.kpiGrid}>
           <KpiTile
-            label="Spent This Month"
+            label="Spent"
             value={formatCurrency(totalAmount)}
             sub="This month"
             color={colors.orange}
@@ -324,8 +354,8 @@ export default function ExpensesScreen() {
                 saving
                   ? 'Saving...'
                   : editingExpense
-                    ? 'Update Expense'
-                    : 'Save Expense'
+                  ? 'Update Expense'
+                  : 'Save Expense'
               }
               onPress={save}
               disabled={saving}

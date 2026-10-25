@@ -26,6 +26,7 @@ import {
 import ConfigCrud, { CrudConfig } from '../components/ConfigCrud';
 import { FilterPills, SectionTitle } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 const STATUS = ['active', 'inactive'];
 const statusBadge = (s: string) => ({
@@ -187,7 +188,9 @@ const designations: CrudConfig = {
     title: d.name,
     subtitle: `${d.department?.name || '—'} · ${
       d.minSalary ? `₹${d.minSalary}` : '—'
-    } to ${d.maxSalary ? `₹${d.maxSalary}` : '—'} · ${d.employeeCount || 0} staff`,
+    } to ${d.maxSalary ? `₹${d.maxSalary}` : '—'} · ${
+      d.employeeCount || 0
+    } staff`,
     badge: { label: d.grade, color: colors.blue },
   }),
 };
@@ -210,12 +213,12 @@ export default function ManageScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Manage" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Manage</Text>
         <Text style={styles.subtitle}>Academy configuration and modules</Text>
 
         <FilterPills options={TABS} value={tab} onChange={setTab} />

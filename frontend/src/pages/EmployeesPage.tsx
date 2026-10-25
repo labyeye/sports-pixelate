@@ -1647,10 +1647,10 @@ export default function EmployeesPage() {
                             onChange={(e) =>
                               setForm({ ...form, password: e.target.value })
                             }
-                            minLength={6}
-                            title="Password must be at least 6 characters"
+                            minLength={8}
+                            title="At least 8 characters with uppercase, lowercase, a number and a special character"
                             className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
-                            placeholder="Min 6 characters (e.g. hrms@123)"
+                            placeholder="8+ chars: Aa, 1, !"
                           />
                         </div>
                       )}
@@ -2850,17 +2850,22 @@ export default function EmployeesPage() {
                                 {editEmp &&
                                   editEmp.panDoc &&
                                   !docFiles.panDoc && (
-                                    <a
-                                      href={employeeAPI.getDocumentUrl(
-                                        editEmp._id,
-                                        "pan",
-                                      )}
-                                      target="_blank"
-                                      rel="noreferrer"
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        employeeAPI
+                                          .openDocument(editEmp._id, "pan")
+                                          .catch((e) =>
+                                            alert(
+                                              e?.message ||
+                                                "Could not open document",
+                                            ),
+                                          )
+                                      }
                                       className="text-[#024BAB] text-xs border border-[#024BAB] px-1.5 py-1 hover:bg-[#024BAB]/10"
                                     >
                                       View
-                                    </a>
+                                    </button>
                                   )}
                               </div>
                             )}
@@ -2945,17 +2950,22 @@ export default function EmployeesPage() {
                                 {editEmp &&
                                   editEmp.aadhaarDoc &&
                                   !docFiles.aadhaarDoc && (
-                                    <a
-                                      href={employeeAPI.getDocumentUrl(
-                                        editEmp._id,
-                                        "aadhaar",
-                                      )}
-                                      target="_blank"
-                                      rel="noreferrer"
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        employeeAPI
+                                          .openDocument(editEmp._id, "aadhaar")
+                                          .catch((e) =>
+                                            alert(
+                                              e?.message ||
+                                                "Could not open document",
+                                            ),
+                                          )
+                                      }
                                       className="text-[#024BAB] text-xs border border-[#024BAB] px-1.5 py-1 hover:bg-[#024BAB]/10"
                                     >
                                       View
-                                    </a>
+                                    </button>
                                   )}
                               </div>
                             )}
@@ -3525,40 +3535,49 @@ export default function EmployeesPage() {
                     viewEmp.resumeDoc) && (
                     <div className="pt-2 flex flex-wrap gap-2">
                       {viewEmp.panDoc && (
-                        <a
-                          href={employeeAPI.getDocumentUrl(viewEmp._id, "pan")}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            employeeAPI
+                              .openDocument(viewEmp._id, "pan")
+                              .catch((e) =>
+                                alert(e?.message || "Could not open document"),
+                              )
+                          }
                           className="text-[10px] font-bold border-2 border-[#024BAB] text-[#024BAB] px-2 py-1 hover:bg-[#024BAB]/10"
                         >
                           📄 PAN Doc
-                        </a>
+                        </button>
                       )}
                       {viewEmp.aadhaarDoc && (
-                        <a
-                          href={employeeAPI.getDocumentUrl(
-                            viewEmp._id,
-                            "aadhaar",
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            employeeAPI
+                              .openDocument(viewEmp._id, "aadhaar")
+                              .catch((e) =>
+                                alert(e?.message || "Could not open document"),
+                              )
+                          }
                           className="text-[10px] font-bold border-2 border-[#024BAB] text-[#024BAB] px-2 py-1 hover:bg-[#024BAB]/10"
                         >
                           📄 Aadhaar Doc
-                        </a>
+                        </button>
                       )}
                       {viewEmp.resumeDoc && (
-                        <a
-                          href={employeeAPI.getDocumentUrl(
-                            viewEmp._id,
-                            "resume",
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            employeeAPI
+                              .openDocument(viewEmp._id, "resume")
+                              .catch((e) =>
+                                alert(e?.message || "Could not open document"),
+                              )
+                          }
                           className="text-[10px] font-bold border-2 border-[#00C48C] text-[#00C48C] px-2 py-1 hover:bg-[#00C48C]/10"
                         >
                           📄 Resume
-                        </a>
+                        </button>
                       )}
                     </div>
                   )}

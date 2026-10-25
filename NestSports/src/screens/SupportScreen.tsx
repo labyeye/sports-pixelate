@@ -31,6 +31,7 @@ import {
   ChipSelect,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -191,6 +192,7 @@ export default function SupportScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Support" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -198,7 +200,6 @@ export default function SupportScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.title}>Support</Text>
         <Text style={styles.subtitle}>
           Report issues and track their resolution
         </Text>

@@ -483,10 +483,23 @@ export default function StudentsPage() {
       });
       return;
     }
-    if (guardians.some((g) => g.password && g.password.length < 6)) {
+    if (
+      guardians.some(
+        (g) =>
+          g.password &&
+          !(
+            g.password.length >= 8 &&
+            /[A-Z]/.test(g.password) &&
+            /[a-z]/.test(g.password) &&
+            /\d/.test(g.password) &&
+            /[^A-Za-z0-9]/.test(g.password)
+          ),
+      )
+    ) {
       toast({
         title: "Weak password",
-        description: "Guardian login password must be at least 6 characters",
+        description:
+          "Guardian login password must be at least 8 characters with uppercase, lowercase, a number and a special character",
         variant: "destructive",
       });
       return;
@@ -1506,7 +1519,7 @@ export default function StudentsPage() {
                                         password: e.target.value,
                                       })
                                     }
-                                    placeholder="Min 6 characters, optional"
+                                    placeholder="8+ chars: Aa, 1, ! (optional)"
                                     className="w-full border-2 border-black px-3 py-2 text-sm font-medium outline-none"
                                   />
                                 </div>

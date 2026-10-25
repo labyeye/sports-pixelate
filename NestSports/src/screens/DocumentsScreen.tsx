@@ -40,6 +40,7 @@ import {
   SectionTitle,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { notifyError } from '../utils/notifyError';
 
@@ -272,28 +273,32 @@ export default function DocumentsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Documents"
+        right={
+          <>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <TouchableOpacity
+                onPress={() => setSortVisible(true)}
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={openUpload}
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </>
+        }
+      />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Documents</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => setSortVisible(true)}
-              style={styles.iconBtn}
-              hitSlop={8}
-            >
-              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={openUpload}
-              style={styles.addBtn}
-              hitSlop={8}
-            >
-              <Plus size={14} color={colors.white} strokeWidth={2.5} />
-              <Text style={styles.addBtnText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <SearchBar
           value={searchInput}
           onChangeText={setSearchInput}

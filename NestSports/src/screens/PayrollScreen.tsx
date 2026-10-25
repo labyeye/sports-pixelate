@@ -25,6 +25,7 @@ import {
   SearchBar,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -227,8 +228,9 @@ export default function PayrollScreen() {
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return payrolls.filter(p => {
-      const name =
-        `${p.employee?.firstName ?? ''} ${p.employee?.lastName ?? ''}`.toLowerCase();
+      const name = `${p.employee?.firstName ?? ''} ${
+        p.employee?.lastName ?? ''
+      }`.toLowerCase();
       return (
         (!q || name.includes(q)) && (status === 'all' || p.status === status)
       );
@@ -241,6 +243,20 @@ export default function PayrollScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Payroll"
+        right={
+          <>
+            <TouchableOpacity
+              onPress={openProcess}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <Play size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </>
+        }
+      />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
@@ -248,20 +264,7 @@ export default function PayrollScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>Payroll</Text>
-            <Text style={styles.subtitle}>Employee salary records</Text>
-          </View>
-          <TouchableOpacity
-            onPress={openProcess}
-            style={styles.processBtn}
-            hitSlop={8}
-          >
-            <Play size={12} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.processBtnText}>Process</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.subtitle}>Employee salary records</Text>
 
         <View style={styles.stepper}>
           <TouchableOpacity onPress={() => stepMonth(-1)} hitSlop={10}>
@@ -513,9 +516,13 @@ export default function PayrollScreen() {
                     <Row
                       key={p.employee._id}
                       title={`${p.employee.firstName} ${p.employee.lastName}`}
-                      subtitle={`${p.presentDays}/${p.workingDays} days · Gross ${formatCurrency(
+                      subtitle={`${p.presentDays}/${
+                        p.workingDays
+                      } days · Gross ${formatCurrency(
                         p.grossSalary,
-                      )} · Ded ${formatCurrency(p.totalDeductions)} · Net ${formatCurrency(p.netSalary)}`}
+                      )} · Ded ${formatCurrency(
+                        p.totalDeductions,
+                      )} · Net ${formatCurrency(p.netSalary)}`}
                       right={
                         <Badge
                           label={p.alreadyProcessed ? 'Exists' : 'New'}

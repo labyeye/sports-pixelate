@@ -22,6 +22,7 @@ import {
   Badge,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -74,6 +75,7 @@ export default function BillingScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Billing" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}
@@ -81,7 +83,6 @@ export default function BillingScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.title}>Billing</Text>
         <Text style={styles.subtitle}>Subscription and invoice history</Text>
 
         <Card>
@@ -97,15 +98,15 @@ export default function BillingScreen() {
                     subscription.isTrial
                       ? 'Trial'
                       : isActive
-                        ? 'Active'
-                        : 'Inactive'
+                      ? 'Active'
+                      : 'Inactive'
                   }
                   color={
                     subscription.isTrial
                       ? colors.yellow
                       : isActive
-                        ? colors.green
-                        : colors.red
+                      ? colors.green
+                      : colors.red
                   }
                 />
               </View>
@@ -186,7 +187,8 @@ export default function BillingScreen() {
         </Card>
 
         <Text style={styles.footnote}>
-          Manage your subscription and billing from the NestAcademy web dashboard.
+          Manage your subscription and billing from the NestAcademy web
+          dashboard.
         </Text>
       </ScrollView>
     </SafeAreaView>

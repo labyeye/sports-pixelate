@@ -45,9 +45,24 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency, getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import { StatRow } from '../components/common/StatTile';
+import {
+  Users as SUsers,
+  UserCheck as SUserCheck,
+  UserX as SUserX,
+  Pause as SPause,
+  CheckCircle2 as SCheck,
+  XCircle as SX,
+  AlertCircle as SAlert,
+  Calendar as SCal,
+  Wallet as SWallet,
+  Repeat as SRepeat,
+  IndianRupee as SRupee,
+} from 'lucide-react-native';
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'studentId', label: 'Student ID', required: true, example: 'STU0001' },
@@ -384,6 +399,59 @@ export default function SubscriptionsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Subscriptions"
+        right={
+          <>
+            {!isParent && (
+              <>
+                <TouchableOpacity
+                  onPress={() =>
+                    exportRowsToExcel(
+                      SUBSCRIPTION_IMPORT_HEADERS.map(h => ({
+                        key: h.key,
+                        label: h.label,
+                      })),
+                      subscriptions.map((s: any) => ({
+                        studentId: s.student?.studentId || '',
+                        planName: s.planName,
+                        billingCycle: s.billingCycle,
+                        amount: s.amount,
+                        renewalDate: s.renewalDate?.slice(0, 10),
+                        status: s.status,
+                      })),
+                      'subscriptions_export.xlsx',
+                      'Subscriptions',
+                    )
+                  }
+                  style={headerBtn}
+                  hitSlop={8}
+                >
+                  <Download size={20} color={colors.black} strokeWidth={2.5} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setImportVisible(true)}
+                  style={headerBtn}
+                  hitSlop={8}
+                >
+                  <FileSpreadsheet
+                    size={18}
+                    color={colors.black}
+                    strokeWidth={2.5}
+                  />
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              onPress={() => setSortVisible(true)}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </>
+        }
+      />
       <View
         style={{
           paddingHorizontal: 16,
@@ -392,58 +460,36 @@ export default function SubscriptionsScreen({ navigation }: any) {
           flex: 1,
         }}
       >
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Subscriptions</Text>
-          </View>
-          {!isParent && (
-            <>
-              <TouchableOpacity
-                onPress={() =>
-                  exportRowsToExcel(
-                    SUBSCRIPTION_IMPORT_HEADERS.map(h => ({
-                      key: h.key,
-                      label: h.label,
-                    })),
-                    subscriptions.map((s: any) => ({
-                      studentId: s.student?.studentId || '',
-                      planName: s.planName,
-                      billingCycle: s.billingCycle,
-                      amount: s.amount,
-                      renewalDate: s.renewalDate?.slice(0, 10),
-                      status: s.status,
-                    })),
-                    'subscriptions_export.xlsx',
-                    'Subscriptions',
-                  )
-                }
-                style={styles.sortBtn}
-                hitSlop={8}
-              >
-                <Download size={18} color={colors.black} strokeWidth={2.5} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setImportVisible(true)}
-                style={styles.sortBtn}
-                hitSlop={8}
-              >
-                <FileSpreadsheet
-                  size={18}
-                  color={colors.black}
-                  strokeWidth={2.5}
-                />
-              </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity
-            onPress={() => setSortVisible(true)}
-            style={styles.sortBtn}
-            hitSlop={8}
-          >
-            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-          </TouchableOpacity>
+        <View style={{ marginHorizontal: -16 }}>
+          <StatRow
+            items={[
+              {
+                label: 'Total',
+                value: subscriptions.length,
+                color: colors.blue,
+                icon: SRepeat,
+              },
+              {
+                label: 'Active',
+                value: activeCount,
+                color: colors.green,
+                icon: SCheck,
+              },
+              {
+                label: 'Renewal',
+                value: pendingRenewalCount,
+                color: colors.orange,
+                icon: SAlert,
+              },
+              {
+                label: 'Collected',
+                value: formatCurrency(collectedThisMonth),
+                color: colors.purple,
+                icon: SRupee,
+              },
+            ]}
+          />
         </View>
-
         <FilterPills
           options={STATUS_OPTIONS}
           value={status}
@@ -599,8 +645,8 @@ export default function SubscriptionsScreen({ navigation }: any) {
                       s.payments?.some((p: any) => p.status === 'pending')
                         ? 'Awaiting Verification'
                         : s.amountPaid > 0
-                          ? 'Pay Remaining'
-                          : 'Renew'
+                        ? 'Pay Remaining'
+                        : 'Renew'
                     }
                     onPress={() =>
                       navigation.navigate('QrRenewal', { subscription: s })
@@ -879,10 +925,10 @@ export default function SubscriptionsScreen({ navigation }: any) {
                   const max = cashTopUpSub
                     ? cashTopUpSub.amount - (cashTopUpSub.amountPaid || 0)
                     : selectedCashPlan
-                      ? cashBillingCycle === 'yearly'
-                        ? selectedCashPlan.yearlyPrice
-                        : selectedCashPlan.monthlyPrice
-                      : Infinity;
+                    ? cashBillingCycle === 'yearly'
+                      ? selectedCashPlan.yearlyPrice
+                      : selectedCashPlan.monthlyPrice
+                    : Infinity;
                   setCashAmount(Number(v) > max ? String(max) : v);
                 }}
                 placeholder="e.g. 2000"

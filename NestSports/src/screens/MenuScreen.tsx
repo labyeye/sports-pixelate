@@ -23,6 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getNavGroupsForRole } from '../navigation/navConfig';
 import { useDisabledFeatures } from '../utils/disabledFeatures';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle } from '../components/ScreenHeader';
 
 const GROUP_COLORS = [
   colors.blue,
@@ -70,7 +71,7 @@ export default function MenuScreen({ navigation }: any) {
     <View style={[styles.safe, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>More</Text>
+        <BackTitle title="More" />
         <TouchableOpacity
           style={styles.bellBtn}
           onPress={() => navigation.navigate('Notifications')}

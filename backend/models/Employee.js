@@ -181,4 +181,13 @@ employeeSchema.post("save", function () {
     require("../services/faceIndex").invalidateFaceIndex();
 });
 
+require("../utils/fieldCrypto").fieldEncryption(employeeSchema, [
+  "bankAccount",
+  "ifscCode",
+  "panNumber",
+  "aadharNumber",
+]);
+
+require("../utils/fieldCrypto").maskBiometrics(employeeSchema);
+
 module.exports = mongoose.model("Employee", employeeSchema);

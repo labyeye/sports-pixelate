@@ -39,6 +39,7 @@ import {
 } from '../components/ui';
 import { fetchAllPages } from '../utils/fetchAllPages';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatDateOrDash } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -130,21 +131,22 @@ export default function ExitManagementScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader
+        title="Exit Management"
+        right={
+          <>
+            <TouchableOpacity
+              onPress={() => setShowNew(true)}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </>
+        }
+      />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Exit Management</Text>
-            <Text style={styles.subtitle}>Offboard staff and students</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setShowNew(true)}
-            style={styles.addBtn}
-            hitSlop={8}
-          >
-            <Plus size={14} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.addBtnText}>Initiate</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.subtitle}>Offboard staff and students</Text>
 
         <View style={styles.kpiGrid}>
           <KpiTile
@@ -466,7 +468,9 @@ function DetailModal({
     if (pending.length > 0) {
       Alert.alert(
         'Clearance incomplete',
-        `${pending.map((c: any) => `• ${c.label}`).join('\n')}\n\nComplete the exit anyway?`,
+        `${pending
+          .map((c: any) => `• ${c.label}`)
+          .join('\n')}\n\nComplete the exit anyway?`,
         [
           { text: 'No', style: 'cancel' },
           {

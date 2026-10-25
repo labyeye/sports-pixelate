@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { payrollAPI } from '../api/client';
 import { Card, Row, Badge, EmptyState, LoadingView } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -57,6 +58,7 @@ export default function MyPayrollScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="My Payroll" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16 }}

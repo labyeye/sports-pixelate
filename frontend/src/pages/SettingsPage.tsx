@@ -46,6 +46,7 @@ import {
 import { cn, getErrorMessage } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
 import { AccountSecurityPanel } from "@/components/security/AccountSecurityPanel";
+import { PrivacyDataPanel } from "@/components/security/PrivacyDataPanel";
 import { FEATURES } from "@/config/features";
 import { setDisabledFeatures } from "@/hooks/useDisabledFeatures";
 import ChequeTemplateDesigner from "@/components/settings/cheque-designer/ChequeTemplateDesigner";
@@ -2806,7 +2807,9 @@ export default function SettingsPage() {
                               )}
                             </button>
                           </div>
-                          {key === "next" && pwForm.next && <PasswordChecklist password={pwForm.next} />}
+                          {key === "next" && pwForm.next && (
+                            <PasswordChecklist password={pwForm.next} />
+                          )}
                         </div>
                       ))}
                       <div className="sm:col-span-3">
@@ -2883,7 +2886,12 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {activeTab === "account_security" && <AccountSecurityPanel />}
+            {activeTab === "account_security" && (
+              <>
+                <AccountSecurityPanel />
+                <PrivacyDataPanel />
+              </>
+            )}
             {activeTab === "two_factor" && <TwoFactorPanel />}
             {activeTab === "phone_verify" && <PhoneVerifyPanel />}
           </div>

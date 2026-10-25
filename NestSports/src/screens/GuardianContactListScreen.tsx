@@ -13,6 +13,7 @@ import { studentAPI } from '../api/client';
 import { Card, SearchBar, EmptyState, LoadingView } from '../components/ui';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { fetchAllPages } from '../utils/fetchAllPages';
 import { notifyError } from '../utils/notifyError';
 
@@ -119,9 +120,9 @@ export default function GuardianContactListScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Guardian Contact List</Text>
-        <TouchableOpacity onPress={onExport} style={styles.iconBtn} hitSlop={8}>
-          <Download size={18} color={colors.black} strokeWidth={2.5} />
+        <BackTitle title="Guardian Contact List" />
+        <TouchableOpacity onPress={onExport} style={headerBtn} hitSlop={8}>
+          <Download size={20} color={colors.black} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 

@@ -30,6 +30,7 @@ import {
   LoadingView,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -305,6 +306,7 @@ export default function AttendanceSettingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Attendance Settings" />
       <ScrollView
         style={styles.screen}
         contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
@@ -312,7 +314,6 @@ export default function AttendanceSettingsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text style={styles.title}>Attendance Settings</Text>
         <Text style={styles.subtitle}>Shift, late & leave allowance rules</Text>
 
         <View style={styles.tabBar}>
@@ -559,13 +560,24 @@ export default function AttendanceSettingsScreen() {
 
             <Card>
               <SectionTitle title="Student Attendance Time" />
-              <ChipSelect
-                label="Time capture"
-                options={['in_out', 'single'] as const}
-                value={rules.studentAttendanceTimeMode}
-                onChange={v => set('studentAttendanceTimeMode', v)}
-                labels={{ in_out: 'Check In & Out', single: 'Single Time' }}
-              />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>Track check-out time</Text>
+                  <Text style={styles.toggleDesc}>
+                    On: first mark is check-in, second mark (when the parent
+                    picks the student up) is check-out. Off: only the check-in
+                    time is recorded. Save settings after changing.
+                  </Text>
+                </View>
+                <Switch
+                  value={rules.studentAttendanceTimeMode === 'in_out'}
+                  onValueChange={v =>
+                    set('studentAttendanceTimeMode', v ? 'in_out' : 'single')
+                  }
+                  trackColor={{ false: '#E5E7EB', true: colors.blue }}
+                  thumbColor={colors.white}
+                />
+              </View>
             </Card>
 
             <Card>

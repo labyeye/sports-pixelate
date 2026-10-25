@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const User = require("../models/User");
 const { UPLOAD_DIR } = require("../config/paths");
+const { readCookie, SENTINEL } = require("../utils/sessionCookie");
 
 // Folders under /uploads that must never be world-readable.
 //  - IDENTITY_DIRS: Aadhaar / PAN / resumes / document vault. Always served
@@ -43,9 +44,10 @@ async function uploadGuard(req, res, next) {
 
   try {
     const header = req.headers.authorization;
-    const token = header?.startsWith("Bearer ")
+    let token = header?.startsWith("Bearer ")
       ? header.split(" ")[1]
       : req.query.token;
+    if (!token || token === SENTINEL) token = readCookie(req) || token;
     if (!token) return res.sendStatus(401);
     const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("role company status");

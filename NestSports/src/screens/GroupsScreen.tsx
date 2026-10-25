@@ -14,6 +14,7 @@ import { Plus, Power, Users, UserCheck } from 'lucide-react-native';
 import { sportAPI } from '../api/client';
 import { Card, EmptyState, LoadingView } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -91,7 +92,8 @@ export default function GroupsScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="Groups" />
       <View style={styles.addRow}>
         <TextInput
           value={name}

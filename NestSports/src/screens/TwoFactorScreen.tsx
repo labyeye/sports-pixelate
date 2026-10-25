@@ -11,6 +11,7 @@ import {
   Badge,
 } from '../components/ui';
 import { colors } from '../theme/colors';
+import ScreenHeader from '../components/ScreenHeader';
 
 export default function TwoFactorScreen() {
   const [loading, setLoading] = useState(true);
@@ -106,8 +107,8 @@ export default function TwoFactorScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <ScreenHeader title="2FA Security" />
       <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16 }}>
-        <Text style={styles.title}>2FA Security</Text>
         <Text style={styles.subtitle}>
           Protect your account with an authenticator app
         </Text>

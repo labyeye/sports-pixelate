@@ -3,6 +3,7 @@ const asyncHandler = require("express-async-handler");
 const { protect } = require("../middleware/auth");
 const User = require("../models/User");
 const terms = require("../utils/terms");
+const ConsentRecord = require("../models/ConsentRecord");
 
 const router = express.Router();
 
@@ -26,6 +27,14 @@ router.post(
       termsAcceptedAgent: String(req.headers["user-agent"] || "").slice(0, 200),
     };
     await User.updateOne({ _id: req.user._id }, { $set: set });
+    await ConsentRecord.create({
+      user: req.user._id,
+      company: req.user.company,
+      type: "terms_privacy",
+      version: terms.VERSION,
+      ip: set.termsAcceptedIp,
+      userAgent: set.termsAcceptedAgent,
+    });
     res.json({ success: true, data: view({ ...req.user.toObject(), ...set }) });
   }),
 );

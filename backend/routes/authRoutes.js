@@ -70,6 +70,23 @@ const limiter = (max = 5) =>
 router.post("/register", register);
 router.post("/login", login);
 router.get("/me", protect, getMe);
+// Moves a web session that still holds its token in localStorage into the
+// httpOnly cookie (the response body is rewritten by webSessionMiddleware).
+router.post("/web-session", protect, (req, res) =>
+  res.json({
+    success: true,
+    data: {
+      token: require("../utils/generateToken")(
+        req.user._id,
+        {
+          ...(req.sessionId && { sid: req.sessionId }),
+          ...(req.tokenClaims?.otp && { otp: true }),
+        },
+        req.user.tokenVersion,
+      ),
+    },
+  }),
+);
 router.put("/profile", protect, updateProfile);
 
 router.post("/forgot-password", limiter(5), forgotPassword);

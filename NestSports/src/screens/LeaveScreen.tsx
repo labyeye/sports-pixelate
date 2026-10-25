@@ -39,6 +39,7 @@ import {
   ToggleRow,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -256,10 +257,9 @@ export default function LeaveScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Leave</Text>
-        <TouchableOpacity onPress={openApply} style={styles.addBtn} hitSlop={8}>
-          <Plus size={14} color={colors.white} strokeWidth={2.5} />
-          <Text style={styles.addBtnText}>Apply</Text>
+        <BackTitle title="Leave" />
+        <TouchableOpacity onPress={openApply} style={headerBtn} hitSlop={8}>
+          <Plus size={20} color={colors.black} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -309,9 +309,13 @@ export default function LeaveScreen() {
                       : '-'
                   }
                   subtitle={[
-                    `${(l.leaveType || '-').replace(/_/g, ' ')} · ${l.days ?? '-'} day(s)${l.isHalfDay ? ' (half day)' : ''}`,
+                    `${(l.leaveType || '-').replace(/_/g, ' ')} · ${
+                      l.days ?? '-'
+                    } day(s)${l.isHalfDay ? ' (half day)' : ''}`,
                     l.startDate
-                      ? `${(l.startDate || '').split('T')[0]} → ${(l.endDate || '').split('T')[0]}`
+                      ? `${(l.startDate || '').split('T')[0]} → ${
+                          (l.endDate || '').split('T')[0]
+                        }`
                       : '',
                   ]
                     .filter(Boolean)
@@ -534,8 +538,8 @@ export default function LeaveScreen() {
                 saving
                   ? 'Saving...'
                   : editId
-                    ? 'Save Changes'
-                    : 'Submit Request'
+                  ? 'Save Changes'
+                  : 'Submit Request'
               }
               onPress={submitApply}
               disabled={saving}
@@ -575,14 +579,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.blue,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderColor: colors.black,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },

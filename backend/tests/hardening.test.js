@@ -13,7 +13,13 @@ const stub = (rel, exports) => {
 };
 
 test("protect: stale tokenVersion, purpose tokens and foreign signatures are refused", async () => {
-  let dbUser = { _id: "u1", status: "active", tokenVersion: 1, company: null };
+  let dbUser = {
+    _id: "u1",
+    status: "active",
+    tokenVersion: 1,
+    company: null,
+    role: "employee", // exempt from the terms gate
+  };
   stub("models/User.js", { findById: () => ({ select: async () => dbUser }) });
   stub("models/Company.js", {});
   stub("utils/planFeatures.js", { getCompanyFeatures: async () => ({}) });

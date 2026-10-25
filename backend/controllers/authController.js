@@ -697,6 +697,24 @@ const sendOtp = asyncHandler(async (req, res) => {
 
   // One code for the phone: it is stored on every academy account so a single
   // verify can offer the parent all of their academies.
+  // Resend guard: a code sent in the last 30s is still valid, so a repeat
+  // request (or a scripted flood) cannot trigger more WhatsApp messages.
+  const lastSent = await User.find({ _id: { $in: active.map((u) => u._id) } })
+    .select("+phoneOtpExpire")
+    .lean();
+  if (
+    lastSent.some(
+      (u) =>
+        u.phoneOtpExpire &&
+        u.phoneOtpExpire.getTime() - 10 * 60 * 1000 > Date.now() - 30 * 1000,
+    )
+  ) {
+    return res.json({
+      success: true,
+      message: "If that phone number is registered, an OTP has been sent.",
+    });
+  }
+
   const otp = generateOtp();
   await User.updateMany(
     { _id: { $in: active.map((u) => u._id) } },
