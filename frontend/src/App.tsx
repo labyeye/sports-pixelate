@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useUsageTracker } from "@/hooks/useUsageTracker";
+import TermsGate from "@/components/TermsGate";
 import {
   BrowserRouter,
   Route,
@@ -8,6 +9,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import IntroOnboarding from "@/components/IntroOnboarding";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ImageCropHost } from "@/components/ui/ImageCropper";
 import { useDisabledFeatures } from "@/hooks/useDisabledFeatures";
@@ -52,7 +54,6 @@ const BookingsPage = lazy(() => import("./pages/BookingsPage"));
 const ParentHomePage = lazy(() => import("./pages/ParentHomePage"));
 const ParentAttendancePage = lazy(() => import("./pages/ParentAttendancePage"));
 const ParentReportPage = lazy(() => import("./pages/ParentReportPage"));
-const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
 const PaymentFailedPage = lazy(() => import("./pages/PaymentFailedPage"));
 const PaymentReturnPage = lazy(() => import("./pages/PaymentReturnPage"));
 const PayLinkPage = lazy(() => import("./pages/PayLinkPage"));
@@ -72,6 +73,7 @@ const BiometricPage = lazy(() => import("./pages/BiometricPage"));
 const BiometricDevicePage = lazy(() => import("./pages/BiometricDevicePage"));
 import nesthrlogo from "../assets/nesthr.png";
 import PageTransition from "@/components/layout/PageTransition";
+import RefundNotice from "@/components/RefundNotice";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
@@ -80,9 +82,9 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen bg-[#F0F6FF] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+        <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
         <p className="text-sm font-medium text-muted-foreground">
-          Loading NestPlay...
+          Loading NestAcademy...
         </p>
       </div>
     </div>
@@ -208,16 +210,6 @@ function AppRoutes() {
             }
           />
           {}
-          <Route
-            path="/payment/success"
-            element={
-              isAuthenticated ? (
-                <PaymentSuccessPage />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
           <Route
             path="/payment/failed"
             element={
@@ -568,6 +560,9 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
+            <TermsGate />
+            <IntroOnboarding />
+            <RefundNotice />
           <ImageCropHost />
         </BrowserRouter>
       </AuthProvider>

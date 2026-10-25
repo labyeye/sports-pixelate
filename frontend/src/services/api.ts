@@ -1,6 +1,7 @@
 import { compressImageFile } from "@/lib/imageCompress";
+import { announceRefund, isRefundMessage } from "@/lib/refundNotice";
 
-const BASE_URL = "http://localhost:5002/api";
+const BASE_URL = "https://sports-backend.pixelatenest.com/api";
 
 export const getToken = () => localStorage.getItem("hrms_token");
 export const setToken = (t: string) => localStorage.setItem("hrms_token", t);
@@ -68,7 +69,7 @@ async function request<T = any>(
     throw err;
   }
   if (!res.ok) {
-    // 402 = the academy's NestPlay subscription has lapsed. Owners are sent to
+    // 402 = the academy's NestAcademy subscription has lapsed. Owners are sent to
     // Billing to renew; everyone else just sees the server's message.
     if (
       res.status === 402 &&
@@ -77,6 +78,7 @@ async function request<T = any>(
     ) {
       window.location.assign("/billing");
     }
+    if (isRefundMessage(data.message)) announceRefund(data.message);
     const err: any = new Error(statusMessage(res.status, data.message));
     err.status = res.status;
     err.code = data.code;
@@ -532,7 +534,7 @@ export const billingAPI = {
     employeeCount: number,
     wantsWhatsapp: boolean,
     billingCycle: "monthly" | "yearly",
-    gateway: "razorpay" | "hdfc" = "razorpay",
+    gateway: "razorpay" = "razorpay",
     company?: {
       name: string;
       email: string;
@@ -584,14 +586,6 @@ export const billingAPI = {
   }) =>
     request<{ success: boolean; message: string; data: any }>(
       "/billing/verify-razorpay",
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-      },
-    ),
-  verifyHdfc: (payload: { orderId: string; trackingId?: string | null }) =>
-    request<{ success: boolean; message: string; data: any }>(
-      "/billing/verify-hdfc",
       {
         method: "POST",
         body: JSON.stringify(payload),
@@ -1076,7 +1070,7 @@ export const attendanceCorrectionAPI = {
     }),
 };
 
-// ── NestPlay domain APIs ──────────────────────────────────────────────
+// ── NestAcademy domain APIs ──────────────────────────────────────────────
 
 export const studentAPI = {
   getAll: (params?: Record<string, string>) => {
@@ -1594,4 +1588,16 @@ export const exitAPI = {
   cancel: (id: string) => request(`/exits/${id}/cancel`, { method: "POST" }),
   reinstate: (id: string) =>
     request(`/exits/${id}/reinstate`, { method: "POST" }),
+};
+
+// Terms & Privacy acceptance (backend /api/legal). Used by components/TermsGate.
+export const legalAPI = {
+  status: async () => {
+    const r: any = await request("/legal/status");
+    return r.data ?? r;
+  },
+  accept: async () => {
+    const r: any = await request("/legal/accept", { method: "POST", body: JSON.stringify({}) });
+    return r.data ?? r;
+  },
 };

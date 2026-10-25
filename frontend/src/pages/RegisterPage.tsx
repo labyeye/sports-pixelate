@@ -12,6 +12,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import PasswordChecklist from "@/components/PasswordChecklist";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -38,7 +39,7 @@ export default function RegisterPage() {
           Create your account
         </h2>
         <p className="text-sm text-gray-500 mt-1 font-medium">
-          Set up your HRMS workspace
+          Set up your NestAcademy workspace
         </p>
       </div>
 
@@ -102,11 +103,10 @@ export default function RegisterPage() {
                 setForm({ ...form, password: e.target.value });
                 setError("");
               }}
-              placeholder="Min. 6 characters"
+              placeholder="Create a strong password"
               className="flex-1 px-4 py-3 bg-white text-sm font-medium outline-none"
               required
-              minLength={6}
-              autoComplete="new-password"
+                            autoComplete="new-password"
             />
             <button
               type="button"
@@ -120,9 +120,18 @@ export default function RegisterPage() {
               )}
             </button>
           </div>
+          {form.password && <PasswordChecklist password={form.password} />}
         </div>
 
-        {}
+        <label className="flex items-start gap-2 text-xs text-gray-600">
+          <input type="checkbox" required className="mt-0.5 accent-[#024BAB]" />
+          <span>
+            I agree to the{" "}
+            <a href="https://www.pixelatenest.com/legal/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="font-bold text-[#024BAB] hover:underline">Terms of Service</a>{" "}
+            and{" "}
+            <a href="https://www.pixelatenest.com/legal/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="font-bold text-[#024BAB] hover:underline">Privacy Policy</a>.
+          </span>
+        </label>
         <button
           type="submit"
           disabled={loading}

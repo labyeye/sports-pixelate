@@ -1,7 +1,7 @@
 // Generic "table → PDF" download used by every report. Takes the same
 // `[headers, ...rows]` array the CSV export uses, so each report gets a PDF
 // button without needing its own layout code.
-let companyName = "NestPlay";
+let companyName = "NestAcademy";
 export function setReportCompanyName(name?: string) {
   if (name) companyName = name;
 }

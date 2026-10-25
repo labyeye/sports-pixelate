@@ -28,14 +28,14 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="relative z-10">
           <img
             src={nesthrlogo}
-            alt="NestPlay"
+            alt="NestAcademy"
             className="h-14 w-auto object-contain bg-white"
           />
         </div>
         <img
           src={loginDash}
           alt="Dashboard preview"
-          className="relative z-10 max-w-3xl mx-auto"
+          className="relative z-10 max-w-auto mx-auto"
         />
         <div className="relative z-10">
           <h1 className="text-3xl xl:text-4xl font-display font-bold text-white leading-tight mb-5">
@@ -63,7 +63,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <div className="lg:hidden flex justify-center mb-8">
             <img
               src={nesthrlogo}
-              alt="NestPlay"
+              alt="NestAcademy"
               className="h-12 w-auto object-contain"
             />
           </div>

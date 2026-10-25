@@ -1,5 +1,5 @@
 /**
- * NestPlay mobile app
+ * NestAcademy mobile app
  * @format
  */
 

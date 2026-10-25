@@ -188,8 +188,8 @@ export default function OnboardingPage() {
           order_id: order.orderId,
           amount: order.amount * 100,
           currency: order.currency || "INR",
-          name: "NestPlay",
-          description: `NestPlay — ${count} students`,
+          name: "NestAcademy",
+          description: `NestAcademy — ${count} students`,
           theme: { color: "#024BAB" },
           handler: async (response: any) => {
             try {
@@ -200,7 +200,7 @@ export default function OnboardingPage() {
               });
               toast({
                 title: "Payment Successful!",
-                description: "Subscription activated. Welcome to NestPlay!",
+                description: "Subscription activated. Welcome to NestAcademy!",
                 variant: "success",
               });
               const createdCompany = verifyRes.data?.company;
@@ -253,7 +253,7 @@ export default function OnboardingPage() {
       <header className="bg-white border-b-2 border-black sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={nestplayLogo} alt="NestPlay" className="w-full h-14" />
+            <img src={nestplayLogo} alt="NestAcademy" className="w-full h-14" />
           </div>
           <button
             onClick={logout}

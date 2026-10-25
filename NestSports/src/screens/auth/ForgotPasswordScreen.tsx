@@ -18,6 +18,7 @@ import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { authAPI } from '../../api/client';
 import { getErrorMessage } from '../../utils/format';
 import { colors } from '../../theme/colors';
+import PasswordChecklist from '../../components/PasswordChecklist';
 
 // Same palette names NestHR's auth screens were written with, on NestSports' tokens.
 const C = {
@@ -333,6 +334,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                     secureTextEntry
                     placeholder="8+ chars, upper, lower & a number"
                   />
+                  {!!password && <PasswordChecklist password={password} />}
                   <Field
                     label="Confirm New Password"
                     value={confirm}

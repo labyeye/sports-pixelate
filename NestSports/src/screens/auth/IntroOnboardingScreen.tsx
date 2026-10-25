@@ -53,7 +53,7 @@ export default function IntroOnboardingScreen({ navigation }: any) {
         if (value === 'true') navigation.replace('Login');
       })
       .catch(error => {
-        console.warn('Unable to read NestPlay onboarding state', error);
+        console.warn('Unable to read NestAcademy onboarding state', error);
       });
   }, [navigation]);
 
@@ -61,7 +61,7 @@ export default function IntroOnboardingScreen({ navigation }: any) {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     } catch (error) {
-      console.warn('Unable to save NestPlay onboarding state', error);
+      console.warn('Unable to save NestAcademy onboarding state', error);
     }
     navigation.replace('Login');
   };

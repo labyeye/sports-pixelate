@@ -1,4 +1,4 @@
-# NestPlay / Sports Pixelate — Cybersecurity, Bug, Dead-code & Performance Audit (re-audit)
+# NestAcademy / Sports Pixelate — Cybersecurity, Bug, Dead-code & Performance Audit (re-audit)
 
 Scope: `backend/` (Express + Mongoose, multi-tenant), `frontend/` (React/Vite), `NestSports/` (mobile — auth client only).
 This is a **re-audit of the code as it is today**. The older `SECURITY_AUDIT.md` / `AUDIT_REPORT.md` were used as a checklist: I re-verified each of their findings in code first (§2), then looked for what they did not cover. Method: manual review of auth / billing / upload / webhook paths, route-guard map, ESLint / tsc / orphan / N+1 scans, `npm audit`, offline proof tests (stubbed models — **no request to any live system, the live database was never touched**). Pre-change snapshot: `scratchpad/backups/sports-pre-audit.tgz`. Nothing was committed.

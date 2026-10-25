@@ -28,7 +28,7 @@ const hostOf = (u) => {
 // domain of the web app (e.g. pixelatenest.com) and host the iOS association file there.
 const RP_ID =
   process.env.PASSKEY_RP_ID || hostOf(process.env.FRONTEND_URL) || "localhost";
-const RP_NAME = "Nest Play";
+const RP_NAME = "Nest Academy";
 const ORIGINS = [
   `https://${RP_ID}`,
   process.env.FRONTEND_URL,

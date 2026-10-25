@@ -1,12 +1,13 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/User");
+const terms = require("../utils/terms");
 const Company = require("../models/Company");
 const Session = require("../models/Session");
 const { getCompanyFeatures } = require("../utils/planFeatures");
 const { getCompanyAccess } = require("../utils/subscriptionStatus");
 
-// Routes that must keep working when the academy's own NestPlay subscription
+// Routes that must keep working when the academy's own NestAcademy subscription
 // has lapsed — otherwise the owner could never log in to renew it.
 const SUBSCRIPTION_EXEMPT = [
   "/api/auth",
@@ -80,11 +81,12 @@ const protect = asyncHandler(async (req, res, next) => {
       res.status(402);
       throw new Error(
         req.user.role === "super_admin"
-          ? "Your NestPlay subscription has ended. Renew it from Billing to continue."
-          : "Your academy's NestPlay subscription has ended. Please contact your administrator.",
+          ? "Your NestAcademy subscription has ended. Renew it from Billing to continue."
+          : "Your academy's NestAcademy subscription has ended. Please contact your administrator.",
       );
     }
   }
+  if (terms.blocks(req)) return terms.refuse(res);
   next();
 });
 

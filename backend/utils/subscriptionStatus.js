@@ -6,7 +6,7 @@ const GRACE_DAYS = 7;
 const CACHE_MS = 30 * 1000;
 const cache = new Map(); // companyId -> { at, access }
 
-// A company-level (NestPlay SaaS) subscription is "live" when it is
+// A company-level (NestAcademy SaaS) subscription is "live" when it is
 // active/pending_renewal, paid, the free trial hasn't ended, and — for paid
 // plans — the renewal date (+ grace) hasn't passed.
 function evaluate(sub, now = new Date()) {

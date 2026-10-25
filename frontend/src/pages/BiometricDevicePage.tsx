@@ -369,7 +369,7 @@ export default function BiometricDevicePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0F1E] flex items-center justify-center">
-        <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+        <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
       </div>
     );
   }
@@ -401,7 +401,7 @@ export default function BiometricDevicePage() {
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="text-white font-bold text-sm">
-            NestPlay Biometric
+            NestAcademy Biometric
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs font-medium">
@@ -915,7 +915,7 @@ export default function BiometricDevicePage() {
       {}
       <div className="text-center py-4 border-t border-white/10">
         <p className="text-white/20 text-xs font-medium">
-          NestPlay Biometric Terminal · {device?.name}
+          NestAcademy Biometric Terminal · {device?.name}
         </p>
       </div>
     </div>

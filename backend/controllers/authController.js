@@ -28,7 +28,8 @@ const loginSchema = {
   password: { required: true, type: "string", minLength: 1, maxLength: 128 },
 };
 
-const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+const { checkPasswordRules } = require("../utils/passwordPolicy");
+const STRONG_PASSWORD_RE = { test: (p) => !checkPasswordRules(p) };
 
 // 3 wrong passwords are allowed; the 4th wrong one blocks the account for 10 min.
 // Signing in with a WhatsApp/email OTP, or any password reset, lifts the block.
@@ -548,8 +549,8 @@ const resetPassword = asyncHandler(async (req, res) => {
 const setup2FA = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   const secret = speakeasy.generateSecret({
-    name: `NestPlay (${user.email})`,
-    issuer: "NestPlay",
+    name: `NestAcademy (${user.email})`,
+    issuer: "NestAcademy",
     length: 32,
   });
 
@@ -914,7 +915,7 @@ const switchAcademy = asyncHandler(async (req, res) => {
 const isEmail = (e) => typeof e === "string" && validator.isEmail(e);
 
 const STRONG_PASSWORD_MSG =
-  "Password must be at least 8 characters and include uppercase, lowercase, and a number";
+  "Password needs 8+ characters with an uppercase, a lowercase, a number and a special character, no simple series like 1234 and nothing common like \"password\".";
 
 // Tells the forgot-password screen which reset methods this account has set up.
 const forgotPasswordMethods = asyncHandler(async (req, res) => {

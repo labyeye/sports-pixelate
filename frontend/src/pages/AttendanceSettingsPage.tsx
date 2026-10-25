@@ -575,7 +575,7 @@ export default function AttendanceSettingsPage() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+            <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
           </div>
         ) : (
           <div className="space-y-4">

@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const pendingOrderSchema = new mongoose.Schema(
   {
     orderId: { type: String, required: true, unique: true, index: true },
-    gateway: { type: String, enum: ["razorpay", "hdfc"], required: true },
+    gateway: { type: String, enum: ["razorpay"], required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     companyName: { type: String, required: true },

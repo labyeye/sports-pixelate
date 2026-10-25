@@ -1,7 +1,7 @@
 {
   "name": "nestplay-backend",
   "version": "1.0.0",
-  "description": "NestPlay — Sports Academy Management System Backend",
+  "description": "NestAcademy — Sports Academy Management System Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -357,7 +357,7 @@ export default function SubscriptionsPage() {
         order_id: order.orderId,
         amount: order.amount * 100,
         currency: order.currency || "INR",
-        name: "NestPlay",
+        name: "NestAcademy",
         description: `${order.planName} — ${order.studentName}`,
         theme: { color: "#024BAB" },
         handler: async (response: any) => {
@@ -1371,7 +1371,7 @@ export default function SubscriptionsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
         </div>
       ) : displayed.length === 0 ? (
         <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">

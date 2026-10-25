@@ -1,6 +1,6 @@
-# NestPlay — WhatsApp Message Templates
+# NestAcademy — WhatsApp Message Templates
 
-Checklist for setting up the **new NestPlay WhatsApp Business number**. Every
+Checklist for setting up the **new NestAcademy WhatsApp Business number**. Every
 template below must exist and be **Approved** in Meta Business Manager
 (WhatsApp Manager → Account tools → Message templates) under the WABA that
 owns the new number, using the **exact name and variable count** shown —

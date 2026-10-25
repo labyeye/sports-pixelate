@@ -1,4 +1,4 @@
-# NestPlay — Deep Product & Engineering Audit
+# NestAcademy — Deep Product & Engineering Audit
 
 Date: 2026-10-01 · Scope: `backend/`, `frontend/` (web), `NestSports/` (mobile), docs, config.
 Perspective: product manager + senior engineer.
@@ -14,7 +14,7 @@ Perspective: product manager + senior engineer.
 
 ## 1. Executive summary
 
-NestPlay is unusually broad (47 web pages, 63 mobile screens, 58 data models, 44 API route files) and the best parts — multi-mode attendance, attendance→payroll linkage, parent portal, WhatsApp, events engine — are real differentiators.
+NestAcademy is unusually broad (47 web pages, 63 mobile screens, 58 data models, 44 API route files) and the best parts — multi-mode attendance, attendance→payroll linkage, parent portal, WhatsApp, events engine — are real differentiators.
 
 The audit found **three kinds of problems that matter more than any missing feature**:
 

@@ -30,6 +30,7 @@ import { Card, SectionTitle, TextField, Button, Badge } from '../components/ui';
 import { ActionTile, ProfileHero, SOFT } from '../components/profile';
 import { colors, FONT } from '../theme/colors';
 import { notifyError } from '../utils/notifyError';
+import PasswordChecklist from '../components/PasswordChecklist';
 
 function uriToBase64(uri: string): Promise<string> {
   return fetch(uri)
@@ -451,6 +452,7 @@ export default function ProfileScreen({ navigation }: any) {
           onChangeText={setNextPassword}
           secureTextEntry
         />
+        {!!nextPassword && <PasswordChecklist password={nextPassword} />}
         <TextField
           label="Confirm New Password"
           value={confirmPassword}

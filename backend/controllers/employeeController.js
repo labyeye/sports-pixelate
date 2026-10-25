@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { generatePassword } = require("../utils/passwordPolicy");
 const { removeStoredUpload } = require("../utils/uploadFiles");
 const fs = require("fs");
 const path = require("path");
@@ -243,9 +244,9 @@ const createEmployee = [
     } else {
       const { password: providedPassword } = req.body;
       const tempPassword =
-        providedPassword && providedPassword.length >= 6
+        providedPassword
           ? providedPassword
-          : crypto.randomBytes(8).toString("hex") + "A1";
+          : generatePassword();
       const user = await User.create({
         name: `${firstName.trim()} ${lastName.trim()}`,
         email: normalizedEmail,
@@ -565,9 +566,9 @@ const bulkImportEmployees = asyncHandler(async (req, res) => {
         userId = existingUser._id;
       } else {
         const tempPassword =
-          row.password && row.password.length >= 6
+          row.password
             ? row.password
-            : crypto.randomBytes(8).toString("hex") + "A1";
+            : generatePassword();
         const user = await User.create({
           name: `${firstName} ${lastName}`,
           email,

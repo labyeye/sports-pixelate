@@ -24,6 +24,7 @@ const { uploadGuard } = require("./middleware/uploadGuard");
 const { serveEncryptedUpload } = require("./middleware/serveEncryptedUpload");
 
 connectDB();
+require("./utils/paymentSaga").startRefundSweep(); // keeps retrying refunds for paid-but-unprovisioned subscriptions
 
 const { startAttendanceAutoMarkJob } = require("./jobs/attendanceAutoMark");
 const {
@@ -92,6 +93,8 @@ app.use(
     },
   }),
 );
+// Razorpay "payment captured" notices (see utils/paymentReconcile.js); signed with RAZORPAY_WEBHOOK_SECRET
+app.post("/api/webhooks/razorpay-billing", require("./utils/paymentReconcile").webhook);
 app.use(require("./middleware/sanitizeInput"));
 // Uploaded images (avatars, guardian photos, etc.) are embedded via absolute
 // URL from the frontend, which runs on a different origin/port than this API.
@@ -172,6 +175,7 @@ app.get("/.well-known/apple-app-site-association", (req, res) =>
 );
 
 app.use("/api/auth", authRateLimit, require("./routes/authRoutes"));
+app.use("/api/legal", require("./routes/legalRoutes"));
 app.use(apiRateLimit);
 app.use("/api/company", require("./routes/companyRoutes"));
 app.use("/api/dashboard", require("./routes/dashboardRoutes"));
@@ -207,7 +211,7 @@ app.use(
   require("./routes/attendanceCorrectionRoutes"),
 );
 
-// NestPlay domain routes
+// NestAcademy domain routes
 app.use("/api/students", require("./routes/studentRoutes"));
 app.use("/api/parents", require("./routes/parentRoutes"));
 app.use("/api/sports", require("./routes/sportRoutes"));
@@ -228,7 +232,7 @@ app.use("/api/reports", require("./routes/reportsRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 app.get("/api/health", (req, res) =>
-  res.json({ status: "ok", service: "NestPlay API" }),
+  res.json({ status: "ok", service: "NestAcademy API" }),
 );
 
 // Sentry must see the error before our handler turns it into a JSON reply.
@@ -236,4 +240,4 @@ require("./utils/monitoring").attachExpress(app);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => console.log(`NestPlay server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`NestAcademy server running on port ${PORT}`));

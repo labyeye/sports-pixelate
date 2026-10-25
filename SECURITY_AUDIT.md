@@ -1,4 +1,4 @@
-# NestPlay — Security Audit (backend · web · mobile)
+# NestAcademy — Security Audit (backend · web · mobile)
 
 Date: 2026-10-03 · Scope: `backend/`, `frontend/` (web), `NestSports/` (mobile)
 Status: **REPORT ONLY — no code has been changed.** Fixes are proposed at the end for your approval.

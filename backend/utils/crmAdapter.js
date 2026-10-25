@@ -1,4 +1,4 @@
-// NestPlay side of utils/crmAccounts.js: maps the uniform CRM account API onto Company / Subscription / User.
+// NestAcademy side of utils/crmAccounts.js: maps the uniform CRM account API onto Company / Subscription / User.
 const crypto = require("crypto");
 const Company = require("../models/Company");
 const Subscription = require("../models/Subscription");
@@ -6,6 +6,7 @@ const User = require("../models/User");
 const Employee = require("../models/Employee");
 const Student = require("../models/Student");
 const { helpers: H } = require("./crmAccounts");
+const terms = require("./terms");
 
 const ROLES = User.schema.path("role").enumValues;
 
@@ -71,7 +72,7 @@ const userView = (u, ownerId) => ({
   status: u.status,
   phone: u.phone,
   lastLogin: u.lastLogin,
-  isOwner: String(u._id) === String(ownerId),
+  terms: terms.userState(u), termsAcceptedAt: u.termsAcceptedAt, isOwner: String(u._id) === String(ownerId),
 });
 
 exports.meta = meta;
@@ -101,7 +102,7 @@ exports.list = async (search) => {
     .limit(500)
     .lean();
   const ids = companies.map((c) => c._id);
-  const [subs, stus, logins] = await Promise.all([
+  const [subs, stus, logins, tstat] = await Promise.all([
     Subscription.find({ company: { $in: ids } }).lean(),
     Student.aggregate([
       { $match: { company: { $in: ids }, status: "active" } },
@@ -111,6 +112,7 @@ exports.list = async (search) => {
       { $match: { company: { $in: ids } } },
       { $group: { _id: "$company", last: { $max: "$lastLogin" } } },
     ]),
+    terms.stats(User, "company", ids),
   ]);
   const sub = Object.fromEntries(subs.map((s) => [String(s.company), s]));
   const stu = Object.fromEntries(stus.map((e) => [String(e._id), e.n]));
@@ -128,6 +130,7 @@ exports.list = async (search) => {
       usage: `${stu[String(c._id)] || 0} / ${s?.maxStudents ?? "—"} students`,
       lastLogin: last[String(c._id)],
       createdAt: c.createdAt,
+    terms: terms.label(tstat[String(c._id)]), termsCount: tstat[String(c._id)] ? `${tstat[String(c._id)].done}/${tstat[String(c._id)].need}` : "—"
     };
   });
 };
@@ -138,7 +141,7 @@ exports.get = async (id) => {
   const [s, users, activeStudents, activeStaff] = await Promise.all([
     Subscription.findOne({ company: c._id }).lean(),
     User.find({ company: c._id })
-      .select("name email role status phone lastLogin")
+      .select("name email role status phone lastLogin termsVersion termsAcceptedAt")
       .sort({ createdAt: 1 })
       .lean(),
     Student.countDocuments({ company: c._id, status: "active" }),
@@ -190,7 +193,7 @@ exports.create = async (b) => {
     const amountPaid = Math.max(0, Number(b.amountPaid) || 0);
     const sub = await Subscription.create({
       company: company._id,
-      plan: b.plan || "NestPlay",
+      plan: b.plan || "NestAcademy",
       studentCount: max,
       employeeCount: Math.max(0, Number(b.limits?.maxEmployees) || 0),
       wantsWhatsapp: !!b.flags?.wantsWhatsapp,
@@ -276,7 +279,7 @@ exports.setSubscription = async (id, b) => {
   if (!sub)
     sub = new Subscription({
       company: c._id,
-      plan: "NestPlay",
+      plan: "NestAcademy",
       monthlyPrice: 0,
       yearlyPrice: 0,
       maxStudents: 50,

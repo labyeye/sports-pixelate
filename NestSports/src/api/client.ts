@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { API_BASE_URL } from '../config';
+import { announceRefund, isRefundMessage } from '../utils/refundNotice';
 
 const TOKEN_KEY = 'hrms_token'; // legacy AsyncStorage key (migrated away from)
 const KEYCHAIN_SERVICE = 'com.nestplay.auth';
@@ -124,6 +125,7 @@ async function request<T = any>(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (isRefundMessage(data.message)) announceRefund(data.message);
     const err: any = new Error(statusMessage(res.status, data.message));
     err.status = res.status;
     err.code = data.code;
@@ -534,7 +536,7 @@ export const billingAPI = {
   createOrder: (
     studentCount: number,
     billingCycle: 'monthly' | 'yearly',
-    gateway: 'razorpay' | 'hdfc' = 'razorpay',
+    gateway: 'razorpay' = 'razorpay',
     company?: object,
   ) =>
     request('/billing/create-order', {
@@ -763,7 +765,7 @@ export const attendanceCorrectionAPI = {
     }),
 };
 
-// ── NestPlay domain APIs ──────────────────────────────────────────────
+// ── NestAcademy domain APIs ──────────────────────────────────────────────
 
 export const studentAPI = {
   getAll: (params?: Record<string, string>) => {

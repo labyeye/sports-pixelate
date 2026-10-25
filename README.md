@@ -1,8 +1,8 @@
-# NestPlay
+# NestAcademy
 
 **The all-in-one management platform for sports academies.**
 
-NestPlay brings together staff/HR management, coaching operations, student enrollment, facility bookings, billing, and payments into a single system — built for sports academies, coaching centers, and training institutes that currently juggle spreadsheets, WhatsApp groups, and paper registers.
+NestAcademy brings together staff/HR management, coaching operations, student enrollment, facility bookings, billing, and payments into a single system — built for sports academies, coaching centers, and training institutes that currently juggle spreadsheets, WhatsApp groups, and paper registers.
 
 ---
 
@@ -109,12 +109,12 @@ NestPlay brings together staff/HR management, coaching operations, student enrol
 cd backend
 cp .env.example .env        # fill MONGO_URI and JWT_SECRET at minimum
 npm install
-npm run dev                 # http://localhost:5002
+npm run dev                 # https://sports-backend.pixelatenest.com
 npm test                    # route-guard, pricing & subscription tests (no DB needed)
 
 # 2. Web
 cd ../frontend
-cp .env.example .env        # VITE_API_URL=http://localhost:5002/api
+cp .env.example .env        # VITE_API_URL=https://sports-backend.pixelatenest.com/api
 npm install
 npm run dev                 # http://localhost:5174
 npm run lint && npm run typecheck && npm run build

@@ -453,7 +453,7 @@ export default function EmployeeDashboard() {
     return (
       <AppLayout title="My Profile">
         <div className="flex h-[80vh] items-center justify-center">
-          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
         </div>
       </AppLayout>
     );
@@ -748,7 +748,7 @@ export default function EmployeeDashboard() {
                             Happy Birthday to You! 🎂
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            The NestPlay family wishes you a fantastic day ahead
+                            The NestAcademy family wishes you a fantastic day ahead
                             filled with joy and success!
                           </p>
                         </div>

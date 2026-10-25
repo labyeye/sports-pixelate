@@ -76,7 +76,7 @@ export default function BillingPage() {
   }, []);
 
   const sub = subscription || user?.company?.subscription;
-  const currentPlanId = sub?.plan || "NestPlay";
+  const currentPlanId = sub?.plan || "NestAcademy";
 
   const currentPlan = {
     name: currentPlanId,
@@ -198,7 +198,7 @@ export default function BillingPage() {
     setGatewayModal(true);
   };
 
-  const handleGatewaySelect = async (gateway: "razorpay" | "hdfc") => {
+  const handleGatewaySelect = async (gateway: "razorpay") => {
     const count = Number(newStudentCount);
     if (!count) return;
     setGatewayModal(false);
@@ -229,8 +229,8 @@ export default function BillingPage() {
             order_id: order.orderId,
             amount: order.amount * 100,
             currency: order.currency || "INR",
-            name: "NestPlay",
-            description: `NestPlay — ${count} students — ${order.plan}`,
+            name: "NestAcademy",
+            description: `NestAcademy — ${count} students — ${order.plan}`,
             prefill: {
               name: order.userName,
               email: order.userEmail,
@@ -259,10 +259,6 @@ export default function BillingPage() {
           });
           rzp.open();
         });
-      } else {
-        if (!order.paymentUrl)
-          throw new Error("HDFC did not return a payment URL.");
-        window.location.href = order.paymentUrl;
       }
     } catch (err: unknown) {
       if (getErrorMessage(err) !== "Payment cancelled") {
@@ -281,7 +277,7 @@ export default function BillingPage() {
     return (
       <AppLayout title="Billing">
         <div className="flex items-center justify-center h-[60vh]">
-          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
         </div>
       </AppLayout>
     );
@@ -319,7 +315,7 @@ export default function BillingPage() {
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Your account is not yet activated. Choose a plan below to start
-                using NestPlay.
+                using NestAcademy.
               </p>
             </div>
           </div>
@@ -331,7 +327,7 @@ export default function BillingPage() {
             <div className="w-10 h-10 bg-white border-2 border-black flex items-center justify-center shrink-0">
               <img
                 src={nesthrlogo}
-                alt="NestPlay"
+                alt="NestAcademy"
                 className="w-7 h-7 object-contain"
               />
             </div>
@@ -756,7 +752,7 @@ export default function BillingPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 shrink-0" />
-                Payments processed securely via Razorpay or HDFC SmartGateway.
+                Payments processed securely via Razorpay.
                 We never store your card details.
               </p>
             </div>
@@ -795,19 +791,6 @@ export default function BillingPage() {
                 </div>
                 <ArrowRight className="w-4 h-4 ml-auto text-muted-foreground" />
               </button>
-
-              {/* HDFC SmartGateway — disabled until merchant account is configured */}
-              <div className="w-full border-2 border-gray-200 p-4 flex items-center gap-4 opacity-50 cursor-not-allowed">
-                <div className="w-10 h-10 bg-gray-300 border-2 border-gray-200 flex items-center justify-center shrink-0">
-                  <Building2 className="w-5 h-5 text-gray-400" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-400 text-sm">
-                    HDFC SmartGateway
-                  </p>
-                  <p className="text-xs text-gray-400">Coming soon</p>
-                </div>
-              </div>
 
               <p className="text-xs text-muted-foreground text-center pt-2 flex items-center justify-center gap-1">
                 <ShieldCheck className="w-3 h-3" /> All payments are 256-bit

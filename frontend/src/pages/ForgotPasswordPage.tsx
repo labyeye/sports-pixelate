@@ -18,6 +18,7 @@ import {
   serializeAssertion,
   toRequestOptions,
 } from "@/lib/webauthn";
+import PasswordChecklist from "@/components/PasswordChecklist";
 
 type Step = "email" | "choose" | "email_sent" | "code" | "done";
 type CodeMethod = "whatsapp" | "totp" | "backup" | "passkey";
@@ -154,7 +155,7 @@ export default function ForgotPasswordPage() {
         <div className="flex justify-center mb-8">
           <img
             src={nesthrlogo}
-            alt="NestPlay"
+            alt="NestAcademy"
             className="h-12 w-auto object-contain"
           />
         </div>
@@ -326,11 +327,12 @@ export default function ForgotPasswordPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="8+ chars, upper, lower & a number"
+                    placeholder="Create a strong password"
                     className="w-full px-3 py-3 border-2 border-black text-sm outline-none"
                     required
                     autoComplete="new-password"
                   />
+                {password && <PasswordChecklist password={password} />}
                 </div>
                 <div>
                   <label className={labelCls}>Confirm new password</label>

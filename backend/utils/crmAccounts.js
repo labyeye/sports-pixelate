@@ -10,7 +10,8 @@
 const crypto = require("crypto");
 const express = require("express");
 
-const STRONG = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+const { checkPasswordRules, generatePassword } = require("./passwordPolicy");
+const STRONG = { test: (p) => !checkPasswordRules(p) };
 const fail = (message, statusCode = 400) =>
   Object.assign(new Error(message), { statusCode });
 const pick = (obj, keys) =>
@@ -18,15 +19,10 @@ const pick = (obj, keys) =>
     keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]),
   );
 // Always satisfies STRONG (upper + lower + digit, 12 chars).
-const genPassword = () =>
-  "Nh" +
-  crypto.randomBytes(6).toString("base64url").replace(/[-_]/g, "x") +
-  "7";
+const genPassword = () => generatePassword();
 const checkPassword = (p) => {
   if (p && !STRONG.test(p))
-    throw fail(
-      "Password needs 8+ characters with uppercase, lowercase and a number",
-    );
+    throw fail(checkPasswordRules(p));
   return p || genPassword();
 };
 const cleanFeatures = (v) =>

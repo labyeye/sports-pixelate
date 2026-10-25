@@ -10,7 +10,6 @@ const {
   validateOfferCode,
   verifyPayment,
   verifyRazorpayPayment,
-  verifyHdfcPayment,
 } = require("../controllers/billingController");
 
 router.get("/plans", getPlans);
@@ -20,6 +19,5 @@ router.post("/validate-offer", protect, owner, validateOfferCode);
 router.post("/create-order", protect, owner, createOrder);
 router.post("/verify-payment", protect, owner, verifyPayment);
 router.post("/verify-razorpay", protect, owner, verifyRazorpayPayment);
-router.post("/verify-hdfc", protect, owner, verifyHdfcPayment);
 
 module.exports = router;

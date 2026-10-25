@@ -17,8 +17,10 @@ import LottieView from 'lottie-react-native';
 import { User, Mail, Lock, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors } from '../../theme/colors';
+import PasswordChecklist from '../../components/PasswordChecklist';
+import { passwordOk } from '../../utils/passwordRules';
 
-// Same palette names NestPlay's auth screens were written with, on NestSports' tokens.
+// Same palette names NestAcademy's auth screens were written with, on NestSports' tokens.
 const C = {
   primary: colors.blue,
   success: colors.green,
@@ -43,11 +45,8 @@ export default function RegisterScreen({ navigation }: any) {
       Alert.alert('Validation', 'All fields are required');
       return;
     }
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-      Alert.alert(
-        'Validation',
-        'Password must be at least 8 characters and include uppercase, lowercase, and a number',
-      );
+    if (!passwordOk(password)) {
+      Alert.alert('Validation', 'Please meet every point in the password checklist');
       return;
     }
     setLoading(true);
@@ -126,6 +125,7 @@ export default function RegisterScreen({ navigation }: any) {
                   secureTextEntry={f.secure}
                 />
               </View>
+              {f.secure && !!f.value && <PasswordChecklist password={f.value} />}
             </View>
           ))}
 

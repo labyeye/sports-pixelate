@@ -109,7 +109,7 @@ export default function PayLinkPage() {
             order_id: order.orderId,
             amount: order.amount * 100,
             currency: order.currency || "INR",
-            name: details?.academyName || "NestPlay",
+            name: details?.academyName || "NestAcademy",
             description: `${order.planName} — ${details?.studentName || ""}`,
             theme: { color: "#024BAB" },
             handler: async (response: any) => {

@@ -11,7 +11,7 @@ const {
   sendCrmAccountCreatedEmail,
 } = require("../services/notificationService");
 
-const PLAN_NAME = "NestPlay";
+const PLAN_NAME = "NestAcademy";
 
 // Same static-key guard as /internal/stats (statsRoutes.js), reusing
 // CRM_API_SECRET so the CRM only needs one secret per product.

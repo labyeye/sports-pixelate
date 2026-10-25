@@ -51,7 +51,7 @@ async function sendSubscriptionConfirmationEmail(opts) {
     return;
   }
 
-  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
 
   const html = `
@@ -60,7 +60,7 @@ async function sendSubscriptionConfirmationEmail(opts) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to NestPlay</title>
+  <title>Welcome to NestAcademy</title>
   <style>
     body { font-family: Arial, sans-serif; background: #F0F6FF; margin: 0; padding: 0; }
     .container { max-width: 560px; margin: 32px auto; background: #ffffff; border: 2px solid #000; }
@@ -84,13 +84,13 @@ async function sendSubscriptionConfirmationEmail(opts) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>NestPlay — Subscription Confirmed</h1>
+      <h1>NestAcademy — Subscription Confirmed</h1>
       <p>Your workspace is ready</p>
     </div>
     <div class="body">
       <p class="greeting">Hello ${opts.toName},</p>
       <p class="text">
-        Welcome to NestPlay! Your <strong>${opts.planName} plan</strong> has been activated successfully for
+        Welcome to NestAcademy! Your <strong>${opts.planName} plan</strong> has been activated successfully for
         <strong>${opts.companyName}</strong>. Here's your subscription summary:
       </p>
 
@@ -118,7 +118,7 @@ async function sendSubscriptionConfirmationEmail(opts) {
       </div>
 
       <p class="text">
-        You can now log in to your NestPlay dashboard and start setting up your team —
+        You can now log in to your NestAcademy dashboard and start setting up your team —
         add employees, configure attendance, set up payroll, and more.
       </p>
 
@@ -130,8 +130,8 @@ async function sendSubscriptionConfirmationEmail(opts) {
       </p>
     </div>
     <div class="footer">
-      &copy; ${new Date().getFullYear()} Pixelate Nest — NestPlay. All rights reserved.<br />
-      This email was sent to ${opts.toEmail} because you activated a NestPlay subscription.
+      &copy; ${new Date().getFullYear()} Pixelate Nest — NestAcademy. All rights reserved.<br />
+      This email was sent to ${opts.toEmail} because you activated a NestAcademy subscription.
     </div>
   </div>
 </body>
@@ -142,7 +142,7 @@ async function sendSubscriptionConfirmationEmail(opts) {
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: opts.toEmail,
-      subject: `✅ Welcome to NestPlay — ${opts.planName} Plan Activated`,
+      subject: `✅ Welcome to NestAcademy — ${opts.planName} Plan Activated`,
       html,
     });
     logger.info(`[Email] Confirmation sent to ${opts.toEmail}`);
@@ -194,7 +194,7 @@ async function sendCrmAccountCreatedEmail({
     return;
   }
 
-  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
 
   const html = `
@@ -203,7 +203,7 @@ async function sendCrmAccountCreatedEmail({
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to NestPlay</title>
+  <title>Welcome to NestAcademy</title>
   <style>
     body { font-family: Arial, sans-serif; background: #F0F6FF; margin: 0; padding: 0; }
     .container { max-width: 560px; margin: 32px auto; background: #ffffff; border: 2px solid #000; }
@@ -227,7 +227,7 @@ async function sendCrmAccountCreatedEmail({
 <body>
   <div class="container">
     <div class="header">
-      <h1>NestPlay — Account Created</h1>
+      <h1>NestAcademy — Account Created</h1>
       <p>Your workspace is ready</p>
     </div>
     <div class="body">
@@ -281,8 +281,8 @@ async function sendCrmAccountCreatedEmail({
       </p>
     </div>
     <div class="footer">
-      &copy; ${new Date().getFullYear()} Pixelate Nest — NestPlay. All rights reserved.<br />
-      This email was sent to ${toEmail} because a NestPlay account was created for you.
+      &copy; ${new Date().getFullYear()} Pixelate Nest — NestAcademy. All rights reserved.<br />
+      This email was sent to ${toEmail} because a NestAcademy account was created for you.
     </div>
   </div>
 </body>
@@ -293,7 +293,7 @@ async function sendCrmAccountCreatedEmail({
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: toEmail,
-      subject: `✅ Welcome to NestPlay — ${companyName} Account Created`,
+      subject: `✅ Welcome to NestAcademy — ${companyName} Account Created`,
       html,
     });
     logger.info(`[Email] CRM account email sent to ${toEmail}`);
@@ -307,7 +307,7 @@ async function sendPasswordResetEmail({ toEmail, toName, resetUrl }) {
   const transporter = getTransporter();
   if (!transporter) return;
 
-  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
 
   const html = `
@@ -323,21 +323,21 @@ async function sendPasswordResetEmail({ toEmail, toName, resetUrl }) {
   .footer{background:#f8f8f8;border-top:2px solid #000;padding:16px 32px;font-size:12px;color:#888}
 </style></head><body>
 <div class="container">
-  <div class="header"><h1>NestPlay — Password Reset</h1></div>
+  <div class="header"><h1>NestAcademy — Password Reset</h1></div>
   <div class="body">
     <p class="text"><strong>Hello ${toName},</strong></p>
-    <p class="text">We received a request to reset your NestPlay password. Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p>
+    <p class="text">We received a request to reset your NestAcademy password. Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p>
     <a href="${resetUrl}" class="btn">Reset Password &rarr;</a>
     <p class="text" style="margin-top:24px;font-size:13px;color:#888">If you didn't request this, you can safely ignore this email. Your password will not change.</p>
   </div>
-  <div class="footer">&copy; ${new Date().getFullYear()} Pixelate Nest — NestPlay. This email was sent to ${toEmail}.</div>
+  <div class="footer">&copy; ${new Date().getFullYear()} Pixelate Nest — NestAcademy. This email was sent to ${toEmail}.</div>
 </div></body></html>`;
 
   try {
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: toEmail,
-      subject: "NestPlay — Reset your password",
+      subject: "NestAcademy — Reset your password",
       html,
     });
   } catch (err) {
@@ -359,7 +359,7 @@ async function sendLeaveStatusEmail({
   const transporter = getTransporter();
   if (!transporter) return;
 
-  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   const isApproved = status === "approved";
   const color = isApproved ? "#16a34a" : "#dc2626";
@@ -381,7 +381,7 @@ async function sendLeaveStatusEmail({
   .footer{background:#f8f8f8;border-top:2px solid #000;padding:16px 32px;font-size:12px;color:#888}
 </style></head><body>
 <div class="container">
-  <div class="header"><h1>Leave ${label} — NestPlay</h1></div>
+  <div class="header"><h1>Leave ${label} — NestAcademy</h1></div>
   <div class="body">
     <p class="text"><strong>Hello ${toName},</strong></p>
     <p class="text">Your leave request has been <strong>${label.toLowerCase()}</strong>.</p>
@@ -395,14 +395,14 @@ async function sendLeaveStatusEmail({
     </div>
     <p class="text" style="font-size:13px;color:#888">If you have questions, contact your HR manager.</p>
   </div>
-  <div class="footer">&copy; ${new Date().getFullYear()} Pixelate Nest — NestPlay.</div>
+  <div class="footer">&copy; ${new Date().getFullYear()} Pixelate Nest — NestAcademy.</div>
 </div></body></html>`;
 
   try {
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: toEmail,
-      subject: `NestPlay — Your leave has been ${label.toLowerCase()}`,
+      subject: `NestAcademy — Your leave has been ${label.toLowerCase()}`,
       html,
     });
   } catch (err) {
@@ -424,7 +424,7 @@ async function sendLeaveAppliedEmail({
   const transporter = getTransporter();
   if (!transporter) return;
 
-  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
 
   const html = `
@@ -443,7 +443,7 @@ async function sendLeaveAppliedEmail({
   .footer{background:#f8f8f8;border-top:2px solid #000;padding:16px 32px;font-size:12px;color:#888}
 </style></head><body>
 <div class="container">
-  <div class="header"><h1>New Leave Request — NestPlay</h1></div>
+  <div class="header"><h1>New Leave Request — NestAcademy</h1></div>
   <div class="body">
     <p class="text"><strong>Hello ${toName},</strong></p>
     <p class="text">A new leave request has been submitted and requires your review.</p>
@@ -455,16 +455,16 @@ async function sendLeaveAppliedEmail({
       <div class="row"><span class="lbl">Days</span><span class="val">${days}</span></div>
       <div class="row"><span class="lbl">Reason</span><span class="val">${reason}</span></div>
     </div>
-    <p class="text" style="font-size:13px;color:#888">Log in to NestPlay to approve or reject this request.</p>
+    <p class="text" style="font-size:13px;color:#888">Log in to NestAcademy to approve or reject this request.</p>
   </div>
-  <div class="footer">&copy; ${new Date().getFullYear()} Pixelate Nest — NestPlay.</div>
+  <div class="footer">&copy; ${new Date().getFullYear()} Pixelate Nest — NestAcademy.</div>
 </div></body></html>`;
 
   try {
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: toEmail,
-      subject: `NestPlay — Leave request from ${empName} needs review`,
+      subject: `NestAcademy — Leave request from ${empName} needs review`,
       html,
     });
   } catch (err) {
@@ -484,7 +484,7 @@ async function sendOtpEmail({ to, name, otp, purpose }) {
     });
     throw new Error("Email is not configured on the server");
   }
-  const fromName = process.env.SMTP_FROM_NAME || "NestPlay";
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   const esc = (v) =>
     String(v)
@@ -493,8 +493,8 @@ async function sendOtpEmail({ to, name, otp, purpose }) {
       .replace(/>/g, "&gt;");
   const verify = purpose === "verify-email";
   const subject = verify
-    ? "NestPlay — Verify your email"
-    : "NestPlay — Your sign-in code";
+    ? "NestAcademy — Verify your email"
+    : "NestAcademy — Your sign-in code";
   const intro = verify
     ? "Use this code to verify your email address."
     : "Use this code to sign in to your account. It also unlocks your account if it was temporarily blocked.";
@@ -519,7 +519,7 @@ async function sendOtpEmail({ to, name, otp, purpose }) {
       to,
       subject,
       html,
-      text: `Your NestPlay code is ${otp}. It expires in 10 minutes.`,
+      text: `Your NestAcademy code is ${otp}. It expires in 10 minutes.`,
     });
     console.log(
       `[Email OTP] Accepted by SMTP to ${masked} id=${info.messageId}`,

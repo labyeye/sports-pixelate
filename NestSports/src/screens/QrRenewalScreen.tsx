@@ -90,7 +90,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
         order_id: data.orderId,
         amount: data.amount * 100,
         currency: data.currency || 'INR',
-        name: 'NestPlay',
+        name: 'NestAcademy',
         description: `${data.planName} — ${data.studentName}`,
         theme: { color: colors.black },
       });

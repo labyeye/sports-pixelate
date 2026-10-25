@@ -31,7 +31,7 @@ import { useAuth } from '../contexts/AuthContext';
 import WhatsAppIcon from '../components/common/WhatsAppIcon';
 import { colors } from '../theme/colors';
 
-// Same palette names the Nest Play screen was written with, mapped onto NestSports' tokens.
+// Same palette names the Nest Academy screen was written with, mapped onto NestSports' tokens.
 const C = {
   primary: colors.blue,
   secondary: colors.orange,
@@ -750,7 +750,7 @@ function BackupBody() {
 
   const share = () =>
     Share.share({
-      message: `Nest Play backup codes (each works once):\n\n${codes?.join(
+      message: `Nest Academy backup codes (each works once):\n\n${codes?.join(
         '\n',
       )}`,
     }).catch(() => {});

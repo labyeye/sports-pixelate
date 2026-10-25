@@ -465,7 +465,7 @@ export default function EmployeeCredentialsPage() {
       {}
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
         </div>
       ) : tab === "staff" ? (
         employees.length === 0 ? (

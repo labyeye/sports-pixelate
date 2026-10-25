@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { addPasswordPolicy } = require("../utils/passwordPolicy");
 
 const userSchema = new mongoose.Schema(
   {
@@ -8,7 +9,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 6 },
     // NOTE: internal role strings kept identical to the HRMS this was forked from
     // (super_admin/hr_manager/employee) so every existing authorize(...) check
-    // across the codebase keeps working unchanged. In the NestPlay product
+    // across the codebase keeps working unchanged. In the NestAcademy product
     // these map conceptually to: super_admin/hr_manager -> "Owner", employee ->
     // "Staff/Coach". "parent" is the one genuinely new role, for guardians who
     // log in to see their child's attendance/subscription/bookings.
@@ -124,5 +125,16 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.matchPassword = async function (entered) {
   return bcrypt.compare(entered, this.password);
 };
+
+// Terms & Privacy acceptance (see utils/terms.js)
+userSchema.add({
+  termsVersion: { type: String },
+  termsAcceptedAt: { type: Date },
+  termsAcceptedIp: { type: String },
+  termsAcceptedAgent: { type: String },
+});
+
+// 8+ chars with upper/lower/number/special, no simple series, not among the last 5 passwords
+addPasswordPolicy(userSchema);
 
 module.exports = mongoose.model("User", userSchema);

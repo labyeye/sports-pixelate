@@ -49,6 +49,7 @@ import { AccountSecurityPanel } from "@/components/security/AccountSecurityPanel
 import { FEATURES } from "@/config/features";
 import { setDisabledFeatures } from "@/hooks/useDisabledFeatures";
 import ChequeTemplateDesigner from "@/components/settings/cheque-designer/ChequeTemplateDesigner";
+import PasswordChecklist from "@/components/PasswordChecklist";
 
 type CrudOp = "create" | "read" | "update" | "delete";
 type HrmsRole =
@@ -1157,7 +1158,7 @@ export default function SettingsPage() {
     return (
       <AppLayout title="Settings">
         <div className="flex h-[80vh] items-center justify-center">
-          <img src={nesthrlogo} alt="NestPlay" className="h-16 w-auto" />
+          <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
         </div>
       </AppLayout>
     );
@@ -1810,7 +1811,7 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-500 mt-0.5">
                         Send automated WhatsApp messages to employees for
                         attendance, leave, and salary events — powered by
-                        NestPlay
+                        NestAcademy
                       </p>
                     </div>
                     <button
@@ -1838,10 +1839,10 @@ export default function SettingsPage() {
 
                   <div className="p-4 bg-[#F0F7FF] border-2 border-[#024BAB]/30 text-xs text-gray-700 space-y-1">
                     <p className="font-bold text-[#024BAB] text-sm">
-                      Powered by NestPlay WhatsApp Service
+                      Powered by NestAcademy WhatsApp Service
                     </p>
                     <p>
-                      Messages are sent via NestPlay's verified WhatsApp
+                      Messages are sent via NestAcademy's verified WhatsApp
                       Business number — no setup required on your end. Just
                       enable the notifications you need below.
                     </p>
@@ -2805,6 +2806,7 @@ export default function SettingsPage() {
                               )}
                             </button>
                           </div>
+                          {key === "next" && pwForm.next && <PasswordChecklist password={pwForm.next} />}
                         </div>
                       ))}
                       <div className="sm:col-span-3">

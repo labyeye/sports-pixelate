@@ -17,6 +17,7 @@ import { ArrowLeft, CheckCircle2, KeyRound, Lock } from 'lucide-react-native';
 import { authAPI } from '../../api/client';
 import { colors } from '../../theme/colors';
 import { getErrorMessage } from '../../utils/format';
+import PasswordChecklist from '../../components/PasswordChecklist';
 
 const forgotAnim = require('../../assets/lottie/forgot.json');
 
@@ -111,10 +112,11 @@ export default function ResetPasswordScreen({ navigation }: any) {
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="8+ chars, upper, lower & a number"
+                  placeholder="Create a strong password"
                   placeholderTextColor="#94a3b8"
                 />
               </View>
+              {!!password && <PasswordChecklist password={password} />}
             </View>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <TouchableOpacity
