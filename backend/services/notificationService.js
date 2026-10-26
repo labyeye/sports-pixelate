@@ -535,6 +535,31 @@ async function sendOtpEmail({ to, name, otp, purpose }) {
   }
 }
 
+async function sendLowCreditsEmail({ to, name, credits, zero }) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const esc = (v) =>
+    String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const subject = zero
+    ? "NestAcademy — WhatsApp credits finished, messages are paused"
+    : "NestAcademy — WhatsApp credits are running low";
+  const line = zero
+    ? "Your WhatsApp credits are <b>0</b>. Attendance alerts, fee reminders and other messages to parents and staff are paused until you add credits. Login OTPs are not affected."
+    : `You have <b>${esc(credits)}</b> WhatsApp credits left. Add credits so messages to parents and staff don't stop.`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head>
+<body style="font-family:Arial,sans-serif;background:#F0F6FF;margin:0;padding:24px">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:2px solid #000">
+<div style="background:#024BAB;padding:20px 28px;border-bottom:2px solid #000"><h1 style="color:#fff;margin:0;font-size:18px;font-weight:900">${esc(subject)}</h1></div>
+<div style="padding:28px">
+<p style="font-size:14px;color:#333">Hello ${esc(name || "there")},</p>
+<p style="font-size:14px;color:#555;line-height:1.6">${line}</p>
+<p style="font-size:12px;color:#888">Open NestAcademy &rarr; Credits to add more.</p>
+</div></div></body></html>`;
+  await transporter.sendMail({ from: `"${fromName}" <${fromEmail}>`, to, subject, html });
+}
+
 module.exports = {
   sendOtpEmail,
   sendPaymentConfirmations,
@@ -542,4 +567,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendLeaveStatusEmail,
   sendLeaveAppliedEmail,
+  sendLowCreditsEmail,
 };

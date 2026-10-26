@@ -539,6 +539,7 @@ async function _createCompanyAndActivateSteps({
     ? `${process.env.FRONTEND_URL}/`
     : "https://sports.pixelatenest.com/";
 
+  require("../services/creditsService").onSubscriptionPaid(company._id, subscription).catch((err) => console.error("[Credits]", err.message));
   sendPaymentConfirmations({
     toEmail: req.user.email || company.email,
     toName: req.user.name || company.name,
@@ -688,6 +689,7 @@ async function _activateSubscriptionSteps({
     ? `${process.env.FRONTEND_URL}/`
     : "https://sports.pixelatenest.com/";
 
+  require("../services/creditsService").onSubscriptionPaid(company._id, updatedSub).catch((err) => console.error("[Credits]", err.message));
   sendPaymentConfirmations({
     toEmail: user?.email || company.email,
     toName: user?.name || company.name,

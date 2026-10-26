@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { Menu, Search, Bell, Hand } from 'lucide-react-native';
+import { Menu, Search, Bell, Hand, Coins } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { fmtCredits, useCreditBalance } from '../../hooks/useCreditBalance';
 import { colors } from '../../theme/colors';
 
 // Same palette names NestHR's components were written with, on NestSports' tokens.
@@ -42,6 +44,8 @@ export default function AppHeader({
   const greeting =
     h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   const first = (name || 'User').split(' ')[0];
+  const navigation = useNavigation<any>();
+  const { credits } = useCreditBalance();
   return (
     <View style={s.wrap}>
       <View style={s.row}>
@@ -56,6 +60,19 @@ export default function AppHeader({
             <Bell size={24} color={C.black} />
             {unread > 0 && <View style={s.dot} />}
           </TouchableOpacity>
+          {credits?.metered && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Credits')}
+              activeOpacity={0.8}
+              style={[
+                s.pill,
+                credits.zero ? s.pillZero : credits.low ? s.pillLow : null,
+              ]}
+            >
+              <Coins size={13} color={C.white} />
+              <Text style={s.pillText}>{fmtCredits(credits.total)}</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={onAvatar} activeOpacity={0.8}>
             {avatar ? (
               <Image source={{ uri: avatar }} style={s.avatar} />
@@ -102,6 +119,19 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: C.white,
   },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#00A878',
+    borderWidth: 2,
+    borderColor: C.black,
+  },
+  pillLow: { backgroundColor: C.secondary },
+  pillZero: { backgroundColor: C.danger },
+  pillText: { color: C.white, fontSize: 12, fontWeight: '800' },
   avatar: { width: 38, height: 38, borderRadius: 19 },
   avatarFb: {
     backgroundColor: C.primary,

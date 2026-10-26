@@ -85,6 +85,7 @@ import GuardianContactListScreen from '../screens/GuardianContactListScreen';
 import StudentPaymentHistoryScreen from '../screens/StudentPaymentHistoryScreen';
 import ManageScreen from '../screens/ManageScreen';
 import BillingScreen from '../screens/BillingScreen';
+import CreditsScreen from '../screens/CreditsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AccountSecurityScreen from '../screens/AccountSecurityScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -403,6 +404,7 @@ function RootNavigatorContent() {
             />
             <Stack.Screen name="Manage" component={ManageScreen} />
             <Stack.Screen name="Billing" component={BillingScreen} />
+            <Stack.Screen name="Credits" component={CreditsScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen
               name="Notifications"

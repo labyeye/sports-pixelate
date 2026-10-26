@@ -2,6 +2,8 @@ const https = require("https");
 const FormData = require("form-data");
 const Setting = require("../models/Setting");
 const { getCompanyFeatures } = require("../utils/planFeatures");
+const { getCompanyAccess } = require("../utils/subscriptionStatus");
+const credits = require("./creditsService");
 const logger = require("../utils/logger");
 
 // ─── Internal: upload a buffer to Meta Media API → returns media_id ──────────
@@ -66,6 +68,7 @@ async function sendTemplate(
   params,
   lang = "en",
   extraComponents = [],
+  companyId = null,
 ) {
   const accessToken = process.env.META_WA_TOKEN;
   const phoneNumberId = process.env.META_WA_PHONE_ID;
@@ -102,7 +105,28 @@ async function sendTemplate(
     },
   });
 
-  await new Promise((resolve, reject) => {
+  // WhatsApp credits: a metered academy pays per message, charged before sending and refunded if Meta rejects it.
+  // companyId is null for platform messages (OTP, subscription welcome) which are never charged.
+  const hold = companyId ? await credits.reserve(companyId, { template: templateName, phone }) : null;
+  if (hold && !hold.ok) {
+    // callers that report a status (fee payment links) must not say "sent" when nothing went out
+    throw Object.assign(
+      new Error(`WhatsApp not sent: ${hold.reason === "daily_cap" ? "daily message limit reached" : "not enough credits"}`),
+      { code: "NO_CREDITS" },
+    );
+  }
+  let sent;
+  try {
+    sent = await postToMeta(phoneNumberId, accessToken, body, templateName, toNumber, lang);
+  } catch (err) {
+    if (hold) await credits.refund(hold);
+    throw err;
+  }
+  if (hold) await credits.commit(hold, sent?.messages?.[0]?.id);
+}
+
+function postToMeta(phoneNumberId, accessToken, body, templateName, toNumber, lang) {
+  return new Promise((resolve, reject) => {
     const req = https.request(
       {
         hostname: "graph.facebook.com",
@@ -135,20 +159,21 @@ async function sendTemplate(
 
 // ─── Internal: check company WhatsApp gate ────────────────────────────────────
 
-async function getCompanySetting(eventKey, companyId) {
+async function getCompanySetting(eventKey, companyId, audience = null, alertKey = null) {
   if (!companyId) {
     console.warn(`[WA-DEBUG] getCompanySetting: companyId is null/undefined`);
     return null;
   }
   const features = await getCompanyFeatures(companyId);
-  if (!features.whatsapp) {
+  // a metered academy does not need the WhatsApp tier, but a lapsed subscription still stops everything
+  if (!features.whatsapp && !((await getCompanyAccess(companyId)).live && (await credits.isMetered(companyId)))) {
     console.warn(
       `[WA-DEBUG] getCompanySetting: plan does not include whatsapp for company=${companyId}`,
     );
     return null;
   }
   const setting = await Setting.findOne({ company: companyId }).select(
-    `whatsappEnabled whatsappLang ${eventKey}`,
+    `whatsappEnabled whatsappLang ${eventKey} ${alertKey || ""}`,
   );
   if (!setting) {
     console.warn(
@@ -166,6 +191,11 @@ async function getCompanySetting(eventKey, companyId) {
     console.warn(
       `[WA-DEBUG] getCompanySetting: ${eventKey}=false for company=${companyId} — disabled in Settings`,
     );
+    return null;
+  }
+  // who gets it: Both (default) | Employee | HR | Off. Every copy costs a credit, so the academy decides.
+  const who = (alertKey && setting[alertKey]) || "Both";
+  if (audience && (who === "Off" || (who === "Employee" && audience === "hr") || (who === "HR" && audience === "employee"))) {
     return null;
   }
   logger.debug(
@@ -186,7 +216,7 @@ async function sendCheckIn(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -198,6 +228,8 @@ async function sendCheckIn(
       "nestsports_checkin",
       [firstName, locationName, t],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
     logger.debug(`[WA-DEBUG] ✅ Staff check-in message DELIVERED to ${phone}`);
   } catch (err) {
@@ -218,7 +250,7 @@ async function sendCheckOut(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -231,6 +263,8 @@ async function sendCheckOut(
       "nestsports_checkout",
       [firstName, locationName, t, hrs],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendCheckOut:", err.message);
@@ -249,7 +283,7 @@ async function sendLeaveSubmitted(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     const from = new Date(startDate).toLocaleDateString("en-IN");
@@ -259,6 +293,8 @@ async function sendLeaveSubmitted(
       "nestsports_leave_submitted",
       [firstName, type, from, to, String(days)],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLeaveSubmitted:", err.message);
@@ -275,7 +311,7 @@ async function sendLeaveApproved(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     const from = new Date(startDate).toLocaleDateString("en-IN");
@@ -285,6 +321,8 @@ async function sendLeaveApproved(
       "nestsports_leave_approved",
       [firstName, type, from, to, String(days)],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLeaveApproved:", err.message);
@@ -301,7 +339,7 @@ async function sendLeaveRejected(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     await sendTemplate(
@@ -309,6 +347,8 @@ async function sendLeaveRejected(
       "nestsports_leave_rejected",
       [firstName, type, reason || "Not specified"],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLeaveRejected:", err.message);
@@ -325,7 +365,7 @@ async function sendLeaveAppliedHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "hr", "whatsappSendLeaveAlert");
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     const from = new Date(startDate).toLocaleDateString("en-IN");
@@ -335,6 +375,8 @@ async function sendLeaveAppliedHR(
       "nestsports_leave_request_hr",
       [empName, empId, type, from, to, String(days), reason || "-"],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLeaveAppliedHR:", err.message);
@@ -353,7 +395,7 @@ async function sendCheckInHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "hr", "whatsappSendPunchAlert");
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -365,6 +407,8 @@ async function sendCheckInHR(
       "nestsports_checkin_hr",
       [empName, empId, locationName, t],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendCheckInHR:", err.message);
@@ -381,7 +425,7 @@ async function sendCheckOutHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "hr", "whatsappSendPunchAlert");
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -394,6 +438,8 @@ async function sendCheckOutHR(
       "nestsports_checkout_hr",
       [empName, empId, locationName, t, hrs],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendCheckOutHR:", err.message);
@@ -415,7 +461,7 @@ async function sendStudentCheckIn(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -427,6 +473,8 @@ async function sendStudentCheckIn(
       "nestsports_student_checkin",
       [guardianName || "there", studentName, locationName, t],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendStudentCheckIn:", err.message);
@@ -445,7 +493,7 @@ async function sendFeePaymentLink(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "employee", "whatsappSendTxnAlert");
     if (!s) return { status: "skipped", error: "WhatsApp is not enabled" };
     const inr = new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -457,6 +505,8 @@ async function sendFeePaymentLink(
       "nestsports_fee_payment_link",
       [guardianName || "there", planName, studentName, inr, url],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
     return { status: "sent" };
   } catch (err) {
@@ -475,7 +525,7 @@ async function sendStudentCheckOut(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -487,6 +537,8 @@ async function sendStudentCheckOut(
       "nestsports_student_checkout",
       [guardianName || "there", studentName, locationName, t],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendStudentCheckOut:", err.message);
@@ -563,7 +615,7 @@ async function sendSalaryPaid(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifyPayroll", companyId);
+    const s = await getCompanySetting("whatsappNotifyPayroll", companyId, "employee", "whatsappSendTxnAlert");
     if (!s) return;
 
     const extraComponents = [];
@@ -636,6 +688,7 @@ async function sendSalaryPaid(
       ],
       s.whatsappLang || "en",
       extraComponents,
+      companyId,
     );
     logger.debug(`[WA-DEBUG] ✅ Salary paid notification sent to ${phone}`);
   } catch (err) {
@@ -692,7 +745,7 @@ async function sendPaymentVerified(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "employee", "whatsappSendTxnAlert");
     if (!s) return;
 
     const extraComponents = [];
@@ -743,6 +796,7 @@ async function sendPaymentVerified(
       ],
       s.whatsappLang || "en",
       extraComponents,
+      companyId,
     );
     logger.debug(
       `[WA-DEBUG] ✅ Payment verified notification sent to ${phone}`,
@@ -800,7 +854,7 @@ async function sendPaymentVerifiedAdmin(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "hr", "whatsappSendTxnAlert");
     if (!s) return;
 
     const extraComponents = [];
@@ -846,6 +900,7 @@ async function sendPaymentVerifiedAdmin(
       ],
       s.whatsappLang || "en",
       extraComponents,
+      companyId,
     );
     logger.debug(
       `[WA-DEBUG] ✅ Payment verified (admin copy) sent to ${phone}`,
@@ -887,7 +942,7 @@ async function sendPaymentRejected(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId);
+    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "employee", "whatsappSendTxnAlert");
     if (!s) return;
     await sendTemplate(
       phone,
@@ -900,6 +955,8 @@ async function sendPaymentRejected(
         reason || "Details could not be confirmed",
       ],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
     logger.debug(
       `[WA-DEBUG] ✅ Payment rejected notification sent to ${phone}`,
@@ -937,7 +994,7 @@ async function sendAttendanceStatus(
   const statusLabel = ATTENDANCE_STATUS_LABELS[status];
   if (!statusLabel) return; // skip holiday / weekend / on_leave
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId);
+    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
     if (!s) return;
     const d = new Date(date).toLocaleDateString("en-IN");
     await sendTemplate(
@@ -945,6 +1002,8 @@ async function sendAttendanceStatus(
       "nestsports_attendance_status",
       [firstName, d, statusLabel],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
     logger.debug(
       `[WA-DEBUG] ✅ Attendance status (${statusLabel}) sent to ${phone}`,
@@ -966,7 +1025,7 @@ async function sendLoanSubmitted(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -974,6 +1033,8 @@ async function sendLoanSubmitted(
       "nestsports_loan_submitted",
       [firstName, label, String(amount), String(tenureMonths || 0)],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLoanSubmitted:", err.message);
@@ -990,7 +1051,7 @@ async function sendLoanApproved(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -998,6 +1059,8 @@ async function sendLoanApproved(
       "nestsports_loan_approved",
       [firstName, label, String(amount), String(monthlyEmi || 0)],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLoanApproved:", err.message);
@@ -1014,7 +1077,7 @@ async function sendLoanRejected(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -1022,6 +1085,8 @@ async function sendLoanRejected(
       "nestsports_loan_rejected",
       [firstName, label, String(amount), reason || "Not specified"],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLoanRejected:", err.message);
@@ -1038,7 +1103,7 @@ async function sendLoanAppliedHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId);
+    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "hr", "whatsappSendLeaveAlert");
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -1053,6 +1118,8 @@ async function sendLoanAppliedHR(
         reason || "-",
       ],
       s.whatsappLang || "en",
+      [],
+      companyId,
     );
   } catch (err) {
     console.error("[WhatsApp] sendLoanAppliedHR:", err.message);

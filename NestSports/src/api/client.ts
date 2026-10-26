@@ -539,6 +539,12 @@ export const settingsAPI = {
     upload('/settings/payment-qr', toFormData({ qrCode })),
 };
 
+export const creditsAPI = {
+  balance: () => request('/credits/balance'),
+  ledger: (page = 1, type = '') =>
+    request(`/credits/ledger?page=${page}${type ? `&type=${type}` : ''}`),
+};
+
 export const billingAPI = {
   getPlans: () => request('/billing/plans'),
   getSubscription: () => request('/billing/subscription'),

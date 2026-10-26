@@ -72,6 +72,10 @@ router.post("/", async (req, res) => {
         logger.info(
           `[WA] Status ${st.status} to=${st.recipient_id} id=${st.id}${errs}`,
         );
+        // a message Meta could not deliver is not charged
+        if (st.status === "failed") {
+          require("../services/creditsService").refundByWamid(st.id).catch((e) => logger.error(`[WA] credit refund: ${e.message}`));
+        }
       }
     }
 

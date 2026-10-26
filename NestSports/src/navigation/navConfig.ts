@@ -12,6 +12,7 @@ import {
   BarChart2,
   Gift,
   CreditCard,
+  Coins,
   SlidersHorizontal,
   ShieldAlert,
   AlertCircle,
@@ -328,6 +329,13 @@ export const navGroups: NavGroup[] = [
         icon: CreditCard,
         roles: ['super_admin'],
         desc: 'Subscription & invoices',
+      },
+      {
+        title: 'WhatsApp Credits',
+        screen: 'Credits',
+        icon: Coins,
+        roles: OWNER,
+        desc: 'Balance & message usage',
       },
       {
         title: 'Account Security',

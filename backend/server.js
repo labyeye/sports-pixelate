@@ -201,6 +201,7 @@ app.use("/api/payroll", require("./routes/payrollRoutes"));
 app.use("/api/departments", require("./routes/departmentRoutes"));
 app.use("/api/settings", require("./routes/settingRoutes"));
 app.use("/api/billing", require("./routes/billingRoutes"));
+app.use("/api/credits", require("./routes/creditsRoutes"));
 app.use("/api/payment-methods", require("./routes/paymentMethodRoutes"));
 app.use("/api/holidays", require("./routes/holidayRoutes"));
 app.use("/api/payroll-config", require("./routes/payrollConfigRoutes"));

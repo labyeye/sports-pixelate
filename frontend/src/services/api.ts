@@ -523,6 +523,31 @@ export const settingsAPI = {
   },
 };
 
+export const creditsAPI = {
+  balance: () => request<{ success: boolean; data: any }>("/credits/balance"),
+  packs: () => request<{ success: boolean; data: any }>("/credits/packs"),
+  estimate: () => request<{ success: boolean; data: any }>("/credits/estimate"),
+  topups: () => request<{ success: boolean; data: any[] }>("/credits/topups"),
+  ledger: (page = 1, type = "") =>
+    request<{ success: boolean; data: any[]; total: number; page: number }>(
+      `/credits/ledger?page=${page}${type ? `&type=${type}` : ""}`,
+    ),
+  createTopup: (packId: string) =>
+    request<{ success: boolean; data: any }>("/credits/topup", {
+      method: "POST",
+      body: JSON.stringify({ packId }),
+    }),
+  verifyTopup: (body: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }) =>
+    request<{ success: boolean; data: any }>("/credits/topup/verify", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
 export const billingAPI = {
   getPlans: () => request<{ success: boolean; data: any }>("/billing/plans"),
   getSubscription: () =>

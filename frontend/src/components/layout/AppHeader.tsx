@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { notificationAPI } from "@/services/api";
 import { Bell, Search, Menu, CheckCircle2, Clock } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ProfileMenu } from "./ProfileMenu";
 
 interface AppHeaderProps {
   title: string;
@@ -206,22 +207,7 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 border-2 border-black bg-[#024BAB] px-2 sm:px-3 py-1.5">
-          <div className="w-6 h-6 border-2 border-black shrink-0 overflow-hidden bg-[#FA731C] flex items-center justify-center text-[10px] font-bold text-white rounded-full">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              (user.name?.[0]?.toUpperCase() ?? "U")
-            )}
-          </div>
-          <span className="hidden sm:block text-sm font-bold text-white max-w-[100px] truncate">
-            {user.name}
-          </span>
-        </div>
+        <ProfileMenu />
       </div>
     </header>
   );

@@ -11,6 +11,7 @@ import {
 import { lazy, Suspense } from "react";
 import IntroOnboarding from "@/components/IntroOnboarding";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CreditsProvider } from "@/contexts/CreditsContext";
 import { ImageCropHost } from "@/components/ui/ImageCropper";
 import { useDisabledFeatures } from "@/hooks/useDisabledFeatures";
 import { isPathDisabled } from "@/config/features";
@@ -69,6 +70,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const SupportPage = lazy(() => import("./pages/SupportPage"));
 const DocumentVaultPage = lazy(() => import("./pages/DocumentVaultPage"));
+const CreditsPage = lazy(() => import("./pages/CreditsPage"));
 const BiometricPage = lazy(() => import("./pages/BiometricPage"));
 const BiometricDevicePage = lazy(() => import("./pages/BiometricDevicePage"));
 import nesthrlogo from "../assets/nesthr.png";
@@ -548,6 +550,14 @@ function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/credits"
+            element={
+              <ProtectedRoute>
+                <CreditsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -559,6 +569,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ToastProvider>
       <AuthProvider>
+        <CreditsProvider>
         <BrowserRouter>
           <AppRoutes />
           <TermsGate />
@@ -567,6 +578,7 @@ const App = () => (
           <DocOtpHost />
           <ImageCropHost />
         </BrowserRouter>
+        </CreditsProvider>
       </AuthProvider>
     </ToastProvider>
   </QueryClientProvider>
