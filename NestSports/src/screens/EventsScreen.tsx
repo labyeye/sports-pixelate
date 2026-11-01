@@ -18,7 +18,8 @@ import {
   Trophy,
   Users,
   ChevronRight,
-  ArrowUpDown,
+  Search,
+  SlidersHorizontal,
   CalendarClock,
   PlayCircle,
   CheckCircle2,
@@ -37,6 +38,11 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import HeaderIconBtn from '../components/common/HeaderIconBtn';
+import SearchModal from '../components/common/SearchModal';
+import FilterSortModal from '../components/common/FilterSortModal';
+import SlideInCard from '../components/motion/SlideInCard';
+
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { eventTypes } from '../config/eventTypeConfig';
@@ -84,6 +90,7 @@ export default function EventsScreen({ navigation }: any) {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
 
   const fetchPage = useCallback(
     (pageNum: number) =>
@@ -152,38 +159,38 @@ export default function EventsScreen({ navigation }: any) {
       <ScreenHeader
         title="Events"
         right={
-          !isParent && (
-            
-            <TouchableOpacity
-              onPress={() => navigation.navigate('EventForm')}
-              style={headerBtn}
-              hitSlop={8}
-            >
-              <Plus size={20} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
-            
-          )
+          <>
+            <HeaderIconBtn
+              label="Search"
+              onPress={() => setSearchVisible(true)}
+              dot={!!search}
+              icon={<Search size={20} color={colors.black} strokeWidth={2.5} />}
+            />
+            <HeaderIconBtn
+              label="Filter and sort"
+              onPress={() => setSortVisible(true)}
+              dot={!!status}
+              icon={
+                <SlidersHorizontal
+                  size={20}
+                  color={colors.black}
+                  strokeWidth={2.5}
+                />
+              }
+            />
+            {!isParent && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('EventForm')}
+                style={headerBtn}
+                hitSlop={8}
+              >
+                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+          </>
         }
       />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.headerRow}>
-          <SearchBar
-            value={searchInput}
-            onChangeText={setSearchInput}
-            placeholder="Search events..."
-          />
-        </View>
-        <View style={styles.sortRow}>
-          <View style={{ flex: 1 }}>
-            <FilterPills
-              options={STATUS_OPTIONS}
-              value={status}
-              onChange={setStatus}
-            />
-          </View>
-          
-        </View>
-
         <View style={styles.kpiGrid}>
           <KpiTile
             label="Events"
@@ -236,57 +243,84 @@ export default function EventsScreen({ navigation }: any) {
               />
             </Card>
           }
-          renderItem={({ item: e }) => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('EventDetail', { id: e._id })}
-            >
-              <Card>
-                <View style={styles.topRow}>
-                  <View style={styles.iconChip}>
-                    <Trophy size={16} color={colors.blue} strokeWidth={2.5} />
+          renderItem={({ item: e, index }) => (
+            <SlideInCard index={index}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('EventDetail', { id: e._id })
+                }
+              >
+                <Card>
+                  <View style={styles.topRow}>
+                    <View style={styles.iconChip}>
+                      <Trophy size={16} color={colors.blue} strokeWidth={2.5} />
+                    </View>
+                    <Badge
+                      label={e.status?.replace(/_/g, ' ') || '-'}
+                      color={STATUS_COLORS[e.status] || colors.blue}
+                    />
                   </View>
-                  <Badge
-                    label={e.status?.replace(/_/g, ' ') || '-'}
-                    color={STATUS_COLORS[e.status] || colors.blue}
-                  />
-                </View>
-                <Text style={styles.name}>{e.name}</Text>
-                <Text style={styles.meta}>
-                  {(eventTypes as any)[e.eventType]?.label || e.eventType} ·{' '}
-                  {e.activity}
-                </Text>
-                <View style={styles.bottomRow}>
-                  <View style={styles.teamsCount}>
-                    <Users size={13} color={colors.black} strokeWidth={2.5} />
-                    <Text style={styles.teamsCountText}>
-                      {e.participation?.type === 'team'
-                        ? `${e.teams?.length || 0} team${
-                            e.teams?.length === 1 ? '' : 's'
-                          }`
-                        : `${e.registrationCount || 0} registered`}
-                    </Text>
-                  </View>
-                  <Text style={styles.entryFeeText}>
-                    {e.entryFee ? `₹${e.entryFee} entry` : 'Free entry'}
+                  <Text style={styles.name}>{e.name}</Text>
+                  <Text style={styles.meta}>
+                    {(eventTypes as any)[e.eventType]?.label || e.eventType} ·{' '}
+                    {e.activity}
                   </Text>
-                  <ChevronRight size={16} color={colors.muted} />
-                </View>
-              </Card>
-            </TouchableOpacity>
+                  <View style={styles.bottomRow}>
+                    <View style={styles.teamsCount}>
+                      <Users size={13} color={colors.black} strokeWidth={2.5} />
+                      <Text style={styles.teamsCountText}>
+                        {e.participation?.type === 'team'
+                          ? `${e.teams?.length || 0} team${
+                              e.teams?.length === 1 ? '' : 's'
+                            }`
+                          : `${e.registrationCount || 0} registered`}
+                      </Text>
+                    </View>
+                    <Text style={styles.entryFeeText}>
+                      {e.entryFee ? `₹${e.entryFee} entry` : 'Free entry'}
+                    </Text>
+                    <ChevronRight size={16} color={colors.muted} />
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            </SlideInCard>
           )}
         />
       </View>
 
-      <SortSheet
+      <SearchModal
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder="Search events..."
+        items={events.map(e => ({
+          key: e._id,
+          title: e.name,
+          subtitle: e.activity,
+        }))}
+      />
+
+      <FilterSortModal
         visible={sortVisible}
         onClose={() => setSortVisible(false)}
-        options={SORT_OPTIONS}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onApply={(key, dir) => {
+        filterTitle="Status"
+        filterOptions={STATUS_OPTIONS.map(o => ({
+          key: o.value,
+          label: o.label,
+        }))}
+        filterValue={status}
+        onFilter={setStatus}
+        sortOptions={SORT_OPTIONS.map(o => ({ key: o.key, label: o.label }))}
+        sortValue={sortBy}
+        onSort={key => {
           setSortBy(key);
-          setSortDir(dir);
-          setSortVisible(false);
+          setSortDir(/date|created/i.test(key) ? 'desc' : 'asc');
+        }}
+        onReset={() => {
+          setStatus('');
+          setSortBy('createdAt');
+          setSortDir('desc');
         }}
       />
     </SafeAreaView>
@@ -302,7 +336,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom:15,
+    marginBottom: 15,
   },
   sortBtn: {
     width: 36,

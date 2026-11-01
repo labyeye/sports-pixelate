@@ -33,6 +33,7 @@ import { authAPI, saveTrustedDevice } from '../../api/client';
 import { colors } from '../../theme/colors';
 import WhatsAppIcon from '../../components/common/WhatsAppIcon';
 import { getErrorMessage } from '../../utils/format';
+import LegalLinks from '../../components/LegalLinks';
 
 // Same palette names NestHR's auth screens were written with, on NestSports' tokens.
 const C = {
@@ -649,6 +650,10 @@ export default function LoginScreen({ navigation }: any) {
             </>
           )}
         </>
+        <LegalLinks
+          prefix="By signing in you agree to the"
+          style={{ marginTop: 20 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

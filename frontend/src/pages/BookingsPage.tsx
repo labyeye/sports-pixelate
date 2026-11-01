@@ -33,6 +33,7 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 declare global {
   interface Window {
@@ -364,7 +365,7 @@ export default function BookingsPage() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this booking?")) return;
+    if (!(await confirmDialog("Cancel this booking?"))) return;
     try {
       await bookingAPI.cancel(id);
       toast({ title: "Booking cancelled — any gear is back in stock" });

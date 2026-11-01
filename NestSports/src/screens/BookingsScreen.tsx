@@ -45,6 +45,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -310,74 +311,76 @@ export default function BookingsScreen() {
             <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
           }
           ListEmptyComponent={<EmptyState title="No bookings found" />}
-          renderItem={({ item: b }) => (
-            <Card>
-              <View style={styles.cardHeaderRow}>
-                <Text style={styles.name}>
-                  {b.facility?.name || 'Facility'}
-                </Text>
-                <Badge
-                  label={b.status}
-                  color={STATUS_COLORS[b.status] || colors.muted}
-                />
-              </View>
-              <Text style={styles.dateText}>
-                {b.date
-                  ? new Date(b.date).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : '—'}{' '}
-                · {b.startTime}–{b.endTime}
-              </Text>
-              <Text style={styles.feeText}>
-                {b.fee > 0 ? `₹${b.fee.toLocaleString('en-IN')}` : 'Free'}
-              </Text>
-              {(b.items || []).length > 0 && (
-                <View style={styles.gearWrap}>
-                  {b.items.map((l: any) => (
-                    <View
-                      key={l._id}
-                      style={[
-                        styles.gearChip,
-                        {
-                          backgroundColor: l.returnedAt
-                            ? '#00C48C26'
-                            : '#FA731C26',
-                        },
-                      ]}
-                    >
-                      <Package size={11} color={colors.black} />
-                      <Text style={styles.gearChipText}>
-                        {l.item?.name || 'Item'} × {l.quantity}
-                        {l.returnedAt ? ' · returned' : ' · out'}
-                      </Text>
-                    </View>
-                  ))}
+          renderItem={({ item: b, index }) => (
+            <SlideInCard index={index}>
+              <Card>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.name}>
+                    {b.facility?.name || 'Facility'}
+                  </Text>
+                  <Badge
+                    label={b.status}
+                    color={STATUS_COLORS[b.status] || colors.muted}
+                  />
                 </View>
-              )}
-              {(b.items || []).some((l: any) => !l.returnedAt) &&
-                b.status !== 'cancelled' && (
-                  <View style={{ marginBottom: 10 }}>
-                    <Button
-                      title="Record Return"
-                      onPress={() => handleReturn(b._id)}
-                      color={colors.green}
-                      loading={returningId === b._id}
-                    />
+                <Text style={styles.dateText}>
+                  {b.date
+                    ? new Date(b.date).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : '—'}{' '}
+                  · {b.startTime}–{b.endTime}
+                </Text>
+                <Text style={styles.feeText}>
+                  {b.fee > 0 ? `₹${b.fee.toLocaleString('en-IN')}` : 'Free'}
+                </Text>
+                {(b.items || []).length > 0 && (
+                  <View style={styles.gearWrap}>
+                    {b.items.map((l: any) => (
+                      <View
+                        key={l._id}
+                        style={[
+                          styles.gearChip,
+                          {
+                            backgroundColor: l.returnedAt
+                              ? '#00C48C26'
+                              : '#FA731C26',
+                          },
+                        ]}
+                      >
+                        <Package size={11} color={colors.black} />
+                        <Text style={styles.gearChipText}>
+                          {l.item?.name || 'Item'} × {l.quantity}
+                          {l.returnedAt ? ' · returned' : ' · out'}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 )}
-              {b.status === 'confirmed' && (
-                <Button
-                  title="Cancel Booking"
-                  onPress={() => handleCancel(b._id)}
-                  color={colors.red}
-                  variant="outline"
-                  loading={cancellingId === b._id}
-                />
-              )}
-            </Card>
+                {(b.items || []).some((l: any) => !l.returnedAt) &&
+                  b.status !== 'cancelled' && (
+                    <View style={{ marginBottom: 10 }}>
+                      <Button
+                        title="Record Return"
+                        onPress={() => handleReturn(b._id)}
+                        color={colors.green}
+                        loading={returningId === b._id}
+                      />
+                    </View>
+                  )}
+                {b.status === 'confirmed' && (
+                  <Button
+                    title="Cancel Booking"
+                    onPress={() => handleCancel(b._id)}
+                    color={colors.red}
+                    variant="outline"
+                    loading={cancellingId === b._id}
+                  />
+                )}
+              </Card>
+            </SlideInCard>
           )}
         />
       </View>

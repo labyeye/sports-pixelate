@@ -9,6 +9,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import AnimatedSplash from '../components/AnimatedSplash';
+import TermsGate from '../components/TermsGate';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme/colors';
 import MainTabs from './MainTabs';
@@ -32,6 +33,11 @@ import AddEmployeeScreen from '../screens/AddEmployeeScreen';
 import DepartmentsScreen from '../screens/DepartmentsScreen';
 import EmployeeCredentialsScreen from '../screens/EmployeeCredentialsScreen';
 import DocumentsScreen from '../screens/DocumentsScreen';
+import AnnouncementsScreen from '../screens/AnnouncementsScreen';
+import TrashScreen from '../screens/TrashScreen';
+import TasksScreen from '../screens/TasksScreen';
+import LettersScreen from '../screens/LettersScreen';
+import FaceKioskScreen from '../screens/FaceKioskScreen';
 import EventsScreen from '../screens/EventsScreen';
 import EventFormScreen from '../screens/EventFormScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
@@ -118,12 +124,13 @@ function LoadingScreen() {
 // The animated splash covers the app until the saved session is restored (and
 // its minimum animation time has passed). It also hides the native splash.
 export default function RootNavigator() {
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
   const finishSplash = useCallback(() => setSplashDone(true), []);
   return (
     <View style={{ flex: 1 }}>
       <RootNavigatorContent />
+      {isAuthenticated && <TermsGate />}
       {!splashDone && (
         <AnimatedSplash ready={!isLoading} onFinish={finishSplash} />
       )}
@@ -234,6 +241,18 @@ function RootNavigatorContent() {
               options={{ title: 'Credentials' }}
             />
             <Stack.Screen name="Documents" component={DocumentsScreen} />
+            <Stack.Screen
+              name="Announcements"
+              component={AnnouncementsScreen}
+            />
+            <Stack.Screen name="Trash" component={TrashScreen} />
+            <Stack.Screen name="Tasks" component={TasksScreen} />
+            <Stack.Screen name="Letters" component={LettersScreen} />
+            <Stack.Screen
+              name="FaceKiosk"
+              component={FaceKioskScreen}
+              options={{ animation: 'fade' }}
+            />
             <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen
               name="EventForm"

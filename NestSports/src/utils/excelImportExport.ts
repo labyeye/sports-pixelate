@@ -1,5 +1,5 @@
 import { Alert } from 'react-native';
-import * as XLSX from 'xlsx';
+import { buildXlsxBase64, readXlsxBase64, parseCsv } from './xlsxLite';
 import RNPrint from 'react-native-print';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
@@ -16,23 +16,20 @@ const XLSX_MIME =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 // Opens the native document picker restricted to Excel/CSV files, reads the
-// picked file as base64 via react-native-fs, and parses it with SheetJS —
+// picked file as base64 via react-native-fs, and parses it (xlsxLite) —
 // the RN equivalent of the web app's <input type="file"> + FileReader flow.
 export async function pickAndParseExcelFile(
   headers: ImportHeader[],
 ): Promise<Record<string, string>[] | null> {
   const [file] = await pick({
-    type: [types.xlsx, types.xls, types.csv],
+    type: [types.xlsx, types.csv],
   });
   if (!file) return null;
 
-  const base64 = await RNFS.readFile(file.uri, 'base64');
-  const wb = XLSX.read(base64, { type: 'base64', cellDates: true });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const raw: any[][] = XLSX.utils.sheet_to_json(ws, {
-    header: 1,
-    defval: '',
-  });
+  const isCsv = /\.csv$/i.test(file.name || '') || file.type === 'text/csv';
+  const raw: any[][] = isCsv
+    ? parseCsv(await RNFS.readFile(file.uri, 'utf8'))
+    : readXlsxBase64(await RNFS.readFile(file.uri, 'base64'));
   if (raw.length < 2) return [];
 
   const headerRow = (raw[0] as string[]).map(h => String(h).trim());
@@ -70,9 +67,7 @@ export async function shareImportTemplate(
 ) {
   const headerRow = headers.map(h => h.label);
   const exampleRow = headers.map(h => h.example);
-  const ws = XLSX.utils.aoa_to_sheet([headerRow, exampleRow]);
-  ws['!cols'] = headers.map(() => ({ wch: 22 }));
-  await writeAndShareWorkbook(ws, filename, sheetName);
+  await writeAndShareWorkbook([headerRow, exampleRow], filename, sheetName);
 }
 
 // Exports rows of data to an .xlsx file and opens the native share sheet.
@@ -125,9 +120,7 @@ async function writeExcel(
       return val === undefined || val === null ? '' : val;
     }),
   );
-  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
-  ws['!cols'] = headers.map(() => ({ wch: 22 }));
-  await writeAndShareWorkbook(ws, filename, sheetName);
+  await writeAndShareWorkbook([headerRow, ...dataRows], filename, sheetName);
 }
 
 // Every list/report "download" in the app goes through here, so each one now
@@ -156,13 +149,11 @@ export function exportRowsToExcel(
 }
 
 async function writeAndShareWorkbook(
-  ws: XLSX.WorkSheet,
+  rows: unknown[][],
   filename: string,
   sheetName: string,
 ) {
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  const base64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+  const base64 = buildXlsxBase64(rows, sheetName);
   const path = `${RNFS.CachesDirectoryPath}/${filename}`;
   await RNFS.writeFile(path, base64, 'base64');
   await Share.open({

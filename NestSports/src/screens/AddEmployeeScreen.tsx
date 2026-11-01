@@ -28,6 +28,7 @@ import {
 } from '../data/indiaStatesAndCities';
 import { getCurrentPosition } from '../utils/location';
 import { colors, FONT } from '../theme/colors';
+import { lookupPincode } from '../utils/pincode';
 import { notifyError } from '../utils/notifyError';
 import ScreenHeader from '../components/ScreenHeader';
 
@@ -153,6 +154,28 @@ export default function AddEmployeeScreen({ navigation, route }: any) {
       {...extra}
     />
   );
+
+  // 6-digit pincode -> fills state and city (free India Post lookup).
+  useEffect(() => {
+    const pin = String(form.pincode || '');
+    if (!/^\d{6}$/.test(pin)) return;
+    let live = true;
+    lookupPincode(pin).then(r => {
+      if (!live || !r) return;
+      const st = INDIA_STATES.find(
+        x => x.toLowerCase() === r.state.toLowerCase(),
+      );
+      if (!st) return;
+      const known = (INDIA_STATES_AND_CITIES[st] || []).find(
+        c => c.toLowerCase() === r.city.toLowerCase(),
+      );
+      setForm(f => ({ ...f, state: st, city: known || r.city }));
+      setCityOther(!known);
+    });
+    return () => {
+      live = false;
+    };
+  }, [form.pincode]);
 
   useEffect(() => {
     departmentAPI

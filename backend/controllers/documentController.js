@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const asyncHandler = require("express-async-handler");
+const { moveToTrash } = require("./trashController");
 const EmployeeDocument = require("../models/EmployeeDocument");
 const Employee = require("../models/Employee");
 const { validateMagicBytes } = require("../middleware/upload");
@@ -217,13 +218,8 @@ const deleteDocument = asyncHandler(async (req, res) => {
     throw new Error("Document not found");
   }
 
-  // Delete file from disk
-  if (doc.filePath) {
-    const abs = path.resolve(__dirname, "../", doc.filePath);
-    if (fs.existsSync(abs)) fs.unlinkSync(abs);
-  }
-
-  await doc.deleteOne();
+  // The file stays on disk while the record sits in Trash (purging deletes it).
+  await moveToTrash("EmployeeDocument", doc, req);
   res.json({ success: true, message: "Document deleted" });
 });
 

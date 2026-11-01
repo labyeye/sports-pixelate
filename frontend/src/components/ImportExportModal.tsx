@@ -75,7 +75,7 @@ export function ImportExportModal({
       setRows(parsed);
       setStep("preview");
     } catch {
-      alert("Could not read that file. Please upload a valid .xlsx/.xls file.");
+      alert("Could not read that file. Please upload a valid .xlsx file.");
     }
   };
 
@@ -262,7 +262,7 @@ export function ImportExportModal({
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx"
                   className="hidden"
                   onChange={handleFile}
                 />

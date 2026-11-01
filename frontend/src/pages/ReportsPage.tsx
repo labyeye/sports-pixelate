@@ -17,7 +17,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { buildReportHTML, ReportCompany } from "@/lib/reportPrintHTML";
 import { fetchAllPages } from "@/lib/fetchAllPages";
 import { exportPDF, setReportCompanyName } from "@/lib/reportPDF";
-import * as XLSX from "xlsx";
+import { writeSheet } from "@/utils/excelImportExport";
 import {
   BarChart,
   Bar,
@@ -471,10 +471,7 @@ function exportCSV(rows: string[][], filename: string) {
 }
 
 function exportXLSX(rows: string[][], filename: string) {
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Report");
-  XLSX.writeFile(wb, filename.replace(".csv", ".xlsx"));
+  void writeSheet(rows, filename.replace(".csv", ".xlsx"), "Report", 18);
 }
 
 function printReport(

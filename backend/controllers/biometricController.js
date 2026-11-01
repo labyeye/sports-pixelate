@@ -22,6 +22,9 @@ const Employee = require("../models/Employee");
 const Student = require("../models/Student");
 const User = require("../models/User");
 const { safePagination } = require("../middleware/validate");
+const { getOverdueStudents } = require("../utils/feeOverdue");
+const DeductionRule = require("../models/DeductionRule");
+const { enrollFace } = require("../services/faceService");
 const { isHolidayDate } = require("./holidayController");
 const {
   sendCheckIn,
@@ -631,6 +634,38 @@ const recordBiometric = asyncHandler(async (req, res) => {
     // and reads — using the server-local-timezone `today` here instead
     // would misfile early-morning check-ins under the wrong calendar day
     // and make them invisible to the "today" filters on web/mobile.
+    // Same rules as manual marking: fee lock on the first scan, and academies
+    // that only record check-in treat a second scan as "already marked".
+    if (logType === "check_in") {
+      const { overdue } = await getOverdueStudents(bestMatch.company, [
+        bestMatch._id,
+      ]);
+      const info = overdue.get(String(bestMatch._id));
+      if (info) {
+        res.status(403);
+        const err = new Error(
+          `${personLabel.name} has not paid the fee (overdue by ${info.overdueDays} days). Attendance cannot be taken.`,
+        );
+        err.code = "FEE_OVERDUE";
+        throw err;
+      }
+    } else {
+      const rule = await DeductionRule.findOne({ company: bestMatch.company })
+        .select("studentAttendanceTimeMode")
+        .lean();
+      if (rule?.studentAttendanceTimeMode === "single") {
+        return res.json({
+          success: true,
+          locked: true,
+          data: {
+            person: personLabel,
+            type: "check_in",
+            message: "Already marked for today",
+            checkedInAt: lastTodayLog?.timestamp,
+          },
+        });
+      }
+    }
     const studentDate = toDateOnly(now);
     const attendanceUpdate = {
       company: person.company,
@@ -1217,7 +1252,13 @@ const faceAttendance = asyncHandler(async (req, res) => {
   }
 
   const THRESHOLD = 0.5;
-  const nearest = await findNearestFace(device?.company, descriptor);
+  // Scoped to one academy: the device's, or the signed-in admin's (app / web kiosk).
+  const scopeCompany = device?.company || req.user?.company;
+  if (!scopeCompany) {
+    res.status(403);
+    throw new Error("Not allowed");
+  }
+  const nearest = await findNearestFace(scopeCompany, descriptor);
   const bestDist = nearest ? nearest.distance : Infinity;
 
   if (!nearest || bestDist > THRESHOLD) {
@@ -1507,6 +1548,23 @@ const faceAttendance = asyncHandler(async (req, res) => {
   );
 });
 
+// Spare-device kiosk in the mobile app (owner signed in on a wall-mounted phone/tablet): the app sends a
+// photo, the face service derives the embedding, and the same 1:N match + check-in/check-out toggle as the
+// web kiosk runs, for students and staff alike.
+const faceKioskPhoto = asyncHandler(async (req, res, next) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error("Photo is required");
+  }
+  const probe = await enrollFace(
+    req.file.buffer,
+    req.file.originalname || "kiosk.jpg",
+    req.file.mimetype,
+  );
+  req.body = { descriptor: probe };
+  return faceAttendance(req, res, next);
+});
+
 const triggerFaceEnroll = asyncHandler(async (req, res) => {
   const { personType, personId } = req.body;
   if (!personType || !personId) {
@@ -1719,6 +1777,7 @@ module.exports = {
   resetFaceDescriptor,
   getFaceDescriptors,
   faceAttendance,
+  faceKioskPhoto,
   triggerFingerprintEnroll,
   getDeviceEmployees,
   enrollFaceFromDevice,

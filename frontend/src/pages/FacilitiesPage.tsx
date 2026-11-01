@@ -25,6 +25,7 @@ import {
   Trophy,
   IndianRupee,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 interface Facility {
   _id: string;
@@ -179,7 +180,7 @@ export default function FacilitiesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deactivate this facility?")) return;
+    if (!(await confirmDialog("Deactivate this facility?"))) return;
     try {
       await facilityAPI.delete(id);
       setFacilities((p) => p.filter((f) => f._id !== id));

@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 type Tab = "locations_devices" | "logs" | "adms";
 
@@ -340,7 +341,7 @@ export default function BiometricPage() {
       });
       return;
     }
-    const ok = window.confirm("Create this device?");
+    const ok = await confirmDialog("Create this device?");
     if (!ok) return;
     setDevSaving(true);
     try {

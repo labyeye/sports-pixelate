@@ -40,6 +40,7 @@ import {
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -340,55 +341,59 @@ export default function PlansScreen({ navigation }: any) {
             <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
           }
           ListEmptyComponent={<EmptyState title="No coaching plans found" />}
-          renderItem={({ item: p }) => (
-            <Card>
-              <View style={styles.cardHeaderRow}>
-                <Text style={styles.name}>{p.name}</Text>
-                <Badge label={p.sport} color={colors.blue} />
-              </View>
-              <Text style={styles.sub}>
-                {scheduleLabel(p)}
-                {p.startTime ? ` · ${timingLabel(p)}` : ''}
-              </Text>
-              <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>MONTHLY</Text>
-                  <Text style={styles.statValue}>
-                    {formatCurrency(p.monthlyPrice)}
-                  </Text>
+          renderItem={({ item: p, index }) => (
+            <SlideInCard index={index}>
+              <Card>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.name}>{p.name}</Text>
+                  <Badge label={p.sport} color={colors.blue} />
                 </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>YEARLY</Text>
-                  <Text style={styles.statValue}>
-                    {formatCurrency(p.yearlyPrice)}
-                  </Text>
-                </View>
-              </View>
-              {isOwner && (
-                <View style={styles.actionsRow}>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('AddPlan', { plan: p })}
-                    style={styles.actionBtn}
-                    hitSlop={8}
-                  >
-                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                    <Text style={[styles.actionText, { color: colors.blue }]}>
-                      Edit
+                <Text style={styles.sub}>
+                  {scheduleLabel(p)}
+                  {p.startTime ? ` · ${timingLabel(p)}` : ''}
+                </Text>
+                <View style={styles.statsRow}>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>MONTHLY</Text>
+                    <Text style={styles.statValue}>
+                      {formatCurrency(p.monthlyPrice)}
                     </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => onDelete(p)}
-                    style={styles.actionBtn}
-                    hitSlop={8}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                    <Text style={[styles.actionText, { color: colors.red }]}>
-                      Delete
+                  </View>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>YEARLY</Text>
+                    <Text style={styles.statValue}>
+                      {formatCurrency(p.yearlyPrice)}
                     </Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
-              )}
-            </Card>
+                {isOwner && (
+                  <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate('AddPlan', { plan: p })
+                      }
+                      style={styles.actionBtn}
+                      hitSlop={8}
+                    >
+                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                      <Text style={[styles.actionText, { color: colors.blue }]}>
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => onDelete(p)}
+                      style={styles.actionBtn}
+                      hitSlop={8}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                      <Text style={[styles.actionText, { color: colors.red }]}>
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Card>
+            </SlideInCard>
           )}
         />
       </View>

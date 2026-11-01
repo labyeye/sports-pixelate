@@ -21,6 +21,7 @@ import {
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast, notifyError } from "@/hooks/use-toast";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const DOC_TYPES = [
   { value: "id_proof", label: "ID Proof", icon: Shield },
@@ -208,7 +209,7 @@ export default function DocumentVaultPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this document?")) return;
+    if (!(await confirmDialog("Delete this document?"))) return;
     try {
       await documentAPI.delete(id);
       setDocs((prev) => prev.filter((d) => d._id !== id));

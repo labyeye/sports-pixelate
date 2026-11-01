@@ -41,6 +41,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { formatCurrency } from '../utils/format';
@@ -250,42 +251,44 @@ export default function ExpensesScreen() {
             <EmptyState title="No expenses found" />
           </Card>
         ) : (
-          expenses.map(e => (
-            <Card key={e._id}>
-              <View style={styles.cardHeaderRow}>
-                <Text style={styles.name}>{e.title}</Text>
-                <Badge
-                  label={e.category?.replace('_', ' ')}
-                  color={colors.orange}
-                />
-              </View>
-              <Text style={styles.sub}>
-                {e.date
-                  ? new Date(e.date).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : '—'}
-              </Text>
-              <View style={styles.cardBottom}>
-                <Text style={styles.amount}>{formatCurrency(e.amount)}</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity
-                    style={styles.editBtn}
-                    onPress={() => openEdit(e)}
-                  >
-                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => onDelete(e)}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  </TouchableOpacity>
+          expenses.map((e, index) => (
+            <SlideInCard index={index}>
+              <Card key={e._id}>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.name}>{e.title}</Text>
+                  <Badge
+                    label={e.category?.replace('_', ' ')}
+                    color={colors.orange}
+                  />
                 </View>
-              </View>
-            </Card>
+                <Text style={styles.sub}>
+                  {e.date
+                    ? new Date(e.date).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : '—'}
+                </Text>
+                <View style={styles.cardBottom}>
+                  <Text style={styles.amount}>{formatCurrency(e.amount)}</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() => openEdit(e)}
+                    >
+                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => onDelete(e)}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Card>
+            </SlideInCard>
           ))
         )}
       </ScrollView>

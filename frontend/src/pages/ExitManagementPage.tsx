@@ -23,6 +23,7 @@ import {
   IndianRupee,
   Wallet,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 type PersonType = "employee" | "student";
 
@@ -999,9 +1000,10 @@ function ExitDetailModal({
         {editable && (
           <>
             <button
-              onClick={() =>
-                confirm("Cancel this exit? The person stays as they are.") &&
-                run("cancel", () => exitAPI.cancel(id), "Exit cancelled")
+              onClick={async () =>
+                (await confirmDialog(
+                  "Cancel this exit? The person stays as they are.",
+                )) && run("cancel", () => exitAPI.cancel(id), "Exit cancelled")
               }
               disabled={!!busy}
               className="border-2 border-black bg-white px-4 py-2 text-sm font-bold uppercase text-red-600 mr-auto"

@@ -189,6 +189,7 @@ app.get("/.well-known/apple-app-site-association", (req, res) =>
 
 app.use("/api/auth", authRateLimit, require("./routes/authRoutes"));
 app.use("/api/legal", require("./routes/legalRoutes"));
+app.use("/api/app-version", require("./routes/appVersionRoutes"));
 app.use("/api/privacy", require("./routes/privacyRoutes"));
 app.use(apiRateLimit);
 app.use(require("./middleware/auditWrites"));
@@ -222,6 +223,9 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/support", require("./routes/supportRoutes"));
 app.use("/api/documents", require("./routes/documentRoutes"));
 app.use("/api/announcements", require("./routes/announcementRoutes"));
+app.use("/api/trash", require("./routes/trashRoutes"));
+app.use("/api/tasks", require("./routes/taskRoutes"));
+app.use("/api/offer-letters", require("./routes/offerLetterRoutes"));
 app.use(
   "/api/attendance-corrections",
   require("./routes/attendanceCorrectionRoutes"),

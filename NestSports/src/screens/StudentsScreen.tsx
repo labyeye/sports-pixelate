@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Plus,
-  ArrowUpDown,
+  Search,
+  SlidersHorizontal,
   Edit2,
   Trash2,
   User,
@@ -43,6 +44,10 @@ import { colors, FONT } from '../theme/colors';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 import { StatRow } from '../components/common/StatTile';
+import HeaderIconBtn from '../components/common/HeaderIconBtn';
+import SearchModal from '../components/common/SearchModal';
+import FilterSortModal from '../components/common/FilterSortModal';
+import SlideInCard from '../components/motion/SlideInCard';
 import {
   Users as SUsers,
   UserCheck as SUserCheck,
@@ -182,6 +187,7 @@ export default function StudentsScreen({ navigation }: any) {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [importVisible, setImportVisible] = useState(false);
 
   const fetchPage = useCallback(
@@ -303,13 +309,24 @@ export default function StudentsScreen({ navigation }: any) {
           >
             <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
-          <TouchableOpacity
+          <HeaderIconBtn
+            label="Search"
+            onPress={() => setSearchVisible(true)}
+            dot={!!search}
+            icon={<Search size={20} color={colors.black} strokeWidth={2.5} />}
+          />
+          <HeaderIconBtn
+            label="Filter and sort"
             onPress={() => setSortVisible(true)}
-            style={headerBtn}
-            hitSlop={8}
-          >
-            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-          </TouchableOpacity>
+            dot={!!status}
+            icon={
+              <SlidersHorizontal
+                size={20}
+                color={colors.black}
+                strokeWidth={2.5}
+              />
+            }
+          />
           <TouchableOpacity
             onPress={() => navigation.navigate('AddStudent')}
             style={headerBtn}
@@ -348,13 +365,6 @@ export default function StudentsScreen({ navigation }: any) {
           },
         ]}
       />
-      <View style={styles.searchWrap}>
-        <SearchBar
-          value={searchInput}
-          onChangeText={setSearchInput}
-          placeholder="Search by name or student ID..."
-        />
-      </View>
 
       <FlatList
         data={students}
@@ -370,126 +380,158 @@ export default function StudentsScreen({ navigation }: any) {
           <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
         }
         ListEmptyComponent={<EmptyState title="No students found" />}
-        renderItem={({ item: s }) => {
+        renderItem={({ item: s, index }) => {
           const statusColor = STATUS_CONFIG[s.status]?.color || colors.muted;
           return (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('AddStudent', { student: s })}
-            >
-              <View style={styles.cardTop}>
-                {s.avatar ? (
-                  <Image
-                    source={{ uri: s.avatar }}
-                    style={[styles.avatarImg, { borderColor: statusColor }]}
-                  />
-                ) : (
-                  <View style={[styles.avatar, { borderColor: statusColor }]}>
-                    <Text style={styles.avatarText}>
-                      {(s.firstName?.[0] || '?').toUpperCase()}
+            <SlideInCard index={index}>
+              <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() =>
+                  navigation.navigate('AddStudent', { student: s })
+                }
+              >
+                <View style={styles.cardTop}>
+                  {s.avatar ? (
+                    <Image
+                      source={{ uri: s.avatar }}
+                      style={[styles.avatarImg, { borderColor: statusColor }]}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, { borderColor: statusColor }]}>
+                      <Text style={styles.avatarText}>
+                        {(s.firstName?.[0] || '?').toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.empName}>
+                      {s.firstName} {s.lastName}
                     </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <Text style={styles.empId}>{s.studentId}</Text>
+                      <Text style={styles.empDesig} numberOfLines={1}>
+                        {s.batch || 'No batch'}
+                      </Text>
+                    </View>
                   </View>
-                )}
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.empName}>
-                    {s.firstName} {s.lastName}
-                  </Text>
                   <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusColor },
+                    ]}
                   >
-                    <Text style={styles.empId}>{s.studentId}</Text>
-                    <Text style={styles.empDesig} numberOfLines={1}>
-                      {s.batch || 'No batch'}
+                    <Text style={styles.statusText}>
+                      {(
+                        STATUS_CONFIG[s.status]?.label ||
+                        s.status ||
+                        ''
+                      ).toUpperCase()}
                     </Text>
                   </View>
                 </View>
-                <View
-                  style={[styles.statusBadge, { backgroundColor: statusColor }]}
-                >
-                  <Text style={styles.statusText}>
-                    {(
-                      STATUS_CONFIG[s.status]?.label ||
-                      s.status ||
-                      ''
-                    ).toUpperCase()}
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.cardMeta}>
-                {s.coach ? (
-                  <View style={styles.metaItem}>
-                    <User size={11} color={colors.muted} />
-                    <Text style={styles.metaText} numberOfLines={1}>
-                      Coach: {s.coach.firstName} {s.coach.lastName}
-                    </Text>
+                <View style={styles.cardMeta}>
+                  {s.coach ? (
+                    <View style={styles.metaItem}>
+                      <User size={11} color={colors.muted} />
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        Coach: {s.coach.firstName} {s.coach.lastName}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {s.bloodGroup ? (
+                    <View style={styles.metaItem}>
+                      <Droplet size={11} color={colors.red} />
+                      <Text style={styles.metaText}>
+                        Blood Group: {s.bloodGroup}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <View style={{ marginTop: 4, gap: 3 }}>
+                    <ParentIndicator
+                      icon={Mars}
+                      name={getGuardianName(s, 'father')}
+                      color={colors.blue}
+                    />
+                    <ParentIndicator
+                      icon={Venus}
+                      name={getGuardianName(s, 'mother')}
+                      color={colors.purple}
+                    />
                   </View>
-                ) : null}
-                {s.bloodGroup ? (
-                  <View style={styles.metaItem}>
-                    <Droplet size={11} color={colors.red} />
-                    <Text style={styles.metaText}>
-                      Blood Group: {s.bloodGroup}
-                    </Text>
-                  </View>
-                ) : null}
-                <View style={{ marginTop: 4, gap: 3 }}>
-                  <ParentIndicator
-                    icon={Mars}
-                    name={getGuardianName(s, 'father')}
-                    color={colors.blue}
-                  />
-                  <ParentIndicator
-                    icon={Venus}
-                    name={getGuardianName(s, 'mother')}
-                    color={colors.purple}
-                  />
                 </View>
-              </View>
 
-              <View style={styles.cardBottom}>
-                <View style={styles.typePill}>
-                  <Text style={styles.typePillText}>
-                    {(s.sport || '').toUpperCase()}
-                  </Text>
+                <View style={styles.cardBottom}>
+                  <View style={styles.typePill}>
+                    <Text style={styles.typePillText}>
+                      {(s.sport || '').toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() =>
+                        navigation.navigate('AddStudent', { student: s })
+                      }
+                    >
+                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => onDelete(s)}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity
-                    style={styles.editBtn}
-                    onPress={() =>
-                      navigation.navigate('AddStudent', { student: s })
-                    }
-                  >
-                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => onDelete(s)}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </SlideInCard>
           );
         }}
       />
 
-      <SortSheet
+      <SearchModal
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder="Search by name or student ID..."
+        items={students.map(st => ({
+          key: st._id,
+          title: `${st.firstName} ${st.lastName}`,
+          subtitle: st.studentId,
+        }))}
+      />
+
+      <FilterSortModal
         visible={sortVisible}
         onClose={() => setSortVisible(false)}
-        options={SORT_OPTIONS}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onApply={(key, dir) => {
+        filterTitle="Status"
+        filterOptions={[
+          { key: '', label: 'All' },
+          { key: 'active', label: 'Active' },
+          { key: 'on_hold', label: 'On Hold' },
+          { key: 'inactive', label: 'Inactive' },
+        ]}
+        filterValue={status}
+        onFilter={setStatus}
+        sortOptions={SORT_OPTIONS.map(o => ({ key: o.key, label: o.label }))}
+        sortValue={sortBy}
+        onSort={key => {
           setSortBy(key);
-          setSortDir(dir);
-          setSortVisible(false);
+          setSortDir(/date|created/i.test(key) ? 'desc' : 'asc');
+        }}
+        onReset={() => {
+          setStatus('');
+          setSortBy('createdAt');
+          setSortDir('desc');
         }}
       />
 

@@ -41,6 +41,7 @@ import {
   Banknote,
   Check,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
   { key: "studentId", label: "Student ID", required: true, example: "STU0001" },
@@ -658,7 +659,7 @@ export default function SubscriptionsPage() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this subscription?")) return;
+    if (!(await confirmDialog("Cancel this subscription?"))) return;
     try {
       await subscriptionAPI.cancel(id);
       toast({ title: "Subscription cancelled" });

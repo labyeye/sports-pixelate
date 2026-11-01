@@ -45,6 +45,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { notifyError } from '../utils/notifyError';
@@ -296,43 +297,45 @@ export default function FacilitiesScreen() {
             <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
           }
           ListEmptyComponent={<EmptyState title="No facilities found" />}
-          renderItem={({ item: f }) => (
-            <Card>
-              <View style={styles.headerRowInner}>
-                <Text style={styles.name}>{f.name}</Text>
-                <Badge label={f.type} color={colors.purple} />
-              </View>
-              {f.sport ? <Text style={styles.sub}>{f.sport}</Text> : null}
-              <Text style={styles.fee}>
-                {f.hourlyFee > 0
-                  ? `₹${f.hourlyFee.toLocaleString('en-IN')}/hr`
-                  : 'Free'}
-              </Text>
-              {isOwner && (
-                <View style={styles.actionsRow}>
-                  <TouchableOpacity
-                    onPress={() => openEdit(f)}
-                    style={styles.actionBtn}
-                    hitSlop={8}
-                  >
-                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                    <Text style={[styles.actionText, { color: colors.blue }]}>
-                      Edit
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => onDelete(f)}
-                    style={styles.actionBtn}
-                    hitSlop={8}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                    <Text style={[styles.actionText, { color: colors.red }]}>
-                      Delete
-                    </Text>
-                  </TouchableOpacity>
+          renderItem={({ item: f, index }) => (
+            <SlideInCard index={index}>
+              <Card>
+                <View style={styles.headerRowInner}>
+                  <Text style={styles.name}>{f.name}</Text>
+                  <Badge label={f.type} color={colors.purple} />
                 </View>
-              )}
-            </Card>
+                {f.sport ? <Text style={styles.sub}>{f.sport}</Text> : null}
+                <Text style={styles.fee}>
+                  {f.hourlyFee > 0
+                    ? `₹${f.hourlyFee.toLocaleString('en-IN')}/hr`
+                    : 'Free'}
+                </Text>
+                {isOwner && (
+                  <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      onPress={() => openEdit(f)}
+                      style={styles.actionBtn}
+                      hitSlop={8}
+                    >
+                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                      <Text style={[styles.actionText, { color: colors.blue }]}>
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => onDelete(f)}
+                      style={styles.actionBtn}
+                      hitSlop={8}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                      <Text style={[styles.actionText, { color: colors.red }]}>
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Card>
+            </SlideInCard>
           )}
         />
       </View>

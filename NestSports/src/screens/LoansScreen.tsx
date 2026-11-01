@@ -47,6 +47,7 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatCurrency, getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -337,65 +338,67 @@ export default function LoansScreen() {
             <EmptyState title="No loans found" />
           </Card>
         ) : (
-          loans.map(l => (
-            <Card key={l._id}>
-              <View style={styles.headerRowInner}>
-                <Text style={styles.name}>
-                  {l.employee
-                    ? `${l.employee.firstName} ${l.employee.lastName}`
-                    : '—'}
-                </Text>
-                <Badge
-                  label={l.status}
-                  color={STATUS_COLORS[l.status] || colors.muted}
-                />
-              </View>
-              <Text style={styles.amount}>{formatCurrency(l.amount)}</Text>
-              {l.reason ? <Text style={styles.sub}>{l.reason}</Text> : null}
-              {l.status === 'pending' && (
-                <View style={styles.actionsRow}>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      title="Approve"
-                      onPress={() => handleStatus(l._id, 'approved')}
-                      color={colors.green}
-                      loading={updatingId === l._id}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      title="Reject"
-                      onPress={() => handleStatus(l._id, 'rejected')}
-                      color={colors.red}
-                      variant="outline"
-                      loading={updatingId === l._id}
-                    />
-                  </View>
+          loans.map((l, index) => (
+            <SlideInCard index={index}>
+              <Card key={l._id}>
+                <View style={styles.headerRowInner}>
+                  <Text style={styles.name}>
+                    {l.employee
+                      ? `${l.employee.firstName} ${l.employee.lastName}`
+                      : '—'}
+                  </Text>
+                  <Badge
+                    label={l.status}
+                    color={STATUS_COLORS[l.status] || colors.muted}
+                  />
                 </View>
-              )}
-              <View style={styles.iconActionsRow}>
-                <TouchableOpacity
-                  onPress={() => openEdit(l)}
-                  style={styles.actionBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                  <Text style={[styles.actionText, { color: colors.blue }]}>
-                    Edit
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => onDelete(l)}
-                  style={styles.actionBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  <Text style={[styles.actionText, { color: colors.red }]}>
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </Card>
+                <Text style={styles.amount}>{formatCurrency(l.amount)}</Text>
+                {l.reason ? <Text style={styles.sub}>{l.reason}</Text> : null}
+                {l.status === 'pending' && (
+                  <View style={styles.actionsRow}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Approve"
+                        onPress={() => handleStatus(l._id, 'approved')}
+                        color={colors.green}
+                        loading={updatingId === l._id}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Reject"
+                        onPress={() => handleStatus(l._id, 'rejected')}
+                        color={colors.red}
+                        variant="outline"
+                        loading={updatingId === l._id}
+                      />
+                    </View>
+                  </View>
+                )}
+                <View style={styles.iconActionsRow}>
+                  <TouchableOpacity
+                    onPress={() => openEdit(l)}
+                    style={styles.actionBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                    <Text style={[styles.actionText, { color: colors.blue }]}>
+                      Edit
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => onDelete(l)}
+                    style={styles.actionBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                    <Text style={[styles.actionText, { color: colors.red }]}>
+                      Delete
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            </SlideInCard>
           ))
         )}
       </ScrollView>

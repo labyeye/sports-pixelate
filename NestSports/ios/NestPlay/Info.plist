@@ -34,9 +34,9 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>NestAcademy needs camera access to update student and guardian photos</string>
+	<string>NestAcademy needs camera access to update student and guardian photos and to mark attendance by face</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>NestAcademy uses your location to confirm you are at the academy when you mark your attendance</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>NestAcademy needs photo library access to update student and guardian photos</string>
 	<key>RCTNewArchEnabled</key>

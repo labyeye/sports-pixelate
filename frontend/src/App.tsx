@@ -34,6 +34,10 @@ const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const BillingPage = lazy(() => import("./pages/BillingPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const HolidaysPage = lazy(() => import("./pages/HolidaysPage"));
+const AnnouncementsPage = lazy(() => import("./pages/AnnouncementsPage"));
+const TrashPage = lazy(() => import("./pages/TrashPage"));
+const TasksPage = lazy(() => import("./pages/TasksPage"));
+const LettersPage = lazy(() => import("./pages/LettersPage"));
 const AttendanceSettingsPage = lazy(
   () => import("./pages/AttendanceSettingsPage"),
 );
@@ -77,6 +81,7 @@ import nesthrlogo from "../assets/nesthr.png";
 import PageTransition from "@/components/layout/PageTransition";
 import RefundNotice from "@/components/RefundNotice";
 import DocOtpHost from "@/components/DocOtpHost";
+import ConfirmHost from "@/components/ConfirmHost";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
@@ -111,6 +116,8 @@ const OWNER_ONLY_PATHS = [
   "/groups",
   "/expenses",
   "/exits",
+  "/trash",
+  "/letters",
 ];
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -322,6 +329,38 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute>
+                <AnnouncementsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trash"
+            element={
+              <ProtectedRoute>
+                <TrashPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute>
+                <TasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/letters"
+            element={
+              <ProtectedRoute>
+                <LettersPage />
               </ProtectedRoute>
             }
           />
@@ -570,14 +609,15 @@ const App = () => (
     <ToastProvider>
       <AuthProvider>
         <CreditsProvider>
-        <BrowserRouter>
-          <AppRoutes />
-          <TermsGate />
-          <IntroOnboarding />
-          <RefundNotice />
-          <DocOtpHost />
-          <ImageCropHost />
-        </BrowserRouter>
+          <BrowserRouter>
+            <AppRoutes />
+            <TermsGate />
+            <IntroOnboarding />
+            <RefundNotice />
+            <DocOtpHost />
+            <ConfirmHost />
+            <ImageCropHost />
+          </BrowserRouter>
         </CreditsProvider>
       </AuthProvider>
     </ToastProvider>

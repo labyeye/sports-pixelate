@@ -1,4 +1,33 @@
-import * as XLSX from "xlsx";
+// exceljs is loaded on demand: it is large and only needed on import/export.
+const loadExcel = () => import("exceljs");
+
+async function saveWorkbook(wb: any, filename: string) {
+  const buf = await wb.xlsx.writeBuffer();
+  const a = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(
+      new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+    ),
+    download: filename,
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+export async function writeSheet(
+  rows: unknown[][],
+  filename: string,
+  sheetName = "Sheet1",
+  colWidth = 22,
+) {
+  const ExcelJS = await loadExcel();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(sheetName.slice(0, 31));
+  rows.forEach((r) => ws.addRow(r));
+  ws.columns.forEach((c) => (c.width = colWidth));
+  await saveWorkbook(wb, filename);
+}
 
 export interface ImportHeader {
   key: string;
@@ -14,72 +43,62 @@ export function downloadImportTemplate(
   filename: string,
   sheetName = "Sheet1",
 ) {
-  const headerRow = headers.map((h) => h.label);
-  const exampleRow = headers.map((h) => h.example);
-  const ws = XLSX.utils.aoa_to_sheet([headerRow, exampleRow]);
-  ws["!cols"] = headers.map(() => ({ wch: 22 }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  XLSX.writeFile(wb, filename);
+  return writeSheet(
+    [headers.map((h) => h.label), headers.map((h) => h.example)],
+    filename,
+    sheetName,
+  );
 }
 
 // Parses an uploaded .xlsx/.xls file into an array of { [headerKey]: value }
 // objects, matching column labels (case-insensitive) back to header keys.
-export function parseImportFile(
+export async function parseImportFile(
   file: File,
   headers: ImportHeader[],
 ): Promise<Record<string, string>[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const wb = XLSX.read(evt.target?.result, {
-          type: "array",
-          cellDates: true,
-        });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const raw: any[][] = XLSX.utils.sheet_to_json(ws, {
-          header: 1,
-          defval: "",
-        });
-        if (raw.length < 2) {
-          resolve([]);
-          return;
-        }
-
-        const headerRow = (raw[0] as string[]).map((h) => String(h).trim());
-        const labelToKey: Record<string, string> = {};
-        headers.forEach((h) => {
-          labelToKey[h.label.toLowerCase()] = h.key;
-        });
-
-        const parsed = raw
-          .slice(1)
-          .filter((r) => r.some((c) => c !== ""))
-          .map((row) => {
-            const obj: Record<string, string> = {};
-            headerRow.forEach((hdr, i) => {
-              const key = labelToKey[hdr.toLowerCase()];
-              if (key) {
-                const val = row[i];
-                if (val instanceof Date) {
-                  obj[key] = val.toISOString().split("T")[0];
-                } else {
-                  obj[key] = String(val ?? "").trim();
-                }
-              }
-            });
-            return obj;
-          });
-
-        resolve(parsed);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsArrayBuffer(file);
+  const ExcelJS = await loadExcel();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await file.arrayBuffer());
+  const ws = wb.worksheets[0];
+  if (!ws) return [];
+  const cell = (v: any): any => {
+    if (v && typeof v === "object" && !(v instanceof Date)) {
+      if ("result" in v) return v.result;
+      if ("text" in v) return v.text;
+      if ("richText" in v) return v.richText.map((t: any) => t.text).join("");
+    }
+    return v;
+  };
+  const raw: any[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    const vals = (row.values as any[]).slice(1).map(cell);
+    raw.push(vals.map((v) => v ?? ""));
   });
+  if (raw.length < 2) return [];
+
+  const headerRow = raw[0].map((h) => String(h).trim());
+  const labelToKey: Record<string, string> = {};
+  headers.forEach((h) => {
+    labelToKey[h.label.toLowerCase()] = h.key;
+  });
+
+  return raw
+    .slice(1)
+    .filter((r) => r.some((c) => c !== ""))
+    .map((row) => {
+      const obj: Record<string, string> = {};
+      headerRow.forEach((hdr, i) => {
+        const key = labelToKey[hdr.toLowerCase()];
+        if (key) {
+          const val = row[i];
+          obj[key] =
+            val instanceof Date
+              ? val.toISOString().split("T")[0]
+              : String(val ?? "").trim();
+        }
+      });
+      return obj;
+    });
 }
 
 // Exports rows of data to an .xlsx file, one column per header.
@@ -89,16 +108,17 @@ export function exportRowsToExcel(
   filename: string,
   sheetName = "Sheet1",
 ) {
-  const headerRow = headers.map((h) => h.label);
-  const dataRows = rows.map((row) =>
-    headers.map((h) => {
-      const val = row[h.key];
-      return val === undefined || val === null ? "" : val;
-    }),
+  return writeSheet(
+    [
+      headers.map((h) => h.label),
+      ...rows.map((row) =>
+        headers.map((h) => {
+          const val = row[h.key];
+          return val === undefined || val === null ? "" : val;
+        }),
+      ),
+    ],
+    filename,
+    sheetName,
   );
-  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
-  ws["!cols"] = headers.map(() => ({ wch: 22 }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  XLSX.writeFile(wb, filename);
 }

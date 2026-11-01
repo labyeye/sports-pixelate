@@ -17,6 +17,7 @@ import {
   serializeAttestation,
   toCreationOptions,
 } from "@/lib/webauthn";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const timeAgo = (iso: string) => {
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -248,7 +249,11 @@ export function PasskeyCard() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm("Remove this passkey? You won't be able to use it."))
+    if (
+      !(await confirmDialog(
+        "Remove this passkey? You won't be able to use it.",
+      ))
+    )
       return;
     try {
       await authAPI.passkeyDelete(id);
@@ -343,7 +348,7 @@ export function DevicesCard() {
   }, [load]);
 
   const remove = async (d: { _id: string; deviceName: string }) => {
-    if (!window.confirm(`Sign out ${d.deviceName}?`)) return;
+    if (!(await confirmDialog(`Sign out ${d.deviceName}?`))) return;
     try {
       await authAPI.removeSession(d._id);
       await load();
@@ -357,7 +362,8 @@ export function DevicesCard() {
   };
 
   const removeOthers = async () => {
-    if (!window.confirm("Sign out of every device except this one?")) return;
+    if (!(await confirmDialog("Sign out of every device except this one?")))
+      return;
     try {
       await authAPI.removeOtherSessions();
       await load();
@@ -454,7 +460,9 @@ export function TrustedDevicesCard() {
 
   const forgetAll = async () => {
     if (
-      !window.confirm("Ask for the authenticator code again on every device?")
+      !(await confirmDialog(
+        "Ask for the authenticator code again on every device?",
+      ))
     )
       return;
     try {

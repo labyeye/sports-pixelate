@@ -30,6 +30,7 @@ import {
   TextField,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
@@ -162,28 +163,30 @@ export default function MyLoansScreen() {
           {loans.length === 0 ? (
             <EmptyState title="No loans or advances found" />
           ) : (
-            loans.map((l: any) => (
-              <Row
-                key={l._id}
-                title={`${
-                  (l.type || 'loan') === 'advance' ? 'Advance' : 'Loan'
-                } · ${formatCurrency(l.amount)}`}
-                subtitle={[
-                  l.remainingBalance != null
-                    ? `Remaining: ${formatCurrency(l.remainingBalance)}`
-                    : '',
-                  l.tenureMonths ? `${l.tenureMonths} mo` : '',
-                  l.reason || '',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                right={
-                  <Badge
-                    label={l.status}
-                    color={STATUS_COLORS[l.status] || colors.blue}
-                  />
-                }
-              />
+            loans.map((l: any, index: number) => (
+              <SlideInCard index={index}>
+                <Row
+                  key={l._id}
+                  title={`${
+                    (l.type || 'loan') === 'advance' ? 'Advance' : 'Loan'
+                  } · ${formatCurrency(l.amount)}`}
+                  subtitle={[
+                    l.remainingBalance != null
+                      ? `Remaining: ${formatCurrency(l.remainingBalance)}`
+                      : '',
+                    l.tenureMonths ? `${l.tenureMonths} mo` : '',
+                    l.reason || '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  right={
+                    <Badge
+                      label={l.status}
+                      color={STATUS_COLORS[l.status] || colors.blue}
+                    />
+                  }
+                />
+              </SlideInCard>
             ))
           )}
         </Card>

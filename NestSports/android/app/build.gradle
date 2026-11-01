@@ -110,6 +110,7 @@ android {
             }
         }
     }
+    def hasReleaseKey = (findProperty('NESTPLAY_UPLOAD_STORE_FILE') ?: System.getenv('NESTPLAY_UPLOAD_STORE_FILE')) != null
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
@@ -118,7 +119,6 @@ android {
             // Signed with the real key when NESTPLAY_UPLOAD_* is configured. Falls back to
             // the debug key ONLY so local release builds still run — such a build must
             // never be uploaded to the Play Store.
-            def hasReleaseKey = (findProperty('NESTPLAY_UPLOAD_STORE_FILE') ?: System.getenv('NESTPLAY_UPLOAD_STORE_FILE')) != null
             signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
@@ -142,4 +142,12 @@ dependencies {
 // libs (pulled in via autolinking too), which duplicate the AndroidX classes.
 configurations.all {
     exclude group: 'com.android.support'
+}
+
+// A Play Store bundle must never be signed with the debug key: refuse to build one without the upload key.
+gradle.taskGraph.whenReady { graph ->
+    def hasKey = (findProperty('NESTPLAY_UPLOAD_STORE_FILE') ?: System.getenv('NESTPLAY_UPLOAD_STORE_FILE')) != null
+    if (!hasKey && graph.allTasks.any { it.name == 'bundleRelease' }) {
+        throw new GradleException('bundleRelease needs NESTPLAY_UPLOAD_* signing config; refusing to sign a Play bundle with the debug key.')
+    }
 }

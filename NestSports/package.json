@@ -18,6 +18,7 @@
     "@react-navigation/bottom-tabs": "^7.18.8",
     "@react-navigation/native": "^7.3.8",
     "@react-navigation/native-stack": "^7.17.10",
+    "fflate": "^0.8.3",
     "lottie-react-native": "^7.3.8",
     "lucide-react-native": "^1.24.0",
     "react": "19.2.3",
@@ -35,8 +36,10 @@
     "react-native-share": "^12.3.1",
     "react-native-splash-screen": "^3.3.0",
     "react-native-svg": "^15.15.5",
+    "react-native-vision-camera": "^4.7.3",
+    "react-native-vision-camera-face-detector": "^1.10.2",
     "react-native-webview": "^13.17.0",
-    "xlsx": "^0.18.5"
+    "react-native-worklets-core": "^1.6.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -60,5 +63,8 @@
   },
   "engines": {
     "node": ">= 22.11.0"
+  },
+  "overrides": {
+    "shell-quote": "^1.12.0"
   }
 }

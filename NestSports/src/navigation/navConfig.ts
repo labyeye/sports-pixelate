@@ -1,6 +1,7 @@
 import { UserRole } from '../types';
 import { isScreenDisabled } from '../config/features';
 import {
+  ListChecks,
   Users,
   Clock,
   CalendarDays,
@@ -33,6 +34,9 @@ import {
   Cpu,
   FileBarChart,
   UserMinus,
+  Megaphone,
+  Trash2,
+  ScanFace,
 } from 'lucide-react-native';
 
 // Mirrors frontend/src/config/navigation.ts (the web sidebar) so every role
@@ -98,11 +102,32 @@ export const navGroups: NavGroup[] = [
         desc: 'Reset staff login credentials',
       },
       {
+        title: 'Letters',
+        screen: 'Letters',
+        icon: FileText,
+        roles: OWNER,
+        desc: 'Offer & appointment letter templates',
+      },
+      {
         title: 'Documents',
         screen: 'Documents',
         icon: FolderOpen,
         roles: OWNER_STAFF,
         desc: 'Staff & student document vault',
+      },
+      {
+        title: 'Announcements',
+        screen: 'Announcements',
+        icon: Megaphone,
+        roles: ALL,
+        desc: 'Notices for parents and staff',
+      },
+      {
+        title: 'Tasks',
+        screen: 'Tasks',
+        icon: ListChecks,
+        roles: OWNER_STAFF,
+        desc: 'Assign and track staff tasks',
       },
       {
         title: 'Events',
@@ -118,6 +143,13 @@ export const navGroups: NavGroup[] = [
         roles: OWNER,
         desc: 'Offboard staff & students',
       },
+      {
+        title: 'Trash',
+        screen: 'Trash',
+        icon: Trash2,
+        roles: OWNER,
+        desc: 'Restore deleted items (kept 30 days)',
+      },
     ],
   },
   {
@@ -129,6 +161,13 @@ export const navGroups: NavGroup[] = [
         icon: Clock,
         roles: OWNER_STAFF,
         desc: 'Mark & track student attendance',
+      },
+      {
+        title: 'Face Kiosk',
+        screen: 'FaceKiosk',
+        icon: ScanFace,
+        roles: OWNER,
+        desc: 'Hands-free face check-in and check-out for students & staff',
       },
       {
         title: 'Staff Attendance',

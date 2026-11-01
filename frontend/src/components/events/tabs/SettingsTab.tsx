@@ -9,6 +9,7 @@ import {
 } from "@/components/events/EventForm";
 import type { Event } from "@/types/hrms";
 import { getErrorMessage } from "@/lib/utils";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 interface Props {
   event: Event;
@@ -48,7 +49,9 @@ export function SettingsTab({ event, onChanged, canManage }: Props) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`))
+    if (
+      !(await confirmDialog(`Delete "${event.name}"? This cannot be undone.`))
+    )
       return;
     setDeleting(true);
     try {

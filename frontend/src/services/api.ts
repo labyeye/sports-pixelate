@@ -1,5 +1,6 @@
 import { compressImageFile } from "@/lib/imageCompress";
 import { announceRefund, isRefundMessage } from "@/lib/refundNotice";
+import { withDocAccess } from "./docAccess";
 
 const BASE_URL = "https://sports-backend.pixelatenest.com/api";
 
@@ -35,7 +36,12 @@ async function apiFetch(
   init?: RequestInit,
 ): Promise<Response> {
   try {
-    return await fetch(input, init);
+    // The session token lives in an httpOnly cookie: send it along, and tag the
+    // request so the server treats this as the web client (CSRF header included).
+    const headers = new Headers(init?.headers);
+    headers.set("x-client", "web");
+    headers.set("x-requested-with", "nest-web");
+    return await fetch(input, { ...init, headers, credentials: "include" });
   } catch {
     const err: any = new Error(NETWORK_MESSAGE);
     err.status = 0;
@@ -111,6 +117,15 @@ export function saveTrustedDevice(email: string, token: string) {
   }
 }
 
+export const privacyAPI = {
+  exportMyData: () => request("/privacy/export"),
+  deleteAccount: (password: string) =>
+    request("/privacy/delete-account", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
+};
+
 export const authAPI = {
   login: (email: string, password: string) =>
     request("/auth/login", {
@@ -119,12 +134,17 @@ export const authAPI = {
         email,
         password,
         client: "web",
+        acceptTerms: true,
         trustedDevice: getTrustedDevice(email),
       }),
     }),
   register: (body: { name: string; email: string; password: string }) =>
-    request("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+    request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ ...body, acceptTerms: true }),
+    }),
   getMe: () => request("/auth/me"),
+  toWebSession: () => request("/auth/web-session", { method: "POST" }),
   // A password change retires old tokens server-side and answers with a fresh one, so keep this session alive.
   updateProfile: async (body: object) => {
     const res = await request("/auth/profile", {
@@ -158,7 +178,7 @@ export const authAPI = {
   verify2FA: (userId: string, token: string, remember = false) =>
     request("/auth/2fa/verify", {
       method: "POST",
-      body: JSON.stringify({ userId, token, remember }),
+      body: JSON.stringify({ userId, token, remember, acceptTerms: true }),
     }),
   // "Keep me signed in" devices: password logins there skip the authenticator code
   trustedDevices: () => request("/auth/trusted-devices"),
@@ -258,7 +278,7 @@ export const authAPI = {
   loginVerifyEmailOtp: (email: string, otp: string) =>
     request("/auth/login/email-otp/verify", {
       method: "POST",
-      body: JSON.stringify({ email, otp }),
+      body: JSON.stringify({ email, otp, acceptTerms: true }),
     }),
 
   // Verify the current / a new email with a code sent to it
@@ -349,8 +369,29 @@ export const employeeAPI = {
       body: form,
     }).then((r) => r.json());
   },
-  getDocumentUrl: (id: string, type: "aadhaar" | "pan" | "resume") =>
-    `${BASE_URL}/employees/${id}/documents/${type}`,
+  // Opens an employee's Aadhaar / PAN / résumé after the WhatsApp OTP check.
+  openDocument: async (id: string, type: "aadhaar" | "pan" | "resume") => {
+    const res = await withDocAccess((t) =>
+      apiFetch(`${BASE_URL}/employees/${id}/documents/${type}`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+          "x-doc-access": t,
+        },
+      }).then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          const err: any = new Error(d.message || "Could not open document");
+          err.code = d.code;
+          throw err;
+        }
+        return r;
+      }),
+    );
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  },
   enrollFace: (id: string, photo: File) => {
     const form = new FormData();
     form.append("photo", photo);
@@ -1032,7 +1073,17 @@ export const documentAPI = {
     mimeType: string;
     fileData: string;
   }) => request("/documents", { method: "POST", body: JSON.stringify(body) }),
-  download: (id: string) => request(`/documents/${id}/download`),
+  sendOtp: () => request("/documents/otp/send", { method: "POST" }),
+  verifyOtp: (otp: string) =>
+    request("/documents/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ otp }),
+    }),
+  // Confidential: needs the WhatsApp OTP (asked for automatically).
+  download: (id: string) =>
+    withDocAccess((t) =>
+      request(`/documents/${id}/download`, { headers: { "x-doc-access": t } }),
+    ),
   delete: (id: string) => request(`/documents/${id}`, { method: "DELETE" }),
 };
 
@@ -1063,9 +1114,25 @@ export const assetAPI = {
 
 export const announcementAPI = {
   getAll: () => request("/announcements"),
-  create: (body: { title: string; content: string }) =>
+  create: (body: object) =>
     request("/announcements", { method: "POST", body: JSON.stringify(body) }),
+  uploadPoster: (file: File) => {
+    const form = new FormData();
+    form.append("poster", file);
+    return request("/announcements/poster", { method: "POST", body: form });
+  },
+  markRead: (id: string) =>
+    request(`/announcements/${id}/read`, { method: "POST" }),
+  acknowledge: (id: string) =>
+    request(`/announcements/${id}/acknowledge`, { method: "POST" }),
   delete: (id: string) => request(`/announcements/${id}`, { method: "DELETE" }),
+  assetUrl: (p?: string) => (p ? `${BASE_URL.replace(/\/api$/, "")}${p}` : ""),
+};
+
+export const trashAPI = {
+  getAll: () => request("/trash"),
+  restore: (id: string) => request(`/trash/${id}/restore`, { method: "POST" }),
+  purge: (id: string) => request(`/trash/${id}`, { method: "DELETE" }),
 };
 
 export const attendanceCorrectionAPI = {
@@ -1622,7 +1689,33 @@ export const legalAPI = {
     return r.data ?? r;
   },
   accept: async () => {
-    const r: any = await request("/legal/accept", { method: "POST", body: JSON.stringify({}) });
+    const r: any = await request("/legal/accept", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
     return r.data ?? r;
   },
+};
+
+export const taskAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/tasks${q}`);
+  },
+  getOne: (id: string) => request(`/tasks/${id}`),
+  create: (body: object) =>
+    request("/tasks", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/tasks/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  updateStatus: (id: string, status: string) =>
+    request(`/tasks/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  addComment: (id: string, message: string) =>
+    request(`/tasks/${id}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
+  delete: (id: string) => request(`/tasks/${id}`, { method: "DELETE" }),
 };

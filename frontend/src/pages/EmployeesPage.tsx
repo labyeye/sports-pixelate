@@ -74,6 +74,8 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
 import { notifyError } from "@/hooks/use-toast";
+import { confirmDialog } from "@/lib/confirmDialog";
+import { lookupPincode } from "@/lib/pincode";
 
 const STATUS_COLORS: Record<string, string> = {
   active:
@@ -259,6 +261,27 @@ export default function EmployeesPage() {
   const [editEmp, setEditEmp] = useState<Employee | null>(null);
   const [form, setForm] = useState<EmployeeFormData>(EMPTY_FORM);
   const [cityIsOther, setCityIsOther] = useState(false);
+
+  // 6-digit pincode -> fills state and city (free India Post lookup).
+  useEffect(() => {
+    if (!/^\d{6}$/.test(form.pincode || "")) return;
+    let live = true;
+    lookupPincode(form.pincode).then((r) => {
+      if (!live || !r) return;
+      const st = INDIA_STATES.find(
+        (x) => x.toLowerCase() === r.state.toLowerCase(),
+      );
+      if (!st) return;
+      const known = (INDIA_STATES_AND_CITIES[st] || []).find(
+        (c) => c.toLowerCase() === r.city.toLowerCase(),
+      );
+      setForm((p) => ({ ...p, state: st, city: known || r.city }));
+      setCityIsOther(!known);
+    });
+    return () => {
+      live = false;
+    };
+  }, [form.pincode]);
   const cityOptions = form.state
     ? INDIA_STATES_AND_CITIES[form.state] || []
     : [];
@@ -592,7 +615,7 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Terminate this employee?")) return;
+    if (!(await confirmDialog("Terminate this employee?"))) return;
     try {
       await employeeAPI.delete(id);
       setActionModal({

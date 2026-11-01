@@ -58,6 +58,8 @@ import {
   Repeat,
   Lock,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
+import { lookupPincode } from "@/lib/pincode";
 
 const STUDENT_FORM_TABS = [
   "Basic Info",
@@ -331,6 +333,28 @@ export default function StudentsPage() {
     useState<EmergencyContactPerson>({ ...EMPTY_EMERGENCY_CONTACT_PERSON });
   const [address, setAddress] = useState<Address>({ ...EMPTY_ADDRESS });
   const [cityIsOther, setCityIsOther] = useState(false);
+
+  // 6-digit pincode -> fills state and city (free India Post lookup).
+  useEffect(() => {
+    const pin = address.pincode || "";
+    if (!/^\d{6}$/.test(pin)) return;
+    let live = true;
+    lookupPincode(pin).then((r) => {
+      if (!live || !r) return;
+      const st = INDIA_STATES.find(
+        (x) => x.toLowerCase() === r.state.toLowerCase(),
+      );
+      if (!st) return;
+      const known = (INDIA_STATES_AND_CITIES[st] || []).find(
+        (c) => c.toLowerCase() === r.city.toLowerCase(),
+      );
+      setAddress((p) => ({ ...p, state: st, city: known || r.city }));
+      setCityIsOther(!known);
+    });
+    return () => {
+      live = false;
+    };
+  }, [address.pincode]);
   const cityOptions = address.state
     ? INDIA_STATES_AND_CITIES[address.state] || []
     : [];
@@ -608,7 +632,7 @@ export default function StudentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deactivate this student?")) return;
+    if (!(await confirmDialog("Deactivate this student?"))) return;
     try {
       await studentAPI.delete(id);
       setStudents((p) =>

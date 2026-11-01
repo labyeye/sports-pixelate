@@ -44,6 +44,7 @@ import {
   FileText,
   ImagePlus,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
   { key: "name", label: "Item Name", required: true, example: "Tennis Racket" },
@@ -344,7 +345,12 @@ export default function InventoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this inventory item? This cannot be undone.")) return;
+    if (
+      !(await confirmDialog(
+        "Delete this inventory item? This cannot be undone.",
+      ))
+    )
+      return;
     try {
       await inventoryAPI.delete(id);
       setItems((p) => p.filter((x) => x._id !== id));

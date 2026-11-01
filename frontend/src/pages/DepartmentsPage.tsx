@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
 import { notifyError } from "@/hooks/use-toast";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const DEPT_BG_COLORS = [
   "bg-[#024BAB]",
@@ -161,7 +162,7 @@ export default function DepartmentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deactivate this department?")) return;
+    if (!(await confirmDialog("Deactivate this department?"))) return;
     try {
       await departmentAPI.delete(id);
       load();

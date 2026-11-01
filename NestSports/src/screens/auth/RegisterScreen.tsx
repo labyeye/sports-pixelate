@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { colors } from '../../theme/colors';
 import PasswordChecklist from '../../components/PasswordChecklist';
 import { passwordOk } from '../../utils/passwordRules';
+import LegalLinks from '../../components/LegalLinks';
 
 // Same palette names NestAcademy's auth screens were written with, on NestSports' tokens.
 const C = {
@@ -46,7 +47,10 @@ export default function RegisterScreen({ navigation }: any) {
       return;
     }
     if (!passwordOk(password)) {
-      Alert.alert('Validation', 'Please meet every point in the password checklist');
+      Alert.alert(
+        'Validation',
+        'Please meet every point in the password checklist',
+      );
       return;
     }
     setLoading(true);
@@ -125,7 +129,9 @@ export default function RegisterScreen({ navigation }: any) {
                   secureTextEntry={f.secure}
                 />
               </View>
-              {f.secure && !!f.value && <PasswordChecklist password={f.value} />}
+              {f.secure && !!f.value && (
+                <PasswordChecklist password={f.value} />
+              )}
             </View>
           ))}
 
@@ -149,6 +155,10 @@ export default function RegisterScreen({ navigation }: any) {
             <Text style={styles.backLinkText}>Back to Sign In</Text>
           </TouchableOpacity>
         </View>
+        <LegalLinks
+          prefix="By creating an account you agree to the"
+          style={{ marginTop: 20 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

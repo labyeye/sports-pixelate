@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { moveToTrash } = require("./trashController");
 const Leave = require("../models/Leave");
 const Attendance = require("../models/Attendance");
 const AttendanceBalance = require("../models/AttendanceBalance");
@@ -629,7 +630,7 @@ const deleteLeave = asyncHandler(async (req, res) => {
     });
   }
 
-  await leave.deleteOne();
+  await moveToTrash("Leave", leave, req);
   res.json({ success: true, message: "Leave request withdrawn" });
 });
 

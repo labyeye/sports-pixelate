@@ -34,6 +34,7 @@ import {
   Clock,
   FileText,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 type ScheduleType = "unlimited" | "sessions_per_week" | "custom_days";
 type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -291,7 +292,7 @@ export default function PlansPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deactivate this plan?")) return;
+    if (!(await confirmDialog("Deactivate this plan?"))) return;
     try {
       await sportsPlanAPI.delete(id);
       setPlans((p) => p.filter((x) => x._id !== id));

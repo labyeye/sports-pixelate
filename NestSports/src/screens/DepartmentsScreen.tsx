@@ -38,6 +38,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
@@ -262,46 +263,48 @@ export default function DepartmentsScreen() {
           <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
         }
         ListEmptyComponent={<EmptyState title="No departments found" />}
-        renderItem={({ item: d }) => (
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.85}
-            onPress={() => openEdit(d)}
-          >
-            <View style={styles.cardTop}>
-              <View style={styles.deptIcon}>
-                <Users size={18} color={colors.white} strokeWidth={2.5} />
+        renderItem={({ item: d, index }) => (
+          <SlideInCard index={index}>
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => openEdit(d)}
+            >
+              <View style={styles.cardTop}>
+                <View style={styles.deptIcon}>
+                  <Users size={18} color={colors.white} strokeWidth={2.5} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.empName}>{d.name}</Text>
+                  <Text style={styles.empId}>{d.code}</Text>
+                </View>
+                <View style={styles.headcountPill}>
+                  <Text style={styles.headcountText}>
+                    {d.headcount ?? 0} staff
+                  </Text>
+                </View>
               </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.empName}>{d.name}</Text>
-                <Text style={styles.empId}>{d.code}</Text>
-              </View>
-              <View style={styles.headcountPill}>
-                <Text style={styles.headcountText}>
-                  {d.headcount ?? 0} staff
+              <View style={styles.cardBottom}>
+                <Text style={styles.empDesig} numberOfLines={1}>
+                  {d.description || 'No description'}
                 </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={styles.editBtn}
+                    onPress={() => openEdit(d)}
+                  >
+                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => onDelete(d)}
+                  >
+                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <View style={styles.cardBottom}>
-              <Text style={styles.empDesig} numberOfLines={1}>
-                {d.description || 'No description'}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={styles.editBtn}
-                  onPress={() => openEdit(d)}
-                >
-                  <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => onDelete(d)}
-                >
-                  <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </SlideInCard>
         )}
       />
 

@@ -1,5 +1,6 @@
 import { UserRole } from "@/types/hrms";
 import {
+  ListChecks,
   LayoutDashboard,
   Users,
   Clock,
@@ -30,6 +31,8 @@ import {
   AlertCircle,
   UserMinus,
   Layers,
+  Megaphone,
+  Trash2,
 } from "lucide-react";
 
 import { isPathDisabled } from "@/config/features";
@@ -94,10 +97,28 @@ const allGroups: NavGroup[] = [
         roles: OWNER,
       },
       {
+        title: "Letters",
+        href: "/letters",
+        icon: FileText,
+        roles: OWNER,
+      },
+      {
         title: "Documents",
         href: "/documents",
         icon: FolderOpen,
         roles: ["super_admin", "hr_manager", "employee"],
+      },
+      {
+        title: "Announcements",
+        href: "/announcements",
+        icon: Megaphone,
+        roles: ALL,
+      },
+      {
+        title: "Tasks",
+        href: "/tasks",
+        icon: ListChecks,
+        roles: OWNER_STAFF,
       },
       { title: "Events", href: "/events", icon: Trophy, roles: ALL },
       {
@@ -106,6 +127,7 @@ const allGroups: NavGroup[] = [
         icon: UserMinus,
         roles: OWNER,
       },
+      { title: "Trash", href: "/trash", icon: Trash2, roles: OWNER },
     ],
   },
   {

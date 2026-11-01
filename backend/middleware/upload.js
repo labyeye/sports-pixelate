@@ -168,6 +168,29 @@ const uploadPaymentScreenshot = multer({
   limits: { fileSize: MAX_SIZE },
 }).single("screenshot");
 
+// Announcement poster (shown on the announcement and as the notification image)
+const posterStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    const dir = path.join(UPLOAD_BASE, "announcement-posters");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(_req, file, cb) {
+    const ext = safeExt(file, ".jpg");
+    cb(null, `poster_${require("crypto").randomUUID()}${ext}`);
+  },
+});
+
+const uploadAnnouncementPoster = multer({
+  storage: posterStorage,
+  fileFilter(_req, file, cb) {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype))
+      cb(null, true);
+    else cb(new Error("Only JPG, PNG or WEBP posters are allowed"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("poster");
+
 // Employee avatar upload
 const avatarStorage = multer.diskStorage({
   destination(_req, _file, cb) {
@@ -400,6 +423,7 @@ module.exports = {
   uploadPaymentScreenshot: encrypted(uploadPaymentScreenshot),
   uploadDocumentVault: encrypted(uploadDocumentVault),
   uploadAvatar: encrypted(uploadAvatar),
+  uploadAnnouncementPoster: encrypted(uploadAnnouncementPoster),
   uploadGuardianPhoto: encrypted(uploadGuardianPhoto),
   uploadAttendanceSelfie: encrypted(uploadAttendanceSelfie),
   uploadFaceEnrollPhoto,

@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Plus,
-  ArrowUpDown,
+  Search,
+  SlidersHorizontal,
   Edit2,
   Trash2,
   Mail,
@@ -40,6 +41,10 @@ import { colors, FONT } from '../theme/colors';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 import { StatRow } from '../components/common/StatTile';
+import HeaderIconBtn from '../components/common/HeaderIconBtn';
+import SearchModal from '../components/common/SearchModal';
+import FilterSortModal from '../components/common/FilterSortModal';
+import SlideInCard from '../components/motion/SlideInCard';
 import {
   Users as SUsers,
   UserCheck as SUserCheck,
@@ -126,6 +131,7 @@ export default function EmployeesScreen({ navigation }: any) {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [sortVisible, setSortVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [importVisible, setImportVisible] = useState(false);
 
   useEffect(() => {
@@ -264,13 +270,24 @@ export default function EmployeesScreen({ navigation }: any) {
           >
             <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
           </TouchableOpacity>
-          <TouchableOpacity
+          <HeaderIconBtn
+            label="Search"
+            onPress={() => setSearchVisible(true)}
+            dot={!!search}
+            icon={<Search size={20} color={colors.black} strokeWidth={2.5} />}
+          />
+          <HeaderIconBtn
+            label="Filter and sort"
             onPress={() => setSortVisible(true)}
-            style={headerBtn}
-            hitSlop={8}
-          >
-            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-          </TouchableOpacity>
+            dot={!!status || !!department}
+            icon={
+              <SlidersHorizontal
+                size={20}
+                color={colors.black}
+                strokeWidth={2.5}
+              />
+            }
+          />
           <TouchableOpacity
             onPress={() => navigation.navigate('AddEmployee')}
             style={headerBtn}
@@ -309,35 +326,6 @@ export default function EmployeesScreen({ navigation }: any) {
           },
         ]}
       />
-      <View style={styles.searchWrap}>
-        <SearchBar
-          value={searchInput}
-          onChangeText={setSearchInput}
-          placeholder="Search by name, ID or email..."
-        />
-      </View>
-
-      <View style={styles.pillWrap}>
-        <StatPills
-          options={statPillOptions}
-          value={status}
-          onChange={setStatus}
-        />
-      </View>
-
-      {departments.length > 0 && (
-        <View style={styles.deptPillWrap}>
-          <FilterPills
-            options={[
-              { value: '', label: 'All Departments' },
-              ...departments.map((d: any) => ({ value: d._id, label: d.name })),
-            ]}
-            value={department}
-            onChange={setDepartment}
-          />
-        </View>
-      )}
-
       <FlatList
         data={employees}
         keyExtractor={e => e._id}
@@ -352,109 +340,149 @@ export default function EmployeesScreen({ navigation }: any) {
           <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
         }
         ListEmptyComponent={<EmptyState title="No staff found" />}
-        renderItem={({ item: e }) => {
+        renderItem={({ item: e, index }) => {
           const statusColor = STATUS_CONFIG[e.status]?.color || colors.muted;
           return (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() =>
-                navigation.navigate('AddEmployee', { employee: e })
-              }
-            >
-              <View style={styles.cardTop}>
-                {e.avatar ? (
-                  <Image
-                    source={{ uri: e.avatar }}
-                    style={[styles.avatarImg, { borderColor: statusColor }]}
-                  />
-                ) : (
-                  <View style={[styles.avatar, { borderColor: statusColor }]}>
-                    <Text style={styles.avatarText}>
-                      {(e.firstName?.[0] || '').toUpperCase()}
-                      {(e.lastName?.[0] || '').toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.empName}>
-                    {e.firstName} {e.lastName}
-                  </Text>
-                  <Text style={styles.empId}>{e.employeeId}</Text>
-                  <Text style={styles.empDesig} numberOfLines={1}>
-                    {e.designation || e.department?.name || ''}
-                  </Text>
-                </View>
-                <View
-                  style={[styles.statusBadge, { backgroundColor: statusColor }]}
-                >
-                  <Text style={styles.statusText}>
-                    {(
-                      STATUS_CONFIG[e.status]?.label ||
-                      e.status ||
-                      ''
-                    ).toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-
-              {(e.email || e.phone) && (
-                <View style={styles.cardMeta}>
-                  {e.email ? (
-                    <View style={styles.metaItem}>
-                      <Mail size={11} color={colors.muted} />
-                      <Text style={styles.metaText} numberOfLines={1}>
-                        {e.email}
+            <SlideInCard index={index}>
+              <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() =>
+                  navigation.navigate('AddEmployee', { employee: e })
+                }
+              >
+                <View style={styles.cardTop}>
+                  {e.avatar ? (
+                    <Image
+                      source={{ uri: e.avatar }}
+                      style={[styles.avatarImg, { borderColor: statusColor }]}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, { borderColor: statusColor }]}>
+                      <Text style={styles.avatarText}>
+                        {(e.firstName?.[0] || '').toUpperCase()}
+                        {(e.lastName?.[0] || '').toUpperCase()}
                       </Text>
                     </View>
-                  ) : null}
-                  {e.phone ? (
-                    <View style={styles.metaItem}>
-                      <Phone size={11} color={colors.muted} />
-                      <Text style={styles.metaText}>{e.phone}</Text>
-                    </View>
-                  ) : null}
+                  )}
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.empName}>
+                      {e.firstName} {e.lastName}
+                    </Text>
+                    <Text style={styles.empId}>{e.employeeId}</Text>
+                    <Text style={styles.empDesig} numberOfLines={1}>
+                      {e.designation || e.department?.name || ''}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusColor },
+                    ]}
+                  >
+                    <Text style={styles.statusText}>
+                      {(
+                        STATUS_CONFIG[e.status]?.label ||
+                        e.status ||
+                        ''
+                      ).toUpperCase()}
+                    </Text>
+                  </View>
                 </View>
-              )}
 
-              <View style={styles.cardBottom}>
-                <View style={styles.typePill}>
-                  <Text style={styles.typePillText}>
-                    {(e.employmentType || '').replace('_', ' ').toUpperCase()}
-                  </Text>
+                {(e.email || e.phone) && (
+                  <View style={styles.cardMeta}>
+                    {e.email ? (
+                      <View style={styles.metaItem}>
+                        <Mail size={11} color={colors.muted} />
+                        <Text style={styles.metaText} numberOfLines={1}>
+                          {e.email}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {e.phone ? (
+                      <View style={styles.metaItem}>
+                        <Phone size={11} color={colors.muted} />
+                        <Text style={styles.metaText}>{e.phone}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+
+                <View style={styles.cardBottom}>
+                  <View style={styles.typePill}>
+                    <Text style={styles.typePillText}>
+                      {(e.employmentType || '').replace('_', ' ').toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() =>
+                        navigation.navigate('AddEmployee', { employee: e })
+                      }
+                    >
+                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => onDelete(e)}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity
-                    style={styles.editBtn}
-                    onPress={() =>
-                      navigation.navigate('AddEmployee', { employee: e })
-                    }
-                  >
-                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => onDelete(e)}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </SlideInCard>
           );
         }}
       />
 
-      <SortSheet
+      <SearchModal
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder="Search by name, ID or email..."
+        items={employees.map(e => ({
+          key: e._id,
+          title: `${e.firstName} ${e.lastName}`,
+          subtitle: e.employeeId,
+        }))}
+      />
+
+      <FilterSortModal
         visible={sortVisible}
         onClose={() => setSortVisible(false)}
-        options={SORT_OPTIONS}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onApply={(key, dir) => {
+        filterTitle="Status"
+        filterOptions={[
+          { key: '', label: 'All' },
+          ...STATUS_ORDER.map(k => ({ key: k, label: STATUS_CONFIG[k].label })),
+        ]}
+        filterValue={status}
+        onFilter={setStatus}
+        filter2Title="Department"
+        filter2Options={
+          departments.length
+            ? [
+                { key: '', label: 'All Departments' },
+                ...departments.map((d: any) => ({ key: d._id, label: d.name })),
+              ]
+            : undefined
+        }
+        filter2Value={department}
+        onFilter2={setDepartment}
+        sortOptions={SORT_OPTIONS.map(o => ({ key: o.key, label: o.label }))}
+        sortValue={sortBy}
+        onSort={key => {
           setSortBy(key);
-          setSortDir(dir);
-          setSortVisible(false);
+          setSortDir(/date|created|join/i.test(key) ? 'desc' : 'asc');
+        }}
+        onReset={() => {
+          setStatus('');
+          setDepartment('');
+          setSortBy('createdAt');
+          setSortDir('desc');
         }}
       />
 

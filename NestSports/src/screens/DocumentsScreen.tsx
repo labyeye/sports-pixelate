@@ -40,6 +40,7 @@ import {
   SectionTitle,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { notifyError } from '../utils/notifyError';
@@ -327,41 +328,47 @@ export default function DocumentsScreen() {
             <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
           }
           ListEmptyComponent={<EmptyState title="No documents found" />}
-          renderItem={({ item: doc }) => (
-            <Row
-              title={doc.name}
-              subtitle={
-                doc.createdAt
-                  ? new Date(doc.createdAt).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : ''
-              }
-              right={
-                <View style={styles.rowActions}>
-                  <Badge
-                    label={(doc.docType || '-').replace(/_/g, ' ')}
-                    color={colors.blue}
-                  />
-                  <TouchableOpacity
-                    onPress={() => onDownload(doc)}
-                    hitSlop={8}
-                    disabled={downloadingId === doc._id}
-                  >
-                    {downloadingId === doc._id ? (
-                      <ActivityIndicator size="small" color={colors.blue} />
-                    ) : (
-                      <Download size={16} color={colors.blue} strokeWidth={2} />
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onDelete(doc)} hitSlop={8}>
-                    <Trash2 size={16} color={colors.red} strokeWidth={2} />
-                  </TouchableOpacity>
-                </View>
-              }
-            />
+          renderItem={({ item: doc, index }) => (
+            <SlideInCard index={index}>
+              <Row
+                title={doc.name}
+                subtitle={
+                  doc.createdAt
+                    ? new Date(doc.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : ''
+                }
+                right={
+                  <View style={styles.rowActions}>
+                    <Badge
+                      label={(doc.docType || '-').replace(/_/g, ' ')}
+                      color={colors.blue}
+                    />
+                    <TouchableOpacity
+                      onPress={() => onDownload(doc)}
+                      hitSlop={8}
+                      disabled={downloadingId === doc._id}
+                    >
+                      {downloadingId === doc._id ? (
+                        <ActivityIndicator size="small" color={colors.blue} />
+                      ) : (
+                        <Download
+                          size={16}
+                          color={colors.blue}
+                          strokeWidth={2}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => onDelete(doc)} hitSlop={8}>
+                      <Trash2 size={16} color={colors.red} strokeWidth={2} />
+                    </TouchableOpacity>
+                  </View>
+                }
+              />
+            </SlideInCard>
           )}
         />
       </View>

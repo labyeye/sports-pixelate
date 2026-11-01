@@ -201,6 +201,21 @@ export async function saveTrustedDevice(email: string, token: string) {
   }
 }
 
+// Terms & Privacy acceptance (backend /api/legal). Used by components/TermsGate.
+export const legalAPI = {
+  status: async () => {
+    const r: any = await request('/legal/status');
+    return r.data ?? r;
+  },
+  accept: async () => {
+    const r: any = await request('/legal/accept', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    return r.data ?? r;
+  },
+};
+
 export const privacyAPI = {
   exportMyData: () => request('/privacy/export'),
   deleteAccount: (password: string) =>
@@ -218,11 +233,15 @@ export const authAPI = {
         email,
         password,
         client: 'mobile',
+        acceptTerms: true,
         trustedDevice: (await readTrust())[email.trim().toLowerCase()],
       }),
     }),
   register: (body: { name: string; email: string; password: string }) =>
-    request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+    request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ ...body, acceptTerms: true }),
+    }),
   getMe: () => request('/auth/me'),
   // A password change retires old tokens server-side and answers with a fresh one, so keep this session alive.
   updateProfile: async (body: object) => {
@@ -257,7 +276,7 @@ export const authAPI = {
   verify2FA: (userId: string, token: string, remember = false) =>
     request('/auth/2fa/verify', {
       method: 'POST',
-      body: JSON.stringify({ userId, token, remember }),
+      body: JSON.stringify({ userId, token, remember, acceptTerms: true }),
     }),
   trustedDevices: () => request('/auth/trusted-devices'),
   forgetTrustedDevices: () =>
@@ -359,7 +378,7 @@ export const authAPI = {
   loginVerifyEmailOtp: (email: string, otp: string) =>
     request('/auth/login/email-otp/verify', {
       method: 'POST',
-      body: JSON.stringify({ email, otp }),
+      body: JSON.stringify({ email, otp, acceptTerms: true }),
     }),
 
   // Verify the current / a new email with a code sent to it
@@ -759,9 +778,21 @@ export const documentAPI = {
 
 export const announcementAPI = {
   getAll: () => request('/announcements'),
-  create: (body: { title: string; content: string }) =>
+  create: (body: object) =>
     request('/announcements', { method: 'POST', body: JSON.stringify(body) }),
+  uploadPoster: (poster: RNFile) =>
+    upload('/announcements/poster', toFormData({ poster })),
+  markRead: (id: string) =>
+    request(`/announcements/${id}/read`, { method: 'POST' }),
+  acknowledge: (id: string) =>
+    request(`/announcements/${id}/acknowledge`, { method: 'POST' }),
   delete: (id: string) => request(`/announcements/${id}`, { method: 'DELETE' }),
+};
+
+export const trashAPI = {
+  getAll: () => request('/trash'),
+  restore: (id: string) => request(`/trash/${id}/restore`, { method: 'POST' }),
+  purge: (id: string) => request(`/trash/${id}`, { method: 'DELETE' }),
 };
 
 export const attendanceCorrectionAPI = {
@@ -1247,6 +1278,10 @@ export const facilityAPI = {
 export type PersonType = 'employee' | 'student';
 
 export const biometricAPI = {
+  // Owner-only live kiosk: a face photo is matched against every enrolled
+  // student and staff member of the academy, and their day is toggled.
+  faceKiosk: (photo: RNFile) =>
+    upload('/biometric/face-kiosk', toFormData({ photo })),
   getLocations: () => request('/biometric/locations'),
   createLocation: (body: object) =>
     request('/biometric/locations', {
@@ -1426,4 +1461,39 @@ export const exitAPI = {
   cancel: (id: string) => request(`/exits/${id}/cancel`, { method: 'POST' }),
   reinstate: (id: string) =>
     request(`/exits/${id}/reinstate`, { method: 'POST' }),
+};
+
+export const taskAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/tasks${q}`);
+  },
+  getOne: (id: string) => request(`/tasks/${id}`),
+  create: (body: object) =>
+    request('/tasks', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  updateStatus: (id: string, status: string) =>
+    request(`/tasks/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+  addComment: (id: string, message: string) =>
+    request(`/tasks/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+  delete: (id: string) => request(`/tasks/${id}`, { method: 'DELETE' }),
+};
+
+export const offerLetterAPI = {
+  getAll: () => request('/offer-letters'),
+  create: (body: object) =>
+    request('/offer-letters', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/offer-letters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/offer-letters/${id}`, { method: 'DELETE' }),
 };

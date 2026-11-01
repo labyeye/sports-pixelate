@@ -2,6 +2,9 @@ buildscript {
     ext {
         buildToolsVersion = "36.0.0"
         minSdkVersion = 24
+        // react-native-vision-camera-face-detector defaults to minSdk 26 unless
+        // told otherwise via this specific key — keep it in sync with minSdkVersion.
+        VisionCameraFaceDetector_minSdkVersion = 24
         compileSdkVersion = 36
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 const { protect, authorize } = require("../middleware/auth");
+const { uploadFaceEnrollPhoto } = require("../middleware/upload");
 const {
   getLocations,
   createLocation,
@@ -28,6 +29,7 @@ const {
   resetFaceDescriptor,
   getFaceDescriptors,
   faceAttendance,
+  faceKioskPhoto,
   triggerFingerprintEnroll,
   getDeviceEmployees,
   enrollFaceFromDevice,
@@ -148,6 +150,12 @@ router.delete(
 );
 router.get("/face-descriptors", getFaceDescriptors);
 router.post("/face-attendance", faceAttendance);
+router.post(
+  "/face-kiosk",
+  authorize("super_admin", "hr_manager"),
+  uploadFaceEnrollPhoto,
+  faceKioskPhoto,
+);
 
 router.post(
   "/devices/:id/enroll-fingerprint",

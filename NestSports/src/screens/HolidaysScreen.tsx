@@ -31,6 +31,7 @@ import {
   KpiTile,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
@@ -189,22 +190,24 @@ export default function HolidaysScreen() {
           {holidays.length === 0 ? (
             <EmptyState title="No holidays found" />
           ) : (
-            holidays.map((h: any) => (
-              <Row
-                key={h._id}
-                title={h.name}
-                subtitle={`${formatDate(h.date)} · ${h.type}`}
-                onPress={() => openEdit(h)}
-                right={
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => onDelete(h)}
-                    hitSlop={8}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                }
-              />
+            holidays.map((h: any, index: number) => (
+              <SlideInCard index={index}>
+                <Row
+                  key={h._id}
+                  title={h.name}
+                  subtitle={`${formatDate(h.date)} · ${h.type}`}
+                  onPress={() => openEdit(h)}
+                  right={
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => onDelete(h)}
+                      hitSlop={8}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  }
+                />
+              </SlideInCard>
             ))
           )}
         </Card>

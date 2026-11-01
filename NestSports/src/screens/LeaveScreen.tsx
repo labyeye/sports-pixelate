@@ -39,6 +39,7 @@ import {
   ToggleRow,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import SlideInCard from '../components/motion/SlideInCard';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
 
@@ -298,75 +299,77 @@ export default function LeaveScreen() {
           {leaves.length === 0 ? (
             <EmptyState title="No leave requests found" />
           ) : (
-            leaves.map((l: any) => (
-              <View key={l._id} style={styles.item}>
-                <Row
-                  title={
-                    l.employee
-                      ? `${l.employee.firstName || ''} ${
-                          l.employee.lastName || ''
-                        }`.trim()
-                      : '-'
-                  }
-                  subtitle={[
-                    `${(l.leaveType || '-').replace(/_/g, ' ')} · ${
-                      l.days ?? '-'
-                    } day(s)${l.isHalfDay ? ' (half day)' : ''}`,
-                    l.startDate
-                      ? `${(l.startDate || '').split('T')[0]} → ${
-                          (l.endDate || '').split('T')[0]
-                        }`
-                      : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  right={
-                    <Badge
-                      label={l.status}
-                      color={STATUS_COLORS[l.status] || colors.blue}
-                    />
-                  }
-                />
-                {l.reason ? (
-                  <Text style={styles.reasonText}>{l.reason}</Text>
-                ) : null}
-                <View style={styles.iconActions}>
-                  <TouchableOpacity
-                    style={styles.editBtn}
-                    onPress={() => openEdit(l)}
-                    hitSlop={6}
-                  >
-                    <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => handleDelete(l)}
-                    hitSlop={6}
-                  >
-                    <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                  </TouchableOpacity>
-                </View>
-                {l.status === 'pending' && (
-                  <View style={styles.actions}>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        title="Approve"
-                        color={colors.green}
-                        loading={actingId === l._id}
-                        onPress={() => handleApprove(l._id)}
+            leaves.map((l: any, index: number) => (
+              <SlideInCard index={index}>
+                <View key={l._id} style={styles.item}>
+                  <Row
+                    title={
+                      l.employee
+                        ? `${l.employee.firstName || ''} ${
+                            l.employee.lastName || ''
+                          }`.trim()
+                        : '-'
+                    }
+                    subtitle={[
+                      `${(l.leaveType || '-').replace(/_/g, ' ')} · ${
+                        l.days ?? '-'
+                      } day(s)${l.isHalfDay ? ' (half day)' : ''}`,
+                      l.startDate
+                        ? `${(l.startDate || '').split('T')[0]} → ${
+                            (l.endDate || '').split('T')[0]
+                          }`
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    right={
+                      <Badge
+                        label={l.status}
+                        color={STATUS_COLORS[l.status] || colors.blue}
                       />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        title="Reject"
-                        color={colors.red}
-                        loading={actingId === l._id}
-                        onPress={() => openReject(l._id)}
-                      />
-                    </View>
+                    }
+                  />
+                  {l.reason ? (
+                    <Text style={styles.reasonText}>{l.reason}</Text>
+                  ) : null}
+                  <View style={styles.iconActions}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() => openEdit(l)}
+                      hitSlop={6}
+                    >
+                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteBtn}
+                      onPress={() => handleDelete(l)}
+                      hitSlop={6}
+                    >
+                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
+                  {l.status === 'pending' && (
+                    <View style={styles.actions}>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          title="Approve"
+                          color={colors.green}
+                          loading={actingId === l._id}
+                          onPress={() => handleApprove(l._id)}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          title="Reject"
+                          color={colors.red}
+                          loading={actingId === l._id}
+                          onPress={() => openReject(l._id)}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </SlideInCard>
             ))
           )}
         </Card>

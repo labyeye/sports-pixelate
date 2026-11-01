@@ -4,6 +4,7 @@ import { eventAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
 import type { Event, EventFixture } from "@/types/hrms";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 interface Props {
   event: Event;
@@ -217,7 +218,9 @@ export function FixturesTab({ event, onChanged }: Props) {
   const generateFixtures = async (regenerate: boolean) => {
     if (
       regenerate &&
-      !confirm("Regenerate fixtures? All recorded results will be lost.")
+      !(await confirmDialog(
+        "Regenerate fixtures? All recorded results will be lost.",
+      ))
     )
       return;
     setGenerating(true);

@@ -18,6 +18,19 @@ const IDENTITY_DIRS = [
   "employee-docs",
 ];
 const PROOF_DIRS = ["payment-screenshots"];
+const PUBLIC_DIRS = new Set([
+  "company-logos",
+  "avatars",
+  "guardian-photos",
+  "inventory-photos",
+  "announcement-posters",
+  "attendance-selfies",
+  "event-covers",
+  "event-banners",
+  "event-gallery",
+  "event-documents",
+  "payment-qr",
+]);
 
 async function uploadGuard(req, res, next) {
   // Resolve exactly as the static handlers will ("/./x", "/a/../x", "%2e" all
@@ -34,13 +47,15 @@ async function uploadGuard(req, res, next) {
   const parts = rel.split(path.sep).filter(Boolean);
   const folder = (parts[0] || "").toLowerCase();
 
-  if (IDENTITY_DIRS.includes(folder)) {
+  // Only folders meant to be seen in the UI are public. Anything else (KYC scans,
+  // résumés, vault documents, folders added later) stays closed until it is listed.
+  if (PUBLIC_DIRS.has(folder)) return next();
+  if (!PROOF_DIRS.includes(folder)) {
     return res.status(403).json({
       success: false,
       message: "This file is private. Use the in-app download.",
     });
   }
-  if (!PROOF_DIRS.includes(folder)) return next();
 
   try {
     const header = req.headers.authorization;

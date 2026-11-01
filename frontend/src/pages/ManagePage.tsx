@@ -32,6 +32,7 @@ import {
   ArrowDown,
   ChevronRight,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 // Neo-brutalist styled select used across the Manage sections.
 function NbSelect({
@@ -387,7 +388,7 @@ function ShiftsSection({ onBack }: { onBack: () => void }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Delete shift?")) return;
+                  if (!(await confirmDialog("Delete shift?"))) return;
                   await shiftAPI.delete(s._id);
                   load();
                 }}
@@ -628,7 +629,7 @@ function SalaryHeadsSection({ onBack }: { onBack: () => void }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Delete component?")) return;
+                  if (!(await confirmDialog("Delete component?"))) return;
                   await salaryHeadAPI.delete(h._id);
                   load();
                 }}
@@ -866,7 +867,7 @@ function DesignationsSection({ onBack }: { onBack: () => void }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Delete designation?")) return;
+                  if (!(await confirmDialog("Delete designation?"))) return;
                   await designationAPI.delete(d._id);
                   load();
                 }}
@@ -1048,7 +1049,7 @@ function OfferLettersSection({ onBack }: { onBack: () => void }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Delete template?")) return;
+                  if (!(await confirmDialog("Delete template?"))) return;
                   await offerLetterAPI.delete(l._id);
                   load();
                 }}

@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const { moveToTrash } = require("./trashController");
 const { stripProtected } = require("../middleware/validate");
 const Expense = require("../models/Expense");
 const { safePagination, validateBody } = require("../middleware/validate");
@@ -80,7 +81,7 @@ const updateExpense = asyncHandler(async (req, res) => {
 });
 
 const deleteExpense = asyncHandler(async (req, res) => {
-  const expense = await Expense.findOneAndDelete({
+  const expense = await Expense.findOne({
     _id: req.params.id,
     company: req.user.company,
   });
@@ -88,6 +89,7 @@ const deleteExpense = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Expense not found");
   }
+  await moveToTrash("Expense", expense, req);
   res.json({ success: true, message: "Expense deleted" });
 });
 

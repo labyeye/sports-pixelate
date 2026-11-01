@@ -11,6 +11,8 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { FONT } from './src/theme/colors';
 import { ToastProvider } from './src/components/ui';
 import DocOtpHost from './src/components/DocOtpHost';
+import UpdatePrompt from './src/components/UpdatePrompt';
+import PrivacyShield from './src/components/PrivacyShield';
 
 // Applies DM Sans as the default typeface everywhere without touching every
 // screen's local styles — individual styles still override fontFamily for
@@ -36,6 +38,8 @@ function App() {
         <ToastProvider>
           <RootNavigator />
           <DocOtpHost />
+          <UpdatePrompt />
+          <PrivacyShield />
         </ToastProvider>
       </AuthProvider>
     </SafeAreaProvider>

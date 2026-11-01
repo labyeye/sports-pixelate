@@ -40,6 +40,7 @@ import {
   CollapsibleSection,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
+import { lookupPincode } from '../utils/pincode';
 import ScreenHeader from '../components/ScreenHeader';
 import {
   INDIA_STATES,
@@ -197,6 +198,28 @@ export default function AddStudentScreen({ navigation, route }: any) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly',
   );
+
+  // 6-digit pincode -> fills state and city (free India Post lookup).
+  useEffect(() => {
+    if (!/^\d{6}$/.test(addressPincode)) return;
+    let live = true;
+    lookupPincode(addressPincode).then(r => {
+      if (!live || !r) return;
+      const st = INDIA_STATES.find(
+        x => x.toLowerCase() === r.state.toLowerCase(),
+      );
+      if (!st) return;
+      setAddressState(st);
+      const known = (INDIA_STATES_AND_CITIES[st] || []).find(
+        c => c.toLowerCase() === r.city.toLowerCase(),
+      );
+      setAddressCity(known || r.city);
+      setCityIsOther(!known);
+    });
+    return () => {
+      live = false;
+    };
+  }, [addressPincode]);
 
   useEffect(() => {
     employeeAPI

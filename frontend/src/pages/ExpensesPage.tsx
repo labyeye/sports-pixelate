@@ -24,6 +24,7 @@ import {
   Calendar,
   FileText,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 interface Expense {
   _id: string;
@@ -140,7 +141,7 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string, amount: number) => {
-    if (!confirm("Delete this expense?")) return;
+    if (!(await confirmDialog("Delete this expense?"))) return;
     try {
       await expenseAPI.delete(id);
       setExpenses((p) => p.filter((e) => e._id !== id));

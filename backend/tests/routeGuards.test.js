@@ -108,6 +108,12 @@ const ANY_LOGGED_IN_WRITES = new Set([
   "legal POST /accept",
   // Deleting your own account: any signed-in user, password-confirmed, own record only.
   "privacy POST /delete-account",
+  // Marking an announcement you can see as read / acknowledged: own record only.
+  "announcement POST /:id/read",
+  "announcement POST /:id/acknowledge",
+  // Tasks: handler limits status changes / comments to the assignee or a manager.
+  "task PATCH /:id/status",
+  "task POST /:id/comments",
   // Swaps a legacy localStorage token for the httpOnly cookie: any signed-in web user.
   "auth POST /web-session",
 ]);

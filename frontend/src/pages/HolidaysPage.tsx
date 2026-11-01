@@ -23,6 +23,7 @@ import {
   CalendarCheck,
   CalendarClock,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 interface Holiday {
   _id: string;
@@ -197,7 +198,7 @@ export default function HolidaysPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this holiday?")) return;
+    if (!(await confirmDialog("Delete this holiday?"))) return;
     try {
       await holidayAPI.delete(id);
       setHolidays((p) => p.filter((h) => h._id !== id));

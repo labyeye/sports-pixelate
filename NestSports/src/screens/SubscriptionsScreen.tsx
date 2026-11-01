@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ArrowUpDown,
+  Search,
+  SlidersHorizontal,
   Eye,
   X,
   XCircle,
@@ -45,6 +46,11 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import HeaderIconBtn from '../components/common/HeaderIconBtn';
+import SearchModal from '../components/common/SearchModal';
+import FilterSortModal from '../components/common/FilterSortModal';
+import SlideInCard from '../components/motion/SlideInCard';
+
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency, getErrorMessage } from '../utils/format';
@@ -442,13 +448,18 @@ export default function SubscriptionsScreen({ navigation }: any) {
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity
+            <HeaderIconBtn
+              label="Filter and sort"
               onPress={() => setSortVisible(true)}
-              style={headerBtn}
-              hitSlop={8}
-            >
-              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
-            </TouchableOpacity>
+              dot={!!status}
+              icon={
+                <SlidersHorizontal
+                  size={20}
+                  color={colors.black}
+                  strokeWidth={2.5}
+                />
+              }
+            />
           </>
         }
       />
@@ -490,11 +501,6 @@ export default function SubscriptionsScreen({ navigation }: any) {
             ]}
           />
         </View>
-        <FilterPills
-          options={STATUS_OPTIONS}
-          value={status}
-          onChange={setStatus}
-        />
 
         {isParent && (
           <TouchableOpacity
@@ -535,186 +541,204 @@ export default function SubscriptionsScreen({ navigation }: any) {
               }
             />
           }
-          renderItem={({ item: s }) => (
-            <Card>
-              <View style={styles.cardHeaderRow}>
-                {s.student?.avatar ? (
-                  <Image
-                    source={{ uri: s.student.avatar }}
-                    style={styles.avatar}
-                  />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarFallback]}>
-                    <Text style={styles.avatarText}>
-                      {`${s.student?.firstName?.[0] || ''}${
-                        s.student?.lastName?.[0] || ''
-                      }`.toUpperCase()}
+          renderItem={({ item: s, index }) => (
+            <SlideInCard index={index}>
+              <Card>
+                <View style={styles.cardHeaderRow}>
+                  {s.student?.avatar ? (
+                    <Image
+                      source={{ uri: s.student.avatar }}
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarFallback]}>
+                      <Text style={styles.avatarText}>
+                        {`${s.student?.firstName?.[0] || ''}${
+                          s.student?.lastName?.[0] || ''
+                        }`.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {s.student?.firstName} {s.student?.lastName}
                     </Text>
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name} numberOfLines={1}>
-                    {s.student?.firstName} {s.student?.lastName}
-                  </Text>
-                  <Text style={styles.planName} numberOfLines={1}>
-                    {s.planName} · Renews{' '}
-                    {s.renewalDate
-                      ? new Date(s.renewalDate).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                        })
-                      : '—'}
-                  </Text>
-                </View>
-                <Badge
-                  label={s.status?.replace('_', ' ')}
-                  color={STATUS_COLORS[s.status] || colors.muted}
-                />
-              </View>
-              <Text style={styles.amountLine}>
-                {formatCurrency(s.amountPaid || 0)} / {formatCurrency(s.amount)}
-              </Text>
-
-              {Array.isArray(s.payments) && s.payments.length > 0 && (
-                <View style={styles.paymentHistory}>
-                  {[...s.payments].reverse().map((p: any) => (
-                    <View key={p._id} style={styles.paymentEntryRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.paymentEntryAmount}>
-                          {formatCurrency(p.amount)}
-                        </Text>
-                        <Text style={styles.paymentEntryDate}>
-                          {new Date(p.submittedAt).toLocaleDateString('en-IN', {
+                    <Text style={styles.planName} numberOfLines={1}>
+                      {s.planName} · Renews{' '}
+                      {s.renewalDate
+                        ? new Date(s.renewalDate).toLocaleDateString('en-IN', {
                             day: '2-digit',
                             month: 'short',
-                          })}
-                        </Text>
-                      </View>
-                      <Badge
-                        label={p.status === 'verified' ? 'Verified' : p.status}
-                        color={PAYMENT_ENTRY_COLORS[p.status] || colors.muted}
-                      />
-                      {p.status === 'verified' && (
-                        <View style={styles.methodTicks}>
-                          <View style={styles.methodTickItem}>
-                            {p.method === 'cash' && (
-                              <Check
-                                size={10}
-                                color={colors.green}
-                                strokeWidth={3}
-                              />
-                            )}
-                            <Text style={styles.methodTickText}>Cash</Text>
-                          </View>
-                          <View style={styles.methodTickItem}>
-                            {p.method !== 'cash' && (
-                              <Check
-                                size={10}
-                                color={colors.blue}
-                                strokeWidth={3}
-                              />
-                            )}
-                            <Text style={styles.methodTickText}>UPI</Text>
-                          </View>
-                        </View>
-                      )}
-                      {p.status === 'verified' && (
-                        <TouchableOpacity
-                          style={styles.receiptBtn}
-                          onPress={() => handleDownloadReceipt(s._id, p._id)}
-                          disabled={downloadingId === p._id}
-                          hitSlop={8}
-                        >
-                          <FileText
-                            size={14}
-                            color={colors.blue}
-                            strokeWidth={2.5}
-                          />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  ))}
+                          })
+                        : '—'}
+                    </Text>
+                  </View>
+                  <Badge
+                    label={s.status?.replace('_', ' ')}
+                    color={STATUS_COLORS[s.status] || colors.muted}
+                  />
                 </View>
-              )}
+                <Text style={styles.amountLine}>
+                  {formatCurrency(s.amountPaid || 0)} /{' '}
+                  {formatCurrency(s.amount)}
+                </Text>
 
-              {isParent &&
-                s.status !== 'active' &&
-                s.status !== 'cancelled' && (
+                {Array.isArray(s.payments) && s.payments.length > 0 && (
+                  <View style={styles.paymentHistory}>
+                    {[...s.payments].reverse().map((p: any) => (
+                      <View key={p._id} style={styles.paymentEntryRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.paymentEntryAmount}>
+                            {formatCurrency(p.amount)}
+                          </Text>
+                          <Text style={styles.paymentEntryDate}>
+                            {new Date(p.submittedAt).toLocaleDateString(
+                              'en-IN',
+                              {
+                                day: '2-digit',
+                                month: 'short',
+                              },
+                            )}
+                          </Text>
+                        </View>
+                        <Badge
+                          label={
+                            p.status === 'verified' ? 'Verified' : p.status
+                          }
+                          color={PAYMENT_ENTRY_COLORS[p.status] || colors.muted}
+                        />
+                        {p.status === 'verified' && (
+                          <View style={styles.methodTicks}>
+                            <View style={styles.methodTickItem}>
+                              {p.method === 'cash' && (
+                                <Check
+                                  size={10}
+                                  color={colors.green}
+                                  strokeWidth={3}
+                                />
+                              )}
+                              <Text style={styles.methodTickText}>Cash</Text>
+                            </View>
+                            <View style={styles.methodTickItem}>
+                              {p.method !== 'cash' && (
+                                <Check
+                                  size={10}
+                                  color={colors.blue}
+                                  strokeWidth={3}
+                                />
+                              )}
+                              <Text style={styles.methodTickText}>UPI</Text>
+                            </View>
+                          </View>
+                        )}
+                        {p.status === 'verified' && (
+                          <TouchableOpacity
+                            style={styles.receiptBtn}
+                            onPress={() => handleDownloadReceipt(s._id, p._id)}
+                            disabled={downloadingId === p._id}
+                            hitSlop={8}
+                          >
+                            <FileText
+                              size={14}
+                              color={colors.blue}
+                              strokeWidth={2.5}
+                            />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {isParent &&
+                  s.status !== 'active' &&
+                  s.status !== 'cancelled' && (
+                    <Button
+                      title={
+                        s.payments?.some((p: any) => p.status === 'pending')
+                          ? 'Awaiting Verification'
+                          : s.amountPaid > 0
+                          ? 'Pay Remaining'
+                          : 'Renew'
+                      }
+                      onPress={() =>
+                        navigation.navigate('QrRenewal', { subscription: s })
+                      }
+                      color={colors.blue}
+                      disabled={s.payments?.some(
+                        (p: any) => p.status === 'pending',
+                      )}
+                    />
+                  )}
+                {isParent && s.status === 'active' && (
                   <Button
-                    title={
-                      s.payments?.some((p: any) => p.status === 'pending')
-                        ? 'Awaiting Verification'
-                        : s.amountPaid > 0
-                        ? 'Pay Remaining'
-                        : 'Renew'
-                    }
-                    onPress={() =>
-                      navigation.navigate('QrRenewal', { subscription: s })
-                    }
-                    color={colors.blue}
-                    disabled={s.payments?.some(
-                      (p: any) => p.status === 'pending',
-                    )}
+                    title="Cancel Subscription"
+                    onPress={() => handleCancel(s._id)}
+                    color={colors.red}
+                    variant="outline"
+                    loading={cancellingId === s._id}
                   />
                 )}
-              {isParent && s.status === 'active' && (
-                <Button
-                  title="Cancel Subscription"
-                  onPress={() => handleCancel(s._id)}
-                  color={colors.red}
-                  variant="outline"
-                  loading={cancellingId === s._id}
-                />
-              )}
-              {!isParent && (
-                <View style={styles.paymentRow}>
-                  <Badge
-                    label={s.paymentStatus}
-                    color={
-                      PAYMENT_STATUS_COLORS[s.paymentStatus] || colors.muted
-                    }
-                  />
-                  {s.payments?.some((p: any) => p.status === 'pending') && (
-                    <TouchableOpacity
-                      style={styles.reviewBtn}
-                      onPress={() => setReviewSub(s)}
-                    >
-                      <Eye size={14} color={colors.blue} strokeWidth={2.5} />
-                      <Text style={styles.reviewBtnText}>Review</Text>
-                    </TouchableOpacity>
-                  )}
-                  {s.status !== 'cancelled' &&
-                    (s.amountPaid || 0) < s.amount &&
-                    !s.payments?.some((p: any) => p.status === 'pending') && (
+                {!isParent && (
+                  <View style={styles.paymentRow}>
+                    <Badge
+                      label={s.paymentStatus}
+                      color={
+                        PAYMENT_STATUS_COLORS[s.paymentStatus] || colors.muted
+                      }
+                    />
+                    {s.payments?.some((p: any) => p.status === 'pending') && (
                       <TouchableOpacity
-                        style={styles.cashRowBtn}
-                        onPress={() => openCashModalTopUp(s)}
+                        style={styles.reviewBtn}
+                        onPress={() => setReviewSub(s)}
                       >
-                        <Banknote
-                          size={14}
-                          color={colors.green}
-                          strokeWidth={2.5}
-                        />
-                        <Text style={styles.cashRowBtnText}>Record Cash</Text>
+                        <Eye size={14} color={colors.blue} strokeWidth={2.5} />
+                        <Text style={styles.reviewBtnText}>Review</Text>
                       </TouchableOpacity>
                     )}
-                </View>
-              )}
-            </Card>
+                    {s.status !== 'cancelled' &&
+                      (s.amountPaid || 0) < s.amount &&
+                      !s.payments?.some((p: any) => p.status === 'pending') && (
+                        <TouchableOpacity
+                          style={styles.cashRowBtn}
+                          onPress={() => openCashModalTopUp(s)}
+                        >
+                          <Banknote
+                            size={14}
+                            color={colors.green}
+                            strokeWidth={2.5}
+                          />
+                          <Text style={styles.cashRowBtnText}>Record Cash</Text>
+                        </TouchableOpacity>
+                      )}
+                  </View>
+                )}
+              </Card>
+            </SlideInCard>
           )}
         />
       </View>
 
-      <SortSheet
+      <FilterSortModal
         visible={sortVisible}
         onClose={() => setSortVisible(false)}
-        options={SORT_OPTIONS}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onApply={(key, dir) => {
+        filterTitle="Status"
+        filterOptions={STATUS_OPTIONS.map(o => ({
+          key: o.value,
+          label: o.label,
+        }))}
+        filterValue={status}
+        onFilter={setStatus}
+        sortOptions={SORT_OPTIONS.map(o => ({ key: o.key, label: o.label }))}
+        sortValue={sortBy}
+        onSort={key => {
           setSortBy(key);
-          setSortDir(dir);
-          setSortVisible(false);
+          setSortDir(/date|created/i.test(key) ? 'desc' : 'asc');
+        }}
+        onReset={() => {
+          setStatus('');
+          setSortBy('createdAt');
+          setSortDir('desc');
         }}
       />
 

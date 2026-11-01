@@ -10,6 +10,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 interface Props {
   employee: any;
@@ -140,7 +141,11 @@ export function DocumentsTabPane({ employee, toast }: Props) {
   };
 
   const handleDelete = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete/replace this document?"))
+    if (
+      !(await confirmDialog(
+        "Are you sure you want to delete/replace this document?",
+      ))
+    )
       return;
     try {
       const res = await documentAPI.delete(docId);

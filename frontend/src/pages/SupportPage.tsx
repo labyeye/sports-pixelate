@@ -24,6 +24,7 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react";
+import { confirmDialog } from "@/lib/confirmDialog";
 
 const ISSUE_TYPES = [
   { value: "attendance", label: "Attendance" },
@@ -172,7 +173,8 @@ export default function SupportPage() {
 
   const handleCloseTicket = async () => {
     if (!selectedTicket) return;
-    if (!confirm("Are you sure you want to close this ticket?")) return;
+    if (!(await confirmDialog("Are you sure you want to close this ticket?")))
+      return;
     try {
       const res = await supportAPI.close(selectedTicket._id);
       if (res.success) {

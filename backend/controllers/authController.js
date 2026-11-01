@@ -8,7 +8,11 @@ const User = require("../models/User");
 const Employee = require("../models/Employee");
 const Subscription = require("../models/Subscription");
 const Session = require("../models/Session");
-const { startSession, signInPayload } = require("../utils/signIn");
+const {
+  startSession,
+  signInPayload,
+  recordTermsAcceptance,
+} = require("../utils/signIn");
 const generateToken = require("../utils/generateToken");
 const { generatePendingToken, verifyPendingToken } = generateToken;
 const { validateBody } = require("../middleware/validate");
@@ -214,6 +218,7 @@ const register = [
       password,
       role: "super_admin",
     });
+    await recordTermsAcceptance(req, user);
 
     res.status(201).json({
       success: true,
