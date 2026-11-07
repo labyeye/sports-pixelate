@@ -35,14 +35,19 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const seenCel = useRef<Set<string>>(new Set());
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const res: any = await notificationAPI.getAll({ limit: "30" });
       if (!res.success) return;
-      setNotifs(res.data ?? []);
-      setUnreadCount(res.unreadCount ?? 0);
+      // "cel-" items are today's birthdays/anniversaries (computed by the server, not stored): remember "seen" locally.
+      const list: NotifEntry[] = (res.data ?? []).map((n: NotifEntry) =>
+        seenCel.current.has(n._id) ? { ...n, read: true } : n,
+      );
+      setNotifs(list);
+      setUnreadCount(list.filter((n) => !n.read).length + Math.max(0, (res.unreadCount ?? 0) - (res.data ?? []).filter((n: NotifEntry) => !n.read).length));
     } catch {}
     setLoading(false);
   }, []);
@@ -66,12 +71,17 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
       prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
     );
     setUnreadCount((c) => Math.max(0, c - 1));
+    if (id.startsWith("cel-")) {
+      seenCel.current.add(id);
+      return;
+    }
     try {
       await notificationAPI.markRead(id);
     } catch {}
   };
 
   const handleMarkAllRead = async () => {
+    notifs.forEach((n) => n._id.startsWith("cel-") && seenCel.current.add(n._id));
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     try {

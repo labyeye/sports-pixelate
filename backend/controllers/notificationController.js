@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Notification = require("../models/Notification");
 const { safePagination } = require("../middleware/validate");
+const { celebrationsToday } = require("../utils/celebrations");
 
 const getNotifications = asyncHandler(async (req, res) => {
   const { page, limit, skip } = safePagination(req.query);
@@ -17,11 +18,17 @@ const getNotifications = asyncHandler(async (req, res) => {
     Notification.countDocuments({ recipient: req.user._id, read: false }),
   ]);
 
+  // Parents never see other children's birthdays; everyone else (owner, staff) does. First page only.
+  const cel =
+    page === 1 && req.user.role !== "parent"
+      ? await celebrationsToday(req.user.company)
+      : [];
+
   res.json({
     success: true,
-    data: notifications,
+    data: [...cel, ...notifications],
     total,
-    unreadCount,
+    unreadCount: unreadCount + cel.length,
     page,
     pages: Math.ceil(total / limit),
   });
