@@ -9,6 +9,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { TopLoader } from "@/components/ui/TopLoader";
 import IntroOnboarding from "@/components/IntroOnboarding";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
@@ -610,6 +611,7 @@ const App = () => (
       <AuthProvider>
         <CreditsProvider>
           <BrowserRouter>
+            <TopLoader />
             <AppRoutes />
             <TermsGate />
             <IntroOnboarding />
