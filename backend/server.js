@@ -33,6 +33,7 @@ const {
 const { startStudentAutoAbsentJob } = require("./jobs/studentAutoAbsent");
 startAttendanceAutoMarkJob();
 startStudentAutoAbsentJob();
+require("./jobs/celebrationWishes").startCelebrationWishesJob();
 const { startPaymentLinksJob } = require("./jobs/paymentLinks");
 startPaymentLinksJob();
 startSubscriptionLifecycleJob();

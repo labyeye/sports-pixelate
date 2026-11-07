@@ -156,6 +156,7 @@ interface EmployeeFormData {
   fatherName: string;
   motherName: string;
   spouseName: string;
+  marriageAnniversary: string;
   maritalStatus: string;
   bloodGroup: string;
   nationality: string;
@@ -223,6 +224,7 @@ const EMPTY_FORM: EmployeeFormData = {
   fatherName: "",
   motherName: "",
   spouseName: "",
+  marriageAnniversary: "",
   maritalStatus: "",
   bloodGroup: "",
   nationality: "Indian",
@@ -470,6 +472,7 @@ export default function EmployeesPage() {
       fatherName: emp.fatherName || "",
       motherName: emp.motherName || "",
       spouseName: emp.spouseName || "",
+      marriageAnniversary: (emp as any).marriageAnniversary?.split("T")[0] || "",
       maritalStatus: emp.maritalStatus || "",
       bloodGroup: emp.bloodGroup || "",
       nationality: emp.nationality || "Indian",
@@ -2623,6 +2626,24 @@ export default function EmployeesPage() {
                               }
                               className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
                               placeholder="Spouse's full name"
+                            />
+                          </div>
+                        )}
+                        {form.maritalStatus === "married" && (
+                          <div>
+                            <label className="block text-xs font-bold text-black mb-1">
+                              Marriage Anniversary
+                            </label>
+                            <input
+                              type="date"
+                              value={form.marriageAnniversary}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  marriageAnniversary: e.target.value,
+                                })
+                              }
+                              className="border-2 border-black w-full px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#024BAB]/30"
                             />
                           </div>
                         )}

@@ -129,6 +129,7 @@ const settingSchema = new mongoose.Schema(
 
     whatsappEnabled: { type: Boolean, default: false },
     whatsappNotifyCheckIn: { type: Boolean, default: true },
+    whatsappNotifyCelebrations: { type: Boolean, default: true }, // birthday + wedding anniversary wishes
     whatsappNotifyLeave: { type: Boolean, default: true },
     whatsappNotifyPayroll: { type: Boolean, default: true },
     whatsappNotifySubscription: { type: Boolean, default: true },

@@ -1276,8 +1276,27 @@ async function sendSubscriptionWA(
   }
 }
 
+/**
+ * Birthday / wedding-anniversary wish. kind: student_birthday | birthday (staff) | anniversary (staff).
+ * Templates from env: WHATSAPP_STUDENT_BIRTHDAY_TEMPLATE, WHATSAPP_BIRTHDAY_TEMPLATE, WHATSAPP_ANNIVERSARY_TEMPLATE.
+ * Body params: {{1}} first name, {{2}} academy name. Returns true only if a message was handed to Meta.
+ */
+async function sendCelebration(kind, phone, params, companyId) {
+  const tpl = {
+    student_birthday: process.env.WHATSAPP_STUDENT_BIRTHDAY_TEMPLATE,
+    birthday: process.env.WHATSAPP_BIRTHDAY_TEMPLATE,
+    anniversary: process.env.WHATSAPP_ANNIVERSARY_TEMPLATE,
+  }[kind];
+  if (!tpl || !phone) return false;
+  const s = await getCompanySetting("whatsappNotifyCelebrations", companyId);
+  if (!s) return false;
+  await sendTemplate(phone, tpl, params, s.whatsappLang || "en", [], companyId);
+  return true;
+}
+
 module.exports = {
   sendPhoneOtp,
+  sendCelebration,
   sendCheckIn,
   sendCheckOut,
   sendCheckInHR,
