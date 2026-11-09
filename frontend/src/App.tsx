@@ -60,6 +60,8 @@ const BookingsPage = lazy(() => import("./pages/BookingsPage"));
 const ParentHomePage = lazy(() => import("./pages/ParentHomePage"));
 const ParentAttendancePage = lazy(() => import("./pages/ParentAttendancePage"));
 const ParentReportPage = lazy(() => import("./pages/ParentReportPage"));
+const TimetablePage = lazy(() => import("./pages/TimetablePage"));
+const ProgressPage = lazy(() => import("./pages/ProgressPage"));
 const PaymentFailedPage = lazy(() => import("./pages/PaymentFailedPage"));
 const PaymentReturnPage = lazy(() => import("./pages/PaymentReturnPage"));
 const PayLinkPage = lazy(() => import("./pages/PayLinkPage"));
@@ -598,6 +600,8 @@ function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          <Route path="/timetable" element={<ProtectedRoute><TimetablePage /></ProtectedRoute>} />
+          <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

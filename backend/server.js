@@ -236,6 +236,7 @@ app.use(
 app.use("/api/students", require("./routes/studentRoutes"));
 app.use("/api/parents", require("./routes/parentRoutes"));
 app.use("/api/sports", require("./routes/sportRoutes"));
+app.use("/api/coaching", require("./routes/coachingRoutes"));
 app.use("/api/student-attendance", require("./routes/studentAttendanceRoutes"));
 app.use("/api/plans", require("./routes/sportsPlanRoutes"));
 app.use("/api/subscriptions", require("./routes/subscriptionRoutes"));

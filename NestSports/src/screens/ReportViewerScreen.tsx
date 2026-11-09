@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import RNPrint from 'react-native-print';
 import { departmentAPI } from '../api/client';
 import {
   Button,
@@ -185,6 +186,26 @@ export default function ReportViewerScreen({ route, navigation }: any) {
     }
   };
 
+  // Opens the system print sheet; "Save as PDF" is built into it on both OSes.
+  const printReport = async () => {
+    if (!table?.rows.length) return;
+    const esc = (v: unknown) =>
+      String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const html = `<html><body style="font-family:sans-serif;font-size:10px">
+<h2>${esc(def.name)}</h2>
+<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;width:100%">
+<tr>${table.headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr>
+${table.rows
+  .map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`)
+  .join('')}
+</table></body></html>`;
+    try {
+      await RNPrint.print({ html });
+    } catch (e: unknown) {
+      Alert.alert('Print failed', (e as Error)?.message || 'Could not print');
+    }
+  };
+
   const titleIdx = table
     ? Math.max(
         0,
@@ -286,6 +307,13 @@ export default function ReportViewerScreen({ route, navigation }: any) {
         onPress={exportExcel}
         disabled={loading || !table?.rows.length}
         color={colors.green}
+      />
+      <View style={{ height: 8 }} />
+      <Button
+        title="Print / Save as PDF"
+        onPress={printReport}
+        disabled={loading || !table?.rows.length}
+        color={colors.blue}
       />
       <View style={{ height: 12 }} />
     </View>

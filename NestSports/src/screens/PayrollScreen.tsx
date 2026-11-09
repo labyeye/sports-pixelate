@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, ChevronLeft, ChevronRight, Play, X } from 'lucide-react-native';
+import RNPrint from 'react-native-print';
 import { employeeAPI, payrollAPI, payrollPreviewAPI } from '../api/client';
 import {
   Badge,
@@ -84,6 +85,26 @@ export default function PayrollScreen() {
   );
   const [payMode, setPayMode] = useState<PayMode>('bank_transfer');
   const [paying, setPaying] = useState(false);
+
+  // Same table as web "Bulk Slips"; system print sheet can save as PDF.
+  const printSlips = async () => {
+    const esc = (v: unknown) =>
+      String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const inr = (n?: number) => `Rs ${Math.round(n || 0).toLocaleString('en-IN')}`;
+    const rows = payrolls
+      .map(
+        (p: any) =>
+          `<tr><td>${esc(p.employee?.firstName)} ${esc(p.employee?.lastName)}</td><td>${esc(p.employee?.designation)}</td><td>${inr(p.basicSalary)}</td><td>${inr(p.grossSalary)}</td><td>-${inr(p.totalDeductions)}</td><td>${inr(p.netSalary)}</td><td>${esc(p.status)}</td></tr>`,
+      )
+      .join('');
+    try {
+      await RNPrint.print({
+        html: `<html><body style="font-family:sans-serif;font-size:11px"><h2>Payroll — ${MONTHS[month - 1]} ${year}</h2><table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;width:100%"><tr><th>Employee</th><th>Designation</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th></tr>${rows}</table></body></html>`,
+      });
+    } catch (e: unknown) {
+      Alert.alert('Print failed', (e as Error)?.message || 'Could not print');
+    }
+  };
 
   const load = useCallback(async () => {
     const res: any = await payrollAPI.getAll({
@@ -315,6 +336,12 @@ export default function PayrollScreen() {
           onChange={setStatus}
         />
         <View style={{ height: 12 }} />
+
+        {payrolls.length > 0 && (
+          <View style={{ marginBottom: 12 }}>
+            <Button title="Bulk Slips (Print / PDF)" onPress={printSlips} />
+          </View>
+        )}
 
         {unpaidCount > 0 && (
           <View style={{ marginBottom: 12 }}>

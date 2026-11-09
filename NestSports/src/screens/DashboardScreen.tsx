@@ -348,6 +348,98 @@ export default function DashboardScreen() {
           />
         </FadeInUp>
 
+        <Text style={styles.sectionLabel}>Payroll Trend · Last 6 Months</Text>
+        <FadeInUp delay={140} style={styles.tableCard}>
+          <Text style={styles.growthSub}>Net payout (₹K)</Text>
+          <AnimatedBarChart
+            series={[{ key: 'total', label: 'Net pay', color: colors.orange }]}
+            data={(data.payTrend || []).map((t: any) => ({
+              label: MONTHS[t.month - 1],
+              values: { total: Math.round((t.total || 0) / 1000) },
+            }))}
+          />
+        </FadeInUp>
+
+        <Text style={styles.sectionLabel}>Headcount by Department</Text>
+        <FadeInUp delay={160} style={styles.tableCard}>
+          <AnimatedBarChart
+            series={[{ key: 'count', label: 'Employees', color: colors.blue }]}
+            data={(data.deptHeadcounts || []).map((d: any) => ({
+              label: d.name,
+              values: { count: d.count },
+            }))}
+          />
+        </FadeInUp>
+
+        <Text style={styles.sectionLabel}>Recent Staff Joinings</Text>
+        <FadeInUp delay={180} style={styles.tableCard}>
+          {(data.recentHires || []).length === 0 ? (
+            <Text style={styles.empty}>No recent joinings</Text>
+          ) : (
+            (data.recentHires || [])
+              .slice(0, 5)
+              .map((p: any, i: number, arr: any[]) => (
+                <View
+                  key={p._id}
+                  style={[styles.tr, i < arr.length - 1 && styles.trBorder]}
+                >
+                  <View style={[styles.tdName, { flex: 2.2 }]}>
+                    <View style={styles.tdAvatar}>
+                      <Text style={styles.tdAvatarText}>
+                        {(p.firstName?.[0] || '?').toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={styles.td} numberOfLines={1}>
+                      {p.firstName} {p.lastName}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[styles.tdSub, { flex: 1.2, textAlign: 'right' }]}
+                    numberOfLines={1}
+                  >
+                    {formatDateOrDash(p.joiningDate || p.createdAt)}
+                  </Text>
+                </View>
+              ))
+          )}
+        </FadeInUp>
+
+        <Text style={styles.sectionLabel}>Pending Leave Requests</Text>
+        <FadeInUp delay={200} style={styles.tableCard}>
+          {(data.pendingLeaveList || []).length === 0 ? (
+            <Text style={styles.empty}>All clear! No pending leave requests</Text>
+          ) : (
+            (data.pendingLeaveList || []).map(
+              (l: any, i: number, arr: any[]) => (
+                <TouchableOpacity
+                  key={l._id}
+                  onPress={() => navigation.navigate('Leave')}
+                  style={[styles.tr, i < arr.length - 1 && styles.trBorder]}
+                >
+                  <View style={[styles.tdName, { flex: 2.2 }]}>
+                    <View style={styles.tdAvatar}>
+                      <Text style={styles.tdAvatarText}>
+                        {(l.employee?.firstName?.[0] || '?').toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.td} numberOfLines={1}>
+                        {l.employee?.firstName} {l.employee?.lastName}
+                      </Text>
+                      <Text style={styles.tdSub} numberOfLines={1}>
+                        {l.leaveType} · {l.days} day{l.days > 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.tdSub, { flex: 0.8, textAlign: 'right' }]}>
+                    Pending
+                  </Text>
+                </TouchableOpacity>
+              ),
+            )
+          )}
+        </FadeInUp>
+
         <View style={styles.renewHead}>
           <SectionTitle
             title="Recent Subscription Renewals"
@@ -476,6 +568,8 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },

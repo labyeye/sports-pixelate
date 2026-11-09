@@ -229,6 +229,8 @@ const allGroups: NavGroup[] = [
     label: "Billing & Plans",
     items: [
       { title: "Groups", href: "/groups", icon: Layers, roles: OWNER },
+      { title: "Timetable", href: "/timetable", icon: CalendarDays, roles: ALL },
+      { title: "Skill Progress", href: "/progress", icon: GraduationCap, roles: ALL },
       { title: "Coaching Plans", href: "/plans", icon: Gift, roles: OWNER },
       {
         title: "Subscriptions",

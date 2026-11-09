@@ -51,6 +51,7 @@ import HolidaysScreen from '../screens/HolidaysScreen';
 // My Workspace (employee)
 import MyPayrollScreen from '../screens/MyPayrollScreen';
 import MyReportScreen from '../screens/MyReportScreen';
+import ProfileDetailsScreen from '../screens/ProfileDetailsScreen';
 import MyLoansScreen from '../screens/MyLoansScreen';
 
 // Parents / Billing & Plans
@@ -287,6 +288,11 @@ function RootNavigatorContent() {
               name="MyReport"
               component={MyReportScreen}
               options={{ title: 'My Report' }}
+            />
+            <Stack.Screen
+              name="ProfileDetails"
+              component={ProfileDetailsScreen}
+              options={{ title: 'Profile Details' }}
             />
             <Stack.Screen
               name="MyLoans"

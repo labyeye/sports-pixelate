@@ -1719,3 +1719,17 @@ export const taskAPI = {
     }),
   delete: (id: string) => request(`/tasks/${id}`, { method: "DELETE" }),
 };
+
+export const coachingAPI = {
+  schedules: () => request("/coaching/schedules"),
+  createSchedule: (body: object) =>
+    request("/coaching/schedules", { method: "POST", body: JSON.stringify(body) }),
+  deleteSchedule: (id: string) =>
+    request(`/coaching/schedules/${id}`, { method: "DELETE" }),
+  assessments: (student?: string) =>
+    request(`/coaching/assessments${student ? `?student=${student}` : ""}`),
+  createAssessment: (body: object) =>
+    request("/coaching/assessments", { method: "POST", body: JSON.stringify(body) }),
+  deleteAssessment: (id: string) =>
+    request(`/coaching/assessments/${id}`, { method: "DELETE" }),
+};

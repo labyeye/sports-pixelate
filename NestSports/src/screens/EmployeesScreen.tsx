@@ -8,6 +8,7 @@ import {
   Text,
   Image,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -16,6 +17,7 @@ import {
   SlidersHorizontal,
   Edit2,
   Trash2,
+  MoreHorizontal,
   Mail,
   Phone,
   Download,
@@ -115,6 +117,7 @@ const SORT_OPTIONS: SortOption[] = [
 let searchDebounce: ReturnType<typeof setTimeout>;
 
 export default function EmployeesScreen({ navigation }: any) {
+  const [actionEmp, setActionEmp] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [departments, setDepartments] = useState<any[]>([]);
@@ -425,6 +428,16 @@ export default function EmployeesScreen({ navigation }: any) {
                       <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
                     </TouchableOpacity>
                     <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() => setActionEmp(e)}
+                    >
+                      <MoreHorizontal
+                        size={14}
+                        color={colors.blue}
+                        strokeWidth={2.5}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       style={styles.deleteBtn}
                       onPress={() => onDelete(e)}
                     >
@@ -437,6 +450,39 @@ export default function EmployeesScreen({ navigation }: any) {
           );
         }}
       />
+
+      <Modal
+        visible={!!actionEmp}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionEmp(null)}
+      >
+        <TouchableOpacity
+          style={styles.sheetBackdrop}
+          activeOpacity={1}
+          onPress={() => setActionEmp(null)}
+        >
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>
+              {actionEmp?.firstName} {actionEmp?.lastName}
+            </Text>
+            {ROW_ACTIONS.map(a => (
+              <TouchableOpacity
+                key={a.label}
+                style={styles.sheetRow}
+                onPress={() => {
+                  const emp = actionEmp;
+                  setActionEmp(null);
+                  if (a.screen) navigation.navigate(a.screen);
+                  else navigation.navigate('AddEmployee', { employee: emp });
+                }}
+              >
+                <Text style={styles.sheetRowText}>{a.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <SearchModal
         visible={searchVisible}
@@ -508,7 +554,36 @@ export default function EmployeesScreen({ navigation }: any) {
   );
 }
 
+// Same shortcuts as the web staff profile menu. Screens open unfiltered.
+const ROW_ACTIONS: { label: string; screen?: string }[] = [
+  { label: 'Edit Profile' },
+  { label: 'Pay Salary', screen: 'Payroll' },
+  { label: 'Loan / Advance Entry', screen: 'Loans' },
+  { label: 'Leave Balance', screen: 'Leave' },
+  { label: 'Credentials', screen: 'EmployeeCredentials' },
+  { label: 'Attendance Log', screen: 'Attendance' },
+  { label: 'Attendance Settings', screen: 'AttendanceSettings' },
+];
+
 const styles = StyleSheet.create({
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopWidth: 2,
+    borderColor: colors.black,
+    padding: 16,
+  },
+  sheetTitle: { fontFamily: FONT.bold, fontSize: 16, marginBottom: 8 },
+  sheetRow: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  sheetRowText: { fontFamily: FONT.semiBold, fontSize: 14 },
   screen: { flex: 1, backgroundColor: colors.white },
   header: {
     flexDirection: 'row',

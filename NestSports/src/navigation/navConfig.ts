@@ -231,6 +231,13 @@ export const navGroups: NavGroup[] = [
         desc: 'View your performance report',
       },
       {
+        title: 'Profile Details',
+        screen: 'ProfileDetails',
+        icon: UserCircle,
+        roles: ['employee'],
+        desc: 'Education, skills, nominees, bank & family details',
+      },
+      {
         title: 'My Loans',
         screen: 'MyLoans',
         icon: Banknote,
