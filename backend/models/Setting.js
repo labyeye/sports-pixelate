@@ -40,6 +40,8 @@ const settingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // ID-card design (sizes, front/back elements). Validated by utils/idCardTemplate.js before it is saved.
+    idCardTemplate: { type: mongoose.Schema.Types.Mixed, default: null },
     paymentQrUrl: {
       type: String,
       default: "",

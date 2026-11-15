@@ -44,10 +44,12 @@ import {
   FileImage,
   Clock,
   Palette,
+  IdCard,
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
 import { AccountSecurityPanel } from "@/components/security/AccountSecurityPanel";
+import { IdCardDesigner } from "@/components/idcard/IdCardDesigner";
 import { PrivacyDataPanel } from "@/components/security/PrivacyDataPanel";
 import { FEATURES } from "@/config/features";
 import { setDisabledFeatures } from "@/hooks/useDisabledFeatures";
@@ -1179,6 +1181,7 @@ export default function SettingsPage() {
       items: [
         { id: "general", label: "General Info", icon: Building2 },
         { id: "bank", label: "Bank Details", icon: Landmark },
+        { id: "id_card", label: "ID Card Designer", icon: IdCard },
       ],
     },
     {
@@ -2979,6 +2982,11 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {activeTab === "id_card" && (
+              <div className="p-4">
+                <IdCardDesigner />
+              </div>
+            )}
             {activeTab === "account_security" && (
               <>
                 <AccountSecurityPanel />

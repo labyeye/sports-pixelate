@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
     flex: 1,
@@ -354,13 +354,13 @@ const styles = StyleSheet.create({
   monthBtnText: {
     fontSize: 22,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   monthLabel: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     minWidth: 140,
     textAlign: 'center',
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
   },
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   timeCol: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   timeText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },

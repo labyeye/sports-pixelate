@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FONT.bold,
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#000',
   },
   bellBtn: { padding: 4 },
@@ -258,19 +258,19 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: '#fff',
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   profileName: {
     fontFamily: FONT.bold,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#000',
   },
   profileEmail: {
     fontFamily: FONT.medium,
     fontSize: 12,
     color: '#64748b',
-    fontWeight: '600',
+    fontWeight: '400',
     marginTop: 2,
   },
   rolePill: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   roleText: {
     fontFamily: FONT.bold,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#000',
   },
   heroBtns: { flexDirection: 'row', gap: 10 },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   },
   heroBtnBlue: { backgroundColor: '#eff6ff' },
   heroBtnRed: { backgroundColor: '#fef2f2' },
-  heroBtnText: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '800' },
+  heroBtnText: { fontFamily: FONT.bold, fontSize: 13, fontWeight: '400' },
 
   searchBox: {
     ...box,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     fontSize: 14,
     color: '#000',
-    fontWeight: '600',
+    fontWeight: '400',
   },
 
   sectionHead: {
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#000',
     letterSpacing: 1,
   },
@@ -357,14 +357,14 @@ const styles = StyleSheet.create({
   tileLabel: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#000',
   },
   tileSub: {
     fontFamily: FONT.medium,
     fontSize: 11,
     color: '#64748b',
-    fontWeight: '500',
+    fontWeight: '400',
     lineHeight: 15,
   },
 
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#64748b',
   },
   versionText: {
@@ -380,6 +380,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     color: '#94a3b8',
-    fontWeight: '500',
+    fontWeight: '400',
   },
 });

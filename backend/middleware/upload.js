@@ -56,6 +56,7 @@ function safeExt(file, fallback) {
   "employee-pan",
   "employee-resume",
   "company-logos",
+  "id-card-images",
   "employee-docs",
   "payment-qr",
   "payment-screenshots",
@@ -120,6 +121,42 @@ const companyLogoStorage = multer.diskStorage({
     cb(null, safe);
   },
 });
+
+// Images used on ID-card designs. Public like company logos so printed cards and the designer can load them;
+// images only, magic-byte checked in the controller (so NOT run through encrypted()).
+const idCardImageStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    cb(null, path.join(UPLOAD_BASE, "id-card-images"));
+  },
+  filename(req, file, cb) {
+    cb(
+      null,
+      `idc_${req.user.company}_${require("crypto").randomUUID()}${safeExt(file, ".png")}`,
+    );
+  },
+});
+const uploadIdCardImage = multer({
+  storage: idCardImageStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("image");
+
+// Expense claim bills (receipt / invoice) - never served publicly, see expenseClaimController.downloadBill
+const expenseBillStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    const dir = path.join(UPLOAD_BASE, "expense-bills");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(_req, file, cb) {
+    cb(null, `${Date.now()}_${require("crypto").randomUUID()}${safeExt(file, ".bin")}`);
+  },
+});
+const uploadExpenseBill = multer({
+  storage: expenseBillStorage,
+  fileFilter,
+  limits: { fileSize: MAX_SIZE, files: 5 },
+}).array("bills", 5);
 
 const uploadCompanyLogo = multer({
   storage: companyLogoStorage,
@@ -417,6 +454,8 @@ function encrypted(multerMiddleware) {
 }
 
 module.exports = {
+  uploadExpenseBill,
+  uploadIdCardImage,
   uploadEmployeeDocs: encrypted(uploadEmployeeDocs),
   uploadCompanyLogo: encrypted(uploadCompanyLogo),
   uploadPaymentQr: encrypted(uploadPaymentQr),

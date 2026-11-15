@@ -4,13 +4,21 @@ import {
   Modal,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, ChevronLeft, ChevronRight, Play, X } from 'lucide-react-native';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Play,
+  X,
+} from 'lucide-react-native';
 import RNPrint from 'react-native-print';
 import { employeeAPI, payrollAPI, payrollPreviewAPI } from '../api/client';
 import {
@@ -138,6 +146,26 @@ export default function PayrollScreen() {
       setYear(y => y + 1);
     } else setMonth(m);
   };
+
+  const exportFile = async (kind: 'tally' | 'zoho' | 'bank') => {
+    try {
+      const text = await payrollAPI.exportText(kind, month, year);
+      await Share.share({
+        title: `${kind}_salary_${month}_${year}`,
+        message: text,
+      });
+    } catch (e) {
+      notifyError(e);
+    }
+  };
+
+  const chooseExportFile = () =>
+    Alert.alert('Export payroll', `${MONTHS[month - 1]} ${year}`, [
+      { text: 'Tally (XML)', onPress: () => exportFile('tally') },
+      { text: 'Zoho Books (CSV)', onPress: () => exportFile('zoho') },
+      { text: 'Bank transfer (CSV)', onPress: () => exportFile('bank') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
 
   const openProcess = async () => {
     setMode('all');
@@ -268,6 +296,13 @@ export default function PayrollScreen() {
         title="Payroll"
         right={
           <>
+            <TouchableOpacity
+              onPress={chooseExportFile}
+              style={headerBtn}
+              hitSlop={8}
+            >
+              <Download size={20} color={colors.black} strokeWidth={2.5} />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={openProcess}
               style={headerBtn}
@@ -648,7 +683,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
   processBtn: {
     flexDirection: 'row',
@@ -691,14 +726,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black },
+  name: { fontSize: 16, fontWeight: '400', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4 },
   breakdown: { marginTop: 10, gap: 4 },
   line: { flexDirection: 'row', justifyContent: 'space-between' },
   lineLabel: { color: colors.muted, fontSize: 12, fontFamily: FONT.medium },
   lineValue: { color: colors.black, fontSize: 12, fontFamily: FONT.semiBold },
   amount: {
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontSize: 16,
     marginTop: 10,

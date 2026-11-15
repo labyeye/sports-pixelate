@@ -1544,7 +1544,7 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 20,
     color: colors.black,
   },
@@ -1567,7 +1567,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   dateRow: {
@@ -1583,14 +1583,14 @@ const styles = StyleSheet.create({
   dateBtnArrowText: {
     fontSize: 24,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   dateCurrent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dateCurrentText: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   summaryBar: {
@@ -1618,14 +1618,14 @@ const styles = StyleSheet.create({
   summaryCount: {
     fontFamily: FONT.bold,
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     lineHeight: Platform.OS === 'android' ? 28 : 24,
     includeFontPadding: false,
   } as any,
   summaryStatus: {
     fontFamily: FONT.bold,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
@@ -1643,7 +1643,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONT.medium,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#92400E',
   },
   selfMarkCard: {
@@ -1657,7 +1657,7 @@ const styles = StyleSheet.create({
   selfMarkHeaderText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -1681,7 +1681,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   selfMarkDoneRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -1695,14 +1695,14 @@ const styles = StyleSheet.create({
   selfMarkDoneText: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.green,
   },
   selfMarkNoteText: {
     fontFamily: FONT.medium,
     fontSize: 12,
     color: colors.muted,
-    fontWeight: '500',
+    fontWeight: '400',
     marginBottom: 4,
   },
   searchWrap: {
@@ -1719,7 +1719,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONT.medium,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: colors.black,
   },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -1727,7 +1727,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
   },
   card: {
@@ -1762,7 +1762,7 @@ const styles = StyleSheet.create({
     borderColor: colors.black,
   },
   empPhotoFallback: { alignItems: 'center', justifyContent: 'center' },
-  empPhotoInitials: { fontFamily: FONT.bold, fontSize: 16, fontWeight: '700' },
+  empPhotoInitials: { fontFamily: FONT.bold, fontSize: 16, fontWeight: '400' },
   statusBadgeOverlay: {
     position: 'absolute',
     bottom: -2,
@@ -1784,7 +1784,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     fontSize: 11,
     color: '#9CA3AF',
-    fontWeight: '500',
+    fontWeight: '400',
   },
   cardLeft: { flex: 1, gap: 8, alignSelf: 'flex-end' },
   inOutRow: { flexDirection: 'row', gap: 8 },
@@ -1802,7 +1802,7 @@ const styles = StyleSheet.create({
   inOutTime: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   cardDivider: {
@@ -1826,24 +1826,24 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     fontSize: 10,
     color: '#9CA3AF',
-    fontWeight: '600',
+    fontWeight: '400',
   },
   statValue: {
     fontFamily: FONT.bold,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   statSub: {
     fontFamily: FONT.medium,
     fontSize: 10,
     color: '#B0B4BA',
-    fontWeight: '500',
+    fontWeight: '400',
   },
   empName: {
     fontFamily: FONT.bold,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     letterSpacing: 0.2,
   },
@@ -1851,14 +1851,14 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     fontSize: 11,
     color: '#9CA3AF',
-    fontWeight: '600',
+    fontWeight: '400',
     marginTop: 2,
   },
   statusTag: { borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 5 },
   statusTagText: {
     fontFamily: FONT.bold,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   editBtn: {
@@ -1897,7 +1897,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   noteText: {
@@ -1919,7 +1919,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: FONT.bold,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   editInfoBox: {
@@ -1932,7 +1932,7 @@ const styles = StyleSheet.create({
   editInfoLabel: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     color: colors.blue,
     marginBottom: 4,
@@ -1940,13 +1940,13 @@ const styles = StyleSheet.create({
   editInfoValue: {
     fontFamily: FONT.bold,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     color: colors.black,
     marginBottom: 5,
@@ -1964,7 +1964,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     fontFamily: FONT.medium,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: colors.black,
     backgroundColor: colors.white,
   },
@@ -1983,7 +1983,7 @@ const styles = StyleSheet.create({
   empOptionName: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   empOptionId: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
@@ -1998,7 +1998,7 @@ const styles = StyleSheet.create({
   selChipText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   submitBtn: {
@@ -2017,7 +2017,7 @@ const styles = StyleSheet.create({
   submitBtnText: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     textTransform: 'uppercase',
   },
@@ -2032,7 +2032,7 @@ const styles = StyleSheet.create({
   bulkSelectAllText: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
   },
@@ -2073,7 +2073,7 @@ const styles = StyleSheet.create({
   pickInitials: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
   },
   bulkCheckboxInner: { width: 10, height: 10, backgroundColor: colors.white },
@@ -2100,13 +2100,13 @@ const styles = StyleSheet.create({
   calNavArrow: {
     fontFamily: FONT.bold,
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   calMonthLabel: {
     fontFamily: FONT.bold,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   calDowRow: { flexDirection: 'row', marginBottom: 4 },
@@ -2115,7 +2115,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
     textTransform: 'uppercase',
   },
@@ -2137,12 +2137,12 @@ const styles = StyleSheet.create({
   calCellText: {
     fontFamily: FONT.medium,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: colors.black,
   },
   calCellTextSelected: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
   },
 });

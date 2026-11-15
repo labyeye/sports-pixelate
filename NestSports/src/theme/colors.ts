@@ -2,9 +2,9 @@
 // DM Sans loaded as native font assets via react-native.config.js.
 export const FONT = {
   regular: 'DMSans-Regular',
-  medium: 'DMSans-Medium',
-  semiBold: 'DMSans-SemiBold',
-  bold: 'DMSans-Bold',
+  medium: 'DMSans-Regular',
+  semiBold: 'DMSans-Regular',
+  bold: 'DMSans-Regular',
 };
 
 // Matches the web app's neo-brutalist palette (frontend/src/config/navigation.ts,

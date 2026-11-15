@@ -257,7 +257,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  headerTitle: { color: C.white, fontWeight: '700', fontSize: 15 },
+  headerTitle: { color: C.white, fontWeight: '400', fontSize: 15 },
   cameraWrap: { flex: 1, backgroundColor: '#000' },
   guideWrap: {
     ...StyleSheet.absoluteFill,
@@ -280,13 +280,13 @@ const s = StyleSheet.create({
   },
   name: {
     color: C.white,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 28,
     textAlign: 'center',
   },
   title: {
     color: '#D1D5DB',
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -296,7 +296,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  btnText: { color: C.white, fontWeight: '700', fontSize: 13 },
+  btnText: { color: C.white, fontWeight: '400', fontSize: 13 },
   footer: { paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center' },
-  footerText: { color: C.white, fontSize: 14, fontWeight: '700' },
+  footerText: { color: C.white, fontSize: 14, fontWeight: '400' },
 });

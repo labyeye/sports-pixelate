@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -470,12 +470,12 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
   empName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
   empId: { fontSize: 11, color: colors.muted, fontFamily: 'monospace' },
-  empDesig: { fontSize: 12, color: colors.muted, fontWeight: '500', flex: 1 },
+  empDesig: { fontSize: 12, color: colors.muted, fontWeight: '400', flex: 1 },
   headcountPill: {
     borderWidth: 2,
     borderRightWidth: 4,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   headcountText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },

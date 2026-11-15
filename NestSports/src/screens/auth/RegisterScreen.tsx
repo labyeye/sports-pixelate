@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   lottie: { width: '100%', height: 220, alignSelf: 'center' },
   title: {
     fontSize: 36,
-    fontWeight: '600',
+    fontWeight: '400',
     color: C.black,
     marginTop: 12,
     marginBottom: 18,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   field: { marginBottom: 16 },
   label: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     color: C.black,
     marginBottom: 6,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingRight: 12,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: C.black,
   },
   btnPrimary: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: {
     color: C.white,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     textTransform: 'uppercase',
   },
@@ -231,5 +231,5 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 20,
   },
-  backLinkText: { fontSize: 13, color: C.primary, fontWeight: '700' },
+  backLinkText: { fontSize: 13, color: C.primary, fontWeight: '400' },
 });

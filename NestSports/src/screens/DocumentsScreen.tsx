@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },

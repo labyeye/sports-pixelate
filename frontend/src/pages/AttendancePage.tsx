@@ -6,6 +6,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AttendanceRecord, Employee } from "@/types/hrms";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
+import { ViewTabs, useViewTab } from "@/components/ui/ViewTabs";
+import { ChartCard, NbTooltip } from "@/components/ui/ChartCard";
+import { ExportMenu } from "@/components/ui/ExportMenu";
+import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LabelList,
+} from "recharts";
 import {
   Clock,
   CheckCircle,
@@ -137,6 +157,8 @@ export default function AttendancePage() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  const [view, setView] = useViewTab("attendance");
+  const [daily, setDaily] = useState<Record<string, Record<string, number>>>({});
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,6 +198,10 @@ export default function AttendancePage() {
           limit: "200",
         });
         if (empRes.success) setEmployees(empRes.data);
+        const dailyRes: any = await attendanceAPI
+          .getDailySummary({ month: String(month), year: String(year) })
+          .catch(() => null);
+        if (dailyRes?.success) setDaily(dailyRes.data);
       }
     } catch (e: unknown) {
       notifyError(e);
@@ -322,6 +348,94 @@ export default function AttendancePage() {
     leave: records.filter((r) => r.status === "on_leave").length,
   };
 
+  // Graph-tab data: per-day counts (up to today for the current month) and the month's status split.
+  const daysInMonthG = new Date(year, month, 0).getDate();
+  const lastChartDay = year === now.getFullYear() && month === now.getMonth() + 1 ? now.getDate() : daysInMonthG;
+  const dailyChart = Array.from({ length: lastChartDay }, (_, i) => {
+    const day = i + 1;
+    const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dc = daily[iso] || {};
+    return {
+      label: String(day),
+      Present: (dc.present || 0) + (dc.late || 0) + (dc.half_day || 0),
+      Late: dc.late || 0,
+      "Half day": dc.half_day || 0,
+      "On leave": dc.on_leave || 0,
+      Absent: dc.absent || 0,
+    };
+  }).filter((d) => d.Present || d.Absent || d["On leave"]);
+  const attendancePct = summary.total
+    ? Math.round(((summary.present + summary.late + summary.halfDay * 0.5) / summary.total) * 100)
+    : 0;
+  const heroDate = new Date(`${selectedDate || new Date().toISOString().split("T")[0]}T00:00:00`);
+  const isTodayHero = !selectedDate || selectedDate === new Date().toISOString().split("T")[0];
+  const heroLabel = isEmployee
+    ? `${MONTHS[month - 1]} ${year}`
+    : `${isTodayHero ? "Today" : "On"} · ${heroDate.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}`;
+  const statusSplit = [
+    { name: "Present", value: summary.present, color: "#00C48C" },
+    { name: "Late", value: summary.late, color: "#FACC15" },
+    { name: "Half day", value: summary.halfDay, color: "#F59E0B" },
+    { name: "Absent", value: summary.absent, color: "#EF4444" },
+    { name: "On leave", value: summary.leave, color: "#3B82F6" },
+  ].filter((s) => s.value > 0);
+
+  // Timing insights (month-wide) for the Graphs tab: admin/HR only.
+  type Insights = {
+    hourly: { startMin: number; count: number }[];
+    weekday: { dow: number; avg: number }[];
+    employees: {
+      id: string;
+      name: string;
+      avgMins: number;
+      days: number;
+      late: number;
+      avgHours: number;
+    }[];
+  };
+  const [insights, setInsights] = useState<Insights | null>(null);
+  useEffect(() => {
+    if (isEmployee || view !== "graphs") return;
+    let cancelled = false;
+    attendanceAPI
+      .getTimingInsights({ month: String(month), year: String(year) })
+      .then((r: any) => {
+        if (!cancelled && r?.success) setInsights(r.data);
+      })
+      .catch(() => {
+        if (!cancelled) setInsights(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEmployee, view, month, year]);
+
+  const fmtMins = (m: number) => {
+    const h24 = Math.floor(m / 60) % 24;
+    const mm = String(m % 60).padStart(2, "0");
+    const h12 = h24 % 12 || 12;
+    return `${h12}:${mm} ${h24 < 12 ? "AM" : "PM"}`;
+  };
+  const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hourlyChart = (insights?.hourly || []).map((h) => ({
+    label: fmtMins(h.startMin),
+    count: h.count,
+  }));
+  const peakHour = hourlyChart.length
+    ? hourlyChart.reduce((a, b) => (b.count > a.count ? b : a))
+    : null;
+  const quietHour = hourlyChart.length > 1
+    ? hourlyChart.reduce((a, b) => (b.count < a.count ? b : a))
+    : null;
+  const weekdayChart = (insights?.weekday || []).map((w) => ({
+    label: WEEKDAYS[w.dow - 1],
+    avg: w.avg,
+  }));
+  const timingEmps = insights?.employees || [];
+  const earlyBirds = timingEmps.slice(0, 5);
+  const lateComers = timingEmps.length > 5 ? timingEmps.slice(-5).reverse() : [];
+
+
   // days in selected month
   const daysInMonth = new Date(year, month, 0).getDate();
 
@@ -447,6 +561,21 @@ export default function AttendancePage() {
           )}
         </div>
         {!isEmployee && (
+          <ExportMenu
+            name={`attendance_${year}_${String(month).padStart(2, "0")}`}
+            rows={records}
+            cols={[
+              { header: "Emp ID", value: (r: any) => r.employee?.employeeId },
+              { header: "Employee", value: (r: any) => `${r.employee?.firstName || ""} ${r.employee?.lastName || ""}`.trim() },
+              { header: "Date", value: (r: any) => String(r.date).slice(0, 10) },
+              { header: "Check In", value: (r: any) => (r.checkIn ? new Date(r.checkIn).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "") },
+              { header: "Check Out", value: (r: any) => (r.checkOut ? new Date(r.checkOut).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "") },
+              { header: "Hours", value: (r: any) => r.workHours ?? "" },
+              { header: "Status", value: (r: any) => r.status },
+            ]}
+          />
+        )}
+        {!isEmployee && (
           <button
             onClick={() => {
               const date =
@@ -465,6 +594,298 @@ export default function AttendancePage() {
         )}
       </div>
 
+      <ViewTabs value={view} onChange={setView} className="mb-4" />
+
+      {view === "graphs" && (
+        <>
+      {/* Hero: the one thing that matters — who is in, right now */}
+      <div className="nb-rise border-2 border-black bg-white p-5 mb-3 flex flex-col sm:flex-row items-center gap-6">
+        <div className="relative w-36 h-36 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={
+                  statusSplit.length
+                    ? statusSplit
+                    : [{ name: "No data", value: 1, color: "#E5E7EB" }]
+                }
+                dataKey="value"
+                nameKey="name"
+                innerRadius={50}
+                outerRadius={68}
+                startAngle={90}
+                endAngle={-270}
+                stroke="#0A0A0A"
+                strokeWidth={1.5}
+                animationDuration={1000}
+              >
+                {(statusSplit.length
+                  ? statusSplit
+                  : [{ name: "No data", value: 1, color: "#E5E7EB" }]
+                ).map((s) => (
+                  <Cell key={s.name} fill={s.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <AnimatedNumber
+              value={attendancePct}
+              suffix="%"
+              className="text-3xl font-bold tabular-nums text-[#024BAB] leading-none"
+            />
+            <span className="text-[10px] font-bold mt-1">attendance</span>
+          </div>
+        </div>
+        <div className="flex-1 w-full">
+          <p className="text-sm font-bold text-black mb-4">
+            {heroLabel}
+            <span className="text-muted-foreground font-medium">
+              {" "}
+              · {summary.total} marked
+            </span>
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {[
+              { label: "Present", n: summary.present, color: "#00C48C", key: "present" },
+              { label: "Late", n: summary.late, color: "#CA8A04", key: "late" },
+              { label: "Half day", n: summary.halfDay, color: "#F59E0B", key: "half_day" },
+              { label: "Absent", n: summary.absent, color: "#EF4444", key: "absent" },
+              { label: "On leave", n: summary.leave, color: "#3B82F6", key: "on_leave" },
+            ].map((k) => (
+              <button
+                key={k.key}
+                onClick={() => {
+                  setActiveFilter(k.key);
+                  setView("details");
+                }}
+                className="text-left border-l-4 pl-3 hover:opacity-70 transition-opacity"
+                style={{ borderColor: k.color }}
+              >
+                <AnimatedNumber
+                  value={k.n}
+                  className="block text-3xl sm:text-4xl font-bold tabular-nums leading-none"
+                />
+                <span className="block text-xs font-bold text-black mt-1.5">
+                  {k.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <ChartCard
+        className="mb-5"
+        title="Month trend"
+        subtitle="People present vs absent on each working day (weekends & holidays skipped)"
+        empty={dailyChart.length ? undefined : "No attendance data yet"}
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart
+            data={dailyChart}
+            margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fontWeight: 700 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+              tickLine={false}
+              axisLine={false}
+              width={32}
+              allowDecimals={false}
+              domain={[0, (max: number) => Math.max(4, Math.ceil(max * 1.15))]}
+            />
+            <Tooltip content={<NbTooltip />} />
+            <Legend iconSize={8} wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
+            {[
+              { key: "Present", color: "#00C48C", begin: 0 },
+              { key: "Late", color: "#CA8A04", begin: 125 },
+              { key: "Half day", color: "#F59E0B", begin: 190 },
+              { key: "On leave", color: "#3B82F6", begin: 220 },
+              { key: "Absent", color: "#EF4444", begin: 250 },
+            ].map(({ key, color, begin }) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={color}
+                strokeWidth={3}
+                dot={{ r: 3, fill: color, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                animationDuration={1100}
+                animationBegin={begin}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      {!isEmployee && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-5">
+            <ChartCard
+              className="lg:col-span-3"
+              title="Check-in time"
+              subtitle={
+                peakHour
+                  ? `Most people arrive around ${peakHour.label} (${peakHour.count}).${
+                      quietHour && quietHour.label !== peakHour.label
+                        ? ` Fewest around ${quietHour.label} (${quietHour.count}).`
+                        : ""
+                    }`
+                  : "How many check-ins happen in each 30 minutes"
+              }
+              empty={hourlyChart.length ? undefined : "No check-in times yet"}
+            >
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart
+                  data={hourlyChart}
+                  margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fontWeight: 700 }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={32}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<NbTooltip />} cursor={{ fill: "#024BAB11" }} />
+                  <Bar
+                    dataKey="count"
+                    name="Check-ins"
+                    stroke="#0A0A0A"
+                    strokeWidth={1.5}
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={900}
+                  >
+                    {hourlyChart.map((h) => (
+                      <Cell
+                        key={h.label}
+                        fill={h.label === peakHour?.label ? "#00C48C" : "#024BAB"}
+                      />
+                    ))}
+                    <LabelList
+                      dataKey="count"
+                      position="top"
+                      style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard
+              className="lg:col-span-2"
+              title="Busiest days"
+              subtitle="Average people present on each weekday"
+              empty={weekdayChart.length ? undefined : "No data yet"}
+            >
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart
+                  data={weekdayChart}
+                  margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fontWeight: 700 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={32}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<NbTooltip />} cursor={{ fill: "#A855F711" }} />
+                  <Bar
+                    dataKey="avg"
+                    name="Avg present"
+                    fill="#A855F7"
+                    stroke="#0A0A0A"
+                    strokeWidth={1.5}
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={900}
+                  >
+                    <LabelList
+                      dataKey="avg"
+                      position="top"
+                      style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
+          <ChartCard
+            className="mb-5"
+            title="Employee-wise timing"
+            subtitle="Average check-in time this month (employees with 2+ days)"
+            empty={timingEmps.length ? undefined : "Not enough check-in data yet"}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[
+                { title: "Usually first in", rows: earlyBirds, color: "#00C48C" },
+                { title: "Usually last in", rows: lateComers, color: "#EF4444" },
+              ].map((g) => (
+                <div key={g.title}>
+                  <p className="text-xs font-bold text-black mb-2">{g.title}</p>
+                  {g.rows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Not enough employees to compare yet
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {g.rows.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex items-center gap-2 border-2 border-black px-3 py-1.5"
+                        >
+                          <span
+                            className="w-2.5 h-2.5 border border-black shrink-0"
+                            style={{ background: g.color }}
+                          />
+                          <span className="flex-1 text-sm font-bold truncate">
+                            {r.name}
+                          </span>
+                          <span className="text-sm font-bold tabular-nums">
+                            {fmtMins(r.avgMins)}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground tabular-nums w-24 text-right">
+                            {r.days} days · {r.late} late
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        </>
+      )}
+        </>
+      )}
+
+      {view === "details" && (
+        <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           {
@@ -898,6 +1319,9 @@ export default function AttendancePage() {
       )}
 
       {}
+        </>
+      )}
+
       {markModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="border-2 bg-white w-full max-w-md">

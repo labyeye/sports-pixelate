@@ -123,14 +123,14 @@ const styles = StyleSheet.create({
     flex: 2,
     textAlign: 'left',
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   headerText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     fontSize: 10,
     color: colors.muted,
   },
-  pointsCell: { fontFamily: FONT.bold, fontWeight: '800', color: colors.blue },
+  pointsCell: { fontFamily: FONT.bold, fontWeight: '400', color: colors.blue },
 });

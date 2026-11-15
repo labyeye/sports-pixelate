@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     maxWidth: '100%',

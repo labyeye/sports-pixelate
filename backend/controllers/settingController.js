@@ -2,6 +2,8 @@ const asyncHandler = require("express-async-handler");
 const { removeStoredUpload } = require("../utils/uploadFiles");
 const Setting = require("../models/Setting");
 const Company = require("../models/Company");
+const { sanitizeIdCardTemplate } = require("../utils/idCardTemplate");
+const { validateMagicBytes } = require("../middleware/upload");
 
 const getSettings = asyncHandler(async (req, res) => {
   const company = req.user.company;
@@ -62,6 +64,15 @@ const updateSettings = asyncHandler(async (req, res) => {
       : [];
   }
 
+  if ("idCardTemplate" in body) {
+    try {
+      body.idCardTemplate = sanitizeIdCardTemplate(body.idCardTemplate);
+    } catch (e) {
+      res.status(400);
+      throw e;
+    }
+  }
+
   const setting = await Setting.findOneAndUpdate(
     { company },
     { $set: { ...body, company } },
@@ -117,7 +128,24 @@ const uploadPaymentQr = (req, res) => {
     });
 };
 
+// An image for an ID-card design (background, logo, badge…). Returns its public URL; the design itself is saved
+// through the normal settings update, which only accepts URLs from this folder.
+const uploadIdCardImage = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error("No file uploaded");
+  }
+  try {
+    await validateMagicBytes(req.file.path); // deletes the file and throws when it isn't a real image
+  } catch (err) {
+    res.status(400);
+    throw err;
+  }
+  res.json({ success: true, url: `/uploads/id-card-images/${req.file.filename}` });
+});
+
 module.exports = {
+  uploadIdCardImage,
   getSettings,
   updateSettings,
   uploadCompanyLogo,

@@ -392,7 +392,7 @@ export default function SupportScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   formHeader: {
     flexDirection: 'row',
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
     flex: 1,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   ticketMetaRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   threadLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.black,
     textTransform: 'uppercase',
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   threadAuthor: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
@@ -454,5 +454,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
   },
-  closedNote: { color: colors.red, fontWeight: '700', fontSize: 12 },
+  closedNote: { color: colors.red, fontWeight: '400', fontSize: 12 },
 });

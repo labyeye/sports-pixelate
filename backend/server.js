@@ -66,7 +66,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://sports.pixelatenest.com",
+      "https://academy.pixelatenest.com",
     ];
 
 app.use(
@@ -95,8 +95,8 @@ app.use(
     },
   }),
 );
-// Razorpay "payment captured" notices (see utils/paymentReconcile.js); signed with RAZORPAY_WEBHOOK_SECRET
-app.post("/api/webhooks/razorpay-billing", require("./utils/paymentReconcile").webhook);
+// Cashfree "payment success" notices (see utils/paymentReconcile.js); signed with CASHFREE_SECRET_KEY
+app.post("/api/webhooks/cashfree-billing", require("./utils/paymentReconcile").webhook);
 app.use(require("./middleware/sanitizeInput"));
 // Uploaded images (avatars, guardian photos, etc.) are embedded via absolute
 // URL from the frontend, which runs on a different origin/port than this API.
@@ -224,7 +224,9 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/support", require("./routes/supportRoutes"));
 app.use("/api/documents", require("./routes/documentRoutes"));
 app.use("/api/announcements", require("./routes/announcementRoutes"));
+app.use("/api/bulk-messages", require("./routes/bulkMessageRoutes"));
 app.use("/api/trash", require("./routes/trashRoutes"));
+app.use("/api/assets", require("./routes/assetRoutes"));
 app.use("/api/tasks", require("./routes/taskRoutes"));
 app.use("/api/offer-letters", require("./routes/offerLetterRoutes"));
 app.use(
@@ -244,6 +246,7 @@ app.use("/api/subscriptions", require("./routes/subscriptionRoutes"));
 app.use("/api/pay", require("./routes/payRoutes"));
 app.use("/api/payment-links", require("./routes/paymentLinkRoutes"));
 app.use("/api/expenses", require("./routes/expenseRoutes"));
+app.use("/api/expense-claims", require("./routes/expenseClaimRoutes"));
 app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/facilities", require("./routes/facilityRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));

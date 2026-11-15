@@ -161,7 +161,7 @@ export function ImportExportModal({
                       <Text
                         style={[
                           styles.tableCell,
-                          { flex: 2, fontWeight: '700' },
+                          { flex: 2, fontWeight: '400' },
                         ]}
                       >
                         {h.label}
@@ -172,7 +172,7 @@ export function ImportExportModal({
                           {
                             flex: 1,
                             color: h.required ? colors.red : colors.muted,
-                            fontWeight: '700',
+                            fontWeight: '400',
                           },
                         ]}
                       >
@@ -270,7 +270,7 @@ export function ImportExportModal({
                         <View key={r.row} style={styles.tableRow}>
                           <Text style={styles.previewLine}>
                             <Text
-                              style={{ fontWeight: '700', color: colors.red }}
+                              style={{ fontWeight: '400', color: colors.red }}
                             >
                               Row {r.row}:{' '}
                             </Text>
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
     flexShrink: 1,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 13,
     color: colors.blue,
-    fontWeight: '500',
+    fontWeight: '400',
     fontFamily: FONT.medium,
   },
   table: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   tableHeaderCell: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.white,
     textTransform: 'uppercase',
     fontFamily: FONT.bold,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   notesTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#92400E',
     marginBottom: 4,
     fontFamily: FONT.bold,
@@ -485,10 +485,10 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
   },
-  resultCount: { fontSize: 28, fontWeight: '700', fontFamily: FONT.bold },
+  resultCount: { fontSize: 28, fontWeight: '400', fontFamily: FONT.bold },
   resultLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     marginTop: 4,
     fontFamily: FONT.bold,
   },
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   outlineBtnText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   },
   solidBtnText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.white,
     fontFamily: FONT.bold,
   },

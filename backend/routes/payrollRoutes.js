@@ -9,10 +9,21 @@ const {
   bulkMarkPaid,
   markSlipReceived,
 } = require("../controllers/payrollController");
+const {
+  exportTally,
+  exportZoho,
+  exportBank,
+} = require("../controllers/payrollExportController");
 const { protect, authorize } = require("../middleware/auth");
 const router = express.Router();
 
 router.get("/my", protect, getMyPayrolls);
+for (const [path, fn] of [
+  ["/export/tally", exportTally],
+  ["/export/zoho", exportZoho],
+  ["/export/bank", exportBank],
+])
+  router.get(path, protect, authorize("super_admin", "hr_manager"), fn);
 router.get(
   "/",
   protect,

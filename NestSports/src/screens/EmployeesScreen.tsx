@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react-native';
 import { employeeAPI, departmentAPI } from '../api/client';
+import PrintIdCardModal from '../idcard/PrintIdCardModal';
 import {
   EmptyState,
   LoadingView,
@@ -118,6 +119,7 @@ let searchDebounce: ReturnType<typeof setTimeout>;
 
 export default function EmployeesScreen({ navigation }: any) {
   const [actionEmp, setActionEmp] = useState<any>(null);
+  const [idPrint, setIdPrint] = useState<any[] | null>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [departments, setDepartments] = useState<any[]>([]);
@@ -473,7 +475,8 @@ export default function EmployeesScreen({ navigation }: any) {
                 onPress={() => {
                   const emp = actionEmp;
                   setActionEmp(null);
-                  if (a.screen) navigation.navigate(a.screen);
+                  if (a.label === 'Print ID Card') setIdPrint([emp]);
+                  else if (a.screen) navigation.navigate(a.screen);
                   else navigation.navigate('AddEmployee', { employee: emp });
                 }}
               >
@@ -483,6 +486,8 @@ export default function EmployeesScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <PrintIdCardModal employees={idPrint} onClose={() => setIdPrint(null)} />
 
       <SearchModal
         visible={searchVisible}
@@ -557,6 +562,7 @@ export default function EmployeesScreen({ navigation }: any) {
 // Same shortcuts as the web staff profile menu. Screens open unfiltered.
 const ROW_ACTIONS: { label: string; screen?: string }[] = [
   { label: 'Edit Profile' },
+  { label: 'Print ID Card' },
   { label: 'Pay Salary', screen: 'Payroll' },
   { label: 'Loan / Advance Entry', screen: 'Loans' },
   { label: 'Leave Balance', screen: 'Leave' },
@@ -597,7 +603,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -630,7 +636,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -679,13 +685,13 @@ const styles = StyleSheet.create({
   avatarImg: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
   avatarText: {
     color: colors.white,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     fontFamily: FONT.bold,
   },
   empName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -693,7 +699,7 @@ const styles = StyleSheet.create({
   empDesig: {
     fontSize: 12,
     color: colors.muted,
-    fontWeight: '500',
+    fontWeight: '400',
     marginTop: 1,
   },
   statusBadge: {
@@ -709,13 +715,13 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.white,
     fontFamily: FONT.bold,
   },
   cardMeta: { marginTop: 10, gap: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontSize: 12, color: colors.muted, fontWeight: '500', flex: 1 },
+  metaText: { fontSize: 12, color: colors.muted, fontWeight: '400', flex: 1 },
   cardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -739,7 +745,7 @@ const styles = StyleSheet.create({
   },
   typePillText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
     fontFamily: FONT.bold,
   },

@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -634,13 +634,13 @@ const styles = StyleSheet.create({
   avatarImg: { width: 44, height: 44, borderRadius: 22, borderWidth: 2 },
   avatarText: {
     color: colors.white,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     fontFamily: FONT.bold,
   },
   empName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
   empDesig: {
     fontSize: 12,
     color: colors.muted,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   statusBadge: {
     borderWidth: 2,
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.white,
     fontFamily: FONT.bold,
   },
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  metaText: { fontSize: 12, color: colors.muted, fontWeight: '500', flex: 1 },
+  metaText: { fontSize: 12, color: colors.muted, fontWeight: '400', flex: 1 },
   cardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
   },
   typePillText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
     fontFamily: FONT.bold,
   },

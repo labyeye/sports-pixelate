@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 15,
     color: colors.black,
   },
@@ -393,13 +393,13 @@ const styles = StyleSheet.create({
   teamsCount: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   teamsCountText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
   entryFeeText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.blue,
   },

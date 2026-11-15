@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   regName: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },
@@ -283,13 +283,13 @@ const styles = StyleSheet.create({
   regBtnAddText: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
   },
   regBtnRemoveText: {
     color: colors.red,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
   },
   teamChips: {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   teamChipText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },

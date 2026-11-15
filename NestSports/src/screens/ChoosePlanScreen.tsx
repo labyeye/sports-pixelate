@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   title: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   pillActive: { backgroundColor: colors.blue },
-  pillText: { fontSize: 13, fontWeight: '700', color: colors.black },
+  pillText: { fontSize: 13, fontWeight: '400', color: colors.black },
   pillTextActive: { color: colors.white },
   planRow: {
     flexDirection: 'row',
@@ -234,15 +234,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue + '14',
     borderColor: colors.blue,
   },
-  planName: { fontSize: 14, fontWeight: '800', color: colors.black },
+  planName: { fontSize: 14, fontWeight: '400', color: colors.black },
   planMeta: { fontSize: 11, color: colors.muted, marginTop: 2 },
-  planPrice: { fontSize: 13, fontWeight: '800', color: colors.blue },
+  planPrice: { fontSize: 13, fontWeight: '400', color: colors.blue },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 4,
   },
-  amountLabel: { fontSize: 12, fontWeight: '700', color: colors.muted },
-  amountValue: { fontSize: 18, fontWeight: '800', color: colors.black },
+  amountLabel: { fontSize: 12, fontWeight: '400', color: colors.muted },
+  amountValue: { fontSize: 18, fontWeight: '400', color: colors.black },
 });

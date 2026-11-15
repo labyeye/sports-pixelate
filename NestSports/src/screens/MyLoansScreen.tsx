@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',

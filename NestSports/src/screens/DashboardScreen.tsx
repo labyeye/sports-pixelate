@@ -602,13 +602,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 23,
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
   },
   sectionLabel: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     color: colors.black,
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   th: {
     fontFamily: FONT.bold,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: colors.black,
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
   td: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   tdSub: { fontFamily: FONT.medium, fontSize: 11, color: colors.muted },
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
   },
   tdAvatarText: {
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.blue,
   },
   tileCell: { width: '48.5%' },

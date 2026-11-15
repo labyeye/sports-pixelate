@@ -202,7 +202,7 @@ export default function TwoFactorScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   secretText: {
     fontSize: 12,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   backupCode: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     letterSpacing: 1,
     paddingVertical: 4,

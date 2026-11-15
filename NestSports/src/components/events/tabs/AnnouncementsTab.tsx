@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   postBtnText: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
   },
 });

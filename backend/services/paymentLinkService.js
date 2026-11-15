@@ -11,7 +11,7 @@ const LINK_TTL_DAYS = 30;
 const MAX_SEND_ATTEMPTS = 3;
 
 const frontendUrl = () =>
-  process.env.FRONTEND_URL || "https://sports.pixelatenest.com";
+  process.env.FRONTEND_URL || "https://academy.pixelatenest.com";
 const linkUrl = (token) => `${frontendUrl()}/pay/${token}`;
 
 const istShift = (d = new Date()) => new Date(d.getTime() + IST_OFFSET_MS);

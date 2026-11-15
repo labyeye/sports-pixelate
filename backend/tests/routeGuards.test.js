@@ -116,6 +116,13 @@ const ANY_LOGGED_IN_WRITES = new Set([
   "task POST /:id/comments",
   // Swaps a legacy localStorage token for the httpOnly cookie: any signed-in web user.
   "auth POST /web-session",
+  // Employees return their own assigned asset; handler checks it is assigned to them.
+  "asset POST /:id/return",
+  // Staff expense claims: handlers scope to the caller's own employee record; approvals/pay/policy are role-guarded.
+  "expenseClaim POST /",
+  "expenseClaim PUT /:id",
+  "expenseClaim POST /:id/resubmit",
+  "expenseClaim DELETE /:id",
 ]);
 
 test("no new unguarded write endpoints", () => {
@@ -180,7 +187,11 @@ test("shifts, designations, salary heads, transactions, payment methods: writes 
 
 test("billing and company-wide dashboard stats are not open to employees/parents", () => {
   for (const r of table.filter(
-    (x) => x.file === "billing" && x.path !== "/plans",
+    // /cashfree-checkout and /cashfree-return are public HTML shells (hosted checkout / return page); no data.
+    (x) =>
+      x.file === "billing" &&
+      x.path !== "/plans" &&
+      !String(x.path).startsWith("/cashfree-"),
   )) {
     assert.ok(
       isOwnerOnly(r),

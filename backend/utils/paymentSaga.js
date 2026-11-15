@@ -1,4 +1,4 @@
-const Razorpay = require("razorpay");
+const cashfree = require("../services/cashfreeService");
 const PaymentIncident = require("../models/PaymentIncident");
 
 /*
@@ -7,7 +7,7 @@ const PaymentIncident = require("../models/PaymentIncident");
  * The customer's money is taken first (gateway), then we create the company / subscription / invoice.
  * If any of those later steps fails we must never leave a paying customer with nothing:
  *   1. every write made so far is undone (Saga.rollback, newest first),
- *   2. the payment is refunded automatically (Razorpay) or queued for refund (other gateways / API down),
+ *   2. the payment is refunded automatically (Cashfree) or queued for refund (other gateways / API down),
  *   3. the incident is stored (PaymentIncident) so a background sweep keeps retrying until it is refunded,
  *   4. the customer gets a clear message: pay nothing again, the refund is on its way.
  */
@@ -74,8 +74,7 @@ class Saga {
   }
 }
 
-let client; // replaced in tests
-const rz = () => client || (client = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET }));
+let client = cashfree; // replaced in tests (needs refund({ orderId, amount, refundId, note }))
 const _setClient = (c) => {
   client = c;
 };
@@ -83,19 +82,13 @@ const _setClient = (c) => {
 async function tryRefund(inc) {
   inc.attempts += 1;
   try {
-    let paise = Math.round((inc.amount || 0) * 100);
-    if (!paise) paise = (await rz().payments.fetch(inc.paymentId)).amount;
-    const r = await rz().payments.refund(inc.paymentId, {
-      amount: paise,
-      speed: "optimum",
-      notes: { reason: "Subscription could not be activated", incident: String(inc._id) },
-    });
-    inc.refundId = r.id;
-    inc.amount = paise / 100;
+    if (!inc.orderId || !inc.amount) throw new Error("order id / amount missing, refund it from the Cashfree dashboard");
+    const r = await client.refund({ orderId: inc.orderId, amount: inc.amount, refundId: `rf_${inc._id}`, note: "Subscription could not be activated" });
+    inc.refundId = String(r.cf_refund_id || r.refund_id || r.id);
     inc.status = "refund_initiated";
     inc.lastError = undefined;
   } catch (e) {
-    const msg = e?.error?.description || e?.message || String(e);
+    const msg = e?.message || String(e);
     if (/already.*refund|fully refunded|refund.*already/i.test(msg)) {
       inc.status = "refunded";
       return;

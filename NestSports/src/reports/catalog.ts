@@ -1,5 +1,8 @@
 import {
   attendanceAPI,
+  auditAPI,
+  biometricAPI,
+  loanAPI,
   employeeAPI,
   eventAPI,
   leaveAPI,
@@ -71,6 +74,8 @@ const time = (d?: string, fallback = dash) =>
       })
     : fallback;
 const person = (e?: any) => (e ? `${e.firstName} ${e.lastName}` : dash);
+const sentence = (s?: string) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : dash;
 const upper = (s?: string) => (s ? s.toUpperCase().replace(/_/g, ' ') : dash);
 
 // ── data helpers ─────────────────────────────────────────────────────────
@@ -540,7 +545,176 @@ export const REPORTS: ReportDef[] = [
     },
   },
 
+  {
+    id: 'loan-report',
+    name: 'Loan & Advance Report',
+    desc: 'Loans and advances with EMI, cleared amount and balance.',
+    category: 'payroll',
+    filters: [],
+    run: async () => ({
+      headers: ['Emp ID', 'Employee', 'Department', 'Type', 'Loan Taken', 'Monthly EMI', 'Loan Cleared', 'Loan Balance', 'Status', 'Disbursed On'],
+      rows: (((await loanAPI.getAll()) as any).data || []).map((l: any) => [
+        l.employee?.employeeId || dash,
+        person(l.employee),
+        l.employee?.department?.name || dash,
+        l.type === 'advance' ? 'Advance' : 'Loan',
+        money(l.amount),
+        money(l.monthlyEmi),
+        money((l.amount || 0) - (l.remainingBalance || 0)),
+        money(l.remainingBalance),
+        sentence(l.status),
+        l.disbursedOn ? date(l.disbursedOn) : dash,
+      ]),
+    }),
+  },
+  {
+    id: 'bonus-report',
+    name: 'Bonus Report',
+    desc: 'Statutory bonus (8.33% of annual basic) for the year.',
+    category: 'payroll',
+    filters: [{ kind: 'year' }, { kind: 'dept' }],
+    run: async f => {
+      const res = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          payrollAPI.getAll({ year: f.year, limit: '5000', month: String(i + 1), ...deptParam(f) }),
+        ),
+      );
+      const map = new Map<string, any>();
+      res.flatMap((r: any) => r.data || []).forEach((p: any) => {
+        if (!p.employee) return;
+        const e = map.get(p.employee._id) || { emp: p.employee, basic: 0, n: 0 };
+        e.basic += p.basicSalary || 0;
+        e.n += 1;
+        map.set(p.employee._id, e);
+      });
+      const RATE = 0.0833;
+      return {
+        headers: ['Emp ID', 'Employee', 'Department', 'Months Paid', 'Annual Basic', 'Bonus Rate', 'Bonus Amount'],
+        rows: Array.from(map.values()).map(({ emp, basic, n }) => [
+          emp.employeeId || dash, person(emp), emp.department?.name || dash, String(n),
+          money(basic), `${(RATE * 100).toFixed(2)}%`, money(basic * RATE),
+        ]),
+      };
+    },
+  },
   // ── Attendance ─────────────────────────────────────────────────────────
+  {
+    id: 'overtime-summary',
+    name: 'Overtime Summary',
+    desc: 'Overtime hours and amount per employee.',
+    category: 'attendance',
+    filters: MONTH_DEPT,
+    run: async f => {
+      const emps = await employeesById();
+      const map = new Map<string, any>();
+      (await attendance(f))
+        .filter(r => (r.overtime || 0) > 0 && r.employee)
+        .forEach(r => {
+          const x = map.get(r.employee._id) || { emp: r.employee, h: 0 };
+          x.h += r.overtime || 0;
+          map.set(r.employee._id, x);
+        });
+      return {
+        headers: ['Emp ID', 'Employee', 'Department', 'OT Hours', 'OT Rate/Hr', 'OT Amount'],
+        rows: Array.from(map.values()).map(({ emp, h }) => {
+          const rate = emps.get(emp._id)?.otRate || 0;
+          return [emp.employeeId || dash, person(emp), emp.department?.name || dash, `${h.toFixed(1)}h`, money(rate), money(h * rate)];
+        }),
+      };
+    },
+  },
+  {
+    id: 'early-going-summary',
+    name: 'Early Going Summary',
+    desc: 'Days an employee checked out before shift end.',
+    category: 'attendance',
+    filters: MONTH_DEPT,
+    run: async f => ({
+      headers: ['Date', 'Emp ID', 'Employee', 'Department', 'Check Out Time', 'Work Hours'],
+      rows: (await attendance(f))
+        .filter(r => r.earlyLeaving)
+        .map(r => [date(r.date), r.employee?.employeeId || dash, person(r.employee), r.employee?.department?.name || dash, time(r.checkOut), r.workHours ? `${r.workHours}h` : dash]),
+    }),
+  },
+  {
+    id: 'attendance-inout-vertical',
+    name: 'Attendance In/Out (Vertical)',
+    desc: 'One row per date, one column per employee (in / out).',
+    category: 'attendance',
+    filters: MONTH_DEPT,
+    run: async f => {
+      const names = new Map<string, string>();
+      const byDate = new Map<string, { t: number; m: Map<string, any> }>();
+      (await attendance(f))
+        .filter(r => r.employee)
+        .forEach(r => {
+          names.set(r.employee._id, person(r.employee));
+          const k = date(r.date);
+          if (!byDate.has(k)) byDate.set(k, { t: new Date(r.date).getTime(), m: new Map() });
+          byDate.get(k)!.m.set(r.employee._id, r);
+        });
+      const ids = Array.from(names.keys());
+      return {
+        headers: ['Date', ...ids.map(i => names.get(i)!)],
+        rows: Array.from(byDate.entries())
+          .sort((x, y) => x[1].t - y[1].t)
+          .map(([k, v]) => [k, ...ids.map(i => { const r = v.m.get(i); return r ? `${time(r.checkIn)} / ${time(r.checkOut)}` : dash; })]),
+      };
+    },
+  },
+  {
+    id: 'locationwise',
+    name: 'Locationwise Report',
+    desc: 'Punches and unique employees per location.',
+    category: 'attendance',
+    filters: [{ kind: 'month' }],
+    run: async f => {
+      const logs: any[] = ((await biometricAPI.getLogs({ month: f.month, year: f.year, limit: '2000' })) as any).data || [];
+      const map = new Map<string, any>();
+      logs.forEach(log => {
+        const k = log.location?._id || 'unknown';
+        const l = map.get(k) || { name: log.location?.name || 'Unknown Location', addr: log.location?.address || dash, i: 0, o: 0, emps: new Set<string>() };
+        if (log.type === 'check_in') l.i++; else l.o++;
+        if (log.employee?._id) l.emps.add(log.employee._id);
+        map.set(k, l);
+      });
+      return {
+        headers: ['Location', 'Address', 'Check-ins', 'Check-outs', 'Total Punches', 'Unique Employees'],
+        rows: Array.from(map.values()).map(l => [l.name, l.addr, String(l.i), String(l.o), String(l.i + l.o), String(l.emps.size)]),
+      };
+    },
+  },
+  {
+    id: 'punch-log',
+    name: 'Punch Log Detail',
+    desc: 'Every biometric / app punch with device and location.',
+    category: 'attendance',
+    filters: [{ kind: 'month' }],
+    run: async f => ({
+      headers: ['Date', 'Time', 'Emp ID', 'Employee', 'Type', 'Method', 'Device', 'Location'],
+      rows: (((await biometricAPI.getLogs({ month: f.month, year: f.year, limit: '2000' })) as any).data || []).map((log: any) => [
+        date(log.timestamp), time(log.timestamp), log.employee?.employeeId || dash, person(log.employee),
+        log.type === 'check_in' ? 'IN' : 'OUT', sentence(log.method), log.device?.name || dash, log.location?.name || dash,
+      ]),
+    }),
+  },
+  {
+    id: 'attendance-history',
+    name: 'Attendance History',
+    desc: 'Audit trail of every attendance edit.',
+    category: 'attendance',
+    filters: [],
+    run: async () => {
+      const io = (t: any) => (t ? `${time(t.checkIn)} / ${time(t.checkOut)}` : dash);
+      return {
+        headers: ['Changed At', 'Employee', 'Action', 'Old Status', 'Old In/Out', 'New Status', 'New In/Out', 'Changed By'],
+        rows: (((await auditAPI.getLogs({ entity: 'Attendance', limit: '5000' })) as any).data || []).map((log: any) => {
+          const d = log.details || {};
+          return [`${date(log.createdAt)} ${time(log.createdAt)}`, d.employeeName || dash, log.action === 'attendance.create' ? 'Created' : 'Updated', sentence(d.before?.status), io(d.before), sentence(d.after?.status), io(d.after), log.user?.name || log.userName || dash];
+        }),
+      };
+    },
+  },
   {
     id: 'attendance-report',
     name: 'Employee Attendance Report',

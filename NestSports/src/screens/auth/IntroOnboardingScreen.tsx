@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
 
   logo: { width: 100, height: 40 },
   logoAccent: { color: '#FA731C' },
-  skip: { fontWeight: '700', color: '#64748B', fontSize: 14 },
+  skip: { fontWeight: '400', color: '#64748B', fontSize: 14 },
   slides: { flex: 1 },
   slide: { width, paddingHorizontal: 24, paddingTop: 28 },
   illustration: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 22,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#0A4EAD',
     fontSize: 16,
   },
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     lineHeight: 36,
-    fontWeight: '800',
+    fontWeight: '400',
     color: '#0F172A',
     marginBottom: 14,
   },
@@ -221,6 +221,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  buttonText: { fontWeight: '800', color: '#fff', fontSize: 16 },
+  buttonText: { fontWeight: '400', color: '#fff', fontSize: 16 },
   buttonArrow: { color: '#fff', fontSize: 22 },
 });

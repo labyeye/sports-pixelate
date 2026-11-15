@@ -202,10 +202,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#0A0A0A',
     padding: 14,
   },
-  title: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 15, color: colors.black },
+  title: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 15, color: colors.black },
   meta: { fontFamily: FONT.medium, fontSize: 12, color: colors.muted, marginTop: 4 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 18, marginTop: 10 },
-  link: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12, color: colors.blue },
+  link: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 12, color: colors.blue },
   head: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -214,5 +214,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.black,
   },
-  headTitle: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 18, color: colors.black },
+  headTitle: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 18, color: colors.black },
 });

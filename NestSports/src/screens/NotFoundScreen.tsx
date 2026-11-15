@@ -43,13 +43,13 @@ const styles = StyleSheet.create({
   },
   code: {
     fontSize: 48,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.blue,
     marginBottom: 12,
   },
   heading: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     marginBottom: 10,
     textAlign: 'center',

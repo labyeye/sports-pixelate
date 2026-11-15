@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   title: {
     flexShrink: 1,
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },

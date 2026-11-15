@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   editBtnText: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 13,
     textTransform: 'uppercase',
   },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   deleteBtnText: {
     color: colors.red,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
   },
 });

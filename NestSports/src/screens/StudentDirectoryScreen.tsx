@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
     flex: 1,
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 16,
     color: colors.black,
     marginBottom: 4,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   },
   rateText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
     marginTop: 4,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   subPlan: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },

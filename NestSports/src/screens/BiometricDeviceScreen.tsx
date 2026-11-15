@@ -793,7 +793,7 @@ export default function BiometricDeviceScreen() {
                 </View>
                 <Text style={sync.hint}>
                   Find it on the device:{' '}
-                  <Text style={{ fontWeight: '700' }}>
+                  <Text style={{ fontWeight: '400' }}>
                     Menu → System Info → Device SN
                   </Text>
                 </Text>
@@ -1324,7 +1324,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#9CA3AF',
     textTransform: 'uppercase',
   },
@@ -1353,7 +1353,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   card: {
@@ -1383,7 +1383,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   rowSub: {
@@ -1421,7 +1421,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: FONT.bold,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   devDetail: {
@@ -1445,7 +1445,7 @@ const styles = StyleSheet.create({
   codeLabel: {
     fontFamily: FONT.bold,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     color: colors.muted,
     letterSpacing: 0.5,
@@ -1453,7 +1453,7 @@ const styles = StyleSheet.create({
   codeValue: {
     fontFamily: FONT.bold,
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
     letterSpacing: 4,
     marginVertical: 4,
@@ -1483,7 +1483,7 @@ const styles = StyleSheet.create({
   devActionText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   syncBtn: {
@@ -1507,14 +1507,14 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
   emptyText: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
   },
   emptySub: { fontFamily: FONT.medium, fontSize: 12, color: '#9CA3AF' },
@@ -1539,14 +1539,14 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: FONT.bold,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   field: { marginBottom: 14 },
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     color: colors.muted,
     marginBottom: 6,
@@ -1564,7 +1564,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: colors.black,
   },
   locOption: {
@@ -1581,7 +1581,7 @@ const styles = StyleSheet.create({
   locOptionText: {
     fontFamily: FONT.medium,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: colors.black,
   },
 });
@@ -1616,12 +1616,12 @@ const sync = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   stepTitle: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
   },
@@ -1647,7 +1647,7 @@ const sync = StyleSheet.create({
   deviceName: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
   },
   deviceSub: {
@@ -1672,7 +1672,7 @@ const sync = StyleSheet.create({
   snBadgeText: {
     fontFamily: FONT.bold,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.green,
   },
   saveSerialBtn: {
@@ -1694,7 +1694,7 @@ const sync = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   serialRegistered: {
@@ -1707,7 +1707,7 @@ const sync = StyleSheet.create({
     fontFamily: FONT.bold,
     fontSize: 11,
     color: colors.green,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   peopleHeader: {
     flexDirection: 'row',
@@ -1740,7 +1740,7 @@ const sync = StyleSheet.create({
     color: colors.white,
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   personRow: {
@@ -1755,7 +1755,7 @@ const sync = StyleSheet.create({
   personName: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   personId: {
@@ -1792,7 +1792,7 @@ const sync = StyleSheet.create({
   idChipSet: { borderColor: colors.green, backgroundColor: '#F0FDF4' },
   idChipUnset: { borderColor: '#D1D5DB', borderStyle: 'dashed' },
   rfidChipSet: { borderColor: colors.blue, backgroundColor: '#EFF6FF' },
-  idChipText: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '700' },
+  idChipText: { fontFamily: FONT.bold, fontSize: 12, fontWeight: '400' },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1811,7 +1811,7 @@ const sync = StyleSheet.create({
   actionBtnText: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   cmdHeader: {
@@ -1840,7 +1840,7 @@ const sync = StyleSheet.create({
   refreshBtnText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   cmdRow: {
@@ -1854,7 +1854,7 @@ const sync = StyleSheet.create({
   cmdType: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
   },
@@ -1877,7 +1877,7 @@ const sync = StyleSheet.create({
   cmdStatusText: {
     fontFamily: FONT.bold,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   rfidPersonBox: {
@@ -1891,7 +1891,7 @@ const sync = StyleSheet.create({
   rfidPersonName: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   rfidPersonId: {

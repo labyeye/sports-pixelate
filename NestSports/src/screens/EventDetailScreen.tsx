@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 20,
     color: colors.black,
   },

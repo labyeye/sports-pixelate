@@ -153,14 +153,14 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#000',
     paddingVertical: 4,
   },
   done: {
     color: C.primary,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
   },
   row: {
@@ -172,7 +172,7 @@ const s = StyleSheet.create({
   rowTitle: {
     fontSize: 14,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#000',
   },
   rowSub: { fontSize: 12, color: '#64748b', marginTop: 1 },

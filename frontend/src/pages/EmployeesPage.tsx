@@ -19,6 +19,8 @@ import {
   biometricAPI,
 } from "@/services/api";
 import { Employee, Department } from "@/types/hrms";
+import { ExportMenu } from "@/components/ui/ExportMenu";
+import { PrintIdCardDialog } from "@/components/idcard/PrintIdCardDialog";
 import {
   INDIA_STATES,
   INDIA_STATES_AND_CITIES,
@@ -70,6 +72,8 @@ import {
   BookOpen,
   GraduationCap,
   Landmark,
+  IdCard,
+  CheckSquare,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
@@ -261,6 +265,10 @@ export default function EmployeesPage() {
   const [showModal, setShowModal] = useState(false);
   const [formTab, setFormTab] = useState(0);
   const [editEmp, setEditEmp] = useState<Employee | null>(null);
+  const [idPrint, setIdPrint] = useState<Employee[] | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [form, setForm] = useState<EmployeeFormData>(EMPTY_FORM);
   const [cityIsOther, setCityIsOther] = useState(false);
 
@@ -760,6 +768,39 @@ export default function EmployeesPage() {
     },
   ];
 
+  const toggleSel = (id: string) =>
+    setSelected((p) => {
+      const n = new Set(p);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const bulkRun = async (
+    label: string,
+    fn: (id: string) => Promise<any>,
+    destructive = false,
+  ) => {
+    if (!(await confirmDialog(`${label} ${selected.size} employee(s)?${destructive ? " This cannot be undone." : ""}`))) return;
+    setBulkBusy(true);
+    let done = 0;
+    const total = selected.size;
+    for (const id of selected) {
+      try {
+        await fn(id);
+        done++;
+      } catch {}
+    }
+    setBulkBusy(false);
+    setSelected(new Set());
+    setActionModal({
+      show: true,
+      type: done === total ? "success" : "error",
+      title: `${label}: ${done}/${total} done`,
+      message: done === total ? "Bulk action completed." : "Some employees could not be updated.",
+    });
+    load();
+  };
+
   const handleExport = () => {
     exportRowsToExcel(
       IMPORT_HEADERS.map((h) => ({ key: h.key, label: h.label })),
@@ -830,13 +871,35 @@ export default function EmployeesPage() {
         <h1 className="font-display font-bold text-2xl text-black">
           Employees
         </h1>
-        <div className="grid-cols-3 grid gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleExport}
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
+            onClick={() => {
+              setSelectMode((v) => !v);
+              setSelected(new Set());
+            }}
+            className={cn(
+              "border-2 border-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold transition-colors",
+              selectMode ? "bg-black text-white" : "bg-white text-black hover:bg-gray-50",
+            )}
           >
-            <Download className="w-4 h-4" /> Export
+            <CheckSquare className="w-4 h-4" /> {selectMode ? "Selecting" : "Select"}
           </button>
+          <ExportMenu
+            name="employees"
+            rows={displayedEmployees}
+            cols={[
+              { header: "Emp ID", value: (e: any) => e.employeeId },
+              { header: "Name", value: (e: any) => `${e.firstName} ${e.lastName}` },
+              { header: "Department", value: (e: any) => e.department?.name },
+              { header: "Designation", value: (e: any) => e.designation },
+              { header: "Phone", value: (e: any) => e.phone },
+              { header: "Email", value: (e: any) => e.email },
+              { header: "Join Date", value: (e: any) => (e.joinDate ? String(e.joinDate).slice(0, 10) : "") },
+              { header: "Salary", value: (e: any) => e.salary ?? 0 },
+              { header: "Loan Balance", value: (e: any) => e.loanBalance ?? 0 },
+              { header: "Status", value: (e: any) => e.status },
+            ]}
+          />
           <button
             onClick={() => setImportModal(true)}
             className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
@@ -852,7 +915,13 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {}
+      <p className="text-xs font-bold text-muted-foreground mb-3">
+        {employees.length} employees &middot;{" "}
+        {employees.filter((e: any) => e.status === "active").length} active
+        {employees.filter((e: any) => e.status === "inactive").length ? ` · ${employees.filter((e: any) => e.status === "inactive").length} inactive` : ""}
+        {" · "}
+        {employees.filter((e: any) => { const d = e.joinDate ? new Date(e.joinDate) : null; const n = new Date(); return d && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length} new this month
+      </p>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
         {" "}
         <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
@@ -988,6 +1057,86 @@ export default function EmployeesPage() {
         </div>
       ) : (
         <>
+  {selectMode && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 border-2 border-black bg-[#024BAB]/5 px-3 py-2">
+            <span className="text-sm font-bold">{selected.size} selected</span>
+            <button
+              className="text-xs font-bold border-2 border-black px-2 py-1 bg-white"
+              onClick={() =>
+                setSelected(
+                  selected.size === displayedEmployees.length
+                    ? new Set()
+                    : new Set(displayedEmployees.map((e) => e._id)),
+                )
+              }
+            >
+              {selected.size === displayedEmployees.length
+                ? "Clear all"
+                : "Select all"}
+            </button>
+            {selected.size > 0 && (
+              <>
+                <button
+                  disabled={bulkBusy}
+                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-[#00C48C] text-white"
+                  onClick={() =>
+                    bulkRun("Activate", (id) =>
+                      employeeAPI.update(id, { status: "active" }),
+                    )
+                  }
+                >
+                  Mark Active
+                </button>
+                <button
+                  disabled={bulkBusy}
+                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-gray-500 text-white"
+                  onClick={() =>
+                    bulkRun("Deactivate", (id) =>
+                      employeeAPI.update(id, { status: "inactive" }),
+                    )
+                  }
+                >
+                  Mark Inactive
+                </button>
+                <button
+                  disabled={bulkBusy}
+                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-[#EF4444] text-white"
+                  onClick={() =>
+                    bulkRun("Terminate", (id) => employeeAPI.delete(id), true)
+                  }
+                >
+                  Terminate
+                </button>
+                <button
+                  disabled={bulkBusy}
+                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-white flex items-center gap-1"
+                  onClick={() =>
+                    setIdPrint(displayedEmployees.filter((e) => selected.has(e._id)))
+                  }
+                >
+                  <IdCard className="w-3.5 h-3.5" /> Print ID cards
+                </button>
+                <span className="ml-auto">
+                  <ExportMenu
+                    name="employees_selected"
+                    rows={displayedEmployees.filter((e) => selected.has(e._id))}
+                    cols={[
+                      { header: "Emp ID", value: (e) => e.employeeId },
+                      {
+                        header: "Name",
+                        value: (e) => `${e.firstName} ${e.lastName}`,
+                      },
+                      { header: "Designation", value: (e) => e.designation },
+                      { header: "Status", value: (e) => e.status },
+                    ]}
+                  />
+                </span>
+              </>
+            )}
+            {bulkBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+          </div>
+        )}
+
           {/* Mobile cards */}
           <div className="grid grid-cols-1 gap-3 sm:hidden">
             {displayedEmployees.map((emp) => {
@@ -1116,6 +1265,13 @@ export default function EmployeesPage() {
                       <Edit className="w-3.5 h-3.5" /> Edit
                     </button>
                     <button
+                      onClick={() => setIdPrint([emp])}
+                      className="p-2 border-2 border-black bg-white hover:bg-[#024BAB]/5"
+                      title="View ID Card"
+                    >
+                      <IdCard className="w-3.5 h-3.5 text-[#024BAB]" />
+                    </button>
+                    <button
                       onClick={() => handleDelete(emp._id)}
                       className="p-2 border-2 border-black bg-white hover:bg-red-50"
                       title="Terminate"
@@ -1133,7 +1289,9 @@ export default function EmployeesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
+                  {selectMode && <th className="px-3 py-3 w-8" />}
                   {[
+                    "Emp ID",
                     "Employee",
                     "Department",
                     "Designation",
@@ -1162,6 +1320,19 @@ export default function EmployeesPage() {
                     )}
                     onClick={() => setViewEmp(emp)}
                   >
+                    {selectMode && (
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(emp._id)}
+                          onChange={() => toggleSel(emp._id)}
+                          className="w-4 h-4 accent-[#024BAB]"
+                        />
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-xs font-bold text-black">
+                      {emp.employeeId}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 border-[1px] border-black shrink-0 overflow-hidden bg-[#024BAB] flex items-center justify-center text-xs font-bold text-white rounded-full">
@@ -1258,6 +1429,13 @@ export default function EmployeesPage() {
                           title="Edit"
                         >
                           <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setIdPrint([emp])}
+                          className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                          title="ID Card"
+                        >
+                          <IdCard className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(emp._id)}
@@ -4070,6 +4248,9 @@ export default function EmployeesPage() {
         onImport={(rows) => employeeAPI.bulkImport(rows) as any}
         onImported={load}
       />
+      {idPrint && idPrint.length > 0 && (
+        <PrintIdCardDialog employees={idPrint} onClose={() => setIdPrint(null)} />
+      )}
     </AppLayout>
   );
 }

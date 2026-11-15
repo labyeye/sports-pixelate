@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   previewSection: { marginBottom: 12 },
   previewTitle: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.muted,
     textTransform: 'uppercase',
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   },
   previewChipLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   genBtnText: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 13,
     textTransform: 'uppercase',
   },
@@ -409,13 +409,13 @@ const styles = StyleSheet.create({
   regenBtnText: {
     color: colors.black,
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 13,
     textTransform: 'uppercase',
   },
   roundLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.muted,
     textTransform: 'uppercase',
@@ -440,10 +440,10 @@ const styles = StyleSheet.create({
     color: colors.black,
     flex: 1,
   },
-  teamNameWinner: { fontFamily: FONT.bold, fontWeight: '700' },
+  teamNameWinner: { fontFamily: FONT.bold, fontWeight: '400' },
   teamScore: {
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   },
   recordBtnText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: colors.white,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
   },
   cancelBtn: {

@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   big: {
     fontFamily: FONT.bold,
     fontSize: 30,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
     marginTop: 4,
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   listTitle: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
   },
   listSub: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   statusChipText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
     textTransform: 'capitalize',
   },

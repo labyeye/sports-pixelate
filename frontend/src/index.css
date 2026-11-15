@@ -16,7 +16,7 @@
 }
 
 .page-transition {
-  animation: page-fade-in 0.3s ease-out both;
+  animation: page-fade-in 0.3s ease-out backwards;
 }
 
 @layer base {
@@ -1017,4 +1017,34 @@ main
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ------------------------------------------------------------------
+   Status pills — any small bordered label (ACTIVE, PENDING, ON LEAVE …)
+   becomes a pill with a black border and hard offset shadow, uppercase.
+   Background / text colours stay as set by the badge itself.
+------------------------------------------------------------------- */
+span[class*="border-2"]:is(
+    [class*="text-[9px]"],
+    [class*="text-[10px]"],
+    [class*="text-[11px]"],
+    [class*="text-xs"]
+  ):is([class*="px-1.5"], [class*="px-2"]):is(
+    [class*="py-0.5"],
+    [class*="py-1"]
+  ):not([class*="bg-black/"], .no-nb) {
+  border-color: #0a0a0a;
+  border-radius: 9999px;
+  box-shadow: 3px 3px 0px #0a0a0a;
+  margin-right: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* App-wide cap: no text heavier than regular (400), whatever Tailwind weight class or inline style is used. */
+*,
+*::before,
+*::after {
+  font-weight: 400 !important;
 }

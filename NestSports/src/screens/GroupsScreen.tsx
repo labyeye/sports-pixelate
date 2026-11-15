@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 17, fontWeight: '800', color: colors.black },
+  name: { fontSize: 17, fontWeight: '400', color: colors.black },
   counts: {
     flexDirection: 'row',
     alignItems: 'center',

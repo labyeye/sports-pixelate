@@ -9,7 +9,7 @@ const Counter = require("../models/Counter");
 const User = require("../models/User");
 const OfferCode = require("../models/OfferCode");
 const PendingOrder = require("../models/PendingOrder");
-const razorpayService = require("../services/razorpayService");
+const cashfreeService = require("../services/cashfreeService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
 const {
   RATE_INAPP,
@@ -140,7 +140,7 @@ const validateOfferCode = asyncHandler(async (req, res) => {
 
 /**
  * POST /billing/create-order — prices the order server-side (never trusts a
- * client total) and opens a payment order on Razorpay.
+ * client total) and opens a payment order on Cashfree.
  * Body: studentCount, employeeCount, wantsWhatsapp, billingCycle, gateway, offerCode,
  * and `company` details for a first-time signup.
  */
@@ -150,7 +150,7 @@ const createOrder = asyncHandler(async (req, res) => {
     employeeCount = 0,
     wantsWhatsapp = false,
     billingCycle = "monthly",
-    gateway = "razorpay",
+    gateway = "cashfree",
     offerCode,
     company: companyDetails,
   } = req.body;
@@ -169,9 +169,9 @@ const createOrder = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid billing cycle");
   }
-  if (gateway !== "razorpay") {
+  if (gateway !== "cashfree") {
     res.status(400);
-    throw new Error("Invalid gateway. Only razorpay is supported");
+    throw new Error("Invalid gateway. Only cashfree is supported");
   }
 
   const planName = PLAN_NAME;
@@ -243,10 +243,15 @@ const createOrder = asyncHandler(async (req, res) => {
 
   let orderData;
 
-  if (gateway === "razorpay") {
-    const result = await razorpayService.createOrder({
+  if (gateway === "cashfree") {
+    const result = await cashfreeService.createOrder({
       amount: amountRupees,
-      receipt: `rcpt_${Date.now()}`,
+      customer: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone || (existingCompany ? existingCompany.phone : companyDetails?.phone),
+      },
       notes: {
         studentCount: count,
         employeeCount: empCount,
@@ -289,7 +294,7 @@ const createOrder = asyncHandler(async (req, res) => {
     } else {
       await PendingOrder.create({
         orderId: result.orderId,
-        gateway: "razorpay",
+        gateway: "cashfree",
         user: req.user._id,
         companyName: newCompanyDetails.name,
         companyEmail: newCompanyDetails.email,
@@ -317,9 +322,11 @@ const createOrder = asyncHandler(async (req, res) => {
     }
 
     orderData = {
-      gateway: "razorpay",
+      gateway: "cashfree",
       orderId: result.orderId,
-      keyId: result.keyId,
+      paymentSessionId: result.paymentSessionId,
+      checkoutUrl: result.checkoutUrl,
+      mode: result.mode,
       amount: amountRupees,
       subtotal,
       gstRate: pricing.gstRate,
@@ -349,39 +356,32 @@ const createOrder = asyncHandler(async (req, res) => {
 });
 
 /**
- * POST /billing/verify-razorpay — verifies the Razorpay signature, then
+ * POST /billing/verify-cashfree — asks Cashfree whether the order is really paid, then
  * activates the subscription (creating the company on first purchase).
  */
-const verifyRazorpayPayment = asyncHandler(async (req, res) => {
-  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
-
-  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+const verifyCashfreePayment = asyncHandler(async (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) {
     res.status(400);
-    throw new Error(
-      "razorpayOrderId, razorpayPaymentId and razorpaySignature are required",
-    );
+    throw new Error("orderId is required");
   }
 
-  const isValid = razorpayService.verifySignature({
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
-  });
-  if (!isValid) {
-    res.status(400);
-    throw new Error("Payment verification failed. Invalid signature.");
+  // Cashfree is asked directly, so the client cannot fake a payment.
+  const pay = await cashfreeService.verifyOrder(orderId);
+  if (!pay.paid) {
+    res.status(402);
+    throw new Error("Payment not completed yet");
   }
+  // Legacy DB field names (razorpay*) hold the Cashfree ids.
+  const razorpayOrderId = orderId;
+  const razorpayPaymentId = pay.paymentId;
 
-  const pendingOrder = await PendingOrder.findOne({ orderId: razorpayOrderId });
+  const pendingOrder = await PendingOrder.findOne({ orderId });
   if (pendingOrder) {
     await _createCompanyAndActivate({
       pendingOrder,
       req,
-      update: {
-        razorpayPaymentId,
-        paymentMethod: "razorpay",
-        paymentStatus: "completed",
-      },
+      update: { razorpayPaymentId, paymentMethod: "cashfree", paymentStatus: "completed" },
       invoiceExtra: { razorpayOrderId, razorpayPaymentId },
       res,
     });
@@ -391,11 +391,7 @@ const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   await _activateSubscription({
     req,
     lookup: { razorpayOrderId },
-    update: {
-      razorpayPaymentId,
-      paymentMethod: "razorpay",
-      paymentStatus: "completed",
-    },
+    update: { razorpayPaymentId, paymentMethod: "cashfree", paymentStatus: "completed" },
     invoiceExtra: { razorpayOrderId, razorpayPaymentId },
     res,
   });
@@ -537,7 +533,7 @@ async function _createCompanyAndActivateSteps({
 
   const dashboardUrl = process.env.FRONTEND_URL
     ? `${process.env.FRONTEND_URL}/`
-    : "https://sports.pixelatenest.com/";
+    : "https://academy.pixelatenest.com/";
 
   require("../services/creditsService").onSubscriptionPaid(company._id, subscription).catch((err) => console.error("[Credits]", err.message));
   sendPaymentConfirmations({
@@ -687,7 +683,7 @@ async function _activateSubscriptionSteps({
   const user = await User.findById(company.createdBy);
   const dashboardUrl = process.env.FRONTEND_URL
     ? `${process.env.FRONTEND_URL}/`
-    : "https://sports.pixelatenest.com/";
+    : "https://academy.pixelatenest.com/";
 
   require("../services/creditsService").onSubscriptionPaid(company._id, updatedSub).catch((err) => console.error("[Credits]", err.message));
   sendPaymentConfirmations({
@@ -738,7 +734,7 @@ async function _withRefundSaga(args, steps) {
     const undone = await saga.rollback();
     await refundAfterFailure(
       {
-        gateway: "razorpay",
+        gateway: "cashfree",
         paymentId: update.razorpayPaymentId,
         orderId: invoiceExtra?.razorpayOrderId,
         amount: saga.amount,
@@ -753,9 +749,9 @@ async function _withRefundSaga(args, steps) {
 const _createCompanyAndActivate = (args) => _withRefundSaga(args, _createCompanyAndActivateSteps);
 const _activateSubscription = (args) => _withRefundSaga(args, _activateSubscriptionSteps);
 
-// Activates a paid Razorpay order without a signed-in browser (used when only the webhook told us about the payment).
+// Activates a paid Cashfree order without a signed-in browser (used when only the webhook told us about the payment).
 // Same code path as the browser's verify call, so the saga/refund protection is identical.
-async function provisionRazorpay({ orderId, paymentId }) {
+async function provisionCashfree({ orderId, paymentId }) {
   const res = {
     statusCode: 200,
     headersSent: false,
@@ -768,7 +764,7 @@ async function provisionRazorpay({ orderId, paymentId }) {
       return this;
     },
   };
-  const update = { razorpayPaymentId: paymentId, paymentMethod: "razorpay", paymentStatus: "completed" };
+  const update = { razorpayPaymentId: paymentId, paymentMethod: "cashfree", paymentStatus: "completed" };
   const invoiceExtra = { razorpayOrderId: orderId, razorpayPaymentId: paymentId };
   const pendingOrder = await PendingOrder.findOne({ orderId });
   if (pendingOrder) {
@@ -780,11 +776,11 @@ async function provisionRazorpay({ orderId, paymentId }) {
 }
 
 const verifyPayment = asyncHandler(async (req, res) => {
-  if (!req.body.razorpayOrderId) {
+  if (!req.body.orderId) {
     res.status(400);
-    throw new Error("razorpayOrderId is required");
+    throw new Error("orderId is required");
   }
-  return verifyRazorpayPayment(req, res);
+  return verifyCashfreePayment(req, res);
 });
 
 module.exports = {
@@ -794,6 +790,6 @@ module.exports = {
   createOrder,
   validateOfferCode,
   verifyPayment,
-  verifyRazorpayPayment,
-  provisionRazorpay,
+  verifyCashfreePayment,
+  provisionCashfree,
 };

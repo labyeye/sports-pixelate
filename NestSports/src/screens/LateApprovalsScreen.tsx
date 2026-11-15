@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   card: { padding: 14 },
   empName: {
     fontFamily: FONT.bold,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 15,
     color: colors.black,
   },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontFamily: FONT.medium,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     color: colors.orange,
   },
   reason: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: colors.white,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
 });

@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
     flex: 1,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
   },
@@ -273,13 +273,13 @@ const styles = StyleSheet.create({
   },
   amountText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },
   dueText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.red,
   },

@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   link: { marginTop: 10 },
   linkText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.blue,
   },

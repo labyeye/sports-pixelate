@@ -1,6 +1,22 @@
 import { writePrintDocument } from "@/lib/printWindow";
 import { escapeHtml } from "@/lib/escapeHtml";
 import { StatCard } from "@/components/ui/StatCard";
+import { ExportMenu } from "@/components/ui/ExportMenu";
+import { ViewTabs, useViewTab } from "@/components/ui/ViewTabs";
+import { ChartCard, NbTooltip } from "@/components/ui/ChartCard";
+import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LabelList,
+} from "recharts";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import payrollChequePdf from "../../assets/payrollcheque.pdf";
@@ -16,6 +32,7 @@ import {
   employeeAPI,
   payrollPreviewAPI,
   settingsAPI,
+  dashboardAPI,
 } from "@/services/api";
 import { Payroll } from "@/types/hrms";
 import { cn, formatCurrency, getErrorMessage } from "@/lib/utils";
@@ -29,6 +46,9 @@ import {
   ArrowUp,
   ArrowDown,
   Eye,
+  Banknote,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { ActionModal } from "@/components/ui/ActionModal";
 import { fillVars, normalizeTemplate, type VarCtx } from "@/lib/chequeTemplate";
@@ -368,6 +388,22 @@ export default function PayrollPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+  // Payroll is action-heavy (run, pay, print), so admins land on Details; Insights is one tap away.
+  const [view, setView] = useViewTab("payroll", "details");
+  const [payTrend, setPayTrend] = useState<{ month: number; total: number }[]>([]);
+  useEffect(() => {
+    if (view !== "graphs") return;
+    let cancelled = false;
+    dashboardAPI
+      .getStats()
+      .then((r: any) => {
+        if (!cancelled && r?.success) setPayTrend(r.data.payTrend || []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [view]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [processModal, setProcessModal] = useState(false);
@@ -388,6 +424,31 @@ export default function PayrollPage() {
     "employee" | "net" | "gross" | "deductions"
   >("employee");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [deptFilter, setDeptFilter] = useState("");
+  // Saved view (status, department, sort): kept in this browser.
+  const VIEW_KEY = "nestacademy:payroll:view";
+  useEffect(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(VIEW_KEY) || "null");
+      if (!v || typeof v !== "object") return;
+      if (typeof v.status === "string") setFilterStatus(v.status);
+      if (typeof v.dept === "string") setDeptFilter(v.dept);
+      if (["employee", "net", "gross", "deductions"].includes(v.sortKey)) setSortKey(v.sortKey);
+      if (v.sortDir === "asc" || v.sortDir === "desc") setSortDir(v.sortDir);
+    } catch {
+      /* storage blocked: start from the defaults */
+    }
+  }, []);
+  const [viewSaved, setViewSaved] = useState(false);
+  const saveMyView = () => {
+    try {
+      localStorage.setItem(VIEW_KEY, JSON.stringify({ status: filterStatus, dept: deptFilter, sortKey, sortDir }));
+      setViewSaved(true);
+      setTimeout(() => setViewSaved(false), 2000);
+    } catch {
+      alert("Could not save the view");
+    }
+  };
   const [previewing, setPreviewing] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [previewStep, setPreviewStep] = useState<"form" | "preview">("form");
@@ -595,6 +656,54 @@ export default function PayrollPage() {
   const totalNet = payrolls.reduce((s, p) => s + p.netSalary, 0);
   const totalDed = payrolls.reduce((s, p) => s + p.totalDeductions, 0);
   const paidCount = payrolls.filter((p) => p.status === "paid").length;
+  const paidPct = payrolls.length ? Math.round((paidCount / payrolls.length) * 100) : 0;
+
+  // Insights-tab data
+  const sumOf = (f: (p: any) => number) =>
+    payrolls.reduce((s, p) => s + (f(p) || 0), 0);
+  const deductionParts = [
+    { name: "Absent", value: sumOf((p) => p.absentDeduction) },
+    { name: "Late", value: sumOf((p) => p.lateDeductionAmount) },
+    { name: "Half day", value: sumOf((p) => p.halfDayDeduction) },
+    { name: "Early out", value: sumOf((p) => p.earlyCheckoutDeduction) },
+    { name: "Penalty", value: sumOf((p) => p.penaltyAmount) },
+    { name: "Loan/advance", value: sumOf((p) => p.loanDeduction) },
+  ]
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const deptCost = Object.entries(
+    payrolls.reduce<Record<string, number>>((acc, p) => {
+      const name = (p.employee as any)?.department?.name || "Unassigned";
+      acc[name] = (acc[name] || 0) + (p.netSalary || 0);
+      return acc;
+    }, {}),
+  )
+    .map(([name, total]) => ({ name, total: Math.round(total / 1000) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8);
+  // Department-wise totals for this month (all records, ignoring the list filters).
+  const deptStats = Object.values(
+    payrolls.reduce<
+      Record<
+        string,
+        { name: string; people: number; paid: number; gross: number; ded: number; net: number }
+      >
+    >((acc, p) => {
+      const name = (p.employee as any)?.department?.name || "No department";
+      const d = (acc[name] ||= { name, people: 0, paid: 0, gross: 0, ded: 0, net: 0 });
+      d.people += 1;
+      if (p.status === "paid") d.paid += 1;
+      d.gross += p.grossSalary || 0;
+      d.ded += p.totalDeductions || 0;
+      d.net += p.netSalary || 0;
+      return acc;
+    }, {}),
+  ).sort((a, b) => b.net - a.net);
+  const trendChart = payTrend.map((t) => ({
+    label: MONTHS[t.month - 1]?.slice(0, 3),
+    total: Math.round(t.total / 1000),
+  }));
+
 
   const displayedPayrolls = [...payrolls]
     .filter((p) => {
@@ -602,6 +711,7 @@ export default function PayrollPage() {
         `${(p.employee as any)?.firstName ?? ""} ${(p.employee as any)?.lastName ?? ""}`.toLowerCase();
       if (search && !name.includes(search.toLowerCase())) return false;
       if (filterStatus && p.status !== filterStatus) return false;
+      if (deptFilter && ((p.employee as any)?.department?.name || "No department") !== deptFilter) return false;
       return true;
     })
     .sort((a, b) => {
@@ -661,6 +771,45 @@ export default function PayrollPage() {
           >
             <CheckCircle className="w-4 h-4" /> Bulk Mark Paid
           </button>
+          <ExportMenu
+            name={`payroll_${year}_${String(month).padStart(2, "0")}`}
+            rows={displayedPayrolls}
+            cols={[
+              { header: "Emp Code", value: (p: any) => p.employee?.employeeId },
+              {
+                header: "Employee",
+                value: (p: any) =>
+                  `${p.employee?.firstName || ""} ${p.employee?.lastName || ""}`.trim(),
+              },
+              { header: "Gross", value: (p: any) => p.grossSalary },
+              { header: "PF", value: (p: any) => p.pf || 0 },
+              { header: "ESI", value: (p: any) => p.esi || 0 },
+              { header: "TDS", value: (p: any) => p.tds || 0 },
+              { header: "Loan/Advance", value: (p: any) => p.loanDeduction || 0 },
+              { header: "Net Salary", value: (p: any) => p.netSalary },
+              { header: "Status", value: (p: any) => p.status },
+            ]}
+            extra={[
+              {
+                label: "Tally XML",
+                icon: <FileText className="w-4 h-4" />,
+                onClick: () => payrollAPI.exportTally(month, year).catch((e) => alert(e.message)),
+                disabled: payrolls.length === 0,
+              },
+              {
+                label: "Zoho CSV",
+                icon: <FileSpreadsheet className="w-4 h-4" />,
+                onClick: () => payrollAPI.exportZoho(month, year).catch((e) => alert(e.message)),
+                disabled: payrolls.length === 0,
+              },
+              {
+                label: "Bank CSV",
+                icon: <Banknote className="w-4 h-4" />,
+                onClick: () => payrollAPI.exportBank(month, year).catch((e) => alert(e.message)),
+                disabled: payrolls.length === 0,
+              },
+            ]}
+          />
           <button
             onClick={() => {
               if (payrolls.length === 0) {
@@ -702,39 +851,267 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        {[
-          {
-            label: "Gross Salary",
-            value: formatCurrency(totalGross),
-            color: "#024BAB",
-          },
-          {
-            label: "Total Deductions",
-            value: formatCurrency(totalDed),
-            color: "#FA731C",
-          },
-          {
-            label: "Net Payable",
-            value: formatCurrency(totalNet),
-            color: "#00C48C",
-          },
-          {
-            label: "Paid",
-            value: `${paidCount}/${payrolls.length}`,
-            color: "#024BAB",
-          },
-        ].map(({ label, value, color }) => (
-          <StatCard
-            key={label}
-            label={label}
-            value={value}
-            icon={IndianRupee}
-            color={color}
-          />
-        ))}
-      </div>
+      <ViewTabs value={view} onChange={setView} className="mb-4" />
+
+      {view === "graphs" && (
+        <>
+          {/* Hero: how this month's payroll stands */}
+          <div className="nb-rise border-2 border-black bg-white p-5 mb-3 flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative w-32 h-32 shrink-0">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#E5E7EB" strokeWidth="5" />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="15.5"
+                  fill="none"
+                  stroke="#00C48C"
+                  strokeWidth="5"
+                  strokeDasharray={`${(paidPct / 100) * 97.4} 97.4`}
+                  style={{ transition: "stroke-dasharray 1s ease-out" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <AnimatedNumber
+                  value={paidPct}
+                  suffix="%"
+                  className="text-2xl font-bold tabular-nums leading-none"
+                />
+                <span className="text-[10px] font-bold mt-1">paid</span>
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <p className="text-sm font-bold text-black mb-4">
+                {MONTHS[month - 1]} {year}
+                <span className="text-muted-foreground font-medium">
+                  {" "}
+                  · {paidCount} of {payrolls.length} paid
+                </span>
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  { label: "Net payable", n: totalNet, color: "#00C48C" },
+                  { label: "Gross salary", n: totalGross, color: "#024BAB" },
+                  { label: "Deductions", n: totalDed, color: "#FA731C" },
+                ].map((k) => (
+                  <div
+                    key={k.label}
+                    className="border-l-4 pl-3"
+                    style={{ borderColor: k.color }}
+                  >
+                    <AnimatedNumber
+                      value={Math.round(k.n)}
+                      prefix="₹"
+                      className="block text-2xl sm:text-3xl font-bold tabular-nums leading-none"
+                    />
+                    <span className="block text-xs font-bold text-black mt-1.5">
+                      {k.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
+            <ChartCard
+              title="Payout trend"
+              subtitle="Net payout (₹K) — last 6 months"
+              empty={trendChart.length ? undefined : "No trend data yet"}
+            >
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart
+                  data={trendChart}
+                  margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 700 }} tickLine={false} axisLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={38}
+                    allowDecimals={false}
+                    domain={[0, (max: number) => Math.max(10, Math.ceil(max * 1.15))]}
+                  />
+                  <Tooltip content={<NbTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name="₹K"
+                    stroke="#024BAB"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "#024BAB", stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                    activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                    animationDuration={1100}
+                  >
+                    <LabelList dataKey="total" position="top" offset={8} style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }} />
+                  </Line>
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard
+              title="Where deductions go"
+              subtitle={`${MONTHS[month - 1]} — total ${formatCurrency(totalDed)}`}
+              empty={deductionParts.length ? undefined : "No deductions this month"}
+            >
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={deductionParts}
+                  layout="vertical"
+                  margin={{ top: 4, right: 40, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={78}
+                  />
+                  <Tooltip content={<NbTooltip />} cursor={{ fill: "#044BAB11" }} />
+                  <Bar
+                    dataKey="value"
+                    name="₹"
+                    fill="#044BAB"
+                    stroke="#0A0A0A"
+                    strokeWidth={1.5}
+                    radius={[0, 6, 6, 0]}
+                    animationDuration={1000}
+                  >
+                    <LabelList
+                      dataKey="value"
+                      position="right"
+                      formatter={(v: number) => `₹${Math.round(v).toLocaleString("en-IN")}`}
+                      style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard
+              title="Cost by department"
+              subtitle="Net pay this month (₹K)"
+              empty={deptCost.length ? undefined : "No payroll yet"}
+            >
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={deptCost}
+                  margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700 }} tickLine={false} axisLine={false} interval={0} />
+                  <YAxis
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={38}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<NbTooltip />} cursor={{ fill: "#044BAB11" }} />
+                  <Bar
+                    dataKey="total"
+                    name="₹K"
+                    fill="#044BAB"
+                    stroke="#0A0A0A"
+                    strokeWidth={1.5}
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={1000}
+                  >
+                    <LabelList dataKey="total" position="top" style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
+          {/* Department-wise */}
+          {deptStats.length > 0 && (
+            <div className="nb-rise border-2 border-black bg-white mb-5 overflow-auto">
+              <div className="px-4 py-2.5 bg-[#024BAB]/5 border-b-2 border-black">
+                <p className="text-xs font-bold uppercase tracking-wider text-black">
+                  By department
+                </p>
+              </div>
+              <table className="w-full text-sm min-w-[620px]">
+                <thead>
+                  <tr className="border-b border-black/20">
+                    {["Department", "People", "Paid", "Gross", "Deductions", "Net"].map(
+                      (h, i) => (
+                        <th
+                          key={h}
+                          className={cn(
+                            "px-4 py-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider",
+                            i === 0 || i === 2 ? "text-left" : "text-right",
+                          )}
+                        >
+                          {h}
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {deptStats.map((d) => {
+                    const share = d.people ? Math.round((d.paid / d.people) * 100) : 0;
+                    return (
+                      <tr
+                        key={d.name}
+                        onClick={() => {
+                          setDeptFilter(d.name);
+                          setView("details");
+                        }}
+                        title="Open this department's payroll"
+                        className="border-b border-black/10 cursor-pointer hover:bg-[#024BAB]/5"
+                      >
+                        <td className="px-4 py-2 text-xs font-bold">{d.name}</td>
+                        <td className="px-4 py-2 text-xs text-right tabular-nums">
+                          {d.people}
+                        </td>
+                        <td className="px-4 py-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2.5 w-20 border border-black bg-gray-100">
+                              <div
+                                className="h-full bg-[#00C48C] transition-all duration-700"
+                                style={{ width: `${share}%` }}
+                              />
+                            </div>
+                            <span className="tabular-nums font-bold">
+                              {d.paid}/{d.people}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 text-xs text-right tabular-nums">
+                          {formatCurrency(d.gross)}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-right tabular-nums text-[#FA731C]">
+                          {d.ded > 0 ? `-${formatCurrency(d.ded)}` : "—"}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-right font-bold tabular-nums">
+                          {formatCurrency(d.net)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {view === "details" && (
+        <>
+
+      <p className="text-xs font-bold text-muted-foreground mb-3">
+        Net {formatCurrency(totalNet)} &middot; Gross {formatCurrency(totalGross)}{" "}
+        &middot; Deductions {formatCurrency(totalDed)} &middot; {paidCount}/
+        {payrolls.length} paid
+      </p>
 
       {/* Cheque logo position settings */}
       {company.logo && (
@@ -836,6 +1213,18 @@ export default function PayrollPage() {
           <option value="paid">Paid</option>
         </select>
         <select
+          value={deptFilter}
+          onChange={(e) => setDeptFilter(e.target.value)}
+          className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold outline-none"
+        >
+          <option value="">All Departments</option>
+          {deptStats.map((d) => (
+            <option key={d.name} value={d.name}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        <select
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value as any)}
           className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold outline-none"
@@ -855,6 +1244,13 @@ export default function PayrollPage() {
             <ArrowDown className="w-4 h-4" />
           )}
           {sortDir === "asc" ? "Asc" : "Desc"}
+        </button>
+        <button
+          onClick={saveMyView}
+          title="Open Payroll with this filter and sort every time"
+          className="border-2 border-black bg-white px-3 py-2 text-sm font-semibold hover:bg-[#024BAB]/5"
+        >
+          {viewSaved ? "Saved ✓" : "Save view"}
         </button>
       </div>
 
@@ -1152,6 +1548,9 @@ export default function PayrollPage() {
       )}
 
       {}
+        </>
+      )}
+
       {processModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="border-2 bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto">

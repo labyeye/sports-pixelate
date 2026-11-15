@@ -469,8 +469,8 @@ export default function ParentHomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  greet: { fontSize: 12, color: colors.muted, fontWeight: '500' },
-  name: { fontSize: 20, fontWeight: '800', color: colors.black },
+  greet: { fontSize: 12, color: colors.muted, fontWeight: '400' },
+  name: { fontSize: 20, fontWeight: '400', color: colors.black },
   role: { fontSize: 12, color: colors.muted, marginTop: 2 },
   childChip: {
     flexDirection: 'row',
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   childChipActive: { backgroundColor: colors.blue },
-  childChipText: { fontSize: 12, fontWeight: '700', color: colors.black },
+  childChipText: { fontSize: 12, fontWeight: '400', color: colors.black },
   childChipTextActive: { color: colors.white },
   kpiGrid: {
     flexDirection: 'row',
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   tabBtnActive: { backgroundColor: colors.blue },
   tabBtnText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
   },
@@ -531,35 +531,35 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     color: colors.white,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   attDayRow: { flexDirection: 'row', alignItems: 'center' },
   attDayItem: { flex: 1, alignItems: 'center', gap: 5 },
   attDayItemLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
     textTransform: 'uppercase',
   },
-  attDayItemVal: { fontSize: 15, fontWeight: '700', color: colors.black },
+  attDayItemVal: { fontSize: 15, fontWeight: '400', color: colors.black },
   attDayDivider: { width: 1, height: 48, backgroundColor: '#E5E7EB' },
   attDayEmpty: { alignItems: 'center', gap: 6, paddingVertical: 10 },
-  attDayEmptyText: { fontSize: 13, fontWeight: '700', color: colors.muted },
+  attDayEmptyText: { fontSize: 13, fontWeight: '400', color: colors.muted },
   attDayEmptyDate: { fontSize: 11, color: colors.muted },
   payslipRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  payslipMonth: { fontSize: 15, fontWeight: '700', color: colors.black },
+  payslipMonth: { fontSize: 15, fontWeight: '400', color: colors.black },
   payslipStatus: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.green,
     marginTop: 2,
   },
-  payslipNet: { fontSize: 22, fontWeight: '800', color: colors.black },
+  payslipNet: { fontSize: 22, fontWeight: '400', color: colors.black },
   quickActions: { flexDirection: 'row', gap: 10, marginBottom: 8 },
   quickActionBtn: {
     flex: 1,
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   quickActionText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
 });

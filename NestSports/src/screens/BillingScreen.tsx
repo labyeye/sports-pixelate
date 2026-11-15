@@ -197,14 +197,14 @@ export default function BillingScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  planName: { fontSize: 16, fontWeight: '800', color: colors.black },
+  planName: { fontSize: 16, fontWeight: '400', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4 },
   invoiceRow: {
     flexDirection: 'row',
@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#0000001A',
   },
-  invoiceNumber: { fontWeight: '700', color: colors.black, fontSize: 13 },
-  invoiceAmount: { fontWeight: '800', color: colors.black, fontSize: 14 },
+  invoiceNumber: { fontWeight: '400', color: colors.black, fontSize: 13 },
+  invoiceAmount: { fontWeight: '400', color: colors.black, fontSize: 14 },
   downloadBtn: {
     width: 26,
     height: 26,

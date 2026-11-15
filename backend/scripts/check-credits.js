@@ -11,14 +11,14 @@ if (!uri || !/credits_check/.test(uri)) {
   process.exit(1);
 }
 
-// no real Razorpay / email in a check
+// no real Cashfree / email in a check
 let orderSeq = 0;
 const stub = (rel, exports) => {
   const p = require.resolve(path.join("..", rel));
   require.cache[p] = { id: p, filename: p, loaded: true, exports };
 };
 const mails = [];
-stub("services/razorpayService.js", { createOrder: async ({ amount }) => ({ orderId: `order_${++orderSeq}`, keyId: "k", amount, currency: "INR" }), verifySignature: () => true });
+stub("services/cashfreeService.js", { createOrder: async ({ amount }) => ({ orderId: `order_${++orderSeq}`, paymentSessionId: "s", amount, currency: "INR" }) });
 stub("services/notificationService.js", { sendLowCreditsEmail: async (m) => mails.push(m) });
 
 const credits = require("../services/creditsService");

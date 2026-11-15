@@ -1294,7 +1294,36 @@ async function sendCelebration(kind, phone, params, companyId) {
   return true;
 }
 
+
+// ─── Bulk (owner → parents): free text / document, no template ───────────────
+// WhatsApp only delivers these inside the recipient's 24h window; otherwise Meta rejects (e.g. 131047)
+// and the caller marks that recipient failed so it can be resent later.
+async function sendFreeform(phone, { text, mediaId, filename }, companyId) {
+  const accessToken = process.env.META_WA_TOKEN;
+  const phoneNumberId = process.env.META_WA_PHONE_ID;
+  if (!accessToken || !phoneNumberId) throw new Error("WhatsApp is not configured");
+  let to = String(phone).replace(/^\+/, "").replace(/[\s-]/g, "");
+  if (/^[6-9]\d{9}$/.test(to)) to = "91" + to;
+  const msg = mediaId
+    ? { type: "document", document: { id: mediaId, filename, ...(text ? { caption: text.slice(0, 1024) } : {}) } }
+    : { type: "text", text: { body: text, preview_url: true } };
+  const body = JSON.stringify({ messaging_product: "whatsapp", to, ...msg });
+  const hold = await credits.reserve(companyId, { template: "bulk_message", phone });
+  if (!hold.ok) throw Object.assign(new Error(hold.reason === "daily_cap" ? "daily message limit reached" : "not enough credits"), { code: "NO_CREDITS" });
+  try {
+    const sent = await postToMeta(phoneNumberId, accessToken, body, "bulk_message", to, "-");
+    await credits.commit(hold, sent?.messages?.[0]?.id);
+    return sent?.messages?.[0]?.id;
+  } catch (err) {
+    await credits.refund(hold);
+    throw err;
+  }
+}
+
 module.exports = {
+  sendFreeform,
+  uploadMediaToMeta,
+  getCompanySetting,
   sendPhoneOtp,
   sendCelebration,
   sendCheckIn,

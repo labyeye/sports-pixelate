@@ -69,13 +69,13 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },
   status: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     textTransform: 'uppercase',
   },

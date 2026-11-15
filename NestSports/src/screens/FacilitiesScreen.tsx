@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -471,12 +471,12 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
   sub: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  fee: { fontWeight: '800', color: colors.blue, fontSize: 15, marginTop: 8 },
+  fee: { fontWeight: '400', color: colors.blue, fontSize: 15, marginTop: 8 },
   actionsRow: {
     flexDirection: 'row',
     gap: 16,
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
+  actionText: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 12 },
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },

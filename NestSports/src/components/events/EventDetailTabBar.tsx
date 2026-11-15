@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: colors.blue },
   pillText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
     textTransform: 'uppercase',

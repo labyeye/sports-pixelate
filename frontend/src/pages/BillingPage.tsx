@@ -25,11 +25,7 @@ import {
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
+import { payWithCashfree } from "@/lib/cashfree";
 
 const RATE_INAPP = 30;
 const RATE_WHATSAPP = 50;
@@ -115,16 +111,6 @@ export default function BillingPage() {
   const isActive =
     sub?.status === "active" || sub?.status === "pending_renewal";
 
-  const loadRazorpayScript = useCallback((): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) return resolve(true);
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  }, []);
 
   const handleDownloadInvoice = (inv: any) => {
     setDownloading(inv._id);
@@ -181,7 +167,7 @@ export default function BillingPage() {
     toast({
       title: "Choose payment method at checkout",
       description:
-        "Set your student count below and tap Update & Pay to pick Razorpay or another gateway.",
+        "Set your student count below and tap Update & Pay to pay securely with Cashfree.",
     });
   };
 
@@ -198,7 +184,7 @@ export default function BillingPage() {
     setGatewayModal(true);
   };
 
-  const handleGatewaySelect = async (gateway: "razorpay") => {
+  const handleGatewaySelect = async (gateway: "cashfree") => {
     const count = Number(newStudentCount);
     if (!count) return;
     setGatewayModal(false);
@@ -216,50 +202,13 @@ export default function BillingPage() {
       if (!res.success) throw new Error("Failed to create order");
       const order = res.data;
 
-      if (gateway === "razorpay") {
-        const loaded = await loadRazorpayScript();
-        if (!loaded)
-          throw new Error(
-            "Failed to load Razorpay checkout. Check your connection.",
-          );
-
-        await new Promise<void>((resolve, reject) => {
-          const rzp = new window.Razorpay({
-            key: order.keyId,
-            order_id: order.orderId,
-            amount: order.amount * 100,
-            currency: order.currency || "INR",
-            name: "NestAcademy",
-            description: `NestAcademy — ${count} students — ${order.plan}`,
-            prefill: {
-              name: order.userName,
-              email: order.userEmail,
-              contact: order.userPhone,
-            },
-            theme: { color: "#024BAB" },
-            handler: async (response: any) => {
-              try {
-                await billingAPI.verifyRazorpay({
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                });
-                toast({
-                  title: "Payment Successful!",
-                  description: "Subscription updated.",
-                });
-                resolve();
-              } catch (err: unknown) {
-                reject(err);
-              }
-            },
-            modal: {
-              ondismiss: () => reject(new Error("Payment cancelled")),
-            },
-          });
-          rzp.open();
-        });
-      }
+      if ((await payWithCashfree(order)) !== "done")
+        throw new Error("Payment cancelled");
+      await billingAPI.verifyCashfree({ orderId: order.orderId });
+      toast({
+        title: "Payment Successful!",
+        description: "Subscription updated.",
+      });
     } catch (err: unknown) {
       if (getErrorMessage(err) !== "Payment cancelled") {
         toast({
@@ -752,7 +701,7 @@ export default function BillingPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 shrink-0" />
-                Payments processed securely via Razorpay.
+                Payments processed securely via Cashfree.
                 We never store your card details.
               </p>
             </div>
@@ -775,16 +724,16 @@ export default function BillingPage() {
                 Select how you'd like to complete this payment.
               </p>
 
-              {/* Razorpay */}
+              {/* Cashfree */}
               <button
-                onClick={() => handleGatewaySelect("razorpay")}
+                onClick={() => handleGatewaySelect("cashfree")}
                 className="w-full border-2 border-black p-4 flex items-center gap-4 hover:bg-[#024BAB]/5 transition-colors text-left"
               >
                 <div className="w-10 h-10 bg-[#024BAB] border-2 border-black flex items-center justify-center shrink-0">
                   <CreditCard className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-black text-sm">Razorpay</p>
+                  <p className="font-bold text-black text-sm">Cashfree</p>
                   <p className="text-xs text-muted-foreground">
                     Cards, UPI, Net Banking, Wallets
                   </p>

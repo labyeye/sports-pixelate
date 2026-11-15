@@ -1157,7 +1157,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -1181,7 +1181,7 @@ const styles = StyleSheet.create({
   lowStockToggleActive: { backgroundColor: colors.red },
   lowStockToggleText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     lineHeight: 18,
     color: colors.black,
@@ -1205,7 +1205,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -1235,7 +1235,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  qty: { fontFamily: FONT.bold, fontWeight: '800', fontSize: 20 },
+  qty: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 20 },
   qtyTotal: { fontFamily: FONT.medium, fontSize: 13, color: colors.muted },
   progressTrack: {
     height: 8,
@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   actionBtnIcon: { flex: 0, width: 40 },
-  actionText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
+  actionText: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 12 },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1289,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -1327,7 +1327,7 @@ const styles = StyleSheet.create({
   },
   fieldLabelStandalone: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
     marginBottom: 8,
@@ -1375,7 +1375,7 @@ const styles = StyleSheet.create({
   },
   activeAssignmentName: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
   },
@@ -1391,7 +1391,7 @@ const styles = StyleSheet.create({
   },
   returnBtnText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.blue,
   },
@@ -1403,7 +1403,7 @@ const styles = StyleSheet.create({
   },
   onOrderText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.purple,
   },
@@ -1420,7 +1420,7 @@ const styles = StyleSheet.create({
   },
   txnRowText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
     flex: 1,

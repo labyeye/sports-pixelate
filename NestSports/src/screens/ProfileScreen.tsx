@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontFamily: FONT.bold,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
     textTransform: 'uppercase',
   },
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontFamily: FONT.bold,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     marginTop: 2,
   },
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fieldLabel: {
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.black,
     textTransform: 'uppercase',
@@ -650,5 +650,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
   },
-  linkText: { fontWeight: '700', fontSize: 14, color: colors.blue },
+  linkText: { fontWeight: '400', fontSize: 14, color: colors.blue },
 });

@@ -409,6 +409,14 @@ export const employeeAPI = {
 };
 
 export const attendanceAPI = {
+  getDailySummary: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request<{ success: boolean; data: any }>(`/attendance/daily-summary${q}`);
+  },
+  getTimingInsights: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request<{ success: boolean; data: any }>(`/attendance/timing-insights${q}`);
+  },
   getAll: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
     return request(`/attendance${q}`);
@@ -441,7 +449,27 @@ export const leaveAPI = {
     }),
 };
 
+export async function downloadFile(endpoint: string, filename: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Download failed");
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export const payrollAPI = {
+  exportTally: (month: number, year: number) =>
+    downloadFile(`/payroll/export/tally?month=${month}&year=${year}`, `Tally_Salary_${month}_${year}.xml`),
+  exportBank: (month: number, year: number) =>
+    downloadFile(`/payroll/export/bank?month=${month}&year=${year}`, `Bank_Salary_${month}_${year}.csv`),
+  exportZoho: (month: number, year: number) =>
+    downloadFile(`/payroll/export/zoho?month=${month}&year=${year}`, `Zoho_Salary_${month}_${year}.csv`),
   getAll: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
     return request(`/payroll${q}`);
@@ -526,6 +554,20 @@ export const performanceAPI = {
 };
 
 export const settingsAPI = {
+  uploadIdCardImage: (file: File) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append("image", file);
+    return fetch(`${BASE_URL}/settings/id-card-image`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      return data as { success: boolean; url: string };
+    });
+  },
   get: () => request<{ success: boolean; data: any }>("/settings"),
   update: (settings: any) =>
     request<{ success: boolean; data: any }>("/settings", {
@@ -578,11 +620,7 @@ export const creditsAPI = {
       method: "POST",
       body: JSON.stringify({ packId }),
     }),
-  verifyTopup: (body: {
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  }) =>
+  verifyTopup: (body: { orderId: string }) =>
     request<{ success: boolean; data: any }>("/credits/topup/verify", {
       method: "POST",
       body: JSON.stringify(body),
@@ -600,7 +638,7 @@ export const billingAPI = {
     employeeCount: number,
     wantsWhatsapp: boolean,
     billingCycle: "monthly" | "yearly",
-    gateway: "razorpay" = "razorpay",
+    gateway: "cashfree" = "cashfree",
     company?: {
       name: string;
       email: string;
@@ -645,13 +683,9 @@ export const billingAPI = {
         }),
       },
     ),
-  verifyRazorpay: (payload: {
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  }) =>
+  verifyCashfree: (payload: { orderId: string }) =>
     request<{ success: boolean; message: string; data: any }>(
-      "/billing/verify-razorpay",
+      "/billing/verify-cashfree",
       {
         method: "POST",
         body: JSON.stringify(payload),
@@ -1732,4 +1766,54 @@ export const coachingAPI = {
     request("/coaching/assessments", { method: "POST", body: JSON.stringify(body) }),
   deleteAssessment: (id: string) =>
     request(`/coaching/assessments/${id}`, { method: "DELETE" }),
+};
+
+export const expenseClaimAPI = {
+  getAll: (status?: string) =>
+    request(`/expense-claims${status ? `?status=${status}` : ""}`),
+  create: async (form: FormData, id?: string) => {
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/expense-claims${id ? `/${id}` : ""}`, {
+      method: id ? "PUT" : "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}) as any);
+    if (!res.ok) throw new Error(data.message || "Request failed");
+    return data;
+  },
+  act: (
+    id: string,
+    action: "approve" | "reject",
+    note?: string,
+    approvedAmount?: number,
+  ) =>
+    request(`/expense-claims/${id}/action`, {
+      method: "PUT",
+      body: JSON.stringify({ action, note, approvedAmount }),
+    }),
+  remove: (id: string) => request(`/expense-claims/${id}`, { method: "DELETE" }),
+  resubmit: (id: string, body: Record<string, any> = {}) =>
+    request(`/expense-claims/${id}/resubmit`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  markPaid: (
+    id: string,
+    body: { mode: string; reference?: string; paidOn?: string },
+  ) =>
+    request(`/expense-claims/${id}/pay`, { method: "PUT", body: JSON.stringify(body) }),
+  downloadBill: (id: string, index = 0) =>
+    downloadFile(`/expense-claims/${id}/bill/${index}`, "bill"),
+  getPolicy: () => request("/expense-claims/policy"),
+  savePolicy: (body: {
+    limits: Record<string, number>;
+    billRequiredAbove: number;
+  }) => request("/expense-claims/policy", { method: "PUT", body: JSON.stringify(body) }),
+  getWorkflow: () => request("/expense-claims/workflow"),
+  saveWorkflow: (steps: { role: string; aboveAmount: number }[]) =>
+    request("/expense-claims/workflow", {
+      method: "PUT",
+      body: JSON.stringify({ steps }),
+    }),
 };

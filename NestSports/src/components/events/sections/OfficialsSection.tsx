@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },

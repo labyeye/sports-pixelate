@@ -39,6 +39,7 @@ const AnnouncementsPage = lazy(() => import("./pages/AnnouncementsPage"));
 const TrashPage = lazy(() => import("./pages/TrashPage"));
 const TasksPage = lazy(() => import("./pages/TasksPage"));
 const LettersPage = lazy(() => import("./pages/LettersPage"));
+const NfcManagerPage = lazy(() => import("./pages/NfcManagerPage"));
 const AttendanceSettingsPage = lazy(
   () => import("./pages/AttendanceSettingsPage"),
 );
@@ -53,6 +54,7 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const EventDetailPage = lazy(() => import("./pages/EventDetailPage"));
 const SubscriptionsPage = lazy(() => import("./pages/SubscriptionsPage"));
 const ExpensesPage = lazy(() => import("./pages/ExpensesPage"));
+const ExpenseClaimsPage = lazy(() => import("./pages/ExpenseClaimsPage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ExitManagementPage = lazy(() => import("./pages/ExitManagementPage"));
 const FacilitiesPage = lazy(() => import("./pages/FacilitiesPage"));
@@ -110,6 +112,7 @@ const OWNER_ONLY_PATHS = [
   "/employee-credentials",
   "/departments",
   "/attendance-settings",
+  "/nfc-manager",
   "/biometric",
   "/late-approvals",
   "/audit-log",
@@ -384,6 +387,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/nfc-manager"
+            element={
+              <ProtectedRoute>
+                <NfcManagerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/attendance-settings"
             element={
               <ProtectedRoute>
@@ -533,6 +544,14 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <SubscriptionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/expense-claims"
+            element={
+              <ProtectedRoute>
+                <ExpenseClaimsPage />
               </ProtectedRoute>
             }
           />

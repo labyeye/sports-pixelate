@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.blue,
     marginBottom: 16,
   },
   heading: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     marginBottom: 10,
     textAlign: 'center',
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   invoiceBtnText: {
     color: colors.blue,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
   },
 });

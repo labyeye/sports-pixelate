@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.blue, borderColor: colors.black },
   chipText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.black,
   },

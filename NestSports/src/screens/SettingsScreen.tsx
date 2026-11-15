@@ -940,7 +940,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 12 },
   tabScroll: { flexGrow: 0 },
   tabBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
@@ -959,7 +959,7 @@ const styles = StyleSheet.create({
   tabChipActive: { backgroundColor: colors.blue },
   tabChipText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },
@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
     letterSpacing: 0.3,

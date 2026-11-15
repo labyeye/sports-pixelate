@@ -387,7 +387,7 @@ export default function QrRenewalScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 22, fontWeight: '800', color: colors.black },
+  title: { fontSize: 22, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 16 },
   amountRow: {
     flexDirection: 'row',
@@ -395,8 +395,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  amountLabel: { fontSize: 12, fontWeight: '700', color: colors.muted },
-  amountValue: { fontSize: 18, fontWeight: '800', color: colors.black },
+  amountLabel: { fontSize: 12, fontWeight: '400', color: colors.muted },
+  amountValue: { fontSize: 18, fontWeight: '400', color: colors.black },
   qrImage: { width: '100%', height: 260, marginBottom: 12 },
   methodRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   methodBtn: {
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   methodBtnText: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
   },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   uploadBtnText: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
   },
   screenshotPreview: { width: '100%', height: 160 },

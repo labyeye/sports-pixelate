@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
 const dayPickerStyles = StyleSheet.create({
   label: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     marginBottom: 6,
   },
@@ -328,7 +328,7 @@ const dayPickerStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  presetChipText: { fontSize: 11, fontWeight: '600', color: colors.black },
+  presetChipText: { fontSize: 11, fontWeight: '400', color: colors.black },
   dayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   dayChip: {
     width: 48,
@@ -340,7 +340,7 @@ const dayPickerStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayChipActive: { backgroundColor: colors.green || colors.blue },
-  dayChipText: { fontSize: 12, fontWeight: '700', color: colors.black },
+  dayChipText: { fontSize: 12, fontWeight: '400', color: colors.black },
   dayChipTextActive: { color: colors.white },
-  warning: { fontSize: 11, fontWeight: '600', color: '#DC2626', marginTop: 4 },
+  warning: { fontSize: 11, fontWeight: '400', color: '#DC2626', marginTop: 4 },
 });

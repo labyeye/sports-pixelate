@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     marginBottom: 10,
     textAlign: 'center',

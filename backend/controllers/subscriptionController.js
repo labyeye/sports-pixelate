@@ -353,7 +353,7 @@ const createOrder = asyncHandler(async (req, res) => {
       phone: req.user.phone,
       email: req.user.email,
     },
-    returnUrl: `${process.env.FRONTEND_URL || "https://sports.pixelatenest.com"}/payment-return?type=subscription&orderId=${orderId}`,
+    returnUrl: `${process.env.FRONTEND_URL || "https://academy.pixelatenest.com"}/payment-return?type=subscription&orderId=${orderId}`,
   });
 
   const startDate = new Date();

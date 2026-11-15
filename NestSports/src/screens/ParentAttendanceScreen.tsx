@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -321,14 +321,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   childChipActive: { backgroundColor: colors.blue },
-  childChipText: { fontSize: 12, fontWeight: '700', color: colors.black },
+  childChipText: { fontSize: 12, fontWeight: '400', color: colors.black },
   childChipTextActive: { color: colors.white },
   childHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 14,
   },
-  childName: { fontSize: 16, fontWeight: '800', color: colors.black },
+  childName: { fontSize: 16, fontWeight: '400', color: colors.black },
   batch: { color: colors.muted, fontSize: 12, marginTop: 2 },
   monthNav: {
     overflow: 'hidden',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   monthLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     width: 150,
     textAlign: 'center',

@@ -901,7 +901,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
   },
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONT.bold,
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
   },
   subtitle: {
@@ -921,7 +921,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
   suffixText: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
   },
   hint: {
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
   timeSep: {
     fontFamily: FONT.bold,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   toggleRow: {
@@ -990,7 +990,7 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   toggleDesc: {
@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: colors.black,
   },
   perEmpInput: {
@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     color: colors.black,
     textAlign: 'center',
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   sectionTitleInline: {
     fontFamily: FONT.bold,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   infoBox: {
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     fontSize: 12,
     color: colors.blue,
-    fontWeight: '500',
+    fontWeight: '400',
     lineHeight: 18,
   },
 });

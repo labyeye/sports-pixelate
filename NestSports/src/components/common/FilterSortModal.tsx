@@ -165,19 +165,19 @@ const s = StyleSheet.create({
   title: {
     fontSize: 17,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#000',
   },
   reset: {
     color: C.danger,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
   },
   group: {
     fontSize: 12,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#475569',
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -194,7 +194,7 @@ const s = StyleSheet.create({
   chipText: {
     fontSize: 12,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: '#000',
     textTransform: 'capitalize',
   },
@@ -208,7 +208,7 @@ const s = StyleSheet.create({
   applyText: {
     color: '#fff',
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
   },
 });

@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 15,
     color: colors.black,
   },
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   late: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   lateText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.red,
   },
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 18,
     color: colors.black,
   },
@@ -533,13 +533,13 @@ const styles = StyleSheet.create({
   },
   statusBtnText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
   section: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
     marginTop: 8,
@@ -571,14 +571,14 @@ const styles = StyleSheet.create({
   },
   sendText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.white,
     fontSize: 12,
   },
   del: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   delText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.red,
   },

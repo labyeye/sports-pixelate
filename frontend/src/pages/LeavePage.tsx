@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { leaveAPI, employeeAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveRequest, Employee } from "@/types/hrms";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import {
   Plus,
@@ -564,6 +565,21 @@ export default function LeavePage() {
           )}
           {sortDir === "asc" ? "Asc" : "Desc"}
         </button>
+        <ExportMenu
+          name="leave_requests"
+          rows={displayedLeaves}
+          cols={[
+            { header: "Emp Code", value: (l: any) => l.employee?.employeeId },
+            { header: "Employee", value: (l: any) => `${l.employee?.firstName || ""} ${l.employee?.lastName || ""}`.trim() },
+            { header: "Type", value: (l: any) => TYPE_LABELS[l.leaveType] ?? l.leaveType },
+            { header: "From", value: (l: any) => String(l.startDate).slice(0, 10) },
+            { header: "To", value: (l: any) => String(l.endDate).slice(0, 10) },
+            { header: "Days", value: (l: any) => l.days },
+            { header: "Reason", value: (l: any) => l.reason },
+            { header: "Status", value: (l: any) => l.status },
+            { header: "Paid/Unpaid", value: (l: any) => (l.status === "approved" ? (l.deductSalary ? "Unpaid" : "Paid") : "") },
+          ]}
+        />
       </div>
 
       {}
@@ -582,6 +598,7 @@ export default function LeavePage() {
             <thead>
               <tr className="border-b-2 border-black bg-[#024BAB]/5">
                 {[
+                  "Emp Code",
                   "Employee",
                   "Leave Type",
                   "Duration",
@@ -608,6 +625,9 @@ export default function LeavePage() {
                     i % 2 === 0 ? "" : "bg-[#F8FAFF]",
                   )}
                 >
+                  <td className="px-4 py-3 text-[11px] font-bold text-black">
+                    {(leave.employee as any)?.employeeId || "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {(leave.employee as any)?.avatar ? (

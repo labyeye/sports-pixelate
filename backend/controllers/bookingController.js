@@ -308,7 +308,7 @@ const createBooking = asyncHandler(async (req, res) => {
       phone: req.user.phone,
       email: req.user.email,
     },
-    returnUrl: `${process.env.FRONTEND_URL || "https://sports.pixelatenest.com"}/payment-return?type=booking&bookingId=${booking._id}&orderId=${orderId}`,
+    returnUrl: `${process.env.FRONTEND_URL || "https://academy.pixelatenest.com"}/payment-return?type=booking&bookingId=${booking._id}&orderId=${orderId}`,
   });
   booking.razorpayOrderId = order.orderId;
   booking.paymentGateway = gateway;

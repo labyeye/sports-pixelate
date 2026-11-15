@@ -766,7 +766,166 @@ const getMonthSummary = asyncHandler(async (req, res) => {
   res.json({ success: true, data: summary });
 });
 
+// Per-day status counts for a month in one aggregation: feeds the date strip / insights without shipping every row.
+const getDailySummary = asyncHandler(async (req, res) => {
+  const m = parseInt(req.query.month),
+    y = parseInt(req.query.year);
+  if (isNaN(m) || isNaN(y)) {
+    res.status(400);
+    throw new Error("Valid month and year are required");
+  }
+  const ids = (
+    await Employee.find({ company: req.user.company }).select("_id").lean()
+  ).map((e) => e._id);
+  const rows = await Attendance.aggregate([
+    {
+      $match: {
+        employee: { $in: ids },
+        date: {
+          $gte: new Date(Date.UTC(y, m - 1, 1) - 12 * 3600000),
+          $lt: new Date(Date.UTC(y, m, 1) - 12 * 3600000),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          d: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$date",
+              timezone: "+05:30",
+            },
+          },
+          s: "$status",
+        },
+        n: { $sum: 1 },
+      },
+    },
+  ]);
+  const days = {};
+  for (const r of rows) (days[r._id.d] ||= {})[r._id.s] = r.n;
+  res.json({ success: true, data: days });
+});
+
+// Timing insights for a month (admin/HR): when people check in, busiest weekdays, per-employee punctuality.
+const getTimingInsights = asyncHandler(async (req, res) => {
+  const m = parseInt(req.query.month),
+    y = parseInt(req.query.year);
+  if (isNaN(m) || isNaN(y)) {
+    res.status(400);
+    throw new Error("Valid month and year are required");
+  }
+  const ids = (
+    await Employee.find({ company: req.user.company }).select("_id").lean()
+  ).map((e) => e._id);
+  const worked = ["present", "late", "half_day"];
+  const tz = "+05:30";
+  // minutes after midnight IST for a date field
+  const minsOf = (f) => ({
+    $add: [
+      { $multiply: [{ $hour: { date: f, timezone: tz } }, 60] },
+      { $minute: { date: f, timezone: tz } },
+    ],
+  });
+  const [out] = await Attendance.aggregate([
+    {
+      $match: {
+        employee: { $in: ids },
+        status: { $in: worked },
+        date: {
+          $gte: new Date(Date.UTC(y, m - 1, 1) - 12 * 3600000),
+          $lt: new Date(Date.UTC(y, m, 1) - 12 * 3600000),
+        },
+      },
+    },
+    {
+      $facet: {
+        // 30-minute check-in buckets (minutes after midnight IST)
+        hourly: [
+          { $match: { checkIn: { $type: "date" } } },
+          {
+            $project: {
+              mins: minsOf("$checkIn"),
+            },
+          },
+          {
+            $group: {
+              _id: { $multiply: [{ $floor: { $divide: ["$mins", 30] } }, 30] },
+              n: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ],
+        // average people present per weekday (ISO 1=Mon..7=Sun)
+        weekday: [
+          {
+            $group: {
+              _id: {
+                d: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$date",
+                    timezone: "+05:30",
+                  },
+                },
+                dow: { $isoDayOfWeek: { date: "$date", timezone: tz } },
+              },
+              n: { $sum: 1 },
+            },
+          },
+          { $group: { _id: "$_id.dow", avg: { $avg: "$n" }, days: { $sum: 1 } } },
+          { $sort: { _id: 1 } },
+        ],
+        byEmployee: [
+          { $match: { checkIn: { $type: "date" } } },
+          {
+            $group: {
+              _id: "$employee",
+              avgMins: { $avg: minsOf("$checkIn") },
+              days: { $sum: 1 },
+              late: { $sum: { $cond: [{ $eq: ["$status", "late"] }, 1, 0] } },
+              avgHours: { $avg: "$workHours" },
+            },
+          },
+          { $match: { days: { $gte: 2 } } },
+        ],
+      },
+    },
+  ]);
+  const emps = await Employee.find({
+    _id: { $in: (out?.byEmployee || []).map((r) => r._id) },
+  })
+    .select("firstName lastName employeeId")
+    .lean();
+  const nameOf = Object.fromEntries(
+    emps.map((e) => [String(e._id), `${e.firstName} ${e.lastName || ""}`.trim()]),
+  );
+  res.json({
+    success: true,
+    data: {
+      hourly: (out?.hourly || []).map((r) => ({ startMin: r._id, count: r.n })),
+      weekday: (out?.weekday || []).map((r) => ({
+        dow: r._id,
+        avg: Math.round(r.avg * 10) / 10,
+      })),
+      employees: (out?.byEmployee || [])
+        .map((r) => ({
+          id: String(r._id),
+          name: nameOf[String(r._id)] || "Unknown",
+          avgMins: Math.round(r.avgMins),
+          days: r.days,
+          late: r.late,
+          avgHours: Math.round((r.avgHours || 0) * 10) / 10,
+        }))
+        .sort((a, b) => a.avgMins - b.avgMins),
+    },
+  });
+});
+
 module.exports = {
+  getDailySummary,
+  getTimingInsights,
   getAttendance,
   markAttendance,
   selfMarkAttendance,

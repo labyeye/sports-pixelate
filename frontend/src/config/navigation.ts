@@ -154,6 +154,12 @@ const allGroups: NavGroup[] = [
         roles: OWNER,
       },
       {
+        title: "NFC Cards",
+        href: "/nfc-manager",
+        icon: CreditCard,
+        roles: OWNER,
+      },
+      {
         title: "Biometric Devices",
         href: "/biometric",
         icon: Fingerprint,
@@ -239,6 +245,12 @@ const allGroups: NavGroup[] = [
         roles: OWNER,
       },
       { title: "Expenses", href: "/expenses", icon: Receipt, roles: OWNER },
+      {
+        title: "Expense Claims",
+        href: "/expense-claims",
+        icon: Receipt,
+        roles: OWNER_STAFF,
+      },
       { title: "Payroll", href: "/payroll", icon: IndianRupee, roles: OWNER },
       {
         title: "Loans & Advances",

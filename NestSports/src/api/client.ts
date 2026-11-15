@@ -504,6 +504,20 @@ export const leaveAPI = {
 };
 
 export const payrollAPI = {
+  // Server-built accounting / bank files, returned as text so the app can share them.
+  exportText: async (
+    kind: 'tally' | 'zoho' | 'bank',
+    month: number,
+    year: number,
+  ): Promise<string> => {
+    const token = await getToken();
+    const res = await apiFetch(
+      `${API_BASE_URL}/payroll/export/${kind}?month=${month}&year=${year}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    );
+    if (!res.ok) throw new Error('Export failed');
+    return res.text();
+  },
   getAll: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : '';
     return request(`/payroll${q}`);
@@ -571,7 +585,7 @@ export const billingAPI = {
   createOrder: (
     studentCount: number,
     billingCycle: 'monthly' | 'yearly',
-    gateway: 'razorpay' = 'razorpay',
+    gateway: 'cashfree' = 'cashfree',
     company?: object,
   ) =>
     request('/billing/create-order', {
@@ -582,6 +596,11 @@ export const billingAPI = {
         gateway,
         company,
       }),
+    }),
+  verifyCashfree: (orderId: string) =>
+    request('/billing/verify-cashfree', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
     }),
   verifyPayment: (payload: object) =>
     request('/billing/verify-payment', {
@@ -774,6 +793,21 @@ export const documentAPI = {
       request(`/documents/${id}/download`, { headers: { 'x-doc-access': t } }),
     ),
   delete: (id: string) => request(`/documents/${id}`, { method: 'DELETE' }),
+};
+
+export const bulkMessageAPI = {
+  list: () => request('/bulk-messages'),
+  get: (id: string) => request('/bulk-messages/' + id),
+  create: (text: string, studentIds: string[], doc?: RNFile) =>
+    upload(
+      '/bulk-messages',
+      toFormDataWithFields(
+        { text, studentIds: JSON.stringify(studentIds) },
+        { doc },
+      ),
+    ),
+  resend: (id: string) =>
+    request('/bulk-messages/' + id + '/resend', { method: 'POST' }),
 };
 
 export const announcementAPI = {
@@ -1496,4 +1530,81 @@ export const offerLetterAPI = {
       body: JSON.stringify(body),
     }),
   delete: (id: string) => request(`/offer-letters/${id}`, { method: 'DELETE' }),
+};
+
+export const assetAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/assets${q}`);
+  },
+  return: (id: string) => request(`/assets/${id}/return`, { method: 'POST' }),
+};
+
+type BillFile = { uri: string; type: string; name: string };
+
+export const expenseClaimAPI = {
+  getAll: (params?: Record<string, string>) =>
+    request(
+      `/expense-claims${params ? '?' + new URLSearchParams(params).toString() : ''}`,
+    ),
+  // Multipart create/edit (up to 5 bills). Pass id to edit a draft.
+  save: async (body: Record<string, any>, bills: BillFile[], id?: string) => {
+    const token = await getToken();
+    const formData = new FormData();
+    Object.entries(body).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '')
+        formData.append(k, String(v));
+    });
+    bills.forEach(b => formData.append('bills', b as any));
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
+    try {
+      const res = await fetch(`${API_BASE_URL}/expense-claims${id ? `/${id}` : ''}`, {
+        method: id ? 'PUT' : 'POST',
+        signal: controller.signal,
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: formData,
+      });
+      clearTimeout(timer);
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {}
+      if (!res.ok) throw new Error(data.message || statusMessage(res.status));
+      return data;
+    } catch (err: any) {
+      clearTimeout(timer);
+      throw err;
+    }
+  },
+  act: (
+    id: string,
+    action: 'approve' | 'reject',
+    note?: string,
+    approvedAmount?: number,
+  ) =>
+    request(`/expense-claims/${id}/action`, {
+      method: 'PUT',
+      body: JSON.stringify({ action, note, approvedAmount }),
+    }),
+  remove: (id: string) => request(`/expense-claims/${id}`, { method: 'DELETE' }),
+  resubmit: (id: string) =>
+    request(`/expense-claims/${id}/resubmit`, { method: 'POST', body: '{}' }),
+  markPaid: (
+    id: string,
+    body: { mode: string; reference?: string; paidOn?: string },
+  ) =>
+    request(`/expense-claims/${id}/pay`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  // Short-lived signed URL for opening a bill in the phone's browser / PDF viewer.
+  billUrl: async (id: string, index: number) => {
+    const r = await request(`/expense-claims/${id}/bill-link/${index}`);
+    return `${API_BASE_URL}${r.data.path}`;
+  },
+  getPolicy: () => request('/expense-claims/policy'),
+  savePolicy: (body: object) =>
+    request('/expense-claims/policy', { method: 'PUT', body: JSON.stringify(body) }),
 };

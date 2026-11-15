@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   initialsText: {
     fontFamily: FONT.bold,
     fontSize: 44,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
   },
   heroLeft: { position: 'absolute', top: 14, left: 14 },
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   heroName: {
     fontFamily: FONT.bold,
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
   },
   heroSub: {
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   pillValue: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
     maxWidth: 190,
   },
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   barValue: {
     fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
   },
   barTrack: {
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   tileTitle: {
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: SOFT.text,
     marginTop: 12,
   },

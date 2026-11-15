@@ -5,7 +5,9 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link } from "react-router-dom";
-import { dashboardAPI } from "@/services/api";
+import { dashboardAPI, loanAPI } from "@/services/api";
+import { StatCard } from "@/components/ui/StatCard";
+import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn, formatCurrency, formatDateOrDash } from "@/lib/utils";
 import {
@@ -64,30 +66,15 @@ function KpiCard({
   trend?: "up" | "down";
   to?: string;
 }) {
+  const color = bg.match(/#[0-9A-Fa-f]{6}/)?.[0] ?? "#024BAB";
   const inner = (
-    <div className="border-2 p-4 flex items-center gap-3 bg-white">
-      <div
-        className={cn(
-          "w-12 h-12 border-2 border-black flex items-center justify-center shrink-0",
-          bg,
-        )}
-      >
-        <Icon className={cn("w-6 h-6", iconColor)} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-display font-bold text-3xl text-black leading-none truncate">
-          {value}
-        </p>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1.5">
-          {title}
-        </p>
-      </div>
-      {trend && (
-        <span className="self-start flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 border-2 border-black bg-[#A3E635] text-black">
-          <ArrowUpRight className="w-3 h-3" />
-        </span>
-      )}
-    </div>
+    <StatCard
+      label={title}
+      value={value}
+      icon={Icon as LucideIcon}
+      color={color}
+      sub={sub}
+    />
   );
   return to ? <Link to={to}>{inner}</Link> : inner;
 }
@@ -126,6 +113,13 @@ export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [joinTab, setJoinTab] = useState<"staff" | "students">("staff");
+  const [loans, setLoans] = useState<any[]>([]);
+  useEffect(() => {
+    loanAPI
+      .getAll()
+      .then((r: any) => setLoans(r.data || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     dashboardAPI
@@ -606,6 +600,61 @@ export default function DashboardPage() {
         ) : (
           <p className="text-sm text-muted-foreground">No data yet</p>
         )}
+      </div>
+
+      {/* Recent loans & advances */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+        {/* Recent loans & advances */}
+        <div className="lg:col-span-5 border-2 bg-white p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-display font-bold text-base text-black">
+              Recent Loans & Advances
+            </h3>
+            <Link to="/loans" className="text-xs font-bold text-[#024BAB]">
+              View all
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Latest given, with balance still to recover
+          </p>
+          {(() => {
+            const rows = loans
+              .filter((l) => l.status === "active" || l.status === "cleared" || l.status === "paused")
+              .sort((a, b) => new Date(b.disbursedOn ?? 0).getTime() - new Date(a.disbursedOn ?? 0).getTime())
+              .slice(0, 6);
+            if (!rows.length)
+              return (
+                <div className="flex items-center justify-center h-40 text-muted-foreground text-sm font-bold">
+                  No loans given yet
+                </div>
+              );
+            return (
+              <div className="divide-y divide-black/10">
+                {rows.map((l) => (
+                  <div key={l._id} className="flex items-center justify-between py-2.5 text-xs">
+                    <div>
+                      <p className="font-bold text-black">
+                        {l.employee?.firstName} {l.employee?.lastName}{" "}
+                        <span className="font-normal text-gray-500">· {l.type}</span>
+                      </p>
+                      <p className="text-gray-500">
+                        {l.disbursedOn ? new Date(l.disbursedOn).toLocaleDateString("en-IN") : "—"}
+                        {l.monthlyEmi > 0 ? ` · EMI ${formatCurrency(l.monthlyEmi)}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-black">{formatCurrency(l.amount)}</p>
+                      <p className={l.remainingBalance > 0 ? "font-bold text-red-600" : "font-bold text-green-600"}>
+                        {l.remainingBalance > 0 ? `${formatCurrency(l.remainingBalance)} left` : "Cleared"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+
       </div>
 
       {/* Dept chart + Notifications row */}

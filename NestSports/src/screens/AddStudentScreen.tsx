@@ -834,13 +834,13 @@ const styles = StyleSheet.create({
   },
   faceEnrollText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.blue,
   },
   coachLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
     marginBottom: 6,
@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
   coachChipActive: { backgroundColor: colors.blue },
   coachChipText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.black,
   },
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
   },
   whatsappBtnText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.muted,
   },
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
   },
   removeBtnText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.red,
   },
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
   },
   addGuardianText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.blue,
   },
@@ -937,14 +937,14 @@ const styles = StyleSheet.create({
   },
   planAmountLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 11,
     color: colors.muted,
     textTransform: 'uppercase',
   },
   planAmountValue: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 20,
     color: colors.black,
     marginTop: 2,

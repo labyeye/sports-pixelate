@@ -1170,7 +1170,7 @@ export function ToggleRow({
 
 const textStyle: TextStyle = {
   fontFamily: FONT.bold,
-  fontWeight: '700',
+  fontWeight: '400',
   color: colors.black,
 };
 
@@ -1206,7 +1206,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 14 },
+  buttonText: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 14 },
   badge: {
     borderWidth: 2,
     borderRightWidth: 4,
@@ -1222,7 +1222,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: FONT.bold,
     color: colors.white,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -1241,7 +1241,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -1286,7 +1286,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: colors.muted,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginTop: 2,
@@ -1322,7 +1322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '800' },
+  avatarText: { color: colors.white, fontFamily: FONT.bold, fontWeight: '400' },
   avatarEditBadge: {
     position: 'absolute',
     bottom: -2,
@@ -1339,7 +1339,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -1381,7 +1381,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
     textTransform: 'capitalize',
@@ -1422,11 +1422,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 72,
   },
-  statPillCount: { fontFamily: FONT.bold, fontSize: 20, fontWeight: '800' },
+  statPillCount: { fontFamily: FONT.bold, fontSize: 20, fontWeight: '400' },
   statPillLabel: {
     fontFamily: FONT.bold,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginTop: 2,
@@ -1445,7 +1445,7 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: colors.blue },
   pillText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     lineHeight: 18,
     color: colors.black,
@@ -1512,7 +1512,7 @@ const styles = StyleSheet.create({
   },
   collapsibleTitle: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
   },
@@ -1590,7 +1590,7 @@ const styles = StyleSheet.create({
   },
   toastText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.white,
   },
@@ -1618,7 +1618,7 @@ const styles = StyleSheet.create({
   },
   stickyFooterCancelText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
   },
@@ -1638,7 +1638,7 @@ const styles = StyleSheet.create({
   },
   stickyFooterSaveText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.white,
   },
@@ -1652,7 +1652,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 13,
     color: colors.black,
   },

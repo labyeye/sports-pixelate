@@ -168,7 +168,7 @@ export default function PermissionsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2, marginBottom: 12 },
   roleScroll: { flexGrow: 0 },
   roleBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   roleChipActive: { backgroundColor: colors.blue },
   roleChipText: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 12,
     color: colors.black,
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   moduleTitle: {
     fontFamily: FONT.bold,
-    fontWeight: '700',
+    fontWeight: '400',
     fontSize: 14,
     color: colors.black,
     marginBottom: 8,

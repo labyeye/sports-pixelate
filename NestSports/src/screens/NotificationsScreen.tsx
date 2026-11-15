@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONT.bold,
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
   },
   readAll: { padding: 4 },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONT.bold,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
   },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.blue },

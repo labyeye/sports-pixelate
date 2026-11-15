@@ -1,37 +1,53 @@
-const crypto = require("crypto");
+const cashfree = require("../services/cashfreeService");
 const PaymentEvent = require("../models/PaymentEvent");
 const PaymentIncident = require("../models/PaymentIncident");
 
 /*
  * Catches payments whose browser/app never called "verify" (tab closed, network dropped after paying).
- * Razorpay tells us through a webhook (RAZORPAY_WEBHOOK_SECRET); we store the event and, if nobody
+ * Cashfree tells us through a webhook (signed with CASHFREE_SECRET_KEY); we store the event and, if nobody
  * activated the plan within WAIT_MS, activate it ourselves - or, if that fails, refund it (utils/paymentSaga.js).
- * One Razorpay account can serve several Nest products, so an event is only kept when the order is ours.
+ * One Cashfree account can serve several Nest products, so an event is only kept when the order is ours.
  */
 const WAIT_MS = 3 * 60 * 1000;
 
 // ---- this product's lookups (the only part that differs between apps)
 const app = require("./paymentReconcileApp");
 
-const sigOk = (secret, raw, given) => {
-  const a = Buffer.from(crypto.createHmac("sha256", secret).update(raw).digest("hex"));
-  const b = Buffer.from(String(given || ""));
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-};
-
-/** POST /api/webhooks/razorpay-billing  (needs the raw request bytes in req.body or req.rawBody) */
+/** POST /api/webhooks/cashfree-billing  (needs the raw request bytes in req.body or req.rawBody) */
 async function webhook(req, res) {
   try {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const raw = Buffer.isBuffer(req.body) ? req.body : req.rawBody;
-    if (!secret || !raw) return res.status(503).json({ success: false, message: "Webhook not configured" });
-    if (!sigOk(secret, raw, req.get("X-Razorpay-Signature"))) return res.status(400).json({ success: false, message: "Bad signature" });
+    if (!process.env.CASHFREE_SECRET_KEY || !raw)
+      return res
+        .status(503)
+        .json({ success: false, message: "Webhook not configured" });
+    if (
+      !cashfree.verifyWebhook(
+        raw,
+        req.get("x-webhook-signature"),
+        req.get("x-webhook-timestamp"),
+      )
+    )
+      return res.status(400).json({ success: false, message: "Bad signature" });
     const ev = JSON.parse(raw.toString("utf8"));
-    const p = ev?.payload?.payment?.entity;
-    if (["payment.captured", "order.paid"].includes(ev.event) && p?.id && p.order_id && (await app.ownsOrder(p.order_id))) {
+    const p = ev?.data?.payment;
+    const orderId = ev?.data?.order?.order_id;
+    if (
+      ev.type === "PAYMENT_SUCCESS_WEBHOOK" &&
+      p?.cf_payment_id &&
+      orderId &&
+      (await app.ownsOrder(orderId))
+    ) {
       await PaymentEvent.updateOne(
-        { gateway: "razorpay", paymentId: p.id },
-        { $setOnInsert: { orderId: p.order_id, amount: (p.amount || 0) / 100, receivedAt: new Date(), status: "pending" } },
+        { gateway: "cashfree", paymentId: String(p.cf_payment_id) },
+        {
+          $setOnInsert: {
+            orderId,
+            amount: Number(p.payment_amount) || 0,
+            receivedAt: new Date(),
+            status: "pending",
+          },
+        },
         { upsert: true },
       );
     }
@@ -44,20 +60,37 @@ async function webhook(req, res) {
 
 /** Runs every couple of minutes: activate (or refund) payments nobody verified. Safe to run on several workers. */
 async function reconcile() {
-  const events = await PaymentEvent.find({ status: "pending", receivedAt: { $lte: new Date(Date.now() - WAIT_MS) }, attempts: { $lt: 5 } }).limit(20);
+  const events = await PaymentEvent.find({
+    status: "pending",
+    receivedAt: { $lte: new Date(Date.now() - WAIT_MS) },
+    attempts: { $lt: 5 },
+  }).limit(20);
   for (const ev of events) {
     // claim it, so two workers do not both provision the same payment
-    const claimed = await PaymentEvent.findOneAndUpdate({ _id: ev._id, status: "pending", attempts: ev.attempts }, { $inc: { attempts: 1 } }, { new: true });
+    const claimed = await PaymentEvent.findOneAndUpdate(
+      { _id: ev._id, status: "pending", attempts: ev.attempts },
+      { $inc: { attempts: 1 } },
+      { new: true },
+    );
     if (!claimed) continue;
     try {
-      if (await PaymentIncident.exists({ gateway: "razorpay", paymentId: ev.paymentId })) {
+      if (
+        await PaymentIncident.exists({
+          gateway: "cashfree",
+          paymentId: ev.paymentId,
+        })
+      ) {
         claimed.status = "done";
         claimed.note = "already refunded";
       } else if (await app.alreadyProvisioned(ev.paymentId)) {
         claimed.status = "done";
         claimed.note = "already activated";
       } else {
-        await app.provision({ orderId: ev.orderId, paymentId: ev.paymentId, amount: ev.amount });
+        await app.provision({
+          orderId: ev.orderId,
+          paymentId: ev.paymentId,
+          amount: ev.amount,
+        });
         claimed.status = "done";
         claimed.note = "activated from webhook";
       }

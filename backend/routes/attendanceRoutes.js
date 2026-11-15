@@ -5,6 +5,8 @@ const {
   selfMarkAttendance,
   updateAttendance,
   bulkMarkAttendance,
+  getDailySummary,
+  getTimingInsights,
   getMonthSummary,
 } = require("../controllers/attendanceController");
 const { runAutoMark } = require("../jobs/attendanceAutoMark");
@@ -19,6 +21,8 @@ const NON_PARENT = [
   "employee",
 ];
 
+router.get("/daily-summary", protect, authorize(...NON_PARENT), getDailySummary);
+router.get("/timing-insights", protect, authorize("super_admin", "hr_manager"), getTimingInsights);
 router.get("/", protect, authorize(...NON_PARENT), getAttendance);
 router.get("/summary", protect, authorize(...NON_PARENT), getMonthSummary);
 router.post("/self-mark", protect, uploadAttendanceSelfie, selfMarkAttendance);

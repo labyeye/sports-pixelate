@@ -34,8 +34,12 @@ import DepartmentsScreen from '../screens/DepartmentsScreen';
 import EmployeeCredentialsScreen from '../screens/EmployeeCredentialsScreen';
 import DocumentsScreen from '../screens/DocumentsScreen';
 import AnnouncementsScreen from '../screens/AnnouncementsScreen';
+import BulkMessageScreen from '../screens/BulkMessageScreen';
 import TrashScreen from '../screens/TrashScreen';
 import TasksScreen from '../screens/TasksScreen';
+import AssetsScreen from '../screens/AssetsScreen';
+import NfcManagerScreen from '../screens/NfcManagerScreen';
+import IdCardDesignerScreen from '../screens/IdCardDesignerScreen';
 import LettersScreen from '../screens/LettersScreen';
 import FaceKioskScreen from '../screens/FaceKioskScreen';
 import EventsScreen from '../screens/EventsScreen';
@@ -66,6 +70,7 @@ import PlansScreen from '../screens/PlansScreen';
 import GroupsScreen from '../screens/GroupsScreen';
 import AddPlanScreen from '../screens/AddPlanScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
+import ExpenseClaimsScreen from '../screens/ExpenseClaimsScreen';
 import ExitManagementScreen from '../screens/ExitManagementScreen';
 import PayrollScreen from '../screens/PayrollScreen';
 import AttendanceSettingsScreen from '../screens/AttendanceSettingsScreen';
@@ -246,8 +251,12 @@ function RootNavigatorContent() {
               name="Announcements"
               component={AnnouncementsScreen}
             />
+            <Stack.Screen name="BulkMessage" component={BulkMessageScreen} />
             <Stack.Screen name="Trash" component={TrashScreen} />
             <Stack.Screen name="Tasks" component={TasksScreen} />
+            <Stack.Screen name="Assets" component={AssetsScreen} />
+            <Stack.Screen name="NfcManager" component={NfcManagerScreen} />
+            <Stack.Screen name="IdCardDesigner" component={IdCardDesignerScreen} />
             <Stack.Screen name="Letters" component={LettersScreen} />
             <Stack.Screen
               name="FaceKiosk"
@@ -346,6 +355,10 @@ function RootNavigatorContent() {
               options={{ title: 'Add Plan' }}
             />
             <Stack.Screen name="Expenses" component={ExpensesScreen} />
+            <Stack.Screen
+              name="ExpenseClaims"
+              component={ExpenseClaimsScreen}
+            />
             <Stack.Screen
               name="ExitManagement"
               component={ExitManagementScreen}

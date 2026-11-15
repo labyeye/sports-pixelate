@@ -977,7 +977,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   title: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontSize: 13, fontWeight: '800', color: colors.blue },
+  avatarText: { fontSize: 13, fontWeight: '400', color: colors.blue },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1015,13 +1015,13 @@ const styles = StyleSheet.create({
   summaryItem: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
   summaryValue: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
   summaryLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
     textTransform: 'uppercase',
     marginTop: 2,
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
   choosePlanBtnText: {
     color: colors.white,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -1081,7 +1081,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black },
+  name: { fontSize: 16, fontWeight: '400', color: colors.black },
   planName: {
     color: colors.muted,
     fontSize: 12,
@@ -1089,7 +1089,7 @@ const styles = StyleSheet.create({
   },
   amountLine: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     marginTop: 14,
     marginBottom: 12,
@@ -1109,11 +1109,11 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
     marginBottom: 4,
   },
-  statValue: { fontSize: 15, fontWeight: '800', color: colors.black },
+  statValue: { fontSize: 15, fontWeight: '400', color: colors.black },
   paymentHistory: { marginBottom: 14, gap: 8 },
   paymentEntryRow: {
     flexDirection: 'row',
@@ -1126,7 +1126,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  paymentEntryAmount: { fontSize: 13, fontWeight: '800', color: colors.black },
+  paymentEntryAmount: { fontSize: 13, fontWeight: '400', color: colors.black },
   paymentEntryDate: { fontSize: 10, color: colors.muted, marginTop: 1 },
   receiptBtn: {
     width: 28,
@@ -1167,7 +1167,7 @@ const styles = StyleSheet.create({
   reviewBtnText: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.blue,
   },
   cashRowBtn: {
@@ -1187,7 +1187,7 @@ const styles = StyleSheet.create({
   cashRowBtnText: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.green,
   },
   methodTicks: {
@@ -1201,7 +1201,7 @@ const styles = StyleSheet.create({
   },
   methodTickText: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
   },
   modalBackdrop: {
@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: FONT.bold,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
   },
   detailRow: {
@@ -1246,7 +1246,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.black,
   },
   screenshot: {

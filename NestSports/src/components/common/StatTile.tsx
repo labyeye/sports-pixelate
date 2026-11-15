@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textAlign: 'center',
   },
-  valueCompact: { fontSize: 19, fontWeight: '700', textAlign: 'center' },
+  valueCompact: { fontSize: 19, fontWeight: '400', textAlign: 'center' },
   card: {
     borderWidth: 2,
     borderRadius: 8,
@@ -138,10 +138,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#0A0A0A',
     borderRadius: 8,
   },
-  value: { fontSize: 22, fontWeight: '800', color: C.black },
+  value: { fontSize: 22, fontWeight: '400', color: C.black },
   label: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: C.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,

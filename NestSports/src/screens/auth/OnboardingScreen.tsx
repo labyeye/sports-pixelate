@@ -52,14 +52,14 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.blue,
     textAlign: 'center',
     marginBottom: 8,
   },
   heading: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     marginBottom: 8,
   },

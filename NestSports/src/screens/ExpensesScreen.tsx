@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
   kpiGrid: {
     flexDirection: 'row',
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black },
+  name: { fontSize: 16, fontWeight: '400', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 4 },
   cardBottom: {
     flexDirection: 'row',
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F3F4F6',
   },
   amount: {
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontSize: 16,
   },
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },

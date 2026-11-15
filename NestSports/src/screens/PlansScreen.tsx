@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 10,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
   kpiGrid: {
     flexDirection: 'row',
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
+  actionText: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 12 },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black },
+  name: { fontSize: 16, fontWeight: '400', color: colors.black },
   sub: { color: colors.muted, fontSize: 12, marginTop: 2, marginBottom: 10 },
   statsRow: { flexDirection: 'row', gap: 10 },
   statBox: {
@@ -511,9 +511,9 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '400',
     color: colors.muted,
     marginBottom: 4,
   },
-  statValue: { fontSize: 15, fontWeight: '800', color: colors.black },
+  statValue: { fontSize: 15, fontWeight: '400', color: colors.black },
 });

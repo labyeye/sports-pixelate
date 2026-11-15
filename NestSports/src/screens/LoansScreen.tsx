@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  title: { fontSize: 24, fontWeight: '800', color: colors.black },
+  title: { fontSize: 24, fontWeight: '400', color: colors.black },
   subtitle: { color: colors.muted, marginTop: 2 },
   kpiGrid: {
     flexDirection: 'row',
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     fontFamily: FONT.bold,
     textTransform: 'uppercase',
   },
@@ -576,9 +576,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  name: { fontSize: 16, fontWeight: '800', color: colors.black },
+  name: { fontSize: 16, fontWeight: '400', color: colors.black },
   amount: {
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontSize: 16,
     marginTop: 8,
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { fontFamily: FONT.bold, fontWeight: '700', fontSize: 12 },
+  actionText: { fontFamily: FONT.bold, fontWeight: '400', fontSize: 12 },
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
     color: colors.black,
     fontFamily: FONT.bold,
   },
