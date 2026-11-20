@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "854894993613",
+    "project_id": "nest-academy-c1c08",
+    "storage_bucket": "nest-academy-c1c08.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:854894993613:android:34d0157675183634314984",
+        "android_client_info": {
+          "package_name": "com.nestplay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_Ka5J7kFC86odDDYz5SxArzLjtFZnvhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

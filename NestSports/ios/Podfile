@@ -5,10 +5,15 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+platform :ios, '15.5' # VisionCameraFaceDetector (GoogleMLKit FaceDetection) needs 15.5+
+# Firebase (push notifications) needs its pods built as static frameworks.
+$RNFirebaseAsStaticFramework = true
+# Use Firebase from CocoaPods, not Swift Package Manager (SPM can't be combined with static linkage).
+$RNFirebaseDisableSPM = true
+
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
+linkage = ENV['USE_FRAMEWORKS'] || 'static'
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
@@ -30,5 +35,12 @@ target 'NestPlay' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    # With pods built as frameworks (needed for Firebase), some libraries (VisionCamera) import React
+    # headers that aren't part of a module. Allow that instead of failing the build.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |cfg|
+        cfg.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
   end
 end
