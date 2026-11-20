@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -10,9 +10,9 @@ import {
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { StatCard } from "@/components/ui/StatCard";
 import { cn, getErrorMessage } from "@/lib/utils";
 import {
-  loadRazorpayScript,
   loadCashfreeScript,
   redirectToGatewayCheckout,
 } from "@/lib/paymentGateway";
@@ -21,17 +21,18 @@ import {
   type ImportHeader,
 } from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
+import { ActionDropdown } from "@/components/ui/ActionDropdown";
 import {
   Wallet,
   Loader2,
   CheckCircle2,
+  Clock,
+  PauseCircle,
   XCircle,
   Search,
   ArrowUp,
   ArrowDown,
   X,
-  Users,
-  IndianRupee,
   QrCode,
   Upload,
   Eye,
@@ -40,8 +41,10 @@ import {
   FileText,
   Banknote,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import { confirmDialog } from "@/lib/confirmDialog";
+import { SubscriptionsInsights } from "@/components/insights/PageInsightBlocks";
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
   { key: "studentId", label: "Student ID", required: true, example: "STU0001" },
@@ -109,6 +112,8 @@ interface Subscription {
   };
   plan: { _id: string; name: string };
   planName: string;
+  discountPercent?: number;
+  pauseUntil?: string;
   billingCycle: string;
   amount: number;
   amountPaid: number;
@@ -125,6 +130,7 @@ const STATUS_META: Record<string, { bg: string; text: string }> = {
   inactive: { bg: "bg-gray-50", text: "text-gray-500" },
   cancelled: { bg: "bg-red-50", text: "text-red-600" },
   pending_renewal: { bg: "bg-yellow-50", text: "text-yellow-700" },
+  paused: { bg: "bg-blue-50", text: "text-blue-700" },
 };
 
 const PAYMENT_STATUS_META: Record<
@@ -206,6 +212,7 @@ export default function SubscriptionsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterCycle, setFilterCycle] = useState("");
+  const [expandedSub, setExpandedSub] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("renewalDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -317,7 +324,7 @@ export default function SubscriptionsPage() {
           "Failed to load Cashfree checkout. Check your connection.",
         );
       const cashfree = await (window as any).Cashfree({
-        mode: import.meta.env.PROD ? "production" : "sandbox",
+        mode: order.mode || (import.meta.env.PROD ? "production" : "sandbox"),
       });
       await new Promise<void>((resolve, reject) => {
         cashfree
@@ -345,42 +352,7 @@ export default function SubscriptionsPage() {
       return;
     }
 
-    // Default: Razorpay
-    const loaded = await loadRazorpayScript();
-    if (!loaded)
-      throw new Error(
-        "Failed to load Razorpay checkout. Check your connection.",
-      );
-
-    await new Promise<void>((resolve, reject) => {
-      const rzp = new window.Razorpay({
-        key: order.keyId,
-        order_id: order.orderId,
-        amount: order.amount * 100,
-        currency: order.currency || "INR",
-        name: "NestAcademy",
-        description: `${order.planName} — ${order.studentName}`,
-        theme: { color: "#024BAB" },
-        handler: async (response: any) => {
-          try {
-            await subscriptionAPI.verifyPayment({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-            toast({
-              title: "Subscribed!",
-              description: "Payment successful.",
-            });
-            resolve();
-          } catch (err: unknown) {
-            reject(err);
-          }
-        },
-        modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
-      });
-      rzp.open();
-    });
+    throw new Error("This payment method is not supported. Please pay at the academy.");
   };
 
   const handleSubscribe = async () => {
@@ -658,6 +630,43 @@ export default function SubscriptionsPage() {
     }
   };
 
+  const handlePause = async (id: string) => {
+    const until = window.prompt(
+      "Resume automatically on (YYYY-MM-DD)? Leave blank to resume manually.",
+    );
+    if (until === null) return;
+    try {
+      await subscriptionAPI.pause(id, { until: until.trim() || undefined });
+      toast({ title: "Subscription paused" });
+      load();
+    } catch (e: unknown) {
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResume = async (id: string) => {
+    try {
+      const r = await subscriptionAPI.resume(id);
+      toast({
+        title: "Subscription resumed",
+        description: r.extendedByDays
+          ? `Renewal date extended by ${r.extendedByDays} day(s).`
+          : undefined,
+      });
+      load();
+    } catch (e: unknown) {
+      toast({
+        title: "Error",
+        description: getErrorMessage(e),
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCancel = async (id: string) => {
     if (!(await confirmDialog("Cancel this subscription?"))) return;
     try {
@@ -735,86 +744,49 @@ export default function SubscriptionsPage() {
         </div>
         {!isParent && (
           <div className="flex items-center gap-2">
+            <ActionDropdown
+              label="Actions"
+              items={[
+                {
+                  label: "Export Excel",
+                  icon: <Download className="w-4 h-4 text-[#00A36C]" />,
+                  onClick: () =>
+                    exportRowsToExcel(
+                      SUBSCRIPTION_IMPORT_HEADERS.map((h) => ({
+                        key: h.key,
+                        label: h.label,
+                      })),
+                      displayed.map((s) => ({
+                        studentId: s.student?.studentId || "",
+                        planName: s.planName,
+                        billingCycle: s.billingCycle,
+                        amount: s.amount,
+                        renewalDate: s.renewalDate?.slice(0, 10),
+                        status: s.status,
+                        paymentMethod: s.paymentMethod,
+                      })),
+                      "subscriptions_export.xlsx",
+                      "Subscriptions",
+                    ),
+                },
+                {
+                  label: "Import Excel",
+                  icon: <FileSpreadsheet className="w-4 h-4 text-[#024BAB]" />,
+                  onClick: () => setImportModal(true),
+                },
+              ]}
+            />
             <button
               onClick={openCashModalNew}
               className="border-2 border-black bg-[#00C48C] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:opacity-90 transition-opacity"
             >
               <Banknote className="w-4 h-4" /> Record Cash Payment
             </button>
-            <button
-              onClick={() =>
-                exportRowsToExcel(
-                  SUBSCRIPTION_IMPORT_HEADERS.map((h) => ({
-                    key: h.key,
-                    label: h.label,
-                  })),
-                  displayed.map((s) => ({
-                    studentId: s.student?.studentId || "",
-                    planName: s.planName,
-                    billingCycle: s.billingCycle,
-                    amount: s.amount,
-                    renewalDate: s.renewalDate?.slice(0, 10),
-                    status: s.status,
-                    paymentMethod: s.paymentMethod,
-                  })),
-                  "subscriptions_export.xlsx",
-                  "Subscriptions",
-                )
-              }
-              className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-            >
-              <Download className="w-4 h-4" /> Export
-            </button>
-            <button
-              onClick={() => setImportModal(true)}
-              className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-            >
-              <FileSpreadsheet className="w-4 h-4" /> Import Excel
-            </button>
           </div>
         )}
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Wallet className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Subscriptions
-            </p>
-            <p className="text-2xl font-bold text-black">
-              {subscriptions.length}
-            </p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Active
-            </p>
-            <p className="text-2xl font-bold text-black">{activeCount}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <IndianRupee className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Collected This Month
-            </p>
-            <p className="text-2xl font-bold text-black">
-              ₹{monthlyRevenue.toLocaleString("en-IN")}
-            </p>
-          </div>
-        </div>
-      </div>
+      <SubscriptionsInsights subscriptions={subscriptions} />
 
       {isParent && (
         <div className="bg-white border-2 border-black p-6 mb-6">
@@ -1307,6 +1279,35 @@ export default function SubscriptionsPage() {
         </div>
       )}
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <StatCard
+          label="Total"
+          value={subscriptions.length}
+          icon={Wallet}
+          color="#024BAB"
+        />
+        <StatCard
+          label="Active"
+          value={subscriptions.filter((x) => x.status === "active").length}
+          icon={CheckCircle2}
+          color="#00C48C"
+        />
+        <StatCard
+          label="Pending Renewal"
+          value={
+            subscriptions.filter((x) => x.status === "pending_renewal").length
+          }
+          icon={Clock}
+          color="#FA731C"
+        />
+        <StatCard
+          label="Paused"
+          value={subscriptions.filter((x) => x.status === "paused").length}
+          icon={PauseCircle}
+          color="#A855F7"
+        />
+      </div>
+
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 flex-1 min-w-48">
@@ -1329,6 +1330,7 @@ export default function SubscriptionsPage() {
           <option value="inactive">Inactive</option>
           <option value="cancelled">Cancelled</option>
           <option value="pending_renewal">Pending Renewal</option>
+          <option value="paused">Paused</option>
         </select>
         <select
           value={filterCycle}
@@ -1393,187 +1395,239 @@ export default function SubscriptionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                  {[
-                    "Student",
-                    "Plan",
-                    "Cycle",
-                    "Amount",
-                    "Renewal",
-                    "Status",
-                    "Payment",
-                    "Actions",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap"
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  {["Student", "Plan", "Amount", "Renewal", "Status", ""].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {displayed.map((s, idx) => {
                   const m = STATUS_META[s.status] || STATUS_META.inactive;
+                  const open = expandedSub === s._id;
                   return (
-                    <tr
-                      key={s._id}
-                      style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}
-                      className={cn(
-                        "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
-                        idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
-                      )}
-                    >
-                      <td className="px-4 py-3 font-bold text-black">
-                        <div className="flex items-center gap-2">
-                          {s.student?.avatar ? (
-                            <img
-                              src={s.student.avatar}
-                              alt=""
-                              className="h-7 w-7 rounded-full border border-black object-cover"
-                            />
-                          ) : (
-                            <span className="h-7 w-7 rounded-full border border-black bg-[#E8F0FB] text-[#024BAB] text-[10px] flex items-center justify-center">
-                              {(s.student?.firstName?.[0] || "") +
-                                (s.student?.lastName?.[0] || "")}
-                            </span>
-                          )}
-                          {s.student?.firstName} {s.student?.lastName}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-black">{s.planName}</td>
-                      <td className="px-4 py-3 text-black capitalize">
-                        {s.billingCycle}
-                      </td>
-                      <td className="px-4 py-3 text-black font-medium">
-                        ₹{s.amountPaid || 0} / ₹{s.amount}
-                      </td>
-                      <td className="px-4 py-3 text-black">
-                        {new Date(s.renewalDate).toLocaleDateString("en-IN")}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
-                            m.bg,
-                            m.text,
-                          )}
-                        >
-                          {s.status.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {(() => {
-                          const pm =
-                            PAYMENT_STATUS_META[s.paymentStatus] ||
-                            PAYMENT_STATUS_META.pending;
-                          return (
-                            <span
+                    <Fragment key={s._id}>
+                      <tr
+                        style={{
+                          animationDelay: `${Math.min(idx, 12) * 40}ms`,
+                        }}
+                        className={cn(
+                          "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                          idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
+                        )}
+                      >
+                        <td className="px-4 py-3 font-bold text-black">
+                          <div className="flex items-center gap-2">
+                            {s.student?.avatar ? (
+                              <img
+                                src={s.student.avatar}
+                                alt=""
+                                className="h-7 w-7 rounded-full border border-black object-cover"
+                              />
+                            ) : (
+                              <span className="h-7 w-7 rounded-full border border-black bg-[#E8F0FB] text-[#024BAB] text-[10px] flex items-center justify-center">
+                                {(s.student?.firstName?.[0] || "") +
+                                  (s.student?.lastName?.[0] || "")}
+                              </span>
+                            )}
+                            {s.student?.firstName} {s.student?.lastName}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-black">{s.planName}</td>
+                        <td className="px-4 py-3 text-black font-medium">
+                          ₹{s.amountPaid || 0} / ₹{s.amount}
+                        </td>
+                        <td className="px-4 py-3 text-black">
+                          {new Date(s.renewalDate).toLocaleDateString("en-IN")}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
+                              m.bg,
+                              m.text,
+                            )}
+                          >
+                            {s.status.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="px-2 py-3 w-8">
+                          <button
+                            onClick={() => setExpandedSub(open ? null : s._id)}
+                            title="Details"
+                            className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                          >
+                            <ChevronDown
                               className={cn(
-                                "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
-                                pm.bg,
-                                pm.text,
+                                "w-4 h-4 transition-transform",
+                                open && "rotate-180",
                               )}
-                            >
-                              {pm.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1 items-start">
-                          {!isParent &&
-                            s.payments?.some((p) => p.status === "pending") && (
-                              <button
-                                onClick={() => setReviewSub(s)}
-                                className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Review
-                              </button>
-                            )}
-                          {!isParent &&
-                            s.status !== "cancelled" &&
-                            (s.amountPaid || 0) < s.amount &&
-                            !s.payments?.some(
-                              (p) => p.status === "pending",
-                            ) && (
-                              <button
-                                onClick={() => openCashModalTopUp(s)}
-                                className="flex items-center gap-1 text-xs font-bold text-[#00C48C] hover:underline"
-                              >
-                                <Banknote className="w-3.5 h-3.5" /> Record Cash
-                                Payment
-                              </button>
-                            )}
-                          {isParent &&
-                            s.status !== "active" &&
-                            s.status !== "cancelled" &&
-                            !s.payments?.some((p) => p.status === "pending") &&
-                            (s.amountPaid || 0) < s.amount && (
-                              <>
-                                <button
-                                  onClick={() => handlePayRemainingOnline(s)}
-                                  disabled={subscribing === s._id}
-                                  className="flex items-center gap-1 text-xs font-bold text-[#00C48C] hover:underline disabled:opacity-60"
-                                >
-                                  <Wallet className="w-3.5 h-3.5" />
-                                  Pay Online
-                                </button>
-                                <button
-                                  onClick={() => openPayRemaining(s)}
-                                  className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
-                                >
-                                  <QrCode className="w-3.5 h-3.5" />
-                                  {s.amountPaid > 0
-                                    ? "Pay Remaining (Manual)"
-                                    : "Pay via QR"}
-                                </button>
-                              </>
-                            )}
-                          {s.payments
-                            ?.filter((p) => p.status === "verified")
-                            .map((p) => (
-                              <div
-                                key={p._id}
-                                className="flex items-center gap-2"
-                              >
-                                <button
-                                  onClick={() =>
-                                    handleDownloadReceipt(s._id, p._id)
-                                  }
-                                  disabled={downloadingId === p._id}
-                                  className="flex items-center gap-1 text-xs font-bold text-green-700 hover:underline disabled:opacity-60"
-                                >
-                                  <FileText className="w-3.5 h-3.5" /> Receipt
-                                  (₹{p.amount})
-                                </button>
-                                <span className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
-                                  <span className="flex items-center gap-0.5">
-                                    {p.method === "cash" && (
-                                      <Check className="w-3 h-3 text-[#00C48C]" />
-                                    )}
-                                    Cash
-                                  </span>
-                                  <span className="flex items-center gap-0.5">
-                                    {p.method !== "cash" && (
-                                      <Check className="w-3 h-3 text-[#024BAB]" />
-                                    )}
-                                    UPI
-                                  </span>
-                                </span>
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr className="border-b border-black/10 bg-[#F8FAFF] animate-in fade-in slide-in-from-top-1 duration-200">
+                          <td colSpan={6} className="px-6 py-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Billing cycle
+                                </p>
+                                <p className="font-bold text-black capitalize">
+                                  {s.billingCycle || "—"}
+                                </p>
                               </div>
-                            ))}
-                          {s.status === "active" && (
-                            <button
-                              onClick={() => handleCancel(s._id)}
-                              className="text-xs font-bold text-red-500 hover:underline"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Payment
+                                </p>
+                                {(() => {
+                                  const pm =
+                                    PAYMENT_STATUS_META[s.paymentStatus] ||
+                                    PAYMENT_STATUS_META.pending;
+                                  return (
+                                    <span
+                                      className={cn(
+                                        "text-[10px] font-bold uppercase px-1.5 py-0.5 border border-black/10",
+                                        pm.bg,
+                                        pm.text,
+                                      )}
+                                    >
+                                      {pm.label}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Actions
+                                </p>
+                                <div className="flex flex-col gap-1 items-start">
+                                  {!isParent &&
+                                    s.payments?.some(
+                                      (p) => p.status === "pending",
+                                    ) && (
+                                      <button
+                                        onClick={() => setReviewSub(s)}
+                                        className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" /> Review
+                                      </button>
+                                    )}
+                                  {!isParent &&
+                                    s.status !== "cancelled" &&
+                                    (s.amountPaid || 0) < s.amount &&
+                                    !s.payments?.some(
+                                      (p) => p.status === "pending",
+                                    ) && (
+                                      <button
+                                        onClick={() => openCashModalTopUp(s)}
+                                        className="flex items-center gap-1 text-xs font-bold text-[#00C48C] hover:underline"
+                                      >
+                                        <Banknote className="w-3.5 h-3.5" />{" "}
+                                        Record Cash Payment
+                                      </button>
+                                    )}
+                                  {isParent &&
+                                    s.status !== "active" &&
+                                    s.status !== "cancelled" &&
+                                    !s.payments?.some(
+                                      (p) => p.status === "pending",
+                                    ) &&
+                                    (s.amountPaid || 0) < s.amount && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handlePayRemainingOnline(s)
+                                          }
+                                          disabled={subscribing === s._id}
+                                          className="flex items-center gap-1 text-xs font-bold text-[#00C48C] hover:underline disabled:opacity-60"
+                                        >
+                                          <Wallet className="w-3.5 h-3.5" />
+                                          Pay Online
+                                        </button>
+                                        <button
+                                          onClick={() => openPayRemaining(s)}
+                                          className="flex items-center gap-1 text-xs font-bold text-[#024BAB] hover:underline"
+                                        >
+                                          <QrCode className="w-3.5 h-3.5" />
+                                          {s.amountPaid > 0
+                                            ? "Pay Remaining (Manual)"
+                                            : "Pay via QR"}
+                                        </button>
+                                      </>
+                                    )}
+                                  {s.payments
+                                    ?.filter((p) => p.status === "verified")
+                                    .map((p) => (
+                                      <div
+                                        key={p._id}
+                                        className="flex items-center gap-2"
+                                      >
+                                        <button
+                                          onClick={() =>
+                                            handleDownloadReceipt(s._id, p._id)
+                                          }
+                                          disabled={downloadingId === p._id}
+                                          className="flex items-center gap-1 text-xs font-bold text-green-700 hover:underline disabled:opacity-60"
+                                        >
+                                          <FileText className="w-3.5 h-3.5" />{" "}
+                                          Receipt (₹{p.amount})
+                                        </button>
+                                        <span className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
+                                          <span className="flex items-center gap-0.5">
+                                            {p.method === "cash" && (
+                                              <Check className="w-3 h-3 text-[#00C48C]" />
+                                            )}
+                                            Cash
+                                          </span>
+                                          <span className="flex items-center gap-0.5">
+                                            {p.method !== "cash" && (
+                                              <Check className="w-3 h-3 text-[#024BAB]" />
+                                            )}
+                                            UPI
+                                          </span>
+                                        </span>
+                                      </div>
+                                    ))}
+                                  {!isParent && s.status === "active" && (
+                                    <button
+                                      onClick={() => handlePause(s._id)}
+                                      className="text-xs font-bold text-[#024BAB] hover:underline"
+                                    >
+                                      Pause
+                                    </button>
+                                  )}
+                                  {!isParent && s.status === "paused" && (
+                                    <button
+                                      onClick={() => handleResume(s._id)}
+                                      className="text-xs font-bold text-green-700 hover:underline"
+                                    >
+                                      Resume
+                                    </button>
+                                  )}
+                                  {s.status === "active" && (
+                                    <button
+                                      onClick={() => handleCancel(s._id)}
+                                      className="text-xs font-bold text-red-500 hover:underline"
+                                    >
+                                      Cancel
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>

@@ -2,7 +2,8 @@
 // A card has a front and an optional back; each side is a background colour plus positioned elements.
 // x / y / w / h are percentages of the card, font sizes are in pt, so the same design prints at any physical size.
 
-export type ElKind = "text" | "field" | "photo" | "logo" | "qr" | "shape" | "image";
+export type ElKind =
+  "text" | "field" | "photo" | "logo" | "qr" | "shape" | "image";
 export type Align = "left" | "center" | "right";
 export type FontKey =
   | "sans"
@@ -32,7 +33,18 @@ export type FieldKey =
   | "companyAddress"
   | "companyPhone"
   | "companyEmail"
-  | "companyWebsite";
+  | "companyWebsite"
+  // student cards
+  | "studentId"
+  | "sport"
+  | "batch"
+  | "guardianName"
+  | "guardianPhone"
+  | "emergencyContact"
+  | "address";
+
+/** Which people a design is for: staff cards or students' cards (each has its own saved design). */
+export type CardKind = "staff" | "student";
 
 export interface IdEl {
   id: string;
@@ -109,23 +121,46 @@ export function cardDims(t: IdCardTemplate): { w: number; h: number } {
   return { w: 85.6, h: 54 };
 }
 
-export const FIELD_OPTIONS: { key: FieldKey; label: string; group: string }[] = [
-  { key: "fullName", label: "Employee name", group: "Employee" },
-  { key: "employeeId", label: "Employee ID", group: "Employee" },
-  { key: "designation", label: "Designation", group: "Employee" },
-  { key: "department", label: "Department", group: "Employee" },
-  { key: "phone", label: "Phone", group: "Employee" },
-  { key: "email", label: "Email", group: "Employee" },
-  { key: "bloodGroup", label: "Blood group", group: "Employee" },
-  { key: "joinDate", label: "Joining date", group: "Employee" },
-  { key: "dateOfBirth", label: "Date of birth", group: "Employee" },
-  { key: "issueDate", label: "Issue date (today)", group: "Employee" },
-  { key: "companyName", label: "Company name", group: "Company" },
-  { key: "companyAddress", label: "Company address", group: "Company" },
-  { key: "companyPhone", label: "Company phone", group: "Company" },
-  { key: "companyEmail", label: "Company email", group: "Company" },
-  { key: "companyWebsite", label: "Company website", group: "Company" },
-];
+export const FIELD_OPTIONS: { key: FieldKey; label: string; group: string }[] =
+  [
+    { key: "fullName", label: "Employee name", group: "Employee" },
+    { key: "employeeId", label: "Employee ID", group: "Employee" },
+    { key: "designation", label: "Designation", group: "Employee" },
+    { key: "department", label: "Department", group: "Employee" },
+    { key: "phone", label: "Phone", group: "Employee" },
+    { key: "email", label: "Email", group: "Employee" },
+    { key: "bloodGroup", label: "Blood group", group: "Employee" },
+    { key: "joinDate", label: "Joining date", group: "Employee" },
+    { key: "dateOfBirth", label: "Date of birth", group: "Employee" },
+    { key: "issueDate", label: "Issue date (today)", group: "Employee" },
+    { key: "fullName", label: "Student name", group: "Student" },
+    { key: "studentId", label: "Student ID", group: "Student" },
+    { key: "sport", label: "Sport", group: "Student" },
+    { key: "batch", label: "Batch", group: "Student" },
+    { key: "dateOfBirth", label: "Date of birth", group: "Student" },
+    { key: "bloodGroup", label: "Blood group", group: "Student" },
+    { key: "guardianName", label: "Guardian name", group: "Student" },
+    { key: "guardianPhone", label: "Guardian phone", group: "Student" },
+    { key: "emergencyContact", label: "Emergency contact", group: "Student" },
+    { key: "address", label: "Address", group: "Student" },
+    { key: "joinDate", label: "Admission date", group: "Student" },
+    { key: "issueDate", label: "Issue date (today)", group: "Student" },
+    { key: "companyName", label: "Company name", group: "Company" },
+    { key: "companyAddress", label: "Company address", group: "Company" },
+    { key: "companyPhone", label: "Company phone", group: "Company" },
+    { key: "companyEmail", label: "Company email", group: "Company" },
+    { key: "companyWebsite", label: "Company website", group: "Company" },
+  ];
+
+/** Field choices for a card kind, grouped for the dropdowns (no duplicates inside a kind). */
+export const fieldOptionsFor = (kind: CardKind) =>
+  FIELD_OPTIONS.filter((f) =>
+    kind === "student"
+      ? f.group === "Student" || f.group === "Company"
+      : f.group !== "Student",
+  );
+export const fieldGroupsFor = (kind: CardKind) =>
+  kind === "student" ? ["Student", "Company"] : ["Employee", "Company"];
 
 export const KIND_LABELS: Record<ElKind, string> = {
   text: "Text",
@@ -184,7 +219,11 @@ export function fieldValue(
     case "designation":
       return emp?.designation || "";
     case "department":
-      return (typeof emp?.department === "object" ? emp.department?.name : emp?.department) || "";
+      return (
+        (typeof emp?.department === "object"
+          ? emp.department?.name
+          : emp?.department) || ""
+      );
     case "phone":
       return emp?.phone || "";
     case "email":
@@ -192,7 +231,7 @@ export function fieldValue(
     case "bloodGroup":
       return emp?.bloodGroup || "";
     case "joinDate":
-      return fmtDate(emp?.joinDate);
+      return fmtDate(emp?.joinDate || emp?.enrollmentDate);
     case "dateOfBirth":
       return fmtDate(emp?.dateOfBirth);
     case "issueDate":
@@ -207,12 +246,30 @@ export function fieldValue(
       return company.email;
     case "companyWebsite":
       return company.website;
+    case "studentId":
+      return emp?.studentId || "";
+    case "sport":
+      return emp?.sport || "";
+    case "batch":
+      return emp?.batch || "";
+    case "guardianName":
+      return (emp?.guardians?.[0]?.name as string) || "";
+    case "guardianPhone":
+      return (emp?.guardians?.[0]?.phone as string) || emp?.emergencyContact || "";
+    case "emergencyContact":
+      return (
+        emp?.emergencyContactPerson?.phone || emp?.emergencyContact || ""
+      );
+    case "address":
+      return [emp?.address?.line1, emp?.address?.city, emp?.address?.pincode]
+        .filter(Boolean)
+        .join(", ");
   }
 }
 
 /** The text a QR element encodes (falls back to the employee ID so it is never empty). */
 export const qrValue = (el: IdEl, emp: any, company: IdCompany) =>
-  fieldValue(el.qrField, emp, company) || emp?.employeeId || "";
+  fieldValue(el.qrField, emp, company) || emp?.employeeId || emp?.studentId || "";
 
 export const SAMPLE_EMPLOYEE = {
   firstName: "Aarav",
@@ -226,6 +283,51 @@ export const SAMPLE_EMPLOYEE = {
   joinDate: "2024-04-01",
   dateOfBirth: "1996-08-12",
 };
+
+export const SAMPLE_STUDENT = {
+  firstName: "Aarav",
+  lastName: "Sharma",
+  studentId: "STU0001",
+  sport: "Football",
+  batch: "Morning U-12",
+  bloodGroup: "B+",
+  dateOfBirth: "2014-08-12",
+  enrollmentDate: "2025-04-01",
+  guardians: [{ name: "Rohit Sharma", phone: "98765 43210" }],
+  emergencyContact: "98765 43210",
+  address: { line1: "12 Park Street", city: "Kolkata", pincode: "700016" },
+};
+
+/** Turns a staff design (e.g. a library template) into the student equivalent: fields and wording swapped. */
+export function toStudentTemplate(t: IdCardTemplate): IdCardTemplate {
+  const FIELD_MAP: Partial<Record<FieldKey, FieldKey>> = {
+    employeeId: "studentId",
+    designation: "sport",
+    department: "batch",
+    phone: "guardianPhone",
+    email: "guardianName",
+  };
+  const words = (v: string) =>
+    v
+      .replace(/EMPLOYEE/g, "STUDENT")
+      .replace(/Employee/g, "Student")
+      .replace(/Emp\.? ?ID/gi, "ID")
+      .replace(/Email/gi, "Guardian")
+      .replace(/Phone|Ph\b/gi, "Guardian ph")
+      .replace(/Designation/gi, "Sport")
+      .replace(/Department|Dept/gi, "Batch");
+  const side = (sd: IdSide): IdSide => ({
+    ...sd,
+    elements: sd.elements.map((e) => ({
+      ...e,
+      field: FIELD_MAP[e.field] || e.field,
+      qrField: FIELD_MAP[e.qrField] || e.qrField,
+      text: e.kind === "text" ? words(e.text) : e.text,
+      prefix: words(e.prefix),
+    })),
+  });
+  return { ...t, front: side(t.front), back: side(t.back) };
+}
 
 let n = 0;
 export const newId = () => `e${Date.now().toString(36)}${(n++).toString(36)}`;
@@ -272,6 +374,8 @@ export function makeEl(kind: ElKind, over: Partial<IdEl> = {}): IdEl {
 }
 
 // Small builders shared with lib/idCardLibrary.ts
-export const t = (text: string, over: Partial<IdEl>) => makeEl("text", { text, ...over });
-export const f = (field: FieldKey, over: Partial<IdEl>) => makeEl("field", { field, ...over });
+export const t = (text: string, over: Partial<IdEl>) =>
+  makeEl("text", { text, ...over });
+export const f = (field: FieldKey, over: Partial<IdEl>) =>
+  makeEl("field", { field, ...over });
 export const sh = (over: Partial<IdEl>) => makeEl("shape", over);

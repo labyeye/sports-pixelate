@@ -21,8 +21,11 @@ import {
   type ImportHeader,
 } from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
+import { ActionDropdown } from "@/components/ui/ActionDropdown";
+import { PrintIdCardDialog } from "@/components/idcard/PrintIdCardDialog";
 import {
   GraduationCap,
+  IdCard,
   Plus,
   Trash2,
   Edit2,
@@ -57,9 +60,15 @@ import {
   FileText,
   Repeat,
   Lock,
+  Eye,
+  Shield,
 } from "lucide-react";
 import { confirmDialog } from "@/lib/confirmDialog";
 import { lookupPincode } from "@/lib/pincode";
+import { writePrintDocument } from "@/lib/printWindow";
+import { loadAdmissionFormSetup } from "@/lib/admissionFormData";
+import { buildAdmissionFormHTML } from "@/lib/admissionForm";
+import { StudentsInsights } from "@/components/insights/PageInsightBlocks";
 
 const STUDENT_FORM_TABS = [
   "Basic Info",
@@ -290,6 +299,8 @@ export default function StudentsPage() {
   const canManage = user?.role === "super_admin" || user?.role === "hr_manager";
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [idPrint, setIdPrint] = useState<any[] | null>(null);
+  const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [sportOptions, setSportOptions] = useState<string[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -326,6 +337,9 @@ export default function StudentsPage() {
     emergencyContact: "",
     bloodGroup: "",
   });
+  // Verifiable parental consent: the academy confirms the guardian agreed to the Terms & Privacy Policy.
+  const [guardianConsent, setGuardianConsent] = useState(false);
+  const [hasConsent, setHasConsent] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [guardians, setGuardians] = useState<GuardianForm[]>([]);
@@ -452,6 +466,8 @@ export default function StudentsPage() {
   }, [canManage]);
 
   const resetForm = () => {
+    setGuardianConsent(false);
+    setHasConsent(false);
     setForm({
       firstName: "",
       lastName: "",
@@ -499,6 +515,15 @@ export default function StudentsPage() {
       });
       return;
     }
+    if (!hasConsent && !guardianConsent) {
+      toast({
+        title: "Guardian consent needed",
+        description:
+          "Confirm that the parent/guardian agreed to the Terms & Privacy Policy and to storing the child's data.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (guardians.some((g) => !g.name.trim())) {
       toast({
         title: "Missing fields",
@@ -532,6 +557,7 @@ export default function StudentsPage() {
     try {
       const payload = {
         ...form,
+        guardianConsent: hasConsent || guardianConsent ? true : undefined,
         coach: form.coach || undefined,
         bloodGroup: form.bloodGroup || undefined,
         guardians: guardians.map((g) => ({
@@ -568,6 +594,8 @@ export default function StudentsPage() {
       if (editingId) {
         const r = await studentAPI.update(editingId, payload);
         saved = r.data;
+        if (!hasConsent && guardianConsent)
+          await studentAPI.recordConsent(editingId);
         toast({ title: "Student updated" });
       } else {
         const r = await studentAPI.create(payload);
@@ -649,6 +677,8 @@ export default function StudentsPage() {
   };
 
   const startEdit = (s: any) => {
+    setGuardianConsent(false);
+    setHasConsent(!!s.guardianConsent?.given);
     setEditingId(s._id);
     setForm({
       firstName: s.firstName,
@@ -702,6 +732,41 @@ export default function StudentsPage() {
 
   const displayed = students;
 
+  /** Opens the student's admission form (A4, every page) in a print tab: Save as PDF or print. Null = blank form. */
+  const downloadAdmissionForm = async (s: any | null) => {
+    const win = window.open("", "_blank"); // opened in the click so it isn't blocked
+    if (!win) {
+      toast({
+        title: "Pop-up blocked",
+        description: "Allow pop-ups to download the admission form.",
+        variant: "destructive",
+      });
+      return;
+    }
+    win.document.write(
+      "<p style='font:14px sans-serif;padding:16px'>Preparing admission form…</p>",
+    );
+    try {
+      const [setup, full] = await Promise.all([
+        loadAdmissionFormSetup(),
+        s ? studentAPI.getOne(s._id).catch(() => null) : Promise.resolve(null),
+      ]);
+      const student = s ? (full?.data ?? s) : null;
+      writePrintDocument(
+        win,
+        buildAdmissionFormHTML(
+          setup.template,
+          student ? [student] : [],
+          setup.company,
+        ),
+        true,
+      );
+    } catch (e) {
+      win.close();
+      notifyError(e);
+    }
+  };
+
   const activeCount = students.filter((s) => s.status === "active").length;
   const onHoldCount = students.filter((s) => s.status === "on_hold").length;
 
@@ -712,89 +777,70 @@ export default function StudentsPage() {
           Student Roster
         </h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              exportRowsToExcel(
-                STUDENT_IMPORT_HEADERS.map((h) => ({
-                  key: h.key,
-                  label: h.label,
-                })),
-                displayed.map((s) => ({
-                  firstName: s.firstName,
-                  lastName: s.lastName,
-                  sport: s.sport,
-                  batch: s.batch,
-                  coach: s.coach
-                    ? `${s.coach.firstName} ${s.coach.lastName}`
-                    : "",
-                  enrollmentDate: s.enrollmentDate?.slice(0, 10),
-                })),
-                "students_export.xlsx",
-                "Students",
-              )
-            }
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
+          <ActionDropdown
+            label="Actions"
+            items={[
+              {
+                label: "Export Excel",
+                icon: <Download className="w-4 h-4 text-[#00A36C]" />,
+                onClick: () =>
+                  exportRowsToExcel(
+                    STUDENT_IMPORT_HEADERS.map((h) => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
+                    displayed.map((s) => ({
+                      firstName: s.firstName,
+                      lastName: s.lastName,
+                      sport: s.sport,
+                      batch: s.batch,
+                      coach: s.coach
+                        ? `${s.coach.firstName} ${s.coach.lastName}`
+                        : "",
+                      enrollmentDate: s.enrollmentDate?.slice(0, 10),
+                    })),
+                    "students_export.xlsx",
+                    "Students",
+                  ),
+              },
+              {
+                label: "Blank admission form",
+                icon: <FileText className="w-4 h-4 text-[#024BAB]" />,
+                onClick: () => downloadAdmissionForm(null),
+              },
+              ...(canManage
+                ? [
+                    {
+                      label: "Import Excel",
+                      icon: (
+                        <FileSpreadsheet className="w-4 h-4 text-[#024BAB]" />
+                      ),
+                      onClick: () => setImportModal(true),
+                    },
+                    {
+                      label: "Print ID cards (listed students)",
+                      icon: <IdCard className="w-4 h-4 text-[#024BAB]" />,
+                      onClick: () => setIdPrint(students),
+                    },
+                  ]
+                : []),
+            ]}
+          />
           {canManage && (
-            <>
-              <button
-                onClick={() => setImportModal(true)}
-                className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-              >
-                <FileSpreadsheet className="w-4 h-4" /> Import Excel
-              </button>
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-                className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Enroll Student
-              </button>
-            </>
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+              }}
+              className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Enroll Student
+            </button>
           )}
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Students
-            </p>
-            <p className="text-2xl font-bold text-black">{total}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <GraduationCap className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Active
-            </p>
-            <p className="text-2xl font-bold text-black">{activeCount}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-500/10 border-2 border-amber-500 flex items-center justify-center shrink-0">
-            <PauseCircle className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              On Hold
-            </p>
-            <p className="text-2xl font-bold text-black">{onHoldCount}</p>
-          </div>
-        </div>
-      </div>
+      <StudentsInsights />
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -1685,7 +1731,21 @@ export default function StudentsPage() {
                 )}
               </div>
 
-              {}
+              {!hasConsent && (
+                <label className="flex items-start gap-3 px-6 py-3 border-t-2 border-black bg-[#FFF8E1] text-sm font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={guardianConsent}
+                    onChange={(e) => setGuardianConsent(e.target.checked)}
+                    className="mt-1 w-4 h-4"
+                  />
+                  <span>
+                    The parent/guardian has agreed to the Terms &amp; Privacy
+                    Policy and to this academy storing the child's photo,
+                    medical, attendance and payment data. (Required)
+                  </span>
+                </label>
+              )}
               <div className="flex items-center justify-between px-6 py-4 border-t-2 border-black bg-[#F8FAFF]">
                 <button
                   type="button"
@@ -1768,7 +1828,11 @@ export default function StudentsPage() {
             {displayed.map((s) => {
               const m = STATUS_META[s.status];
               return (
-                <div key={s._id} className="border-2 border-black bg-white p-4">
+                <div
+                  key={s._id}
+                  className="border-2 border-black bg-white p-4 active:bg-[#024BAB]/5"
+                  onClick={() => setViewStudent(s)}
+                >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-11 h-11 border-2 border-black shrink-0 overflow-hidden bg-[#024BAB] flex items-center justify-center text-sm font-bold text-white rounded-full">
                       {s.avatar ? (
@@ -1849,13 +1913,41 @@ export default function StudentsPage() {
                       />
                     </div>
                   </div>
+                  <div
+                    className="flex items-center gap-2 mb-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => setViewStudent(s)}
+                      className="flex-1 flex items-center justify-center gap-1.5 border-2 border-black py-2 text-xs font-bold bg-white hover:bg-[#024BAB]/10"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
+                    <button
+                      onClick={() => downloadAdmissionForm(s)}
+                      className="flex-1 flex items-center justify-center gap-1.5 border-2 border-black py-2 text-xs font-bold bg-white hover:bg-[#024BAB]/10"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-[#024BAB]" />{" "}
+                      Admission form
+                    </button>
+                  </div>
                   {canManage && (
-                    <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => startEdit(s)}
                         className="flex-1 flex items-center justify-center gap-1.5 border-2 border-black py-2 text-xs font-bold bg-[#024BAB] text-white hover:bg-[#01368A]"
                       >
                         <Edit2 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => setIdPrint([s])}
+                        className="p-2 border-2 border-black bg-white hover:bg-[#024BAB]/5"
+                        title="Print ID card"
+                      >
+                        <IdCard className="w-3.5 h-3.5 text-[#024BAB]" />
                       </button>
                       <button
                         onClick={() => handleDelete(s._id)}
@@ -1884,6 +1976,7 @@ export default function StudentsPage() {
                     "Guardians",
                     "Parents",
                     "Status",
+                    "Form",
                     ...(canManage ? ["Actions"] : []),
                   ].map((h) => (
                     <th
@@ -1902,9 +1995,10 @@ export default function StudentsPage() {
                     <tr
                       key={s._id}
                       className={cn(
-                        "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                        "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors cursor-pointer",
                         idx % 2 === 0 ? "" : "bg-[#F8FAFF]",
                       )}
+                      onClick={() => setViewStudent(s)}
                     >
                       <td className="px-4 py-3 font-bold text-black">
                         <div className="flex items-center gap-2.5">
@@ -1983,14 +2077,43 @@ export default function StudentsPage() {
                           {s.status.replace("_", " ")}
                         </span>
                       </td>
+                      <td
+                        className="px-2 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => downloadAdmissionForm(s)}
+                          title="Download admission form"
+                          className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-[#024BAB]" />
+                        </button>
+                      </td>
                       {canManage && (
-                        <td className="px-4 py-3">
+                        <td
+                          className="px-4 py-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div className="flex gap-1">
+                            <button
+                              onClick={() => setViewStudent(s)}
+                              title="View Profile"
+                              className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => startEdit(s)}
                               className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setIdPrint([s])}
+                              title="Print ID card"
+                              className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                            >
+                              <IdCard className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDelete(s._id)}
@@ -2025,6 +2148,234 @@ export default function StudentsPage() {
           )}
         </>
       )}
+      {viewStudent && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b-2 border-black flex items-center justify-between px-6 py-3 z-10">
+            <button
+              onClick={() => setViewStudent(null)}
+              className="flex items-center gap-2 text-sm font-bold text-black hover:text-[#024BAB] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => downloadAdmissionForm(viewStudent)}
+                className="flex items-center gap-1.5 border-2 border-black px-3 py-1.5 text-xs font-bold bg-white hover:bg-gray-50"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#024BAB]" /> Admission
+                form
+              </button>
+              {canManage && (
+                <>
+                  <button
+                    onClick={() => {
+                      const st = viewStudent;
+                      setViewStudent(null);
+                      startEdit(st);
+                    }}
+                    className="flex items-center gap-1.5 border-2 border-black px-3 py-1.5 text-xs font-bold bg-[#024BAB] text-white hover:bg-[#01368A]"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => setIdPrint([viewStudent])}
+                    className="flex items-center gap-1.5 border-2 border-black px-3 py-1.5 text-xs font-bold bg-white hover:bg-[#024BAB]/5"
+                  >
+                    <IdCard className="w-3.5 h-3.5 text-[#024BAB]" /> ID card
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleDelete(viewStudent._id);
+                      setViewStudent(null);
+                    }}
+                    className="flex items-center gap-1.5 border-2 border-black px-3 py-1.5 text-xs font-bold bg-white text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {(() => {
+            const v = viewStudent;
+            const m = STATUS_META[v.status];
+            const sp = v.sportsProfile;
+            const addr = v.address;
+            const addrText = [
+              addr?.line1,
+              addr?.city,
+              addr?.state,
+              addr?.pincode,
+            ]
+              .filter(Boolean)
+              .join(", ");
+            const ec = v.emergencyContactPerson;
+            const Field = ({
+              label,
+              value,
+            }: {
+              label: string;
+              value?: any;
+            }) => (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </p>
+                <p className="text-sm font-bold text-black">{value || "—"}</p>
+              </div>
+            );
+            return (
+              <div className="max-w-4xl mx-auto p-6 space-y-4">
+                <div className="border-2 border-black bg-white p-5">
+                  <div className="flex items-start gap-5">
+                    {v.avatar ? (
+                      <img
+                        src={v.avatar}
+                        alt="Profile"
+                        className="w-20 h-20 object-cover border-2 border-black rounded-full shrink-0"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 bg-[#024BAB] border-2 border-black flex items-center justify-center text-3xl font-bold text-white rounded-full shrink-0">
+                        {v.firstName?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground font-bold font-mono">
+                            {v.studentId}
+                          </p>
+                          <h1 className="text-2xl font-bold text-black mt-0.5">
+                            {v.firstName} {v.lastName}
+                          </h1>
+                          <p className="text-sm font-medium text-muted-foreground mt-0.5">
+                            {v.sport}
+                            {v.batch ? ` · ${v.batch}` : ""}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "text-[11px] rounded-full font-bold uppercase px-2 py-0.5 border-2 border-black shrink-0 mt-1",
+                            m?.bg,
+                            m?.text,
+                          )}
+                        >
+                          {v.status.replace("_", " ")}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 mt-3 text-xs text-black">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="font-medium">
+                            Enrolled{" "}
+                            {v.enrollmentDate
+                              ? new Date(v.enrollmentDate).toLocaleDateString(
+                                  "en-IN",
+                                )
+                              : "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <UserCog className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="font-medium">
+                            {v.coach
+                              ? `${v.coach.firstName} ${v.coach.lastName}`
+                              : "No coach"}
+                          </span>
+                        </div>
+                        {v.bloodGroup && (
+                          <div className="flex items-center gap-1.5">
+                            <Droplet className="w-3.5 h-3.5 text-[#EF4444] fill-[#EF4444] shrink-0" />
+                            <span className="font-medium">{v.bloodGroup}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border-2 border-black bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-3 flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5" /> Sports Profile
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Experience" value={sp?.experienceLevel} />
+                      <Field label="Playing Level" value={sp?.playingLevel} />
+                      <Field
+                        label="Years Played"
+                        value={sp?.yearsOfExperience}
+                      />
+                      <Field
+                        label="Previous Academy"
+                        value={sp?.previousAcademy}
+                      />
+                    </div>
+                  </div>
+                  <div className="border-2 border-black bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-3 flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5" /> Emergency Contact
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Name" value={ec?.name} />
+                      <Field label="Relation" value={ec?.relation} />
+                      <Field label="Phone" value={ec?.phone} />
+                    </div>
+                  </div>
+                  <div className="border-2 border-black bg-white p-4 md:col-span-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-3 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5" /> Guardians
+                    </p>
+                    {v.guardians && v.guardians.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {v.guardians.map((g, gi) => (
+                          <div
+                            key={g._id || gi}
+                            className="border border-black/20 bg-[#F8FAFF] p-3"
+                          >
+                            <p className="font-bold text-sm text-black">
+                              {g.name}{" "}
+                              <span className="text-xs font-normal text-muted-foreground">
+                                ({RELATION_LABEL[g.relation]})
+                              </span>
+                            </p>
+                            {g.phone && (
+                              <p className="text-xs mt-1 flex items-center gap-1.5">
+                                <Phone className="w-3 h-3 text-muted-foreground" />
+                                {g.phone}
+                              </p>
+                            )}
+                            {g.email && (
+                              <p className="text-xs mt-0.5 flex items-center gap-1.5 truncate">
+                                <Mail className="w-3 h-3 text-muted-foreground" />
+                                {g.email}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No guardians added
+                      </p>
+                    )}
+                  </div>
+                  <div className="border-2 border-black bg-white p-4 md:col-span-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#024BAB] mb-3 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" /> Address
+                    </p>
+                    <p className="text-sm font-bold text-black">
+                      {addrText || "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       <ImportExportModal
         open={importModal}
         onClose={() => setImportModal(false)}
@@ -2062,9 +2413,24 @@ export default function StudentsPage() {
           { key: "batch", label: "Batch" },
           { key: "coach", label: "Coach" },
         ]}
-        onImport={(rows) => studentAPI.bulkImport(rows) as any}
+        onImport={(rows) => {
+          if (
+            !window.confirm(
+              "Do the parents/guardians of ALL these students agree to the Terms & Privacy Policy and to the academy storing their child's data?",
+            )
+          )
+            throw new Error("Import cancelled");
+          return studentAPI.bulkImport(rows) as any;
+        }}
         onImported={load}
       />
+      {idPrint && idPrint.length > 0 && (
+        <PrintIdCardDialog
+          employees={idPrint}
+          kind="student"
+          onClose={() => setIdPrint(null)}
+        />
+      )}
     </AppLayout>
   );
 }

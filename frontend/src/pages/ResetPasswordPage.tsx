@@ -134,17 +134,30 @@ export default function ResetPasswordPage() {
                 <label className="block text-xs font-bold text-black uppercase tracking-wider mb-1.5">
                   Confirm Password
                 </label>
-                <input
-                  type={showPw ? "text" : "password"}
-                  value={confirm}
-                  onChange={(e) => {
-                    setConfirm(e.target.value);
-                    setError("");
-                  }}
-                  placeholder="Repeat your new password"
-                  className="w-full px-4 py-3 border-2 border-black text-sm font-medium bg-white focus:outline-none transition-colors"
-                  required
-                />
+                <div className="flex border-2 border-black transition-colors">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={confirm}
+                    onChange={(e) => {
+                      setConfirm(e.target.value);
+                      setError("");
+                    }}
+                    placeholder="Repeat your new password"
+                    className="flex-1 px-4 py-3 bg-white text-sm font-medium outline-none"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(!showPw)}
+                    className="px-3 border-l-2 border-black hover:bg-gray-50"
+                  >
+                    {showPw ? (
+                      <EyeOff className="w-4 h-4 text-black" />
+                    ) : (
+                      <Eye className="w-4 h-4 text-black" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <button

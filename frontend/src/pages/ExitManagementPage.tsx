@@ -5,7 +5,6 @@ import { exitAPI, employeeAPI, studentAPI } from "@/services/api";
 import { fetchAllPages } from "@/lib/fetchAllPages";
 import { useToast } from "@/hooks/use-toast";
 import { cn, formatDateOrDash, getErrorMessage } from "@/lib/utils";
-import { StatCard } from "@/components/ui/StatCard";
 import {
   UserMinus,
   Plus,
@@ -15,7 +14,6 @@ import {
   Users,
   GraduationCap,
   CheckCircle2,
-  Clock,
   AlertTriangle,
   RotateCcw,
   Check,
@@ -169,33 +167,6 @@ export default function ExitManagementPage() {
         >
           <Plus className="w-4 h-4" /> Initiate Exit
         </button>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatCard
-          label="Total Exits"
-          value={summary.total}
-          icon={UserMinus}
-          color="#024BAB"
-        />
-        <StatCard
-          label="In Progress"
-          value={summary.inProgress}
-          icon={Clock}
-          color="#FA731C"
-        />
-        <StatCard
-          label="Completed"
-          value={summary.completed}
-          icon={CheckCircle2}
-          color="#00C48C"
-        />
-        <StatCard
-          label="Staff · Students"
-          value={`${summary.staff} · ${summary.students}`}
-          icon={Users}
-          color="#A855F7"
-        />
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">

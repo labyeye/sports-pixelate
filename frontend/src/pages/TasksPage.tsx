@@ -39,11 +39,19 @@ interface Task {
   late?: boolean;
   assignedTo: Person;
   assignedBy: Person;
-  comments?: { _id: string; user: Person; message: string; createdAt: string }[];
+  comments?: {
+    _id: string;
+    user: Person;
+    message: string;
+    createdAt: string;
+  }[];
 }
 
 const STATUS_META: Record<Status, { label: string; cls: string }> = {
-  pending: { label: "Pending", cls: "bg-gray-100 border-gray-400 text-gray-700" },
+  pending: {
+    label: "Pending",
+    cls: "bg-gray-100 border-gray-400 text-gray-700",
+  },
   in_progress: {
     label: "In Progress",
     cls: "bg-blue-50 border-[#024BAB] text-[#024BAB]",
@@ -145,8 +153,9 @@ export default function TasksPage() {
     [tasks, filter],
   );
   const count = (s: Status) => tasks.filter((t) => t.status === s).length;
-  const lateCount = tasks.filter((t) => t.late && t.status !== "completed")
-    .length;
+  const lateCount = tasks.filter(
+    (t) => t.late && t.status !== "completed",
+  ).length;
 
   const replace = (t: Task) => {
     setTasks((p) => p.map((x) => (x._id === t._id ? { ...x, ...t } : x)));
@@ -242,7 +251,9 @@ export default function TasksPage() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-start justify-between mb-6 gap-3">
           <div>
-            <h1 className="font-display font-bold text-3xl text-black">Tasks</h1>
+            <h1 className="font-display font-bold text-3xl text-black">
+              Tasks
+            </h1>
             <p className="text-gray-600 font-medium mt-1">
               {canAssign
                 ? "Assign work to your staff and track it to completion"
@@ -262,28 +273,6 @@ export default function TasksPage() {
               <Plus className="w-4 h-4" /> New Task
             </button>
           )}
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          {tiles.map((t) => (
-            <div
-              key={t.label}
-              className="border-2 border-black bg-white p-4 flex items-center gap-3"
-            >
-              <div
-                className="w-10 h-10 border-2 flex items-center justify-center shrink-0"
-                style={{ borderColor: t.c, background: `${t.c}1A` }}
-              >
-                <t.icon className="w-5 h-5" style={{ color: t.c }} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  {t.label}
-                </p>
-                <p className="text-2xl font-bold text-black">{t.value}</p>
-              </div>
-            </div>
-          ))}
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">

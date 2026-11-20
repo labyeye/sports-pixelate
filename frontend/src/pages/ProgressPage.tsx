@@ -81,7 +81,9 @@ export default function ProgressPage() {
         onChange={(e) => setStudentId(e.target.value)}
         className={`${input} mb-4 min-w-[220px]`}
       >
-        <option value="">{isParent ? "All my children" : "All students"}</option>
+        <option value="">
+          {isParent ? "All my children" : "All students"}
+        </option>
         {students.map((s) => (
           <option key={s._id} value={s._id}>
             {s.firstName} {s.lastName}
@@ -90,7 +92,10 @@ export default function ProgressPage() {
       </select>
 
       {!isParent && studentId && (
-        <form onSubmit={save} className="border-2 border-black p-3 mb-4 grid gap-2">
+        <form
+          onSubmit={save}
+          className="border-2 border-black p-3 mb-4 grid gap-2"
+        >
           <input
             placeholder="Level / belt (optional)"
             value={level}

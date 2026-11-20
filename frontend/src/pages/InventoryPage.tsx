@@ -15,6 +15,7 @@ import {
   type ImportHeader,
 } from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
+import { ActionDropdown } from "@/components/ui/ActionDropdown";
 import {
   Package,
   Plus,
@@ -26,7 +27,6 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  Boxes,
   AlertTriangle,
   Edit2,
   Trash2,
@@ -45,6 +45,7 @@ import {
   ImagePlus,
 } from "lucide-react";
 import { confirmDialog } from "@/lib/confirmDialog";
+import { InventoryInsights } from "@/components/insights/PageInsightBlocks";
 
 const INVENTORY_IMPORT_HEADERS: ImportHeader[] = [
   { key: "name", label: "Item Name", required: true, example: "Tennis Racket" },
@@ -503,80 +504,52 @@ export default function InventoryPage() {
           Inventory
         </h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              exportRowsToExcel(
-                INVENTORY_IMPORT_HEADERS.map((h) => ({
-                  key: h.key,
-                  label: h.label,
-                })),
-                displayed,
-                "inventory_export.xlsx",
-                "Inventory",
-              )
-            }
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
+          <ActionDropdown
+            label="Actions"
+            items={[
+              {
+                label: "Export Excel",
+                icon: <Download className="w-4 h-4 text-[#00A36C]" />,
+                onClick: () =>
+                  exportRowsToExcel(
+                    INVENTORY_IMPORT_HEADERS.map((h) => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
+                    displayed,
+                    "inventory_export.xlsx",
+                    "Inventory",
+                  ),
+              },
+              ...(canManage
+                ? [
+                    {
+                      label: "Import Excel",
+                      icon: (
+                        <FileSpreadsheet className="w-4 h-4 text-[#024BAB]" />
+                      ),
+                      onClick: () => setImportModal(true),
+                    },
+                  ]
+                : []),
+            ]}
+          />
           {canManage && (
-            <>
-              <button
-                onClick={() => setImportModal(true)}
-                className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-              >
-                <FileSpreadsheet className="w-4 h-4" /> Import Excel
-              </button>
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-                className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add Item
-              </button>
-            </>
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+              }}
+              className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Item
+            </button>
           )}
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Package className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Items
-            </p>
-            <p className="text-2xl font-bold text-black">{total}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <Boxes className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Units Available
-            </p>
-            <p className="text-2xl font-bold text-black">{totalAvailable}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#EF4444]/10 border-2 border-[#EF4444] flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Low Stock Items
-            </p>
-            <p className="text-2xl font-bold text-[#EF4444]">{lowStockCount}</p>
-          </div>
-        </div>
-      </div>
+      <InventoryInsights items={items} />
+
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">

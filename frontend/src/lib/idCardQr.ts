@@ -21,7 +21,9 @@ export async function qrDataUrl(value: string): Promise<string> {
 }
 
 /** QR images for many values at once, keyed by value. */
-export async function buildQrMap(values: string[]): Promise<Record<string, string>> {
+export async function buildQrMap(
+  values: string[],
+): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   await Promise.all(
     [...new Set(values.filter(Boolean))].map(async (v) => {

@@ -7,7 +7,10 @@ export function NbTooltip({ active, payload, label }: any) {
     <div className="bg-white border-2 border-black px-3 py-2 text-xs">
       {label != null && <p className="font-bold text-black mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
-        <div key={`${p.dataKey ?? p.name}-${i}`} className="flex items-center gap-2">
+        <div
+          key={`${p.dataKey ?? p.name}-${i}`}
+          className="flex items-center gap-2"
+        >
           <span
             className="w-2 h-2 border border-black shrink-0"
             style={{ background: p.color || p.payload?.fill }}

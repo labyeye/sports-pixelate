@@ -55,7 +55,7 @@ const OWNER: UserRole[] = ["super_admin", "hr_manager"];
 const OWNER_STAFF: UserRole[] = ["super_admin", "hr_manager", "employee"];
 const ALL: UserRole[] = ["super_admin", "hr_manager", "employee", "parent"];
 
-const allGroups: NavGroup[] = [
+const baseGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
@@ -71,11 +71,11 @@ const allGroups: NavGroup[] = [
         href: "/parent-home",
         icon: LayoutDashboard,
         roles: ["parent"],
-      },
+      }
     ],
   },
   {
-    label: "Academy",
+    label: "Students",
     items: [
       {
         title: "Students",
@@ -83,6 +83,25 @@ const allGroups: NavGroup[] = [
         icon: GraduationCap,
         roles: OWNER_STAFF,
       },
+      { title: "Groups", href: "/groups", icon: Layers, roles: OWNER },
+      {
+        title: "Student Attendance",
+        href: "/student-attendance",
+        icon: Clock,
+        roles: OWNER_STAFF,
+      },
+      { title: "Coaching Plans", href: "/plans", icon: Gift, roles: OWNER },
+      {
+        title: "Timetable",
+        href: "/timetable",
+        icon: CalendarDays,
+        roles: ALL,
+      },
+    ],
+  },
+  {
+    label: "Employees",
+    items: [
       { title: "Staff", href: "/employees", icon: Users, roles: OWNER },
       {
         title: "Departments",
@@ -97,6 +116,92 @@ const allGroups: NavGroup[] = [
         roles: OWNER,
       },
       {
+        title: "Staff Attendance",
+        href: "/attendance",
+        icon: Clock,
+        roles: OWNER,
+      },
+      {
+        title: "Late Approvals",
+        href: "/late-approvals",
+        icon: AlertCircle,
+        roles: OWNER,
+      },
+      { title: "Leave", href: "/leave", icon: CalendarDays, roles: OWNER },
+      { title: "Holidays", href: "/holidays", icon: Gift, roles: OWNER },
+      {
+        title: "Tasks",
+        href: "/tasks",
+        icon: ListChecks,
+        roles: OWNER_STAFF,
+      },
+      {
+        title: "Exit Management",
+        href: "/exits",
+        icon: UserMinus,
+        roles: OWNER,
+      }
+    ],
+  },
+  {
+    label: "Inventory & POS",
+    items: [
+      {
+        title: "Inventory",
+        href: "/inventory",
+        icon: Package,
+        roles: OWNER_STAFF,
+      }
+    ],
+  },
+  {
+    label: "Booking",
+    items: [
+      { title: "Facilities", href: "/facilities", icon: MapPin, roles: OWNER },
+      {
+        title: "Bookings",
+        href: "/bookings",
+        icon: CalendarClock,
+        roles: OWNER_STAFF,
+      },
+      { title: "Events", href: "/events", icon: Trophy, roles: ALL }
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      {
+        title: "Subscriptions",
+        href: "/subscriptions",
+        icon: Wallet,
+        roles: OWNER,
+      },
+      { title: "Expenses", href: "/expenses", icon: Receipt, roles: OWNER },
+      {
+        title: "Expense Claims",
+        href: "/expense-claims",
+        icon: Receipt,
+        roles: OWNER_STAFF,
+      },
+      { title: "Payroll", href: "/payroll", icon: IndianRupee, roles: OWNER },
+      {
+        title: "Loans & Advances",
+        href: "/loans",
+        icon: Banknote,
+        roles: OWNER,
+      }
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      {
+        title: "Announcements",
+        href: "/announcements",
+        icon: Megaphone,
+        roles: ALL,
+      },
+      {
         title: "Letters",
         href: "/letters",
         icon: FileText,
@@ -107,46 +212,12 @@ const allGroups: NavGroup[] = [
         href: "/documents",
         icon: FolderOpen,
         roles: ["super_admin", "hr_manager", "employee"],
-      },
-      {
-        title: "Announcements",
-        href: "/announcements",
-        icon: Megaphone,
-        roles: ALL,
-      },
-      {
-        title: "Tasks",
-        href: "/tasks",
-        icon: ListChecks,
-        roles: OWNER_STAFF,
-      },
-      { title: "Events", href: "/events", icon: Trophy, roles: ALL },
-      {
-        title: "Exit Management",
-        href: "/exits",
-        icon: UserMinus,
-        roles: OWNER,
-      },
-      { title: "Trash", href: "/trash", icon: Trash2, roles: OWNER },
+      }
     ],
   },
   {
-    label: "Attendance",
+    label: "Devices & Setup",
     items: [
-      {
-        title: "Student Attendance",
-        href: "/student-attendance",
-        icon: Clock,
-        roles: OWNER_STAFF,
-      },
-      {
-        title: "Staff Attendance",
-        href: "/attendance",
-        icon: Clock,
-        roles: OWNER,
-      },
-      { title: "Leave", href: "/leave", icon: CalendarDays, roles: OWNER },
-      { title: "Holidays", href: "/holidays", icon: Gift, roles: OWNER },
       {
         title: "Attendance Settings",
         href: "/attendance-settings",
@@ -164,13 +235,7 @@ const allGroups: NavGroup[] = [
         href: "/biometric",
         icon: Fingerprint,
         roles: OWNER,
-      },
-      {
-        title: "Late Approvals",
-        href: "/late-approvals",
-        icon: AlertCircle,
-        roles: OWNER,
-      },
+      }
     ],
   },
   {
@@ -193,7 +258,7 @@ const allGroups: NavGroup[] = [
         href: "/my-loans",
         icon: Banknote,
         roles: ["employee"],
-      },
+      }
     ],
   },
   {
@@ -228,54 +293,7 @@ const allGroups: NavGroup[] = [
         href: "/parent-report",
         icon: FileText,
         roles: ["parent"],
-      },
-    ],
-  },
-  {
-    label: "Billing & Plans",
-    items: [
-      { title: "Groups", href: "/groups", icon: Layers, roles: OWNER },
-      { title: "Timetable", href: "/timetable", icon: CalendarDays, roles: ALL },
-      { title: "Skill Progress", href: "/progress", icon: GraduationCap, roles: ALL },
-      { title: "Coaching Plans", href: "/plans", icon: Gift, roles: OWNER },
-      {
-        title: "Subscriptions",
-        href: "/subscriptions",
-        icon: Wallet,
-        roles: OWNER,
-      },
-      { title: "Expenses", href: "/expenses", icon: Receipt, roles: OWNER },
-      {
-        title: "Expense Claims",
-        href: "/expense-claims",
-        icon: Receipt,
-        roles: OWNER_STAFF,
-      },
-      { title: "Payroll", href: "/payroll", icon: IndianRupee, roles: OWNER },
-      {
-        title: "Loans & Advances",
-        href: "/loans",
-        icon: Banknote,
-        roles: OWNER,
-      },
-    ],
-  },
-  {
-    label: "Facilities",
-    items: [
-      {
-        title: "Inventory",
-        href: "/inventory",
-        icon: Package,
-        roles: OWNER_STAFF,
-      },
-      { title: "Facilities", href: "/facilities", icon: MapPin, roles: OWNER },
-      {
-        title: "Bookings",
-        href: "/bookings",
-        icon: CalendarClock,
-        roles: OWNER_STAFF,
-      },
+      }
     ],
   },
   {
@@ -302,9 +320,43 @@ const allGroups: NavGroup[] = [
         icon: LifeBuoy,
         roles: ["super_admin", "hr_manager", "employee", "parent"],
       },
+      { title: "Trash", href: "/trash", icon: Trash2, roles: OWNER }
     ],
   },
 ];
+
+// Rarely-used pages are folded into one "Others" group so the main sidebar
+// stays short. Mobile mirrors this list (NestSports/src/navigation/navConfig.ts).
+const OTHERS_HREFS = [
+  "/holidays",
+  "/tasks",
+  "/late-approvals",
+  "/employee-credentials",
+  "/exits",
+  "/inventory",
+  "/letters",
+  "/documents",
+];
+
+const allGroups: NavGroup[] = (() => {
+  const others: NavItem[] = [];
+  const groups = baseGroups.map((g) => ({
+    ...g,
+    items: g.items.filter((item) => {
+      if (OTHERS_HREFS.includes(item.href)) {
+        others.push(item);
+        return false;
+      }
+      return true;
+    }),
+  }));
+  const at = groups.findIndex((g) => g.label === "My Workspace");
+  groups.splice(at < 0 ? groups.length : at, 0, {
+    label: "Others",
+    items: others,
+  });
+  return groups.filter((g) => g.items.length > 0);
+})();
 
 export const navItems: NavItem[] = allGroups.flatMap((g) => g.items);
 

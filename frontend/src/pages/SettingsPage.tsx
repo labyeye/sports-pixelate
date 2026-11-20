@@ -45,11 +45,13 @@ import {
   Clock,
   Palette,
   IdCard,
+  FileText,
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { ActionModal } from "@/components/ui/ActionModal";
 import { AccountSecurityPanel } from "@/components/security/AccountSecurityPanel";
 import { IdCardDesigner } from "@/components/idcard/IdCardDesigner";
+import { AdmissionFormDesigner } from "@/components/admission/AdmissionFormDesigner";
 import { PrivacyDataPanel } from "@/components/security/PrivacyDataPanel";
 import { FEATURES } from "@/config/features";
 import { setDisabledFeatures } from "@/hooks/useDisabledFeatures";
@@ -852,7 +854,11 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [waEstimate, setWaEstimate] = useState<any>(null);
   useEffect(() => {
-    if (credits?.metered) creditsAPI.estimate().then((r) => setWaEstimate(r.data)).catch(() => {});
+    if (credits?.metered)
+      creditsAPI
+        .estimate()
+        .then((r) => setWaEstimate(r.data))
+        .catch(() => {});
   }, [credits?.metered]);
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
@@ -886,6 +892,8 @@ export default function SettingsPage() {
     confirm: false,
   });
   const [pwSaving, setPwSaving] = useState(false);
+  const [testingGateway, setTestingGateway] = useState(false);
+  const [idCardKind, setIdCardKind] = useState<"staff" | "student">("staff");
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -1182,6 +1190,11 @@ export default function SettingsPage() {
         { id: "general", label: "General Info", icon: Building2 },
         { id: "bank", label: "Bank Details", icon: Landmark },
         { id: "id_card", label: "ID Card Designer", icon: IdCard },
+        {
+          id: "admission_form",
+          label: "Admission Form Designer",
+          icon: FileText,
+        },
       ],
     },
     {
@@ -1364,6 +1377,16 @@ export default function SettingsPage() {
                           target: { ...e.target, name: "companyPAN", value: v },
                         });
                       }}
+                    />
+                    <InputField
+                      label="Sibling discount (%)"
+                      icon={CreditCard}
+                      name="siblingDiscountPercent"
+                      type="number"
+                      value={String(settings?.siblingDiscountPercent ?? 0)}
+                      placeholder="0 = off"
+                      title="Percent off for the 2nd+ child of a family (shared parent phone/login), max 50"
+                      onChange={handleChange}
                     />
                   </div>
 
@@ -1605,10 +1628,9 @@ export default function SettingsPage() {
                       fastest) and fill in its keys below.
                     </p>
 
-                    <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="mb-4 grid grid-cols-3 gap-2">
                       {(
                         [
-                          { key: "razorpay", label: "Razorpay" },
                           { key: "cashfree", label: "Cashfree" },
                           { key: "phonepe", label: "PhonePe" },
                           { key: "paytm", label: "Paytm" },
@@ -1624,7 +1646,7 @@ export default function SettingsPage() {
                           }
                           className={cn(
                             "border-2 border-black px-3 py-2 text-xs font-bold uppercase",
-                            (settings?.paymentGateway || "razorpay") === g.key
+                            (settings?.paymentGateway || "cashfree") === g.key
                               ? "bg-[#024BAB] text-white"
                               : "bg-white text-black",
                           )}
@@ -1634,49 +1656,7 @@ export default function SettingsPage() {
                       ))}
                     </div>
 
-                    {(settings?.paymentGateway || "razorpay") ===
-                      "razorpay" && (
-                      <>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Create a free account at{" "}
-                          <a
-                            href="https://dashboard.razorpay.com/signup"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline font-medium"
-                          >
-                            dashboard.razorpay.com
-                          </a>{" "}
-                          (KYC takes a few minutes), then copy the Key ID and
-                          Key Secret from Settings → API Keys.
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <InputField
-                            label="Razorpay Key ID"
-                            icon={Hash}
-                            name="razorpayKeyId"
-                            value={settings?.razorpayKeyId || ""}
-                            placeholder="rzp_live_xxxxxxxxxxxx"
-                            onChange={handleChange}
-                          />
-                          <InputField
-                            label="Razorpay Key Secret"
-                            icon={CreditCard}
-                            type="password"
-                            name="razorpayKeySecret"
-                            value={settings?.razorpayKeySecret || ""}
-                            placeholder={
-                              settings?.razorpayKeyId
-                                ? "Connected — leave blank to keep unchanged"
-                                : "Paste your Key Secret"
-                            }
-                            onChange={handleChange}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {settings?.paymentGateway === "cashfree" && (
+                    {(settings?.paymentGateway || "cashfree") === "cashfree" && (
                       <>
                         <p className="text-xs text-muted-foreground mb-3">
                           Create a free account at{" "}
@@ -1713,6 +1693,36 @@ export default function SettingsPage() {
                             }
                             onChange={handleChange}
                           />
+                        </div>
+                        <div className="mt-3 flex items-center gap-3">
+                          <button
+                            type="button"
+                            disabled={testingGateway}
+                            onClick={async () => {
+                              setTestingGateway(true);
+                              try {
+                                await settingsAPI.update(settings);
+                                const r = await settingsAPI.testGateway();
+                                toast({ title: r.message || "Connected" });
+                              } catch (e: any) {
+                                toast({
+                                  title: "Could not connect",
+                                  description: e?.message,
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setTestingGateway(false);
+                              }
+                            }}
+                            className="border-2 border-black px-3 py-2 text-xs font-bold uppercase bg-white disabled:opacity-50"
+                          >
+                            {testingGateway ? "Checking…" : "Save & test connection"}
+                          </button>
+                          {settings?.gatewaySecretsSet?.cashfree && (
+                            <span className="text-xs font-bold text-green-700">
+                              Keys saved
+                            </span>
+                          )}
                         </div>
                       </>
                     )}
@@ -1878,8 +1888,8 @@ export default function SettingsPage() {
                       <p className="text-gray-600">
                         Every WhatsApp message costs {credits.ratePerMessage}{" "}
                         credit, automatic ones too (student check-in, fee
-                        reminders, leave, salary), including the copy each
-                        admin receives.
+                        reminders, leave, salary), including the copy each admin
+                        receives.
                       </p>
                       {waEstimate && waEstimate.punch.messagesPerDay > 0 && (
                         <p className="text-gray-600">
@@ -1927,7 +1937,9 @@ export default function SettingsPage() {
                         className="flex items-center justify-between gap-3 p-3 border-2 border-gray-200 bg-white"
                       >
                         <div>
-                          <p className="font-bold text-sm text-black">{label}</p>
+                          <p className="font-bold text-sm text-black">
+                            {label}
+                          </p>
                           <p className="text-xs text-gray-500">{desc}</p>
                         </div>
                         <select
@@ -2984,7 +2996,34 @@ export default function SettingsPage() {
 
             {activeTab === "id_card" && (
               <div className="p-4">
-                <IdCardDesigner />
+                <div className="flex gap-2 mb-4">
+                  {(
+                    [
+                      { key: "staff", label: "Staff ID cards" },
+                      { key: "student", label: "Student ID cards" },
+                    ] as const
+                  ).map((k) => (
+                    <button
+                      key={k.key}
+                      type="button"
+                      onClick={() => setIdCardKind(k.key)}
+                      className={cn(
+                        "border-2 border-black px-4 py-2 text-xs font-bold uppercase",
+                        idCardKind === k.key
+                          ? "bg-[#024BAB] text-white"
+                          : "bg-white text-black",
+                      )}
+                    >
+                      {k.label}
+                    </button>
+                  ))}
+                </div>
+                <IdCardDesigner key={idCardKind} kind={idCardKind} />
+              </div>
+            )}
+            {activeTab === "admission_form" && (
+              <div className="p-4">
+                <AdmissionFormDesigner />
               </div>
             )}
             {activeTab === "account_security" && (

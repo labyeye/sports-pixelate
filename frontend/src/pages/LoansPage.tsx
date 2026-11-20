@@ -8,12 +8,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { loanAPI, employeeAPI } from "@/services/api";
 import { useToast, notifyError } from "@/hooks/use-toast";
 import { cn, formatCurrency, getErrorMessage } from "@/lib/utils";
-import { StatCard } from "@/components/ui/StatCard";
 import {
   ImportExportModal,
   type ImportHeader,
 } from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
+import { ActionDropdown } from "@/components/ui/ActionDropdown";
 import {
   Banknote,
   Plus,
@@ -21,10 +21,8 @@ import {
   Trash2,
   X,
   IndianRupee,
-  TrendingDown,
   CheckCircle2,
   Check,
-  Clock,
   Download,
   FileSpreadsheet,
   User,
@@ -347,91 +345,50 @@ export default function LoansPage() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              exportRowsToExcel(
-                LOAN_IMPORT_HEADERS.map((h) => ({
-                  key: h.key,
-                  label: h.label,
-                })),
-                displayedLoans.map((l) => ({
-                  employeeId: l.employee?.employeeId || "",
-                  type: l.type,
-                  amount: l.amount,
-                  remainingBalance: l.remainingBalance,
-                  monthlyEmi: l.monthlyEmi,
-                  tenureMonths: l.tenureMonths,
-                  reason: l.reason,
-                  disbursedOn: l.disbursedOn?.slice(0, 10),
-                  status: l.status,
-                  remarks: l.remarks,
-                })),
-                "loans_export.xlsx",
-                "Loans",
-              )
-            }
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
-          <button
-            onClick={() => setImportModal(true)}
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50"
-          >
-            <FileSpreadsheet className="w-4 h-4" /> Import Excel
-          </button>
+          <ActionDropdown
+            label="Actions"
+            items={[
+              {
+                label: "Export Excel",
+                icon: <Download className="w-4 h-4 text-[#00A36C]" />,
+                onClick: () =>
+                  exportRowsToExcel(
+                    LOAN_IMPORT_HEADERS.map((h) => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
+                    displayedLoans.map((l) => ({
+                      employeeId: l.employee?.employeeId || "",
+                      type: l.type,
+                      amount: l.amount,
+                      remainingBalance: l.remainingBalance,
+                      monthlyEmi: l.monthlyEmi,
+                      tenureMonths: l.tenureMonths,
+                      reason: l.reason,
+                      disbursedOn: l.disbursedOn?.slice(0, 10),
+                      status: l.status,
+                      remarks: l.remarks,
+                    })),
+                    "loans_export.xlsx",
+                    "Loans",
+                  ),
+              },
+              {
+                label: "Import Excel",
+                icon: <FileSpreadsheet className="w-4 h-4 text-[#024BAB]" />,
+                onClick: () => setImportModal(true),
+              },
+            ]}
+          />
           <button
             onClick={openAdd}
-            className="border-2 bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold"
+            className="border-2 bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
           >
             <Plus className="w-4 h-4" /> Add Loan / Advance
           </button>
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-        {[
-          {
-            label: "Total Disbursed",
-            value: formatCurrency(totalDisbursed),
-            icon: Banknote,
-            color: "#024BAB",
-          },
-          {
-            label: "Outstanding",
-            value: formatCurrency(totalOutstanding),
-            icon: TrendingDown,
-            color: "#EF4444",
-          },
-          {
-            label: "Active",
-            value: String(activeCount),
-            icon: IndianRupee,
-            color: "#00C48C",
-          },
-          {
-            label: "Pending",
-            value: String(pendingCount),
-            icon: Clock,
-            color: "#FA731C",
-          },
-          {
-            label: "Cleared",
-            value: String(clearedCount),
-            icon: CheckCircle2,
-            color: "#6B7280",
-          },
-        ].map(({ label, value, icon, color }) => (
-          <StatCard
-            key={label}
-            label={label}
-            value={value}
-            icon={icon}
-            color={color}
-          />
-        ))}
-      </div>
 
       {/* Table */}
       {loading ? (

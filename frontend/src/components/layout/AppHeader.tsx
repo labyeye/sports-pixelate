@@ -47,7 +47,14 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
         seenCel.current.has(n._id) ? { ...n, read: true } : n,
       );
       setNotifs(list);
-      setUnreadCount(list.filter((n) => !n.read).length + Math.max(0, (res.unreadCount ?? 0) - (res.data ?? []).filter((n: NotifEntry) => !n.read).length));
+      setUnreadCount(
+        list.filter((n) => !n.read).length +
+          Math.max(
+            0,
+            (res.unreadCount ?? 0) -
+              (res.data ?? []).filter((n: NotifEntry) => !n.read).length,
+          ),
+      );
     } catch {}
     setLoading(false);
   }, []);
@@ -81,7 +88,9 @@ export function AppHeader({ title, onMenuOpen }: AppHeaderProps) {
   };
 
   const handleMarkAllRead = async () => {
-    notifs.forEach((n) => n._id.startsWith("cel-") && seenCel.current.add(n._id));
+    notifs.forEach(
+      (n) => n._id.startsWith("cel-") && seenCel.current.add(n._id),
+    );
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     try {

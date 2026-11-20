@@ -4,17 +4,25 @@ import { IdCardView } from "@/components/idcard/IdCardView";
 import { loadIdCardSetup } from "@/lib/idCardData";
 import { printIdCards } from "@/lib/printIdCards";
 import { buildQrMap } from "@/lib/idCardQr";
-import { qrValue, type IdCardTemplate, type IdCompany } from "@/lib/idCard";
+import {
+  qrValue,
+  type CardKind,
+  type IdCardTemplate,
+  type IdCompany,
+} from "@/lib/idCard";
 import { cn } from "@/lib/utils";
 
 /** "Print ID card(s)" for one or more employees, using the design saved in Settings → ID Card Designer. */
 export function PrintIdCardDialog({
   employees,
+  kind = "staff",
   onClose,
 }: {
   employees: any[];
+  kind?: CardKind;
   onClose: () => void;
 }) {
+  const noun = kind === "student" ? "student" : "employee";
   const [setup, setSetup] = useState<{
     template: IdCardTemplate;
     company: IdCompany;
@@ -27,7 +35,7 @@ export function PrintIdCardDialog({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    loadIdCardSetup()
+    loadIdCardSetup(kind)
       .then(async (s) => {
         setSetup(s);
         if (!s.template.backEnabled) setSides("front");
@@ -52,7 +60,10 @@ export function PrintIdCardDialog({
       layout,
     });
     setBusy(false);
-    if (!ok) setError("The print tab was blocked. Allow pop-ups for this site and try again.");
+    if (!ok)
+      setError(
+        "The print tab was blocked. Allow pop-ups for this site and try again.",
+      );
     else onClose();
   };
 
@@ -96,13 +107,14 @@ export function PrintIdCardDialog({
           {setup && (
             <>
               <p className="text-sm">
-                <b>{employees.length}</b> employee{employees.length > 1 ? "s" : ""}
+                <b>{employees.length}</b> {noun}
+                {employees.length > 1 ? "s" : ""}
                 {names ? `: ${names}${employees.length > 3 ? "…" : ""}` : ""}
               </p>
               {!setup.saved && (
                 <p className="text-xs text-muted-foreground border-2 border-black/20 p-2">
-                  No design saved yet, so the default one is used. Customise it in{" "}
-                  <b>Settings → ID Card Designer</b>.
+                  No design saved yet, so the default one is used. Customise it
+                  in <b>Settings → ID Card Designer</b>.
                 </p>
               )}
 
@@ -122,16 +134,28 @@ export function PrintIdCardDialog({
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider mb-1.5">Sides</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1.5">
+                  Sides
+                </p>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className={choice(sides === "front")} onClick={() => setSides("front")}>
+                  <button
+                    className={choice(sides === "front")}
+                    onClick={() => setSides("front")}
+                  >
                     Front only
                   </button>
                   <button
-                    className={cn(choice(sides === "both"), !setup.template.backEnabled && "opacity-40")}
+                    className={cn(
+                      choice(sides === "both"),
+                      !setup.template.backEnabled && "opacity-40",
+                    )}
                     disabled={!setup.template.backEnabled}
                     onClick={() => setSides("both")}
-                    title={setup.template.backEnabled ? "" : "The design has no back side"}
+                    title={
+                      setup.template.backEnabled
+                        ? ""
+                        : "The design has no back side"
+                    }
                   >
                     Front &amp; back
                   </button>
@@ -139,13 +163,23 @@ export function PrintIdCardDialog({
               </div>
 
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider mb-1.5">Layout</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1.5">
+                  Layout
+                </p>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className={choice(layout === "cards")} onClick={() => setLayout("cards")}>
+                  <button
+                    className={choice(layout === "cards")}
+                    onClick={() => setLayout("cards")}
+                  >
                     Card printer
-                    <span className="block text-[11px] font-normal opacity-80">One card per page</span>
+                    <span className="block text-[11px] font-normal opacity-80">
+                      One card per page
+                    </span>
                   </button>
-                  <button className={choice(layout === "sheet")} onClick={() => setLayout("sheet")}>
+                  <button
+                    className={choice(layout === "sheet")}
+                    onClick={() => setLayout("sheet")}
+                  >
                     A4 sheet
                     <span className="block text-[11px] font-normal opacity-80">
                       Several per page, with cut lines
@@ -163,10 +197,17 @@ export function PrintIdCardDialog({
             disabled={!setup || busy}
             className="flex-1 bg-[#024BAB] text-white border-2 border-black py-2.5 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+            {busy ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Printer className="w-4 h-4" />
+            )}
             Print
           </button>
-          <button onClick={onClose} className="flex-1 border-2 border-black py-2.5 text-sm font-bold bg-white">
+          <button
+            onClick={onClose}
+            className="flex-1 border-2 border-black py-2.5 text-sm font-bold bg-white"
+          >
             Cancel
           </button>
         </div>

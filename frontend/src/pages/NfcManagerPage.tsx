@@ -188,7 +188,7 @@ export default function NfcManagerPage() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <img src={nesthrlogo} alt="NestHR" className="h-16 w-auto" />
+            <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

@@ -57,7 +57,8 @@ export default function TrashPage() {
   };
 
   const purge = async (t: any) => {
-    if (!(await confirmDialog("Delete forever? This cannot be undone."))) return;
+    if (!(await confirmDialog("Delete forever? This cannot be undone.")))
+      return;
     try {
       await trashAPI.purge(t._id);
       setItems((p) => p.filter((x) => x._id !== t._id));

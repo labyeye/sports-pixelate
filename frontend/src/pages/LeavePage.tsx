@@ -1,4 +1,3 @@
-import { StatCard } from "@/components/ui/StatCard";
 import { useState, useEffect, useCallback } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -512,22 +511,6 @@ export default function LeavePage() {
       </div>
 
       {}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        {[
-          { label: "Pending", value: summary.pending, color: "#FA731C" },
-          { label: "Approved", value: summary.approved, color: "#00C48C" },
-          { label: "Rejected", value: summary.rejected, color: "#EF4444" },
-        ].map(({ label, value, color }) => (
-          <StatCard
-            key={label}
-            label={label}
-            value={value}
-            icon={CalendarDays}
-            color={color}
-          />
-        ))}
-      </div>
-
       {/* Search & Sort */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 flex-1 min-w-48">
@@ -570,14 +553,32 @@ export default function LeavePage() {
           rows={displayedLeaves}
           cols={[
             { header: "Emp Code", value: (l: any) => l.employee?.employeeId },
-            { header: "Employee", value: (l: any) => `${l.employee?.firstName || ""} ${l.employee?.lastName || ""}`.trim() },
-            { header: "Type", value: (l: any) => TYPE_LABELS[l.leaveType] ?? l.leaveType },
-            { header: "From", value: (l: any) => String(l.startDate).slice(0, 10) },
+            {
+              header: "Employee",
+              value: (l: any) =>
+                `${l.employee?.firstName || ""} ${l.employee?.lastName || ""}`.trim(),
+            },
+            {
+              header: "Type",
+              value: (l: any) => TYPE_LABELS[l.leaveType] ?? l.leaveType,
+            },
+            {
+              header: "From",
+              value: (l: any) => String(l.startDate).slice(0, 10),
+            },
             { header: "To", value: (l: any) => String(l.endDate).slice(0, 10) },
             { header: "Days", value: (l: any) => l.days },
             { header: "Reason", value: (l: any) => l.reason },
             { header: "Status", value: (l: any) => l.status },
-            { header: "Paid/Unpaid", value: (l: any) => (l.status === "approved" ? (l.deductSalary ? "Unpaid" : "Paid") : "") },
+            {
+              header: "Paid/Unpaid",
+              value: (l: any) =>
+                l.status === "approved"
+                  ? l.deductSalary
+                    ? "Unpaid"
+                    : "Paid"
+                  : "",
+            },
           ]}
         />
       </div>

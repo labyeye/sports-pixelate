@@ -748,8 +748,8 @@ export default function EmployeeDashboard() {
                             Happy Birthday to You! 🎂
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            The NestAcademy family wishes you a fantastic day ahead
-                            filled with joy and success!
+                            The NestAcademy family wishes you a fantastic day
+                            ahead filled with joy and success!
                           </p>
                         </div>
                       </div>

@@ -2,47 +2,42 @@
 // department chart and a subscriptions table with balance due. Currency and
 // dates use the lib/utils formatters.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link } from "react-router-dom";
 import { dashboardAPI, loanAPI } from "@/services/api";
 import { StatCard } from "@/components/ui/StatCard";
+import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import { FadeIn } from "@/components/motion/FadeIn";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn, formatCurrency, formatDateOrDash } from "@/lib/utils";
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   Legend,
-  Area,
+  LineChart,
+  Line,
+  LabelList,
   AreaChart,
+  Area,
 } from "recharts";
 import {
   Users,
   Clock,
   CalendarDays,
   IndianRupee,
-  Building2,
-  ArrowUpRight,
   TrendingUp,
   CheckCircle2,
+  ChevronDown,
   AlertTriangle,
   ChevronRight,
-  Bell,
-  UserCheck,
-  UserX,
-  Coffee,
   GraduationCap,
-  BookOpen,
   Wallet,
+  Bell,
 } from "lucide-react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { notifyError } from "@/hooks/use-toast";
@@ -50,6 +45,10 @@ import { notifyError } from "@/hooks/use-toast";
 function KpiCard({
   title,
   value,
+  /** When set, the card counts up to this number instead of rendering `value` as-is. */
+  numericValue,
+  prefix,
+  suffix,
   sub,
   icon: Icon,
   bg,
@@ -59,6 +58,9 @@ function KpiCard({
 }: {
   title: string;
   value: string | number;
+  numericValue?: number;
+  prefix?: string;
+  suffix?: string;
   sub?: string;
   icon: React.ElementType;
   bg: string;
@@ -67,10 +69,16 @@ function KpiCard({
   to?: string;
 }) {
   const color = bg.match(/#[0-9A-Fa-f]{6}/)?.[0] ?? "#024BAB";
+  const displayValue =
+    numericValue !== undefined ? (
+      <AnimatedNumber value={numericValue} prefix={prefix} suffix={suffix} />
+    ) : (
+      value
+    );
   const inner = (
     <StatCard
       label={title}
-      value={value}
+      value={displayValue}
       icon={Icon as LucideIcon}
       color={color}
       sub={sub}
@@ -109,10 +117,10 @@ const NbTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function DashboardPage() {
+  const [expandedRenewal, setExpandedRenewal] = useState<string | null>(null);
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [joinTab, setJoinTab] = useState<"staff" | "students">("staff");
   const [loans, setLoans] = useState<any[]>([]);
   useEffect(() => {
     loanAPI
@@ -120,7 +128,16 @@ export default function DashboardPage() {
       .then((r: any) => setLoans(r.data || []))
       .catch(() => {});
   }, []);
-
+  const [trendRange, setTrendRange] = useState<"1M" | "3M" | "6M" | "1Y">("6M");
+  const [trend, setTrend] = useState<any>(null);
+  useEffect(() => {
+    dashboardAPI
+      .getTrend(trendRange)
+      .then((r: any) => r?.success && setTrend(r.data))
+      .catch(() => {});
+  }, [trendRange]);
+  const [attTab, setAttTab] = useState<"students" | "staff">("students");
+  const [joinTab, setJoinTab] = useState<"staff" | "students">("staff");
   useEffect(() => {
     dashboardAPI
       .getStats()
@@ -147,8 +164,11 @@ export default function DashboardPage() {
     recentStudents = [],
     pendingLeaveList,
     deptHeadcounts,
-    attTrend = [],
     payTrend = [],
+    feeSummary = { collected: 0, remaining: 0, expected: 0, bySport: {} },
+    staffAttDaily = [],
+    studentAttDaily = [],
+    feeTrend = [],
     subscriptionAlerts = [],
     studentGrowth = [],
   } = data;
@@ -168,22 +188,130 @@ export default function DashboardPage() {
     "Dec",
   ];
 
-  const attChartData = attTrend.map((t: any) => ({
-    label: MONTH_LABELS[t.month - 1],
-    count: t.count,
-  }));
+  // Attendance only makes sense once students or staff have been added.
+  const hasStudents = (stats.totalStudents || 0) > 0;
+  const hasStaff = (stats.totalEmployees || 0) > 0;
+  const showAttendance = hasStudents || hasStaff;
+  const activeAttTab =
+    attTab === "students"
+      ? hasStudents
+        ? "students"
+        : "staff"
+      : hasStaff
+        ? "staff"
+        : "students";
+  const dailyChartData = (
+    activeAttTab === "students" ? studentAttDaily : staffAttDaily
+  )
+    .slice(-7)
+    .map((d: any) => ({
+      label: d.label,
+      Present: d.present || 0,
+      Late: d.late || 0,
+      "Half day": d.halfDay || 0,
+      "On leave": d.onLeave || 0,
+      Absent: d.absent || 0,
+    }));
+
+  const sportChartData = Object.entries(feeSummary.bySport || {})
+    .map(([name, v]: [string, any]) => ({
+      name: name || "Other",
+      Collected: Math.round((v.collected || 0) / 1000),
+      Pending: Math.round((v.remaining || 0) / 1000),
+    }))
+    .sort((a, b) => b.Collected + b.Pending - (a.Collected + a.Pending))
+    .slice(0, 6);
 
   const payChartData = payTrend.map((t: any) => ({
     label: MONTH_LABELS[t.month - 1],
     total: Math.round(t.total / 1000),
   }));
 
-  const todayDonut = [
-    { name: "Present", value: stats.todayPresent || 0, color: "#00C48C" },
-    { name: "Late", value: stats.todayLate || 0, color: "#FA731C" },
-    { name: "Absent", value: stats.todayAbsent || 0, color: "#EF4444" },
-    { name: "On Leave", value: stats.todayOnLeave || 0, color: "#024BAB" },
-  ].filter((d) => d.value > 0);
+  const feeChartData = feeTrend.map((t: any) => ({
+    label: MONTH_LABELS[t.month - 1],
+    paid: t.paidOnTime,
+    late: t.notOnTime,
+  }));
+
+  const collectionRate = feeSummary.expected
+    ? Math.round((feeSummary.collected / feeSummary.expected) * 100)
+    : 0;
+  const studentAttPct = stats.totalStudents
+    ? Math.round(
+        ((stats.studentsPresentToday || 0) / stats.totalStudents) * 100,
+      )
+    : 0;
+  const lastFeeMonth = [...feeTrend]
+    .reverse()
+    .find((t: any) => t.paidOnTime + t.notOnTime > 0);
+  const onTimePct = lastFeeMonth
+    ? Math.round(
+        (lastFeeMonth.paidOnTime /
+          (lastFeeMonth.paidOnTime + lastFeeMonth.notOnTime)) *
+          100,
+      )
+    : null;
+  const topSport = [...sportChartData].sort(
+    (a, b) => b.Collected - a.Collected,
+  )[0];
+  const insights = [
+    {
+      icon: Wallet,
+      color: collectionRate >= 70 ? "#00C48C" : "#FA731C",
+      msg: `${collectionRate}% of this month's fees collected (${formatCurrency(feeSummary.collected)} of ${formatCurrency(feeSummary.expected)})`,
+      time: "This month",
+    },
+    ...(hasStudents
+      ? [
+          {
+            icon: GraduationCap,
+            color: studentAttPct >= 75 ? "#00C48C" : "#EF4444",
+            msg: `${stats.studentsPresentToday || 0} of ${stats.totalStudents} students present today (${studentAttPct}%)`,
+            time: "Today",
+          },
+        ]
+      : []),
+    ...(onTimePct !== null
+      ? [
+          {
+            icon: CheckCircle2,
+            color: onTimePct >= 70 ? "#00C48C" : "#EF4444",
+            msg: `${onTimePct}% of ${MONTH_LABELS[lastFeeMonth.month - 1]} fees were paid on time`,
+            time: "Last due month",
+          },
+        ]
+      : []),
+    ...(topSport && topSport.Collected > 0
+      ? [
+          {
+            icon: TrendingUp,
+            color: "#024BAB",
+            msg: `${topSport.name} brings in the most: ₹${topSport.Collected}K collected`,
+            time: "This month",
+          },
+        ]
+      : []),
+    ...(stats.endingSoon > 0
+      ? [
+          {
+            icon: AlertTriangle,
+            color: "#FA731C",
+            msg: `${stats.endingSoon} subscription${stats.endingSoon > 1 ? "s" : ""} ending soon or overdue`,
+            time: "Next 7 days",
+          },
+        ]
+      : []),
+    ...(stats.newStudents > 0
+      ? [
+          {
+            icon: Users,
+            color: "#A855F7",
+            msg: `${stats.newStudents} new student${stats.newStudents > 1 ? "s" : ""} joined this month`,
+            time: "This month",
+          },
+        ]
+      : []),
+  ];
 
   const sysNotifications = [
     ...(stats.pendingLeaves > 0
@@ -231,226 +359,208 @@ export default function DashboardPage() {
             {greeting}, {user?.name?.split(" ")[0]} 👋
           </h2>
           <p className="text-sm font-medium text-muted-foreground mt-0.5">
-            Here's your HR overview for today
+            Here's how your academy is doing today
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/employees">
+          <Link to="/students">
             <button className="border-2 bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5">
-              <Users className="w-4 h-4" /> Employees
+              <GraduationCap className="w-4 h-4" /> Students
             </button>
           </Link>
-          <Link to="/leave">
+          <Link to="/subscriptions">
             <button className="border-2 bg-[#FA731C] text-white px-4 py-2 text-sm flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4" /> Leave Requests
+              <Wallet className="w-4 h-4" /> Fees
             </button>
           </Link>
         </div>
       </div>
 
       {/* Alerts */}
-      {stats.pendingLeaves > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6 p-3 border-2 border-[#FA731C] bg-[#FA731C]/5">
+      {(stats.endingSoon > 0 ||
+        feeSummary.remaining > 0 ||
+        stats.pendingLeaves > 0) && (
+        <div className="flex flex-wrap items-center gap-2 mb-6 p-3 border-2 border-[#FA731C] bg-[#FA731C]/5">
           <span className="text-xs font-bold text-[#FA731C] uppercase tracking-wider flex items-center gap-1">
             <AlertTriangle className="w-3.5 h-3.5" /> Action needed
           </span>
-          <Link to="/leave">
-            <span className="border-2 p-1 flex items-center gap-1 text-[11px]">
-              <CalendarDays className="w-3 h-3" /> {stats.pendingLeaves} leave
-              requests pending
-            </span>
-          </Link>
+          {feeSummary.remaining > 0 && (
+            <Link to="/subscriptions">
+              <span className="border-2 p-1 flex items-center gap-1 text-[11px]">
+                <Wallet className="w-3 h-3" />{" "}
+                {formatCurrency(feeSummary.remaining)} fees pending
+              </span>
+            </Link>
+          )}
+          {stats.endingSoon > 0 && (
+            <Link to="/subscriptions">
+              <span className="border-2 p-1 flex items-center gap-1 text-[11px]">
+                <Clock className="w-3 h-3" /> {stats.endingSoon} renewals due
+              </span>
+            </Link>
+          )}
+          {stats.pendingLeaves > 0 && (
+            <Link to="/leave">
+              <span className="border-2 p-1 flex items-center gap-1 text-[11px]">
+                <CalendarDays className="w-3 h-3" /> {stats.pendingLeaves} leave
+                requests
+              </span>
+            </Link>
+          )}
         </div>
       )}
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
-        <KpiCard
-          title="Total Employees"
-          value={stats.totalEmployees}
-          sub={`${stats.activeEmployees} active`}
-          icon={Users}
-          bg="bg-[#024BAB]"
-          to="/employees"
-        />
-        <KpiCard
-          title="Today's Attendance"
-          value={`${stats.attendanceRate}%`}
-          sub={`${stats.todayPresent} present`}
-          icon={Clock}
-          bg="bg-[#FA731C]"
-          to="/attendance"
-        />
-        <KpiCard
-          title="Pending Leaves"
-          value={stats.pendingLeaves}
-          sub="Awaiting approval"
-          icon={CalendarDays}
-          bg="bg-[#024BAB]"
-          to="/leave"
-        />
-        <KpiCard
-          title="New Hires"
-          value={stats.newHires}
-          sub="This month"
-          icon={TrendingUp}
-          bg="bg-[#A3E635]"
-          iconColor="text-black"
-          to="/employees"
-          trend="up"
-        />
-        <KpiCard
-          title="Monthly Payroll"
-          value={formatCurrency(stats.monthlyPayroll)}
-          sub="Paid this month"
-          icon={IndianRupee}
-          bg="bg-[#FA731C]"
-          to="/payroll"
-        />
-        <KpiCard
-          title="Departments"
-          value={stats.departments}
-          sub="Active teams"
-          icon={Building2}
-          bg="bg-[#00C48C]"
-          to="/departments"
-        />
-        <KpiCard
-          title="Attendance Rate"
-          value={`${stats.attendanceRate}%`}
-          sub="Team health"
-          icon={CheckCircle2}
-          bg="bg-[#024BAB]"
-          to="/attendance"
-        />
-        <KpiCard
-          title="Students"
-          value={stats.totalStudents}
-          sub="Active enrollments"
-          icon={GraduationCap}
-          bg="bg-[#A855F7]"
-          to="/students"
-        />
-        <KpiCard
-          title="Bookings"
-          value={stats.totalBookings}
-          sub={`${stats.todayBookings} today`}
-          icon={BookOpen}
-          bg="bg-[#FA731C]"
-          to="/bookings"
-        />
-        <KpiCard
-          title="Subscription Income"
-          value={formatCurrency(stats.subscriptionIncome)}
-          sub="Collected this month"
-          icon={Wallet}
-          bg="bg-[#00C48C]"
-          to="/subscriptions"
-        />
+      {/* KPI cards: only what matters at a glance */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {[
+          {
+            title: "Students",
+            numericValue: stats.totalStudents,
+            sub: `${stats.activeSubscriptions || 0} active subscriptions`,
+            icon: GraduationCap,
+            bg: "bg-[#A855F7]",
+            to: "/students",
+          },
+          {
+            title: "Present Today",
+            numericValue: stats.studentsPresentToday || 0,
+            suffix: ` / ${stats.totalStudents}`,
+            sub: `${studentAttPct}% student attendance`,
+            icon: Clock,
+            bg: "bg-[#FA731C]",
+            to: "/student-attendance",
+          },
+          {
+            title: "Collected",
+            value: formatCurrency(feeSummary.collected),
+            sub: `${collectionRate}% of expected`,
+            icon: Wallet,
+            bg: "bg-[#00C48C]",
+            to: "/subscriptions",
+          },
+          {
+            title: "Fees Pending",
+            value: formatCurrency(feeSummary.remaining),
+            sub: `${stats.endingSoon || 0} renewals due`,
+            icon: IndianRupee,
+            bg: "bg-[#EF4444]",
+            to: "/subscriptions",
+          },
+        ].map((card, i) => (
+          <FadeIn key={card.title} delay={i * 0.05}>
+            <KpiCard value="" {...card} />
+          </FadeIn>
+        ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        {/* Today's Attendance Donut */}
-        <div className="border-2 bg-white p-5">
-          <h3 className="font-display font-bold text-base text-black mb-1">
-            Today's Attendance
-          </h3>
-          <p className="text-xs text-muted-foreground mb-3">Live breakdown</p>
-          {todayDonut.length > 0 ? (
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width={110} height={110}>
-                <PieChart>
-                  <Pie
-                    data={todayDonut}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={32}
-                    outerRadius={50}
-                    paddingAngle={3}
-                    dataKey="value"
-                    stroke="#0A0A0A"
-                    strokeWidth={2}
-                  >
-                    {todayDonut.map((d, i) => (
-                      <Cell key={i} fill={d.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-1.5 flex-1">
-                {[
-                  {
-                    label: "Present",
-                    value: stats.todayPresent || 0,
-                    icon: UserCheck,
-                    color: "#00C48C",
-                  },
-                  {
-                    label: "Late",
-                    value: stats.todayLate || 0,
-                    icon: Clock,
-                    color: "#FA731C",
-                  },
-                  {
-                    label: "Absent",
-                    value: stats.todayAbsent || 0,
-                    icon: UserX,
-                    color: "#EF4444",
-                  },
-                  {
-                    label: "On Leave",
-                    value: stats.todayOnLeave || 0,
-                    icon: Coffee,
-                    color: "#024BAB",
-                  },
-                ].map(({ label, value, icon: Icon, color }) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="w-2 h-2 border border-black"
-                        style={{ background: color }}
-                      />
-                      <span className="text-xs font-bold text-black">
-                        {label}
-                      </span>
-                    </div>
-                    <span className="text-xs font-bold text-black">
-                      {value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-28 text-muted-foreground">
-              <Clock className="w-8 h-8 mb-2 opacity-30" />
-              <p className="text-xs font-bold">No attendance data today</p>
-            </div>
-          )}
+      {/* Income vs expense, one curved line each */}
+      <div className="border-2 bg-white p-5 mb-4">
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+          <div>
+            <h3 className="font-display font-bold text-base text-black">
+              Income vs Expense
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              {formatCurrency(trend?.totals?.income || 0)} in ·{" "}
+              {formatCurrency(trend?.totals?.expense || 0)} out, last{" "}
+              {trendRange}
+            </p>
+          </div>
+          <div className="flex border-2 border-black no-nb">
+            {(["1M", "3M", "6M", "1Y"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setTrendRange(r)}
+                className={cn(
+                  "px-2.5 py-0.5 text-[11px] font-bold",
+                  trendRange === r
+                    ? "bg-black text-white"
+                    : "bg-white text-black",
+                )}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
         </div>
+        {trend?.points?.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart
+              data={trend.points}
+              margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#E5E7EB"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fontWeight: 700 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                tickLine={false}
+                axisLine={false}
+                width={44}
+                tickFormatter={(n: number) =>
+                  n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`
+                }
+              />
+              <Tooltip content={<NbTooltip />} />
+              <Legend
+                iconSize={8}
+                wrapperStyle={{ fontSize: 11, fontWeight: 700 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="income"
+                name="Income"
+                stroke="#00C48C"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 5, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                isAnimationActive
+                animationDuration={600}
+                animationEasing="ease-in-out"
+              />
+              <Line
+                type="monotone"
+                dataKey="expense"
+                name="Expense"
+                stroke="#EF4444"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 5, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                isAnimationActive
+                animationDuration={600}
+                animationEasing="ease-in-out"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-28 text-muted-foreground text-xs font-bold">
+            No data for this period
+          </div>
+        )}
+      </div>
 
-        {/* 6-month Attendance Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {/* Fees trend: instalments paid on time vs late, last 6 months */}
         <div className="border-2 bg-white p-5">
           <h3 className="font-display font-bold text-base text-black mb-1">
-            Attendance Trend
+            Fees Trend
           </h3>
           <p className="text-xs text-muted-foreground mb-3">
-            Present days — last 6 months
+            Paid on time vs late — last 6 months
           </p>
-          {attChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={120}>
-              <AreaChart
-                data={attChartData}
-                margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+          {feeChartData.some((d: any) => d.paid || d.late) ? (
+            <ResponsiveContainer width="100%" height={190}>
+              <LineChart
+                data={feeChartData}
+                margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
               >
-                <defs>
-                  <linearGradient id="attGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#024BAB" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#024BAB" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="#E5E7EB"
@@ -463,32 +573,175 @@ export default function DashboardPage() {
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
                   tickLine={false}
                   axisLine={false}
-                  width={24}
+                  width={32}
+                  allowDecimals={false}
+                  domain={[
+                    0,
+                    (max: number) => Math.max(4, Math.ceil(max * 1.15)),
+                  ]}
                 />
-                <Tooltip
-                  content={<NbTooltip />}
-                  cursor={{ fill: "#024BAB11" }}
+                <Tooltip content={<NbTooltip />} />
+                <Legend
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 11, fontWeight: 700 }}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  name="Present"
-                  stroke="#024BAB"
-                  strokeWidth={2}
-                  fill="url(#attGrad)"
-                  dot={{ fill: "#024BAB", strokeWidth: 2, r: 3 }}
-                />
-              </AreaChart>
+                {[
+                  { key: "paid", name: "On time", color: "#00C48C", begin: 0 },
+                  { key: "late", name: "Late", color: "#EF4444", begin: 150 },
+                ].map(({ key, name, color, begin }) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    name={name}
+                    stroke={color}
+                    strokeWidth={3}
+                    dot={{
+                      r: 4,
+                      fill: color,
+                      stroke: "#0A0A0A",
+                      strokeWidth: 1.5,
+                    }}
+                    activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                    animationDuration={900}
+                  >
+                    <LabelList
+                      dataKey={key}
+                      position="top"
+                      offset={8}
+                      style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                    />
+                  </Line>
+                ))}
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-28 text-muted-foreground text-xs font-bold">
-              No trend data yet
+              No fee data yet
             </div>
           )}
         </div>
+
+        {showAttendance && (
+          <>
+            {/* Daily attendance, last 7 days (students / staff) */}
+            <div className="border-2 bg-white p-5">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h3 className="font-display font-bold text-base text-black">
+                  Daily Attendance
+                </h3>
+                <div
+                  className={cn(
+                    "border-2 border-black",
+                    hasStudents && hasStaff ? "flex" : "hidden",
+                  )}
+                >
+                  {(["students", "staff"] as const)
+                    .filter((k) => (k === "students" ? hasStudents : hasStaff))
+                    .map((k) => (
+                      <button
+                        key={k}
+                        onClick={() => setAttTab(k)}
+                        className={cn(
+                          "px-2 py-0.5 text-[10px] font-bold capitalize",
+                          activeAttTab === k
+                            ? "bg-black text-white"
+                            : "bg-white text-black",
+                        )}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Present, late, half day, leave &amp; absent — last 7 days
+              </p>
+              {dailyChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={190}>
+                  <LineChart
+                    key={activeAttTab}
+                    data={dailyChartData}
+                    margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#E5E7EB"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 10, fontWeight: 700 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={32}
+                      allowDecimals={false}
+                      domain={[
+                        0,
+                        (max: number) => Math.max(4, Math.ceil(max * 1.15)),
+                      ]}
+                    />
+                    <Tooltip content={<NbTooltip />} />
+                    <Legend
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 11, fontWeight: 700 }}
+                    />
+                    {[
+                      { key: "Absent", color: "#EF4444", begin: 300 },
+                      { key: "Late", color: "#CA8A04", begin: 150 },
+                      { key: "Half day", color: "#F59E0B", begin: 200 },
+                      { key: "On leave", color: "#3B82F6", begin: 250 },
+                      { key: "Present", color: "#00C48C", begin: 0 },
+                    ].map(({ key, color, begin }) => (
+                      <Line
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        stroke={color}
+                        strokeWidth={3}
+                        dot={{
+                          r: 4,
+                          fill: color,
+                          stroke: "#0A0A0A",
+                          strokeWidth: 1.5,
+                        }}
+                        activeDot={{
+                          r: 6,
+                          stroke: "#0A0A0A",
+                          strokeWidth: 1.5,
+                        }}
+                        animationDuration={900}
+                      >
+                        <LabelList
+                          dataKey={key}
+                          position="top"
+                          offset={8}
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            fill: "#0A0A0A",
+                          }}
+                        />
+                      </Line>
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-28 text-muted-foreground text-xs font-bold">
+                  No attendance data yet
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* 6-month Payroll Trend */}
         <div className="border-2 bg-white p-5">
@@ -560,7 +813,10 @@ export default function DashboardPage() {
         </p>
         {studentGrowth.length > 0 ? (
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={studentGrowth} barCategoryGap="30%">
+            <LineChart
+              data={studentGrowth}
+              margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+            >
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="#E5E7EB"
@@ -574,28 +830,65 @@ export default function DashboardPage() {
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
                 tickLine={false}
                 axisLine={false}
-                width={28}
+                width={32}
+                domain={[
+                  0,
+                  (max: number) => Math.max(4, Math.ceil(max * 1.15)),
+                ]}
               />
-              <Tooltip content={<NbTooltip />} cursor={{ fill: "#024BAB11" }} />
-              <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700 }} />
-              <Bar
+              <Tooltip content={<NbTooltip />} />
+              <Legend
+                iconSize={8}
+                wrapperStyle={{ fontSize: 11, fontWeight: 700 }}
+              />
+              <Line
+                type="monotone"
                 dataKey="newStudents"
                 name="New students"
-                fill="#A855F7"
-                stroke="#0A0A0A"
-                strokeWidth={2}
-              />
-              <Bar
+                stroke="#A855F7"
+                strokeWidth={3}
+                dot={{
+                  r: 4,
+                  fill: "#A855F7",
+                  stroke: "#0A0A0A",
+                  strokeWidth: 1.5,
+                }}
+                activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                animationDuration={900}
+              >
+                <LabelList
+                  dataKey="newStudents"
+                  position="top"
+                  offset={8}
+                  style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                />
+              </Line>
+              <Line
+                type="monotone"
                 dataKey="repeatStudents"
                 name="Repeat students"
-                fill="#00C48C"
-                stroke="#0A0A0A"
-                strokeWidth={2}
-              />
-            </BarChart>
+                stroke="#00C48C"
+                strokeWidth={3}
+                dot={{
+                  r: 4,
+                  fill: "#00C48C",
+                  stroke: "#0A0A0A",
+                  strokeWidth: 1.5,
+                }}
+                activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                animationDuration={900}
+              >
+                <LabelList
+                  dataKey="repeatStudents"
+                  position="top"
+                  offset={8}
+                  style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                />
+              </Line>
+            </LineChart>
           </ResponsiveContainer>
         ) : (
           <p className="text-sm text-muted-foreground">No data yet</p>
@@ -619,8 +912,17 @@ export default function DashboardPage() {
           </p>
           {(() => {
             const rows = loans
-              .filter((l) => l.status === "active" || l.status === "cleared" || l.status === "paused")
-              .sort((a, b) => new Date(b.disbursedOn ?? 0).getTime() - new Date(a.disbursedOn ?? 0).getTime())
+              .filter(
+                (l) =>
+                  l.status === "active" ||
+                  l.status === "cleared" ||
+                  l.status === "paused",
+              )
+              .sort(
+                (a, b) =>
+                  new Date(b.disbursedOn ?? 0).getTime() -
+                  new Date(a.disbursedOn ?? 0).getTime(),
+              )
               .slice(0, 6);
             if (!rows.length)
               return (
@@ -631,21 +933,40 @@ export default function DashboardPage() {
             return (
               <div className="divide-y divide-black/10">
                 {rows.map((l) => (
-                  <div key={l._id} className="flex items-center justify-between py-2.5 text-xs">
+                  <div
+                    key={l._id}
+                    className="flex items-center justify-between py-2.5 text-xs"
+                  >
                     <div>
                       <p className="font-bold text-black">
                         {l.employee?.firstName} {l.employee?.lastName}{" "}
-                        <span className="font-normal text-gray-500">· {l.type}</span>
+                        <span className="font-normal text-gray-500">
+                          · {l.type}
+                        </span>
                       </p>
                       <p className="text-gray-500">
-                        {l.disbursedOn ? new Date(l.disbursedOn).toLocaleDateString("en-IN") : "—"}
-                        {l.monthlyEmi > 0 ? ` · EMI ${formatCurrency(l.monthlyEmi)}` : ""}
+                        {l.disbursedOn
+                          ? new Date(l.disbursedOn).toLocaleDateString("en-IN")
+                          : "—"}
+                        {l.monthlyEmi > 0
+                          ? ` · EMI ${formatCurrency(l.monthlyEmi)}`
+                          : ""}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-black">{formatCurrency(l.amount)}</p>
-                      <p className={l.remainingBalance > 0 ? "font-bold text-red-600" : "font-bold text-green-600"}>
-                        {l.remainingBalance > 0 ? `${formatCurrency(l.remainingBalance)} left` : "Cleared"}
+                      <p className="font-bold text-black">
+                        {formatCurrency(l.amount)}
+                      </p>
+                      <p
+                        className={
+                          l.remainingBalance > 0
+                            ? "font-bold text-red-600"
+                            : "font-bold text-green-600"
+                        }
+                      >
+                        {l.remainingBalance > 0
+                          ? `${formatCurrency(l.remainingBalance)} left`
+                          : "Cleared"}
                       </p>
                     </div>
                   </div>
@@ -654,7 +975,6 @@ export default function DashboardPage() {
             );
           })()}
         </div>
-
       </div>
 
       {/* Dept chart + Notifications row */}
@@ -670,7 +990,10 @@ export default function DashboardPage() {
           {deptHeadcounts?.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={deptHeadcounts} barCategoryGap="35%">
+                <LineChart
+                  data={deptHeadcounts}
+                  margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+                >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="#E5E7EB"
@@ -683,29 +1006,40 @@ export default function DashboardPage() {
                     axisLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 12 }}
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
                     tickLine={false}
                     axisLine={false}
-                    width={24}
+                    width={32}
+                    domain={[
+                      0,
+                      (max: number) => Math.max(4, Math.ceil(max * 1.15)),
+                    ]}
                   />
-                  <Tooltip
-                    content={<NbTooltip />}
-                    cursor={{ fill: "#024BAB11" }}
-                  />
-                  <Bar
+                  <Tooltip content={<NbTooltip />} />
+                  <Line
+                    type="monotone"
                     dataKey="count"
                     name="Employees"
-                    stroke="#0A0A0A"
-                    strokeWidth={2}
+                    stroke="#024BAB"
+                    strokeWidth={3}
+                    dot={{
+                      r: 4,
+                      fill: "#024BAB",
+                      stroke: "#0A0A0A",
+                      strokeWidth: 1.5,
+                    }}
+                    activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                    animationDuration={900}
                   >
-                    {deptHeadcounts.map((_: any, i: number) => (
-                      <Cell
-                        key={i}
-                        fill={DEPT_COLORS[i % DEPT_COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
+                    <LabelList
+                      dataKey="count"
+                      position="top"
+                      offset={8}
+                      style={{ fontSize: 10, fontWeight: 700, fill: "#0A0A0A" }}
+                    />
+                  </Line>
+                </LineChart>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                 {deptHeadcounts.map((d: any, i: number) => (
@@ -797,26 +1131,16 @@ export default function DashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-black text-left">
-                  {[
-                    "Student",
-                    "Sport / Batch",
-                    "Plan",
-                    "Period",
-                    "Days",
-                    "Amount",
-                    "Paid",
-                    "Balance",
-                    "Payment",
-                    "Guardian",
-                    "Status",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="py-2 pr-4 text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  {["Student", "Plan", "Days", "Balance", "Status", ""].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="py-2 pr-4 text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -832,134 +1156,180 @@ export default function DashboardPage() {
                     (sub.amount || 0) - (sub.amountPaid || 0),
                   );
                   const guardian = sub.student?.guardians?.[0];
+                  const open = expandedRenewal === sub._id;
                   return (
-                    <tr
-                      key={sub._id}
-                      className="border-b border-black/10 last:border-0 align-top"
-                    >
-                      <td className="py-2.5 pr-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {sub.student?.avatar ? (
-                            <img
-                              src={sub.student.avatar}
-                              alt=""
-                              className="w-8 h-8 border-2 border-black object-cover rounded-full shrink-0"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-[#024BAB] border-2 border-black rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">
-                              {sub.student?.firstName?.[0]?.toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-black">
-                              {sub.student?.firstName} {sub.student?.lastName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {sub.student?.studentId}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap">
-                        <p className="font-medium text-black">
-                          {sub.student?.sport || "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {sub.student?.batch || "No batch"}
-                        </p>
-                      </td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap">
-                        <p className="font-medium text-black">{sub.planName}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {sub.billingCycle || "—"}
-                        </p>
-                      </td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap text-xs">
-                        <p>{formatDateOrDash(sub.startDate)}</p>
-                        <p className="font-bold text-black">
-                          → {formatDateOrDash(sub.renewalDate)}
-                        </p>
-                      </td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap">
-                        <span
-                          className={cn(
-                            "font-bold",
-                            isPastDue ? "text-[#EF4444]" : "text-[#FA731C]",
-                          )}
-                        >
-                          {isPastDue
-                            ? `${Math.abs(days)}d overdue`
-                            : days === 0
-                              ? "Today"
-                              : `${days}d left`}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-4 font-bold whitespace-nowrap">
-                        {formatCurrency(sub.amount || 0)}
-                      </td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap text-[#047857] font-medium">
-                        {formatCurrency(sub.amountPaid || 0)}
-                      </td>
-                      <td
-                        className={cn(
-                          "py-2.5 pr-4 whitespace-nowrap font-bold",
-                          balance > 0
-                            ? "text-[#EF4444]"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {formatCurrency(balance)}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase whitespace-nowrap",
-                            sub.paymentStatus === "completed"
-                              ? "bg-[#00C48C] text-black"
-                              : "bg-[#FFD60A] text-black",
-                          )}
-                        >
-                          {sub.paymentStatus === "completed"
-                            ? "Paid"
-                            : sub.paymentStatus || "Pending"}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-4 whitespace-nowrap text-xs">
-                        {guardian ? (
-                          <>
-                            <p className="font-medium text-black">
-                              {guardian.name}
-                            </p>
-                            {guardian.phone ? (
-                              <a
-                                href={`tel:${guardian.phone}`}
-                                className="text-[#024BAB] font-bold hover:underline"
-                              >
-                                {guardian.phone}
-                              </a>
+                    <Fragment key={sub._id}>
+                      <tr className="border-b border-black/10 last:border-0 align-top">
+                        <td className="py-2.5 pr-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {sub.student?.avatar ? (
+                              <img
+                                src={sub.student.avatar}
+                                alt=""
+                                className="w-8 h-8 border-2 border-black object-cover rounded-full shrink-0"
+                              />
                             ) : (
-                              <span className="text-muted-foreground">
-                                No phone
-                              </span>
+                              <div className="w-8 h-8 bg-[#024BAB] border-2 border-black rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">
+                                {sub.student?.firstName?.[0]?.toUpperCase()}
+                              </div>
                             )}
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <span
+                            <div>
+                              <p className="font-bold text-black">
+                                {sub.student?.firstName} {sub.student?.lastName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {sub.student?.studentId}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-4 whitespace-nowrap">
+                          <p className="font-medium text-black">
+                            {sub.planName}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {sub.billingCycle || "—"}
+                          </p>
+                        </td>
+                        <td className="py-2.5 pr-4 whitespace-nowrap">
+                          <span
+                            className={cn(
+                              "font-bold",
+                              isPastDue ? "text-[#EF4444]" : "text-[#FA731C]",
+                            )}
+                          >
+                            {isPastDue
+                              ? `${Math.abs(days)}d overdue`
+                              : days === 0
+                                ? "Today"
+                                : `${days}d left`}
+                          </span>
+                        </td>
+                        <td
                           className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase whitespace-nowrap",
-                            isPastDue
-                              ? "bg-[#EF4444] text-white"
-                              : "bg-[#FA731C] text-white",
+                            "py-2.5 pr-4 whitespace-nowrap font-bold",
+                            balance > 0
+                              ? "text-[#EF4444]"
+                              : "text-muted-foreground",
                           )}
                         >
-                          {isPastDue ? "Ended" : "Ending Soon"}
-                        </span>
-                      </td>
-                    </tr>
+                          {formatCurrency(balance)}
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase whitespace-nowrap",
+                              isPastDue
+                                ? "bg-[#EF4444] text-white"
+                                : "bg-[#FA731C] text-white",
+                            )}
+                          >
+                            {isPastDue ? "Ended" : "Ending Soon"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 w-8">
+                          <button
+                            onClick={() =>
+                              setExpandedRenewal(open ? null : sub._id)
+                            }
+                            title="Details"
+                            className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "w-4 h-4 transition-transform",
+                                open && "rotate-180",
+                              )}
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr className="border-b border-black/10 bg-[#F8FAFF] animate-in fade-in slide-in-from-top-1 duration-200">
+                          <td colSpan={6} className="px-4 py-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Sport / Batch
+                                </p>
+                                <p className="font-medium text-black">
+                                  {sub.student?.sport || "—"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {sub.student?.batch || "No batch"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Period
+                                </p>
+                                <p>{formatDateOrDash(sub.startDate)}</p>
+                                <p className="font-bold text-black">
+                                  → {formatDateOrDash(sub.renewalDate)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Amount
+                                </p>
+                                {formatCurrency(sub.amount || 0)}
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Paid
+                                </p>
+                                {formatCurrency(sub.amountPaid || 0)}
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Payment
+                                </p>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-bold px-2 py-0.5 border-2 border-black uppercase whitespace-nowrap",
+                                    sub.paymentStatus === "completed"
+                                      ? "bg-[#00C48C] text-black"
+                                      : "bg-[#FFD60A] text-black",
+                                  )}
+                                >
+                                  {sub.paymentStatus === "completed"
+                                    ? "Paid"
+                                    : sub.paymentStatus || "Pending"}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                  Guardian
+                                </p>
+                                {guardian ? (
+                                  <>
+                                    <p className="font-medium text-black">
+                                      {guardian.name}
+                                    </p>
+                                    {guardian.phone ? (
+                                      <a
+                                        href={`tel:${guardian.phone}`}
+                                        className="text-[#024BAB] font-bold hover:underline"
+                                      >
+                                        {guardian.phone}
+                                      </a>
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        No phone
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>

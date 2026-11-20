@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import nesthrlogo from "../../assets/nesthr.png";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -8,7 +8,23 @@ import {
 } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
-import { StatCard } from "@/components/ui/StatCard";
+import { DateStrip } from "@/components/ui/DateStrip";
+import { ViewTabs, useViewTab } from "@/components/ui/ViewTabs";
+import { ChartCard, NbTooltip } from "@/components/ui/ChartCard";
+import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 import {
   FeeOverdueModal,
   FeeOverdueStudent,
@@ -31,7 +47,13 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
+  ScanFace,
+  ChevronDown,
+  Cpu,
 } from "lucide-react";
+import FaceKioskModal from "@/components/attendance/FaceKioskModal";
+import { StudentAttendanceInsights } from "@/components/insights/PageInsightBlocks";
+import { attendanceSource } from "@/lib/attendanceSource";
 
 interface ActivePlan {
   _id: string;
@@ -96,6 +118,9 @@ interface AttendanceRecord {
     batch?: string;
   };
   markedBy?: { name?: string };
+  verifyMode?: string;
+  checkInLog?: any;
+  checkOutLog?: any;
 }
 
 const STATUS_OPTIONS = ["present", "late", "absent", "excused"] as const;
@@ -136,6 +161,8 @@ function toDateStr(d: Date) {
 }
 
 export default function StudentAttendancePage() {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [view, setView] = useViewTab("student-attendance");
   const { toast } = useToast();
   const [date, setDate] = useState(toDateStr(new Date()));
   const [singleTime, setSingleTime] = useState(false);
@@ -155,6 +182,7 @@ export default function StudentAttendancePage() {
   const [saving, setSaving] = useState(false);
   const [punchingId, setPunchingId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<Status | null>(null);
+  const [kioskOpen, setKioskOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [editModal, setEditModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -378,6 +406,40 @@ export default function StudentAttendancePage() {
     unmarked: scheduledStudents.filter((s) => !marks[s._id]).length,
   };
 
+  const attendancePct = summary.total
+    ? Math.round(((summary.present + summary.late) / summary.total) * 100)
+    : 0;
+  const statusSplit = [
+    { name: "Present", value: summary.present, color: "#00C48C" },
+    { name: "Late", value: summary.late, color: "#CA8A04" },
+    { name: "Excused", value: summary.excused, color: "#3B82F6" },
+    { name: "Absent", value: summary.absent, color: "#EF4444" },
+  ].filter((x) => x.value > 0);
+  const trend = Object.values(
+    history.reduce(
+      (acc, r) => {
+        const d = r.date?.slice(0, 10);
+        if (!d) return acc;
+        const row = (acc[d] ||= {
+          date: d,
+          label: String(Number(d.slice(8, 10))),
+          Present: 0,
+          Late: 0,
+          Excused: 0,
+          Absent: 0,
+        });
+        if (r.status === "present") row.Present++;
+        else if (r.status === "late") {
+          row.Late++;
+          row.Present++;
+        } else if (r.status === "excused") row.Excused++;
+        else if (r.status === "absent") row.Absent++;
+        return acc;
+      },
+      {} as Record<string, any>,
+    ),
+  ).sort((a: any, b: any) => a.date.localeCompare(b.date));
+
   const displayedStudents = activeFilter
     ? activeFilter === ("unmarked" as any)
       ? scheduledStudents.filter((s) => !marks[s._id])
@@ -423,384 +485,552 @@ export default function StudentAttendancePage() {
             </button>
           )}
         </div>
-        <button
-          onClick={saveAll}
-          disabled={saving}
-          className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 disabled:pointer-events-none"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          Save Attendance
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setKioskOpen(true)}
+            className="border-2 border-black bg-white text-[#024BAB] px-4 py-2 text-sm font-bold flex items-center gap-1.5 hover:bg-gray-50 transition-colors"
+          >
+            <ScanFace className="w-4 h-4" /> Face Attendance
+          </button>
+          <button
+            onClick={saveAll}
+            disabled={saving}
+            className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 disabled:pointer-events-none hover:bg-[#01368A] transition-colors"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            Save Attendance
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
-        {[
-          {
-            label: "Total",
-            value: summary.total,
-            icon: Users,
-            color: "#024BAB",
-            filterKey: "total",
-          },
-          {
-            label: "Present",
-            value: summary.present,
-            icon: UserCheck,
-            color: "#00C48C",
-            filterKey: "present",
-          },
-          {
-            label: "Late",
-            value: summary.late,
-            icon: Clock,
-            color: "#FA731C",
-            filterKey: "late",
-          },
-          {
-            label: "Absent",
-            value: summary.absent,
-            icon: UserX,
-            color: "#EF4444",
-            filterKey: "absent",
-          },
-          {
-            label: "Excused",
-            value: summary.excused,
-            icon: ShieldAlert,
-            color: "#FA731C",
-            filterKey: "excused",
-          },
-          {
-            label: "Unmarked",
-            value: summary.unmarked,
-            icon: Clock,
-            color: "#9CA3AF",
-            filterKey: "unmarked",
-          },
-        ].map(({ label, value, icon, color, filterKey }) => (
-          <StatCard
-            key={filterKey}
-            label={label}
-            value={value}
-            icon={icon}
-            color={color}
-            active={activeFilter === filterKey}
-            onClick={() =>
-              setActiveFilter(
-                activeFilter === filterKey || filterKey === "total"
-                  ? null
-                  : (filterKey as Status),
-              )
-            }
-          />
-        ))}
-      </div>
+      <StudentAttendanceInsights />
 
-      {/* Date strip */}
-      <div className="border-2 border-black bg-white mb-5 flex items-stretch">
-        <button
-          onClick={() => setWindowStart((w) => Math.max(1, w - 7))}
-          disabled={windowStart <= 1}
-          className="px-3 border-r-2 border-black hover:bg-[#024BAB]/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <div className="flex flex-1 overflow-hidden">
-          {Array.from({ length: 7 }, (_, i) => windowStart + i)
-            .filter((day) => day <= daysInMonth)
-            .map((day) => {
-              const dt = new Date(selYear, selMonth - 1, day);
-              const iso = toDateStr(dt);
-              const isToday = iso === todayIso;
-              const isSelected = iso === date;
-              const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
-              const dayRecs = history.filter(
-                (r) => r.date?.slice(0, 10) === iso,
-              );
-              const presentCount = dayRecs.filter(
+      <ViewTabs value={view} onChange={setView} className="mb-4" />
+
+      {view === "graphs" && (
+        <>
+          <div className="nb-rise border-2 border-black bg-white p-5 mb-3 flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative w-36 h-36 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={
+                      statusSplit.length
+                        ? statusSplit
+                        : [{ name: "No data", value: 1, color: "#E5E7EB" }]
+                    }
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={50}
+                    outerRadius={68}
+                    startAngle={90}
+                    endAngle={-270}
+                    stroke="#0A0A0A"
+                    strokeWidth={1.5}
+                    animationDuration={1000}
+                  >
+                    {(statusSplit.length
+                      ? statusSplit
+                      : [{ name: "No data", value: 1, color: "#E5E7EB" }]
+                    ).map((x) => (
+                      <Cell key={x.name} fill={x.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <AnimatedNumber
+                  value={attendancePct}
+                  suffix="%"
+                  className="text-3xl font-bold tabular-nums text-[#024BAB] leading-none"
+                />
+                <span className="text-[10px] font-bold mt-1">attendance</span>
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <p className="text-sm font-bold text-black mb-4">
+                {new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                })}
+                <span className="text-muted-foreground font-medium">
+                  {" "}
+                  · {summary.total} scheduled
+                </span>
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                {[
+                  {
+                    label: "Present",
+                    n: summary.present,
+                    color: "#00C48C",
+                    key: "present",
+                  },
+                  {
+                    label: "Late",
+                    n: summary.late,
+                    color: "#CA8A04",
+                    key: "late",
+                  },
+                  {
+                    label: "Excused",
+                    n: summary.excused,
+                    color: "#3B82F6",
+                    key: "excused",
+                  },
+                  {
+                    label: "Absent",
+                    n: summary.absent,
+                    color: "#EF4444",
+                    key: "absent",
+                  },
+                  {
+                    label: "Unmarked",
+                    n: summary.unmarked,
+                    color: "#9CA3AF",
+                    key: "unmarked",
+                  },
+                ].map((k) => (
+                  <button
+                    key={k.key}
+                    onClick={() => {
+                      setActiveFilter(k.key as any);
+                      setView("details");
+                    }}
+                    className="text-left border-l-4 pl-3 hover:opacity-70 transition-opacity"
+                    style={{ borderColor: k.color }}
+                  >
+                    <AnimatedNumber
+                      value={k.n}
+                      className="block text-3xl sm:text-4xl font-bold tabular-nums leading-none"
+                    />
+                    <span className="block text-xs font-bold text-black mt-1.5">
+                      {k.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <ChartCard
+            className="mb-5"
+            title="Month trend"
+            subtitle="Students present vs absent on each day"
+            empty={trend.length ? undefined : "No attendance data yet"}
+          >
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart
+                data={trend}
+                margin={{ top: 16, right: 12, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#E5E7EB"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fontWeight: 700 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fontWeight: 700, fill: "#0A0A0A" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={32}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<NbTooltip />} />
+                <Legend
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 11, fontWeight: 700 }}
+                />
+                {[
+                  { key: "Present", color: "#00C48C" },
+                  { key: "Late", color: "#CA8A04" },
+                  { key: "Excused", color: "#3B82F6" },
+                  { key: "Absent", color: "#EF4444" },
+                ].map(({ key, color }) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={color}
+                    strokeWidth={3}
+                    dot={{
+                      r: 3,
+                      fill: color,
+                      stroke: "#0A0A0A",
+                      strokeWidth: 1.5,
+                    }}
+                    activeDot={{ r: 6, stroke: "#0A0A0A", strokeWidth: 1.5 }}
+                    animationDuration={1100}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </>
+      )}
+
+      {view === "details" && (
+        <>
+          <DateStrip
+            year={selYear}
+            month={selMonth}
+            selected={date}
+            onSelect={(iso) => iso && setDate(iso)}
+            badges={(iso) => {
+              const recs = history.filter((r) => r.date?.slice(0, 10) === iso);
+              const p = recs.filter(
                 (r) => r.status === "present" || r.status === "late",
               ).length;
-              const absentCount = dayRecs.filter(
-                (r) => r.status === "absent",
-              ).length;
-              return (
-                <button
-                  key={iso}
-                  onClick={() => setDate(iso)}
-                  className={cn(
-                    "flex-1 flex flex-col items-center justify-center py-3 px-1 border-r last:border-r-0 border-black/10 transition-colors relative",
-                    isSelected
-                      ? "bg-[#024BAB] text-white"
-                      : isToday
-                        ? "bg-[#024BAB]/5"
-                        : isWeekend
-                          ? "bg-gray-50"
-                          : "hover:bg-[#024BAB]/5",
-                  )}
-                >
-                  {isToday && !isSelected && (
-                    <span className="absolute top-1.5 w-1.5 h-1.5 rounded-full bg-[#024BAB]" />
-                  )}
-                  <span
-                    className={cn(
-                      "text-xs font-bold whitespace-nowrap mb-2",
-                      isSelected
-                        ? "text-white"
-                        : isToday
-                          ? "text-[#024BAB]"
-                          : isWeekend
-                            ? "text-gray-400"
-                            : "text-black",
-                    )}
-                  >
-                    {DAY_ABBR[dt.getDay()]},{" "}
-                    {dt.toLocaleDateString("en-IN", { month: "short" })} {day}
-                  </span>
-                  {presentCount > 0 || absentCount > 0 ? (
-                    <div className="flex flex-col items-center gap-0.5">
-                      {presentCount > 0 && (
-                        <span
-                          className={cn(
-                            "text-[11px] font-bold leading-none",
-                            isSelected ? "text-[#86efac]" : "text-[#00C48C]",
-                          )}
-                        >
-                          {presentCount}P
-                        </span>
-                      )}
-                      {absentCount > 0 && (
-                        <span
-                          className={cn(
-                            "text-[11px] font-bold leading-none",
-                            isSelected ? "text-[#fca5a5]" : "text-[#EF4444]",
-                          )}
-                        >
-                          {absentCount}A
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span
-                      className={cn(
-                        "text-[10px]",
-                        isSelected
-                          ? "text-white/40"
-                          : "text-muted-foreground/40",
-                      )}
-                    >
-                      —
-                    </span>
-                  )}
-                  {isSelected && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
-                  )}
-                </button>
-              );
-            })}
-        </div>
-        <button
-          onClick={() =>
-            setWindowStart((w) => Math.min(Math.max(1, daysInMonth - 6), w + 7))
-          }
-          disabled={windowStart + 7 > daysInMonth}
-          className="px-3 border-l-2 border-black hover:bg-[#024BAB]/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+              const ab = recs.filter((r) => r.status === "absent").length;
+              return [
+                ...(p ? [{ text: `${p}P`, color: "#00C48C" }] : []),
+                ...(ab ? [{ text: `${ab}A`, color: "#EF4444" }] : []),
+              ];
+            }}
+          />
 
-      {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
-        </div>
-      ) : displayedStudents.length === 0 ? (
-        <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
-          <Clock className="w-12 h-12 text-muted-foreground/30 mb-3" />
-          <p className="font-bold text-black">No students found</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            for {new Date(date).toLocaleDateString("en-IN")}
-          </p>
-        </div>
-      ) : (
-        <div className="border-2 border-black bg-white overflow-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b-2 border-black bg-[#024BAB]/5">
-                {[
-                  "Student",
-                  "Sport / Batch",
-                  singleTime ? "Time" : "Check In / Out",
-                  "Status",
-                  "",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayedStudents.map((s, i) => {
-                const current = marks[s._id];
-                const sessionDay = isSessionDay(s, date);
-                return (
-                  <tr
-                    key={s._id}
-                    className={cn(
-                      "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
-                      !sessionDay
-                        ? "bg-yellow-50/60"
-                        : i % 2 === 0
-                          ? ""
-                          : "bg-[#F8FAFF]",
-                    )}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {s.avatar ? (
-                          <img
-                            src={s.avatar}
-                            alt={s.firstName}
-                            className="w-7 h-7 border-2 border-black object-cover shrink-0 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-7 h-7 bg-[#024BAB] border-2 border-black flex items-center justify-center text-[10px] font-bold text-white shrink-0 rounded-full">
-                            {s.firstName?.[0]?.toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-bold text-black text-xs">
-                            {s.firstName} {s.lastName}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {s.studentId}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-black text-xs">
-                      <div>
-                        {s.sport} {s.batch ? `· ${s.batch}` : ""}
-                      </div>
-                      {s.activePlan ? (
-                        <div className="flex items-center gap-1 mt-1">
-                          {sessionDay ? (
-                            <CalendarClock className="w-3 h-3 text-[#00C48C] shrink-0" />
-                          ) : (
-                            <CalendarX className="w-3 h-3 text-[#FA731C] shrink-0" />
-                          )}
-                          <span
-                            className={cn(
-                              "text-[10px] font-semibold",
-                              sessionDay
-                                ? "text-muted-foreground"
-                                : "text-[#FA731C]",
-                            )}
-                            title={
-                              s.activePlan.scheduleType === "custom_days"
-                                ? s.activePlan.scheduleDays
-                                    .map((d) => WEEKDAY_LABEL[d])
-                                    .join(", ")
-                                : "Any day"
-                            }
-                          >
-                            {s.activePlan.name}
-                            {s.activePlan.startTime &&
-                              ` · ${formatTime12(s.activePlan.startTime)}${
-                                s.activePlan.endTime
-                                  ? `–${formatTime12(s.activePlan.endTime)}`
-                                  : ""
-                              }`}
-                            {!sessionDay && " · not scheduled today"}
-                          </span>
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => punch(s._id, "checkin")}
-                          disabled={punchingId === s._id}
-                          className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#00C48C]/10 hover:border-[#00C48C] disabled:opacity-50"
-                          title="Check in now"
-                        >
-                          <LogIn className="w-3 h-3" />
-                          {times[s._id]?.checkIn
-                            ? new Date(
-                                times[s._id].checkIn!,
-                              ).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : singleTime
-                              ? "Set Time"
-                              : "Check In"}
-                        </button>
-                        {!singleTime && (
-                          <button
-                            onClick={() => punch(s._id, "checkout")}
-                            disabled={punchingId === s._id}
-                            className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#FA731C]/10 hover:border-[#FA731C] disabled:opacity-50"
-                            title="Check out now"
-                          >
-                            <LogOut className="w-3 h-3" />
-                            {times[s._id]?.checkOut
-                              ? new Date(
-                                  times[s._id].checkOut!,
-                                ).toLocaleTimeString("en-IN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "Check Out"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {STATUS_OPTIONS.map((opt) => {
-                          const Icon = STATUS_ICONS[opt];
-                          const selected = current === opt;
-                          return (
-                            <button
-                              key={opt}
-                              onClick={() => setStatus(s._id, opt)}
-                              className={cn(
-                                "border-2 text-[10px] font-bold capitalize px-2 py-1 flex items-center gap-1 transition-colors",
-                                selected
-                                  ? STATUS_COLORS[opt]
-                                  : "bg-white text-gray-400 border-gray-300 hover:border-black",
-                              )}
-                            >
-                              <Icon className="w-3 h-3" />
-                              {opt}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => openEdit(s)}
-                        title="Edit attendance"
-                        className="p-1.5 border-2 border-black hover:bg-[#024BAB] hover:text-white transition-colors"
+          {loading ? (
+            <div className="flex items-center justify-center h-48">
+              <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />
+            </div>
+          ) : displayedStudents.length === 0 ? (
+            <div className="border-2 border-black bg-white p-12 flex flex-col items-center justify-center">
+              <Clock className="w-12 h-12 text-muted-foreground/30 mb-3" />
+              <p className="font-bold text-black">No students found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                for {new Date(date).toLocaleDateString("en-IN")}
+              </p>
+            </div>
+          ) : (
+            <div className="border-2 border-black bg-white overflow-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-black bg-[#024BAB]/5">
+                    {[
+                      "Student",
+                      "Sport / Batch",
+                      singleTime ? "Time" : "Check In / Out",
+                      "Status",
+                      "",
+                      "",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-bold text-black uppercase tracking-wider"
                       >
-                        <Pencil className="w-3 h-3" />
-                      </button>
-                    </td>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {displayedStudents.map((s, i) => {
+                    const current = marks[s._id];
+                    const sessionDay = isSessionDay(s, date);
+                    const open = expandedId === s._id;
+                    const studentHistory = history
+                      .filter((r) => r.student?._id === s._id)
+                      .sort((a, b) => b.date.localeCompare(a.date))
+                      .slice(0, 10);
+                    return (
+                      <Fragment key={s._id}>
+                        <tr
+                          className={cn(
+                            "border-b border-black/10 hover:bg-[#024BAB]/5 transition-colors",
+                            !sessionDay
+                              ? "bg-yellow-50/60"
+                              : i % 2 === 0
+                                ? ""
+                                : "bg-[#F8FAFF]",
+                          )}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {s.avatar ? (
+                                <img
+                                  src={s.avatar}
+                                  alt={s.firstName}
+                                  className="w-7 h-7 border-2 border-black object-cover shrink-0 rounded-full"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 bg-[#024BAB] border-2 border-black flex items-center justify-center text-[10px] font-bold text-white shrink-0 rounded-full">
+                                  {s.firstName?.[0]?.toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-bold text-black text-xs">
+                                  {s.firstName} {s.lastName}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {s.studentId}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-black text-xs">
+                            <div>
+                              {s.sport} {s.batch ? `· ${s.batch}` : ""}
+                            </div>
+                            {s.activePlan ? (
+                              <div className="flex items-center gap-1 mt-1">
+                                {sessionDay ? (
+                                  <CalendarClock className="w-3 h-3 text-[#00C48C] shrink-0" />
+                                ) : (
+                                  <CalendarX className="w-3 h-3 text-[#FA731C] shrink-0" />
+                                )}
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-semibold",
+                                    sessionDay
+                                      ? "text-muted-foreground"
+                                      : "text-[#FA731C]",
+                                  )}
+                                  title={
+                                    s.activePlan.scheduleType === "custom_days"
+                                      ? s.activePlan.scheduleDays
+                                          .map((d) => WEEKDAY_LABEL[d])
+                                          .join(", ")
+                                      : "Any day"
+                                  }
+                                >
+                                  {s.activePlan.name}
+                                  {s.activePlan.startTime &&
+                                    ` · ${formatTime12(s.activePlan.startTime)}${
+                                      s.activePlan.endTime
+                                        ? `–${formatTime12(s.activePlan.endTime)}`
+                                        : ""
+                                    }`}
+                                  {!sessionDay && " · not scheduled today"}
+                                </span>
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => punch(s._id, "checkin")}
+                                disabled={punchingId === s._id}
+                                className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#00C48C]/10 hover:border-[#00C48C] disabled:opacity-50"
+                                title="Check in now"
+                              >
+                                <LogIn className="w-3 h-3" />
+                                {times[s._id]?.checkIn
+                                  ? new Date(
+                                      times[s._id].checkIn!,
+                                    ).toLocaleTimeString("en-IN", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : singleTime
+                                    ? "Set Time"
+                                    : "Check In"}
+                              </button>
+                              {!singleTime && (
+                                <button
+                                  onClick={() => punch(s._id, "checkout")}
+                                  disabled={punchingId === s._id}
+                                  className="border-2 border-black bg-white text-[10px] font-bold px-2 py-1 flex items-center gap-1 hover:bg-[#FA731C]/10 hover:border-[#FA731C] disabled:opacity-50"
+                                  title="Check out now"
+                                >
+                                  <LogOut className="w-3 h-3" />
+                                  {times[s._id]?.checkOut
+                                    ? new Date(
+                                        times[s._id].checkOut!,
+                                      ).toLocaleTimeString("en-IN", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "Check Out"}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              {STATUS_OPTIONS.map((opt) => {
+                                const Icon = STATUS_ICONS[opt];
+                                const selected = current === opt;
+                                return (
+                                  <button
+                                    key={opt}
+                                    onClick={() => setStatus(s._id, opt)}
+                                    className={cn(
+                                      "border-2 text-[10px] font-bold capitalize px-2 py-1 flex items-center gap-1 transition-colors",
+                                      selected
+                                        ? STATUS_COLORS[opt]
+                                        : "bg-white text-gray-400 border-gray-300 hover:border-black",
+                                    )}
+                                  >
+                                    <Icon className="w-3 h-3" />
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {(() => {
+                              const src = attendanceSource(
+                                history.find(
+                                  (r) =>
+                                    r.student?._id === s._id &&
+                                    r.date?.slice(0, 10) === date,
+                                ),
+                              );
+                              return src ? (
+                                <p
+                                  title={src.detail}
+                                  className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-muted-foreground"
+                                >
+                                  {src.kind === "device" ? (
+                                    <Cpu className="w-3 h-3 text-[#024BAB]" />
+                                  ) : (
+                                    <UserCheck className="w-3 h-3 text-[#FA731C]" />
+                                  )}
+                                  {src.label}
+                                </p>
+                              ) : null;
+                            })()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => openEdit(s)}
+                              title="Edit attendance"
+                              className="p-1.5 border-2 border-black hover:bg-[#024BAB] hover:text-white transition-colors"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          </td>
+                          <td className="px-2 py-3">
+                            <button
+                              onClick={() => setExpandedId(open ? null : s._id)}
+                              title="Details"
+                              className="p-1.5 border-2 border-transparent hover:border-black hover:bg-[#024BAB]/10 transition-colors"
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  "w-4 h-4 transition-transform",
+                                  open && "rotate-180",
+                                )}
+                              />
+                            </button>
+                          </td>
+                        </tr>
+                        {open && (
+                          <tr className="border-b border-black/10 bg-[#F8FAFF]">
+                            <td colSpan={6} className="px-6 py-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                    Plan
+                                  </p>
+                                  <p className="font-bold text-black">
+                                    {s.activePlan?.name || "No active plan"}
+                                  </p>
+                                  {s.activePlan && (
+                                    <p className="text-muted-foreground mt-0.5">
+                                      {s.activePlan.scheduleType ===
+                                      "custom_days"
+                                        ? s.activePlan.scheduleDays
+                                            .map((d) => WEEKDAY_LABEL[d])
+                                            .join(", ")
+                                        : "Any day"}
+                                      {s.activePlan.startTime &&
+                                        ` · ${formatTime12(s.activePlan.startTime)}${
+                                          s.activePlan.endTime
+                                            ? `–${formatTime12(s.activePlan.endTime)}`
+                                            : ""
+                                        }`}
+                                    </p>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                    Today
+                                  </p>
+                                  <p className="text-black">
+                                    In:{" "}
+                                    <span className="font-bold">
+                                      {times[s._id]?.checkIn
+                                        ? new Date(
+                                            times[s._id].checkIn!,
+                                          ).toLocaleTimeString("en-IN", {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })
+                                        : "—"}
+                                    </span>
+                                    {!singleTime && (
+                                      <>
+                                        {" "}
+                                        · Out:{" "}
+                                        <span className="font-bold">
+                                          {times[s._id]?.checkOut
+                                            ? new Date(
+                                                times[s._id].checkOut!,
+                                              ).toLocaleTimeString("en-IN", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                              })
+                                            : "—"}
+                                        </span>
+                                      </>
+                                    )}
+                                  </p>
+                                  <p className="text-black mt-0.5">
+                                    Status:{" "}
+                                    <span className="font-bold capitalize">
+                                      {current || "not marked"}
+                                    </span>
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                    Recent this month
+                                  </p>
+                                  {studentHistory.length === 0 ? (
+                                    <p className="text-muted-foreground">
+                                      No records
+                                    </p>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-1">
+                                      {studentHistory.map((r) => (
+                                        <span
+                                          key={r._id}
+                                          title={r.status}
+                                          className={cn(
+                                            "border-2 text-[10px] font-bold px-1.5 py-0.5 capitalize",
+                                            STATUS_COLORS[r.status as Status] ||
+                                              "border-gray-300 text-gray-500",
+                                          )}
+                                        >
+                                          {r.date.slice(8, 10)} · {r.status}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {editModal && editingStudent && (
@@ -898,6 +1128,9 @@ export default function StudentAttendancePage() {
             </form>
           </div>
         </div>
+      )}
+      {kioskOpen && (
+        <FaceKioskModal onClose={() => setKioskOpen(false)} onMarked={load} />
       )}
       <FeeOverdueModal students={feeBlock} onClose={() => setFeeBlock(null)} />
     </AppLayout>

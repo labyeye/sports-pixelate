@@ -115,51 +115,6 @@ export default function LateApprovalsPage() {
         </p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <AlarmClock className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Requests
-            </p>
-            <p className="text-2xl font-bold text-black">{items.length}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#FA731C]/10 border-2 border-[#FA731C] flex items-center justify-center shrink-0">
-            <Clock3 className="w-5 h-5 text-[#FA731C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Minutes Late
-            </p>
-            <p className="text-2xl font-bold text-black">
-              {items.reduce((s, i) => s + (i.minutesLate || 0), 0)}
-            </p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <Timer className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Avg. Minutes Late
-            </p>
-            <p className="text-2xl font-bold text-black">
-              {items.length
-                ? Math.round(
-                    items.reduce((s, i) => s + (i.minutesLate || 0), 0) /
-                      items.length,
-                  )
-                : 0}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">

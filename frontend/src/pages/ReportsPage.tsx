@@ -342,8 +342,8 @@ const REPORTS: ReportDef[] = [
 
   {
     id: "employee-directory",
-    name: "Employee Directory",
-    desc: "Full employee list with all details including contact, department, designation, salary.",
+    name: "Staff Directory",
+    desc: "Full staff list with all details including contact, department, designation, salary.",
     category: "employee",
     icon: Users,
     available: true,
@@ -5750,7 +5750,9 @@ function AnalyticsTab({
 
 export default function ReportsPage() {
   const [departments, setDepartments] = useState<any[]>([]);
-  const [company, setCompany] = useState<ReportCompany>({ name: "NestAcademy" });
+  const [company, setCompany] = useState<ReportCompany>({
+    name: "NestAcademy",
+  });
   useEffect(() => {
     setReportCompanyName(company.name);
   }, [company.name]);

@@ -14,8 +14,10 @@ export function assetUrl(path?: string): string {
   if (!path) return "";
   if (/^(https?:|data:|blob:)/i.test(path)) return path;
   const origin =
-    (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/api\/?$/, "") ||
-    window.location.origin;
+    (import.meta.env.VITE_API_URL as string | undefined)?.replace(
+      /\/api\/?$/,
+      "",
+    ) || window.location.origin;
   return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
@@ -32,18 +34,27 @@ const gradientOf = (a: string, b: string, angle: number) =>
   `linear-gradient(${angle}deg, ${a}, ${b})`;
 
 /** CSS background for one side: an optional image on top of a solid colour or a two-colour gradient. */
-const sideBackground = (s: { bg: string; bg2?: string; bgAngle?: number; bgImage?: string }) => {
+const sideBackground = (s: {
+  bg: string;
+  bg2?: string;
+  bgAngle?: number;
+  bgImage?: string;
+}) => {
   const layers: string[] = [];
-  if (s.bgImage) layers.push(`url("${assetUrl(s.bgImage)}") center / cover no-repeat`);
+  if (s.bgImage)
+    layers.push(`url("${assetUrl(s.bgImage)}") center / cover no-repeat`);
   layers.push(s.bg2 ? gradientOf(s.bg, s.bg2, s.bgAngle ?? 135) : s.bg);
   return layers.join(", ");
 };
 
 const initials = (emp: any) =>
-  `${emp?.firstName?.[0] || ""}${emp?.lastName?.[0] || ""}`.toUpperCase() || "ID";
+  `${emp?.firstName?.[0] || ""}${emp?.lastName?.[0] || ""}`.toUpperCase() ||
+  "ID";
 
 const borderOf = (el: IdEl) =>
-  el.borderWidth > 0 ? `${el.borderWidth}mm solid ${el.borderColor}` : undefined;
+  el.borderWidth > 0
+    ? `${el.borderWidth}mm solid ${el.borderColor}`
+    : undefined;
 
 function ElementBody({
   el,
@@ -60,7 +71,11 @@ function ElementBody({
     display: "flex",
     alignItems: "center",
     justifyContent:
-      el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
+      el.align === "center"
+        ? "center"
+        : el.align === "right"
+          ? "flex-end"
+          : "flex-start",
     textAlign: el.align,
     width: "100%",
     height: "100%",
@@ -86,14 +101,26 @@ function ElementBody({
 
   if (el.kind === "photo") {
     const radius =
-      el.shape === "circle" ? "50%" : el.shape === "rounded" ? `${el.radius}%` : 0;
+      el.shape === "circle"
+        ? "50%"
+        : el.shape === "rounded"
+          ? `${el.radius}%`
+          : 0;
     const border = borderOf(el);
     const src = assetUrl(employee?.avatar);
     return src ? (
       <img
         src={src}
         alt=""
-        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: radius, display: "block", border, boxSizing: "border-box" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          borderRadius: radius,
+          display: "block",
+          border,
+          boxSizing: "border-box",
+        }}
       />
     ) : (
       <div
@@ -123,7 +150,12 @@ function ElementBody({
       <img
         src={company.logoUrl}
         alt=""
-        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          display: "block",
+        }}
       />
     ) : null;
   }
@@ -135,33 +167,57 @@ function ElementBody({
       <img
         src={src}
         alt=""
-        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", imageRendering: "pixelated" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          display: "block",
+          imageRendering: "pixelated",
+        }}
       />
     ) : null;
   }
 
   if (el.kind === "image") {
     const r =
-      el.shape === "circle" ? "50%" : el.shape === "rounded" ? `${el.radius}%` : 0;
+      el.shape === "circle"
+        ? "50%"
+        : el.shape === "rounded"
+          ? `${el.radius}%`
+          : 0;
     const src = assetUrl(el.src);
     return src ? (
       <img
         src={src}
         alt=""
-        style={{ width: "100%", height: "100%", objectFit: el.fit, borderRadius: r, display: "block", border: borderOf(el), boxSizing: "border-box" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: el.fit,
+          borderRadius: r,
+          display: "block",
+          border: borderOf(el),
+          boxSizing: "border-box",
+        }}
       />
     ) : null;
   }
 
   // shape
   const radius =
-    el.shape === "circle" ? "50%" : el.shape === "rounded" ? `${el.radius}%` : 0;
+    el.shape === "circle"
+      ? "50%"
+      : el.shape === "rounded"
+        ? `${el.radius}%`
+        : 0;
   return (
     <div
       style={{
         width: "100%",
         height: "100%",
-        background: el.fill2 ? gradientOf(el.fill, el.fill2, el.angle) : el.fill,
+        background: el.fill2
+          ? gradientOf(el.fill, el.fill2, el.angle)
+          : el.fill,
         borderRadius: radius,
         border: borderOf(el),
         boxSizing: "border-box",
@@ -171,7 +227,13 @@ function ElementBody({
 }
 
 /** One side of an ID card at its real size (mm). Pure: the same markup is used for the preview and for printing. */
-export function IdCardView({ template, side, employee, company, qrMap }: Props) {
+export function IdCardView({
+  template,
+  side,
+  employee,
+  company,
+  qrMap,
+}: Props) {
   const { w, h } = cardDims(template);
   const s = side === "front" ? template.front : template.back;
   return (
@@ -201,7 +263,12 @@ export function IdCardView({ template, side, employee, company, qrMap }: Props) 
               transform: el.rotate ? `rotate(${el.rotate}deg)` : undefined,
             }}
           >
-            <ElementBody el={el} employee={employee} company={company} qrMap={qrMap} />
+            <ElementBody
+              el={el}
+              employee={employee}
+              company={company}
+              qrMap={qrMap}
+            />
           </div>
         ))}
     </div>

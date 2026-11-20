@@ -153,42 +153,6 @@ export default function MyLoansPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-          {[
-            {
-              label: "Outstanding Balance",
-              value: formatCurrency(activeBalance),
-              icon: IndianRupee,
-              color: "text-red-600",
-            },
-            {
-              label: "Pending Requests",
-              value: String(pendingCount),
-              icon: Clock,
-              color: "text-orange-600",
-            },
-            {
-              label: "Total Requests",
-              value: String(loans.length),
-              icon: Banknote,
-              color: "text-[#024BAB]",
-            },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div
-              key={label}
-              className="border-2 border-black bg-white p-4 flex flex-col gap-1"
-            >
-              <div className="flex items-center gap-2">
-                <Icon className={cn("w-4 h-4", color)} />
-                <p className="text-xs font-bold text-gray-500 uppercase">
-                  {label}
-                </p>
-              </div>
-              <p className={cn("text-xl font-black", color)}>{value}</p>
-            </div>
-          ))}
-        </div>
-
         {loading ? (
           <div className="flex justify-center py-20">
             <img src={nesthrlogo} alt="NestAcademy" className="h-16 w-auto" />

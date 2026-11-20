@@ -2,8 +2,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { IdCardView } from "@/components/idcard/IdCardView";
 import { buildQrMap } from "@/lib/idCardQr";
-import { cardDims, qrValue, SAMPLE_EMPLOYEE, type IdCardTemplate, type IdCompany } from "@/lib/idCard";
-import { DEFAULT_PALETTE, LIBRARY, PALETTES, type Palette } from "@/lib/idCardLibrary";
+import {
+  cardDims,
+  qrValue,
+  SAMPLE_EMPLOYEE,
+  SAMPLE_STUDENT,
+  toStudentTemplate,
+  type CardKind,
+  type IdCardTemplate,
+  type IdCompany,
+} from "@/lib/idCard";
+import {
+  DEFAULT_PALETTE,
+  LIBRARY,
+  PALETTES,
+  type Palette,
+} from "@/lib/idCardLibrary";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,26 +27,35 @@ import { cn } from "@/lib/utils";
 export function IdCardLibrary({
   company,
   employee,
+  kind = "staff",
   onPick,
   onClose,
 }: {
   company: IdCompany;
   employee: any;
+  kind?: CardKind;
   onPick: (t: IdCardTemplate) => void;
   onClose: () => void;
 }) {
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
-  const [orientation, setOrientation] = useState<"all" | "portrait" | "landscape">("all");
+  const [orientation, setOrientation] = useState<
+    "all" | "portrait" | "landscape"
+  >("all");
   const [qrMap, setQrMap] = useState<Record<string, string>>({});
-  const emp = employee || SAMPLE_EMPLOYEE;
+  const emp = employee || (kind === "student" ? SAMPLE_STUDENT : SAMPLE_EMPLOYEE);
 
   const items = useMemo(
     () =>
-      LIBRARY.filter((l) => orientation === "all" || l.orientation === orientation).map((l) => ({
+      LIBRARY.filter(
+        (l) => orientation === "all" || l.orientation === orientation,
+      ).map((l) => ({
         ...l,
-        template: l.build(palette),
+        template:
+          kind === "student"
+            ? toStudentTemplate(l.build(palette))
+            : l.build(palette),
       })),
-    [palette, orientation],
+    [palette, orientation, kind],
   );
 
   useEffect(() => {
@@ -50,7 +73,8 @@ export function IdCardLibrary({
           <div>
             <h3 className="font-bold text-lg">Template library</h3>
             <p className="text-xs text-muted-foreground">
-              Pick a layout and a colour theme. You can change everything afterwards, and undo this from the designer.
+              Pick a layout and a colour theme. You can change everything
+              afterwards, and undo this from the designer.
             </p>
           </div>
           <button onClick={onClose}>
@@ -60,7 +84,9 @@ export function IdCardLibrary({
 
         <div className="p-4 border-b-2 border-black/10 flex flex-wrap items-center gap-x-6 gap-y-3 shrink-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Colour theme</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">
+              Colour theme
+            </span>
             {PALETTES.map((p) => (
               <button
                 key={p.id}
@@ -68,7 +94,9 @@ export function IdCardLibrary({
                 onClick={() => setPalette(p)}
                 className={cn(
                   "flex h-7 w-12 overflow-hidden border-2",
-                  palette.id === p.id ? "border-[#024BAB] ring-2 ring-[#024BAB]/40" : "border-black",
+                  palette.id === p.id
+                    ? "border-[#024BAB] ring-2 ring-[#024BAB]/40"
+                    : "border-black",
                 )}
               >
                 <span className="flex-1" style={{ background: p.primary }} />
@@ -84,7 +112,9 @@ export function IdCardLibrary({
                 onClick={() => setOrientation(o)}
                 className={cn(
                   "px-3 py-1.5 text-xs font-bold border-r-2 border-black last:border-r-0 capitalize",
-                  orientation === o ? "bg-[#024BAB] text-white" : "bg-white hover:bg-[#024BAB]/5",
+                  orientation === o
+                    ? "bg-[#024BAB] text-white"
+                    : "bg-white hover:bg-[#024BAB]/5",
                 )}
               >
                 {o}
@@ -103,7 +133,13 @@ export function IdCardLibrary({
                 className="group text-left border-2 border-black bg-white p-3 hover:shadow-[3px_3px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all"
               >
                 <FitPreview w={w} h={h}>
-                  <IdCardView template={it.template} side="front" employee={emp} company={company} qrMap={qrMap} />
+                  <IdCardView
+                    template={it.template}
+                    side="front"
+                    employee={emp}
+                    company={company}
+                    qrMap={qrMap}
+                  />
                 </FitPreview>
                 <p className="text-sm font-bold mt-2">{it.name}</p>
                 <p className="text-[11px] text-muted-foreground capitalize">
@@ -118,9 +154,16 @@ export function IdCardLibrary({
   );
 }
 
-
 /** Scales a real-size (mm) card down to fit the available width, never clipping it. */
-function FitPreview({ w, h, children }: { w: number; h: number; children: React.ReactNode }) {
+function FitPreview({
+  w,
+  h,
+  children,
+}: {
+  w: number;
+  h: number;
+  children: React.ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [avail, setAvail] = useState(0);
   useEffect(() => {
@@ -135,9 +178,21 @@ function FitPreview({ w, h, children }: { w: number; h: number; children: React.
   const ph = h * 3.7795;
   const z = avail ? Math.min(1.35, (avail - 24) / pw) : 1;
   return (
-    <div ref={ref} className="flex justify-center items-center bg-[#E5E7EB] py-3 overflow-hidden" style={{ height: ph * z + 24 }}>
+    <div
+      ref={ref}
+      className="flex justify-center items-center bg-[#E5E7EB] py-3 overflow-hidden"
+      style={{ height: ph * z + 24 }}
+    >
       <div style={{ width: pw * z, height: ph * z }}>
-        <div style={{ width: pw, height: ph, transform: `scale(${z})`, transformOrigin: "top left", boxShadow: "0 1px 5px rgba(0,0,0,.3)" }}>
+        <div
+          style={{
+            width: pw,
+            height: ph,
+            transform: `scale(${z})`,
+            transformOrigin: "top left",
+            boxShadow: "0 1px 5px rgba(0,0,0,.3)",
+          }}
+        >
           {children}
         </div>
       </div>

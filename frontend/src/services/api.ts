@@ -2,7 +2,7 @@ import { compressImageFile } from "@/lib/imageCompress";
 import { announceRefund, isRefundMessage } from "@/lib/refundNotice";
 import { withDocAccess } from "./docAccess";
 
-const BASE_URL = "https://sports-backend.pixelatenest.com/api";
+const BASE_URL = "http://localhost:5002/api";
 
 export const getToken = () => localStorage.getItem("hrms_token");
 export const setToken = (t: string) => localStorage.setItem("hrms_token", t);
@@ -311,6 +311,13 @@ export const authAPI = {
     }),
 };
 
+export const insightsAPI = {
+  students: () => request("/insights/students"),
+  plans: () => request("/insights/plans"),
+  expenses: () => request("/insights/expenses"),
+  studentAttendance: () => request("/insights/student-attendance"),
+};
+
 export const dashboardAPI = {
   getStats: () => request("/dashboard/stats"),
   getEmployeeStats: () => request("/dashboard/employee"),
@@ -408,14 +415,27 @@ export const employeeAPI = {
   },
 };
 
+export const preferencesAPI = {
+  get: (key: string) => request(`/preferences/${key}`),
+  set: (key: string, value: object | null, merge = false) =>
+    request(`/preferences/${key}`, {
+      method: "PUT",
+      body: JSON.stringify({ value, merge }),
+    }),
+};
+
 export const attendanceAPI = {
   getDailySummary: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
-    return request<{ success: boolean; data: any }>(`/attendance/daily-summary${q}`);
+    return request<{ success: boolean; data: any }>(
+      `/attendance/daily-summary${q}`,
+    );
   },
   getTimingInsights: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
-    return request<{ success: boolean; data: any }>(`/attendance/timing-insights${q}`);
+    return request<{ success: boolean; data: any }>(
+      `/attendance/timing-insights${q}`,
+    );
   },
   getAll: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
@@ -427,6 +447,30 @@ export const attendanceAPI = {
     request(`/attendance/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   bulkMark: (body: object) =>
     request("/attendance/bulk", { method: "POST", body: JSON.stringify(body) }),
+  bulkUpdate: (body: object) =>
+    request("/attendance/bulk-update", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  kioskFace: async (photo: Blob, action?: "checkin" | "checkout") => {
+    const form = new FormData();
+    if (action) form.append("action", action);
+    form.append("photo", photo, "kiosk.jpg");
+    const token = getToken();
+    let res: Response;
+    try {
+      res = await fetch(`${BASE_URL}/biometric/face-kiosk`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+    } catch {
+      throw new Error(NETWORK_MESSAGE);
+    }
+    const data = await res.json().catch(() => ({}) as any);
+    if (!res.ok) throw new Error(statusMessage(res.status, data.message));
+    return data as { success: boolean; locked?: boolean; data: any };
+  },
   getSummary: (params: Record<string, string>) =>
     request(`/attendance/summary?${new URLSearchParams(params).toString()}`),
 };
@@ -449,7 +493,10 @@ export const leaveAPI = {
     }),
 };
 
-export async function downloadFile(endpoint: string, filename: string): Promise<void> {
+export async function downloadFile(
+  endpoint: string,
+  filename: string,
+): Promise<void> {
   const token = getToken();
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -465,11 +512,20 @@ export async function downloadFile(endpoint: string, filename: string): Promise<
 
 export const payrollAPI = {
   exportTally: (month: number, year: number) =>
-    downloadFile(`/payroll/export/tally?month=${month}&year=${year}`, `Tally_Salary_${month}_${year}.xml`),
+    downloadFile(
+      `/payroll/export/tally?month=${month}&year=${year}`,
+      `Tally_Salary_${month}_${year}.xml`,
+    ),
   exportBank: (month: number, year: number) =>
-    downloadFile(`/payroll/export/bank?month=${month}&year=${year}`, `Bank_Salary_${month}_${year}.csv`),
+    downloadFile(
+      `/payroll/export/bank?month=${month}&year=${year}`,
+      `Bank_Salary_${month}_${year}.csv`,
+    ),
   exportZoho: (month: number, year: number) =>
-    downloadFile(`/payroll/export/zoho?month=${month}&year=${year}`, `Zoho_Salary_${month}_${year}.csv`),
+    downloadFile(
+      `/payroll/export/zoho?month=${month}&year=${year}`,
+      `Zoho_Salary_${month}_${year}.csv`,
+    ),
   getAll: (params?: Record<string, string>) => {
     const q = params ? "?" + new URLSearchParams(params).toString() : "";
     return request(`/payroll${q}`);
@@ -569,6 +625,10 @@ export const settingsAPI = {
     });
   },
   get: () => request<{ success: boolean; data: any }>("/settings"),
+  testGateway: () =>
+    request<{ success: boolean; message: string }>("/settings/test-gateway", {
+      method: "POST",
+    }),
   update: (settings: any) =>
     request<{ success: boolean; data: any }>("/settings", {
       method: "PUT",
@@ -633,12 +693,9 @@ export const billingAPI = {
     request<{ success: boolean; data: any }>("/billing/subscription"),
   getInvoices: () =>
     request<{ success: boolean; data: any }>("/billing/invoices"),
+  // Three fixed yearly plans: planId is "starter" | "growth" | "unlimited" (see /billing/plans).
   createOrder: (
-    studentCount: number,
-    employeeCount: number,
-    wantsWhatsapp: boolean,
-    billingCycle: "monthly" | "yearly",
-    gateway: "cashfree" = "cashfree",
+    planId: string,
     company?: {
       name: string;
       email: string;
@@ -656,32 +713,15 @@ export const billingAPI = {
     request<{ success: boolean; data: any }>("/billing/create-order", {
       method: "POST",
       body: JSON.stringify({
-        studentCount,
-        employeeCount,
-        wantsWhatsapp,
-        billingCycle,
-        gateway,
+        planId,
         company,
         offerCode: offerCode || undefined,
       }),
     }),
-  validateOfferCode: (
-    code: string,
-    studentCount?: number,
-    employeeCount?: number,
-    wantsWhatsapp?: boolean,
-  ) =>
+  validateOfferCode: (code: string, planId?: string) =>
     request<{ success: boolean; message: string; data: any }>(
       "/billing/validate-offer",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          code,
-          studentCount,
-          employeeCount,
-          wantsWhatsapp,
-        }),
-      },
+      { method: "POST", body: JSON.stringify({ code, planId }) },
     ),
   verifyCashfree: (payload: { orderId: string }) =>
     request<{ success: boolean; message: string; data: any }>(
@@ -691,13 +731,7 @@ export const billingAPI = {
         body: JSON.stringify(payload),
       },
     ),
-  verifyPayment: (payload: {
-    orderId?: string;
-    trackingId?: string | null;
-    razorpayOrderId?: string;
-    razorpayPaymentId?: string;
-    razorpaySignature?: string;
-  }) =>
+  verifyPayment: (payload: { orderId?: string }) =>
     request<{ success: boolean; message: string; data: any }>(
       "/billing/verify-payment",
       {
@@ -1209,6 +1243,12 @@ export const studentAPI = {
   update: (id: string, body: object) =>
     request(`/students/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delete: (id: string) => request(`/students/${id}`, { method: "DELETE" }),
+  // Academy confirms a guardian's consent for a student added before consent was recorded.
+  recordConsent: (id: string) =>
+    request(`/students/${id}/consent`, {
+      method: "POST",
+      body: JSON.stringify({ guardianConsent: true }),
+    }),
   uploadAvatar: async (id: string, file: File) => {
     const compressed = await compressImageFile(file);
     const form = new FormData();
@@ -1249,7 +1289,7 @@ export const studentAPI = {
   bulkImport: (students: object[]) =>
     request("/students/bulk-import", {
       method: "POST",
-      body: JSON.stringify({ students }),
+      body: JSON.stringify({ students, guardianConsent: true }), // the page asks the owner to confirm consent first
     }),
   getFaceStatus: () => request("/students/face-status"),
   // Photos must be named after each student's ID (e.g. STU-0012.jpg).
@@ -1508,6 +1548,13 @@ export const subscriptionAPI = {
     }),
   cancel: (id: string) =>
     request(`/subscriptions/${id}/cancel`, { method: "POST" }),
+  pause: (id: string, body: { until?: string; reason?: string } = {}) =>
+    request(`/subscriptions/${id}/pause`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  resume: (id: string) =>
+    request(`/subscriptions/${id}/resume`, { method: "POST" }),
   qrRenewal: (body: {
     studentId: string;
     planId: string;
@@ -1754,16 +1801,64 @@ export const taskAPI = {
   delete: (id: string) => request(`/tasks/${id}`, { method: "DELETE" }),
 };
 
+export const leadAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/leads${q}`);
+  },
+  create: (body: object) =>
+    request("/leads", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/leads/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  updateStatus: (id: string, body: object) =>
+    request(`/leads/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  addNote: (id: string, text: string) =>
+    request(`/leads/${id}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  convert: (id: string, body: object = {}) =>
+    request(`/leads/${id}/convert`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/leads/${id}`, { method: "DELETE" }),
+};
+
+export const makeupAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+    return request(`/makeup-classes${q}`);
+  },
+  create: (body: object) =>
+    request("/makeup-classes", { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/makeup-classes/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/makeup-classes/${id}`, { method: "DELETE" }),
+};
+
 export const coachingAPI = {
   schedules: () => request("/coaching/schedules"),
   createSchedule: (body: object) =>
-    request("/coaching/schedules", { method: "POST", body: JSON.stringify(body) }),
+    request("/coaching/schedules", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   deleteSchedule: (id: string) =>
     request(`/coaching/schedules/${id}`, { method: "DELETE" }),
   assessments: (student?: string) =>
     request(`/coaching/assessments${student ? `?student=${student}` : ""}`),
   createAssessment: (body: object) =>
-    request("/coaching/assessments", { method: "POST", body: JSON.stringify(body) }),
+    request("/coaching/assessments", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   deleteAssessment: (id: string) =>
     request(`/coaching/assessments/${id}`, { method: "DELETE" }),
 };
@@ -1792,7 +1887,8 @@ export const expenseClaimAPI = {
       method: "PUT",
       body: JSON.stringify({ action, note, approvedAmount }),
     }),
-  remove: (id: string) => request(`/expense-claims/${id}`, { method: "DELETE" }),
+  remove: (id: string) =>
+    request(`/expense-claims/${id}`, { method: "DELETE" }),
   resubmit: (id: string, body: Record<string, any> = {}) =>
     request(`/expense-claims/${id}/resubmit`, {
       method: "POST",
@@ -1802,14 +1898,21 @@ export const expenseClaimAPI = {
     id: string,
     body: { mode: string; reference?: string; paidOn?: string },
   ) =>
-    request(`/expense-claims/${id}/pay`, { method: "PUT", body: JSON.stringify(body) }),
+    request(`/expense-claims/${id}/pay`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
   downloadBill: (id: string, index = 0) =>
     downloadFile(`/expense-claims/${id}/bill/${index}`, "bill"),
   getPolicy: () => request("/expense-claims/policy"),
   savePolicy: (body: {
     limits: Record<string, number>;
     billRequiredAbove: number;
-  }) => request("/expense-claims/policy", { method: "PUT", body: JSON.stringify(body) }),
+  }) =>
+    request("/expense-claims/policy", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
   getWorkflow: () => request("/expense-claims/workflow"),
   saveWorkflow: (steps: { role: string; aboveAmount: number }[]) =>
     request("/expense-claims/workflow", {

@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
 import {
-  loadRazorpayScript,
   loadCashfreeScript,
   redirectToGatewayCheckout,
 } from "@/lib/paymentGateway";
@@ -23,8 +22,6 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  IndianRupee,
-  CheckCircle2,
   Building2,
   User,
   Calendar,
@@ -34,6 +31,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { confirmDialog } from "@/lib/confirmDialog";
+import { BookingsInsights } from "@/components/insights/PageInsightBlocks";
 
 declare global {
   interface Window {
@@ -291,7 +289,7 @@ export default function BookingsPage() {
           const loaded = await loadCashfreeScript();
           if (!loaded) throw new Error("Failed to load Cashfree checkout.");
           const cashfree = await (window as any).Cashfree({
-            mode: import.meta.env.PROD ? "production" : "sandbox",
+            mode: payment.mode || (import.meta.env.PROD ? "production" : "sandbox"),
           });
           await new Promise<void>((resolve, reject) => {
             cashfree
@@ -316,36 +314,7 @@ export default function BookingsPage() {
               });
           });
         } else {
-          const loaded = await loadRazorpayScript();
-          if (!loaded) throw new Error("Failed to load Razorpay checkout.");
-          await new Promise<void>((resolve, reject) => {
-            const rzp = new window.Razorpay({
-              key: payment.keyId,
-              order_id: payment.orderId,
-              amount: payment.amount * 100,
-              currency: payment.currency,
-              name: "NestAcademy",
-              description: "Facility booking",
-              theme: { color: "#024BAB" },
-              handler: async (response: any) => {
-                try {
-                  await bookingAPI.verifyPayment({
-                    bookingId: res.data._id,
-                    razorpayOrderId: response.razorpay_order_id,
-                    razorpayPaymentId: response.razorpay_payment_id,
-                    razorpaySignature: response.razorpay_signature,
-                  });
-                  resolve();
-                } catch (err: unknown) {
-                  reject(err);
-                }
-              },
-              modal: {
-                ondismiss: () => reject(new Error("Payment cancelled")),
-              },
-            });
-            rzp.open();
-          });
+          throw new Error("This payment method is not supported. Please pay at the academy.");
         }
       }
       toast({ title: "Booking confirmed" });
@@ -427,44 +396,8 @@ export default function BookingsPage() {
         </button>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <CalendarClock className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Bookings
-            </p>
-            <p className="text-2xl font-bold text-black">{bookings.length}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Confirmed
-            </p>
-            <p className="text-2xl font-bold text-black">{confirmedCount}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <IndianRupee className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Revenue
-            </p>
-            <p className="text-2xl font-bold text-black">
-              ₹{totalRevenue.toLocaleString("en-IN")}
-            </p>
-          </div>
-        </div>
-      </div>
+      <BookingsInsights bookings={bookings} />
+
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">

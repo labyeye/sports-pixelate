@@ -18,6 +18,7 @@ import {
   UserX,
   ShieldAlert,
 } from "lucide-react";
+import { ParentAttendanceInsights } from "@/components/insights/MoreInsightBlocks";
 
 interface Student {
   _id: string;
@@ -216,6 +217,8 @@ export default function ParentAttendancePage() {
               </button>
             </div>
           </div>
+
+          <ParentAttendanceInsights records={childRecords} />
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             {[

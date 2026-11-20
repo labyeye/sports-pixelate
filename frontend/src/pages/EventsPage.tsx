@@ -18,12 +18,11 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  PlayCircle,
-  CheckCircle2,
   ChevronRight,
 } from "lucide-react";
 import type { Event } from "@/types/hrms";
 import { getErrorMessage } from "@/lib/utils";
+import { EventsInsights } from "@/components/insights/MoreInsightBlocks";
 
 type SortKey = "name" | "startDate" | "createdAt";
 
@@ -162,49 +161,7 @@ export default function EventsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Trophy className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Events
-            </p>
-            <p className="text-2xl font-bold text-black">{total}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <PlayCircle className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Upcoming / Live
-            </p>
-            <p className="text-2xl font-bold text-black">
-              {
-                events.filter(
-                  (e) => e.status === "upcoming" || e.status === "live",
-                ).length
-              }
-            </p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#A855F7]/10 border-2 border-[#A855F7] flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5 text-[#A855F7]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Completed
-            </p>
-            <p className="text-2xl font-bold text-black">
-              {events.filter((e) => e.status === "completed").length}
-            </p>
-          </div>
-        </div>
-      </div>
+      <EventsInsights events={events} />
 
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="flex items-center gap-2 border-2 border-black bg-white px-3 py-2 flex-1 min-w-48">

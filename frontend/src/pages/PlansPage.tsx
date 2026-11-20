@@ -13,6 +13,7 @@ import {
   type ImportHeader,
 } from "@/components/ImportExportModal";
 import { exportRowsToExcel } from "@/utils/excelImportExport";
+import { ActionDropdown } from "@/components/ui/ActionDropdown";
 import {
   Gift,
   Plus,
@@ -24,7 +25,6 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  Layers,
   IndianRupee,
   Download,
   FileSpreadsheet,
@@ -35,6 +35,7 @@ import {
   FileText,
 } from "lucide-react";
 import { confirmDialog } from "@/lib/confirmDialog";
+import { PlansInsights } from "@/components/insights/PageInsightBlocks";
 
 type ScheduleType = "unlimited" | "sessions_per_week" | "custom_days";
 type Weekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -350,28 +351,30 @@ export default function PlansPage() {
           Coaching Plans
         </h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              exportRowsToExcel(
-                PLAN_IMPORT_HEADERS.map((h) => ({
-                  key: h.key,
-                  label: h.label,
-                })),
-                displayed,
-                "coaching_plans_export.xlsx",
-                "Plans",
-              )
-            }
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
-          <button
-            onClick={() => setImportModal(true)}
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" /> Import Excel
-          </button>
+          <ActionDropdown
+            label="Actions"
+            items={[
+              {
+                label: "Export Excel",
+                icon: <Download className="w-4 h-4 text-[#00A36C]" />,
+                onClick: () =>
+                  exportRowsToExcel(
+                    PLAN_IMPORT_HEADERS.map((h) => ({
+                      key: h.key,
+                      label: h.label,
+                    })),
+                    displayed,
+                    "coaching_plans_export.xlsx",
+                    "Plans",
+                  ),
+              },
+              {
+                label: "Import Excel",
+                icon: <FileSpreadsheet className="w-4 h-4 text-[#024BAB]" />,
+                onClick: () => setImportModal(true),
+              },
+            ]}
+          />
           <button
             onClick={() => {
               resetForm();
@@ -384,46 +387,8 @@ export default function PlansPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Gift className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Plans
-            </p>
-            <p className="text-2xl font-bold text-black">{total}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <Layers className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Sports Covered
-            </p>
-            <p className="text-2xl font-bold text-black">
-              {sportOptions.length}
-            </p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <IndianRupee className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Avg. Monthly Price
-            </p>
-            <p className="text-2xl font-bold text-black">
-              ₹{avgMonthly.toLocaleString("en-IN")}
-            </p>
-          </div>
-        </div>
-      </div>
+      <PlansInsights />
+
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">

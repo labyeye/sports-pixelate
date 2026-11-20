@@ -5,9 +5,24 @@ import img2 from "@/assets/onboarding/2.png";
 import img3 from "@/assets/onboarding/3.png";
 
 const SLIDES = [
-  { title: "Run your academy with ease", body: "Bring students, coaches, attendance, schedules and daily operations together in one place.", color: "#EAF2FF", image: img1 },
-  { title: "Build better athletes", body: "Track performance, participation and progress so every student gets the support they need to improve.", color: "#FFF1E8", image: img2 },
-  { title: "Keep families involved", body: "Share updates, events, payments and reports with parents through a clear and connected experience.", color: "#E9F9F3", image: img3 },
+  {
+    title: "Run your academy with ease",
+    body: "Bring students, coaches, attendance, schedules and daily operations together in one place.",
+    color: "#EAF2FF",
+    image: img1,
+  },
+  {
+    title: "Build better athletes",
+    body: "Track performance, participation and progress so every student gets the support they need to improve.",
+    color: "#FFF1E8",
+    image: img2,
+  },
+  {
+    title: "Keep families involved",
+    body: "Share updates, events, payments and reports with parents through a clear and connected experience.",
+    color: "#E9F9F3",
+    image: img3,
+  },
 ];
 
 const key = (id: string) => `nestacademy:intro:${id}`;
@@ -25,7 +40,8 @@ export default function IntroOnboarding() {
   } catch {
     // storage blocked: skip rather than nag every load
   }
-  if (!isAuthenticated || seen || done || (user as any)?.role === "member") return null;
+  if (!isAuthenticated || seen || done || (user as any)?.role === "member")
+    return null;
 
   const finish = () => {
     try {
@@ -39,10 +55,17 @@ export default function IntroOnboarding() {
   const s = SLIDES[step];
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white text-slate-900" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-white text-slate-900"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="flex items-center justify-between px-6 py-4">
         <span className="text-2xl font-bold text-primary">NestAcademy</span>
-        <button onClick={finish} className="text-sm font-semibold text-slate-500 hover:text-slate-800">
+        <button
+          onClick={finish}
+          className="text-sm font-semibold text-slate-500 hover:text-slate-800"
+        >
           Skip
         </button>
       </div>

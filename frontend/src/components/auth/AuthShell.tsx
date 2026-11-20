@@ -37,15 +37,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           alt="Dashboard preview"
           className="relative z-10 max-w-auto mx-auto"
         />
-        <div className="relative z-10">
-          <h1 className="text-3xl xl:text-4xl font-display font-bold text-white leading-tight mb-5">
-            Every Student. Every Fees. One place.
-          </h1>
-          <p className="text-white/70 text-base font-medium max-w-sm">
-            Manage your entire workforce — attendance, leaves, payroll and
-            reports — all from a single dashboard.
-          </p>
-        </div>
+
         <div className="relative z-10 flex flex-wrap gap-2">
           {features.map(({ icon: Icon, label }) => (
             <div

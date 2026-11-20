@@ -16,6 +16,7 @@ import {
   Sun,
 } from "lucide-react";
 import { notifyError } from "@/hooks/use-toast";
+import { StatCard } from "@/components/ui/StatCard";
 
 const MONTHS = [
   "January",
@@ -226,55 +227,52 @@ export default function EmployeeReportPage() {
         </div>
 
         {}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           {[
             {
               label: "Present",
               value: present,
-              color: "text-[#00C48C]",
+              color: "#00C48C",
               icon: CheckCircle,
             },
             {
               label: "Absent",
               value: absent,
-              color: "text-red-500",
+              color: "#EF4444",
               icon: XCircle,
             },
             {
               label: "Late",
               value: late,
-              color: "text-[#FA731C]",
+              color: "#FA731C",
               icon: Clock,
             },
             {
               label: "Half Day",
               value: halfDay,
-              color: "text-yellow-500",
+              color: "#EAB308",
               icon: Minus,
             },
             {
               label: "On Leave",
               value: onLeave,
-              color: "text-[#024BAB]",
+              color: "#024BAB",
               icon: Calendar,
             },
             {
               label: "Working",
               value: total,
-              color: "text-gray-600",
+              color: "#6B7280",
               icon: BarChart2,
             },
           ].map(({ label, value, color, icon: Icon }) => (
-            <div
+            <StatCard
               key={label}
-              className="bg-white border-2 border-black p-3 text-center"
-            >
-              <Icon className={`w-5 h-5 ${color} mx-auto mb-1`} />
-              <p className={`text-xl font-bold ${color}`}>{value}</p>
-              <p className="text-[10px] font-bold uppercase text-gray-400">
-                {label}
-              </p>
-            </div>
+              label={label}
+              value={value}
+              icon={Icon}
+              color={color}
+            />
           ))}
         </div>
 

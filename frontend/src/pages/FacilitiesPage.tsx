@@ -18,7 +18,6 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  Building2,
   Users2,
   Tag,
   Layers,
@@ -26,6 +25,7 @@ import {
   IndianRupee,
 } from "lucide-react";
 import { confirmDialog } from "@/lib/confirmDialog";
+import { FacilitiesInsights } from "@/components/insights/MoreInsightBlocks";
 
 interface Facility {
   _id: string;
@@ -230,42 +230,8 @@ export default function FacilitiesPage() {
         </button>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Building2 className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Facilities
-            </p>
-            <p className="text-2xl font-bold text-black">{total}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <Users2 className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Capacity
-            </p>
-            <p className="text-2xl font-bold text-black">{totalCapacity}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <MapPin className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Free to Book
-            </p>
-            <p className="text-2xl font-bold text-black">{freeCount}</p>
-          </div>
-        </div>
-      </div>
+      <FacilitiesInsights facilities={facilities} />
+
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">

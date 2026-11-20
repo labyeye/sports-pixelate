@@ -480,7 +480,8 @@ export default function EmployeesPage() {
       fatherName: emp.fatherName || "",
       motherName: emp.motherName || "",
       spouseName: emp.spouseName || "",
-      marriageAnniversary: (emp as any).marriageAnniversary?.split("T")[0] || "",
+      marriageAnniversary:
+        (emp as any).marriageAnniversary?.split("T")[0] || "",
       maritalStatus: emp.maritalStatus || "",
       bloodGroup: emp.bloodGroup || "",
       nationality: emp.nationality || "Indian",
@@ -780,7 +781,12 @@ export default function EmployeesPage() {
     fn: (id: string) => Promise<any>,
     destructive = false,
   ) => {
-    if (!(await confirmDialog(`${label} ${selected.size} employee(s)?${destructive ? " This cannot be undone." : ""}`))) return;
+    if (
+      !(await confirmDialog(
+        `${label} ${selected.size} employee(s)?${destructive ? " This cannot be undone." : ""}`,
+      ))
+    )
+      return;
     setBulkBusy(true);
     let done = 0;
     const total = selected.size;
@@ -796,7 +802,10 @@ export default function EmployeesPage() {
       show: true,
       type: done === total ? "success" : "error",
       title: `${label}: ${done}/${total} done`,
-      message: done === total ? "Bulk action completed." : "Some employees could not be updated.",
+      message:
+        done === total
+          ? "Bulk action completed."
+          : "Some employees could not be updated.",
     });
     load();
   };
@@ -865,7 +874,7 @@ export default function EmployeesPage() {
   }, 0);
 
   return (
-    <AppLayout title="Employees">
+    <AppLayout title="Staff">
       {}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 className="font-display font-bold text-2xl text-black">
@@ -879,33 +888,44 @@ export default function EmployeesPage() {
             }}
             className={cn(
               "border-2 border-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold transition-colors",
-              selectMode ? "bg-black text-white" : "bg-white text-black hover:bg-gray-50",
+              selectMode
+                ? "bg-black text-white"
+                : "bg-white text-black hover:bg-gray-50",
             )}
           >
-            <CheckSquare className="w-4 h-4" /> {selectMode ? "Selecting" : "Select"}
+            <CheckSquare className="w-4 h-4" />{" "}
+            {selectMode ? "Selecting" : "Select"}
           </button>
           <ExportMenu
             name="employees"
             rows={displayedEmployees}
             cols={[
               { header: "Emp ID", value: (e: any) => e.employeeId },
-              { header: "Name", value: (e: any) => `${e.firstName} ${e.lastName}` },
+              {
+                header: "Name",
+                value: (e: any) => `${e.firstName} ${e.lastName}`,
+              },
               { header: "Department", value: (e: any) => e.department?.name },
               { header: "Designation", value: (e: any) => e.designation },
               { header: "Phone", value: (e: any) => e.phone },
               { header: "Email", value: (e: any) => e.email },
-              { header: "Join Date", value: (e: any) => (e.joinDate ? String(e.joinDate).slice(0, 10) : "") },
+              {
+                header: "Join Date",
+                value: (e: any) =>
+                  e.joinDate ? String(e.joinDate).slice(0, 10) : "",
+              },
               { header: "Salary", value: (e: any) => e.salary ?? 0 },
               { header: "Loan Balance", value: (e: any) => e.loanBalance ?? 0 },
               { header: "Status", value: (e: any) => e.status },
             ]}
+            extra={[
+              {
+                label: "Import Excel",
+                icon: <FileSpreadsheet className="w-4 h-4 text-[#024BAB]" />,
+                onClick: () => setImportModal(true),
+              },
+            ]}
           />
-          <button
-            onClick={() => setImportModal(true)}
-            className="border-2 border-black bg-white text-black px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-gray-50 transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" /> Import Excel
-          </button>
           <button
             onClick={openAdd}
             className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm flex items-center gap-1.5 font-bold hover:bg-[#01368A] transition-colors"
@@ -918,52 +938,23 @@ export default function EmployeesPage() {
       <p className="text-xs font-bold text-muted-foreground mb-3">
         {employees.length} employees &middot;{" "}
         {employees.filter((e: any) => e.status === "active").length} active
-        {employees.filter((e: any) => e.status === "inactive").length ? ` · ${employees.filter((e: any) => e.status === "inactive").length} inactive` : ""}
+        {employees.filter((e: any) => e.status === "inactive").length
+          ? ` · ${employees.filter((e: any) => e.status === "inactive").length} inactive`
+          : ""}
         {" · "}
-        {employees.filter((e: any) => { const d = e.joinDate ? new Date(e.joinDate) : null; const n = new Date(); return d && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length} new this month
+        {
+          employees.filter((e: any) => {
+            const d = e.joinDate ? new Date(e.joinDate) : null;
+            const n = new Date();
+            return (
+              d &&
+              d.getMonth() === n.getMonth() &&
+              d.getFullYear() === n.getFullYear()
+            );
+          }).length
+        }{" "}
+        new this month
       </p>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
-        {" "}
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5 text-[#024BAB]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Employees
-            </p>
-            <p className="text-2xl font-bold text-black">{employees.length}</p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00C48C]/10 border-2 border-[#00C48C] flex items-center justify-center shrink-0">
-            <IndianRupee className="w-5 h-5 text-[#00C48C]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Est. Balance
-            </p>
-            <p
-              className={`text-2xl font-bold ${totalEstBalance < 0 ? "text-red-500" : "text-[#00C48C]"}`}
-            >
-              {formatCurrency(totalEstBalance)}
-            </p>
-          </div>
-        </div>
-        <div className="border-2 border-black bg-white p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#EF4444]/10 border-2 border-[#EF4444] flex items-center justify-center shrink-0">
-            <Banknote className="w-5 h-5 text-[#EF4444]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Total Loan Balance
-            </p>
-            <p className="text-2xl font-bold text-[#EF4444]">
-              {formatCurrency(totalLoan)}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -1057,85 +1048,91 @@ export default function EmployeesPage() {
         </div>
       ) : (
         <>
-  {selectMode && (
-          <div className="flex flex-wrap items-center gap-2 mb-3 border-2 border-black bg-[#024BAB]/5 px-3 py-2">
-            <span className="text-sm font-bold">{selected.size} selected</span>
-            <button
-              className="text-xs font-bold border-2 border-black px-2 py-1 bg-white"
-              onClick={() =>
-                setSelected(
-                  selected.size === displayedEmployees.length
-                    ? new Set()
-                    : new Set(displayedEmployees.map((e) => e._id)),
-                )
-              }
-            >
-              {selected.size === displayedEmployees.length
-                ? "Clear all"
-                : "Select all"}
-            </button>
-            {selected.size > 0 && (
-              <>
-                <button
-                  disabled={bulkBusy}
-                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-[#00C48C] text-white"
-                  onClick={() =>
-                    bulkRun("Activate", (id) =>
-                      employeeAPI.update(id, { status: "active" }),
-                    )
-                  }
-                >
-                  Mark Active
-                </button>
-                <button
-                  disabled={bulkBusy}
-                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-gray-500 text-white"
-                  onClick={() =>
-                    bulkRun("Deactivate", (id) =>
-                      employeeAPI.update(id, { status: "inactive" }),
-                    )
-                  }
-                >
-                  Mark Inactive
-                </button>
-                <button
-                  disabled={bulkBusy}
-                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-[#EF4444] text-white"
-                  onClick={() =>
-                    bulkRun("Terminate", (id) => employeeAPI.delete(id), true)
-                  }
-                >
-                  Terminate
-                </button>
-                <button
-                  disabled={bulkBusy}
-                  className="text-xs font-bold border-2 border-black px-2 py-1 bg-white flex items-center gap-1"
-                  onClick={() =>
-                    setIdPrint(displayedEmployees.filter((e) => selected.has(e._id)))
-                  }
-                >
-                  <IdCard className="w-3.5 h-3.5" /> Print ID cards
-                </button>
-                <span className="ml-auto">
-                  <ExportMenu
-                    name="employees_selected"
-                    rows={displayedEmployees.filter((e) => selected.has(e._id))}
-                    cols={[
-                      { header: "Emp ID", value: (e) => e.employeeId },
-                      {
-                        header: "Name",
-                        value: (e) => `${e.firstName} ${e.lastName}`,
-                      },
-                      { header: "Designation", value: (e) => e.designation },
-                      { header: "Status", value: (e) => e.status },
-                    ]}
-                  />
-                </span>
-              </>
-            )}
-            {bulkBusy && <Loader2 className="w-4 h-4 animate-spin" />}
-          </div>
-        )}
+          {selectMode && (
+            <div className="flex flex-wrap items-center gap-2 mb-3 border-2 border-black bg-[#024BAB]/5 px-3 py-2">
+              <span className="text-sm font-bold">
+                {selected.size} selected
+              </span>
+              <button
+                className="text-xs font-bold border-2 border-black px-2 py-1 bg-white"
+                onClick={() =>
+                  setSelected(
+                    selected.size === displayedEmployees.length
+                      ? new Set()
+                      : new Set(displayedEmployees.map((e) => e._id)),
+                  )
+                }
+              >
+                {selected.size === displayedEmployees.length
+                  ? "Clear all"
+                  : "Select all"}
+              </button>
+              {selected.size > 0 && (
+                <>
+                  <button
+                    disabled={bulkBusy}
+                    className="text-xs font-bold border-2 border-black px-2 py-1 bg-[#00C48C] text-white"
+                    onClick={() =>
+                      bulkRun("Activate", (id) =>
+                        employeeAPI.update(id, { status: "active" }),
+                      )
+                    }
+                  >
+                    Mark Active
+                  </button>
+                  <button
+                    disabled={bulkBusy}
+                    className="text-xs font-bold border-2 border-black px-2 py-1 bg-gray-500 text-white"
+                    onClick={() =>
+                      bulkRun("Deactivate", (id) =>
+                        employeeAPI.update(id, { status: "inactive" }),
+                      )
+                    }
+                  >
+                    Mark Inactive
+                  </button>
+                  <button
+                    disabled={bulkBusy}
+                    className="text-xs font-bold border-2 border-black px-2 py-1 bg-[#EF4444] text-white"
+                    onClick={() =>
+                      bulkRun("Terminate", (id) => employeeAPI.delete(id), true)
+                    }
+                  >
+                    Terminate
+                  </button>
+                  <button
+                    disabled={bulkBusy}
+                    className="text-xs font-bold border-2 border-black px-2 py-1 bg-white flex items-center gap-1"
+                    onClick={() =>
+                      setIdPrint(
+                        displayedEmployees.filter((e) => selected.has(e._id)),
+                      )
+                    }
+                  >
+                    <IdCard className="w-3.5 h-3.5" /> Print ID cards
+                  </button>
+                  <span className="ml-auto">
+                    <ExportMenu
+                      name="employees_selected"
+                      rows={displayedEmployees.filter((e) =>
+                        selected.has(e._id),
+                      )}
+                      cols={[
+                        { header: "Emp ID", value: (e) => e.employeeId },
+                        {
+                          header: "Name",
+                          value: (e) => `${e.firstName} ${e.lastName}`,
+                        },
+                        { header: "Designation", value: (e) => e.designation },
+                        { header: "Status", value: (e) => e.status },
+                      ]}
+                    />
+                  </span>
+                </>
+              )}
+              {bulkBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+            </div>
+          )}
 
           {/* Mobile cards */}
           <div className="grid grid-cols-1 gap-3 sm:hidden">
@@ -1321,7 +1318,10 @@ export default function EmployeesPage() {
                     onClick={() => setViewEmp(emp)}
                   >
                     {selectMode && (
-                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="px-3 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={selected.has(emp._id)}
@@ -4249,7 +4249,10 @@ export default function EmployeesPage() {
         onImported={load}
       />
       {idPrint && idPrint.length > 0 && (
-        <PrintIdCardDialog employees={idPrint} onClose={() => setIdPrint(null)} />
+        <PrintIdCardDialog
+          employees={idPrint}
+          onClose={() => setIdPrint(null)}
+        />
       )}
     </AppLayout>
   );

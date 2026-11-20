@@ -4,7 +4,17 @@ import { expenseClaimAPI } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Receipt, Plus, X, Paperclip, Trash2, Settings2, RotateCcw, Wallet, AlertTriangle } from "lucide-react";
+import {
+  Receipt,
+  Plus,
+  X,
+  Paperclip,
+  Trash2,
+  Settings2,
+  RotateCcw,
+  Wallet,
+  AlertTriangle,
+} from "lucide-react";
 
 const CATEGORIES = [
   ["travel", "Travel"],
@@ -40,7 +50,12 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
-type Step = { role: string; status?: string; note?: string; aboveAmount?: number };
+type Step = {
+  role: string;
+  status?: string;
+  note?: string;
+  aboveAmount?: number;
+};
 type Claim = {
   _id: string;
   title: string;
@@ -89,10 +104,17 @@ export default function ExpenseClaimsPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [bills, setBills] = useState<File[]>([]);
-  const [policy, setPolicy] = useState<Policy>({ limits: {}, billRequiredAbove: 0 });
+  const [policy, setPolicy] = useState<Policy>({
+    limits: {},
+    billRequiredAbove: 0,
+  });
   const [polForm, setPolForm] = useState<Policy | null>(null);
   const [payFor, setPayFor] = useState<Claim | null>(null);
-  const [pay, setPay] = useState({ mode: "bank_transfer", reference: "", paidOn: today() });
+  const [pay, setPay] = useState({
+    mode: "bank_transfer",
+    reference: "",
+    paidOn: today(),
+  });
   const [saving, setSaving] = useState(false);
   const [flow, setFlow] = useState<Step[] | null>(null);
 
@@ -111,7 +133,10 @@ export default function ExpenseClaimsPage() {
   }, []);
   useEffect(() => {
     load();
-    expenseClaimAPI.getPolicy().then((r) => setPolicy(r.data)).catch(() => {});
+    expenseClaimAPI
+      .getPolicy()
+      .then((r) => setPolicy(r.data))
+      .catch(() => {});
   }, [load]);
 
   const submit = async (draft: boolean) => {
@@ -247,7 +272,9 @@ export default function ExpenseClaimsPage() {
       d.from || d.to ? `${d.from || "?"} → ${d.to || "?"}` : "",
       d.distanceKm != null ? `${d.distanceKm} km` : "",
       d.fuelLitres != null ? `${d.fuelLitres} L` : "",
-      d.checkIn ? `${dd(d.checkIn)}${d.checkOut ? ` – ${dd(d.checkOut)}` : ""}` : "",
+      d.checkIn
+        ? `${dd(d.checkIn)}${d.checkOut ? ` – ${dd(d.checkOut)}` : ""}`
+        : "",
       d.vendor || "",
     ]
       .filter(Boolean)
@@ -305,7 +332,9 @@ export default function ExpenseClaimsPage() {
       <div className="text-right">
         <p className="font-bold">{fmt(c.approvedAmount ?? c.amount)}</p>
         {c.approvedAmount != null && c.approvedAmount < c.amount && (
-          <p className="text-[10px] text-gray-500 line-through">{fmt(c.amount)}</p>
+          <p className="text-[10px] text-gray-500 line-through">
+            {fmt(c.amount)}
+          </p>
         )}
       </div>
       <span
@@ -373,10 +402,7 @@ export default function ExpenseClaimsPage() {
             <button
               title="Withdraw"
               onClick={() =>
-                expenseClaimAPI
-                  .remove(c._id)
-                  .then(load)
-                  .catch(err)
+                expenseClaimAPI.remove(c._id).then(load).catch(err)
               }
             >
               <Trash2 className="w-4 h-4 text-red-600" />
@@ -395,7 +421,8 @@ export default function ExpenseClaimsPage() {
               Expense Claims
             </h1>
             <p className="text-gray-600 font-medium mt-1">
-              Claim reimbursements; approved amounts are added to the next payroll
+              Claim reimbursements; approved amounts are added to the next
+              payroll
             </p>
           </div>
           <div className="flex gap-2">
@@ -499,7 +526,8 @@ export default function ExpenseClaimsPage() {
             </div>
             {policy.limits[form.category] > 0 && (
               <p className="text-xs text-gray-600">
-                Policy limit for this category: {fmt(policy.limits[form.category])}
+                Policy limit for this category:{" "}
+                {fmt(policy.limits[form.category])}
                 {Number(form.amount) > policy.limits[form.category] &&
                   " — your claim is above it and will be flagged"}
               </p>
@@ -513,26 +541,78 @@ export default function ExpenseClaimsPage() {
             />
             {form.category === "travel" && (
               <div className="grid grid-cols-3 gap-3">
-                <input className={input} placeholder="From" value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} />
-                <input className={input} placeholder="To" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} />
-                <input className={input} type="number" min={0} placeholder="Distance (km)" value={form.distanceKm} onChange={(e) => setForm({ ...form, distanceKm: e.target.value })} />
+                <input
+                  className={input}
+                  placeholder="From"
+                  value={form.from}
+                  onChange={(e) => setForm({ ...form, from: e.target.value })}
+                />
+                <input
+                  className={input}
+                  placeholder="To"
+                  value={form.to}
+                  onChange={(e) => setForm({ ...form, to: e.target.value })}
+                />
+                <input
+                  className={input}
+                  type="number"
+                  min={0}
+                  placeholder="Distance (km)"
+                  value={form.distanceKm}
+                  onChange={(e) =>
+                    setForm({ ...form, distanceKm: e.target.value })
+                  }
+                />
               </div>
             )}
             {form.category === "fuel" && (
               <div className="grid grid-cols-2 gap-3">
-                <input className={input} type="number" min={0} placeholder="Distance (km)" value={form.distanceKm} onChange={(e) => setForm({ ...form, distanceKm: e.target.value })} />
-                <input className={input} type="number" min={0} placeholder="Litres" value={form.fuelLitres} onChange={(e) => setForm({ ...form, fuelLitres: e.target.value })} />
+                <input
+                  className={input}
+                  type="number"
+                  min={0}
+                  placeholder="Distance (km)"
+                  value={form.distanceKm}
+                  onChange={(e) =>
+                    setForm({ ...form, distanceKm: e.target.value })
+                  }
+                />
+                <input
+                  className={input}
+                  type="number"
+                  min={0}
+                  placeholder="Litres"
+                  value={form.fuelLitres}
+                  onChange={(e) =>
+                    setForm({ ...form, fuelLitres: e.target.value })
+                  }
+                />
               </div>
             )}
             {form.category === "lodging" && (
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs font-bold">
                   Check-in
-                  <input className={input} type="date" value={form.checkIn} onChange={(e) => setForm({ ...form, checkIn: e.target.value })} />
+                  <input
+                    className={input}
+                    type="date"
+                    value={form.checkIn}
+                    onChange={(e) =>
+                      setForm({ ...form, checkIn: e.target.value })
+                    }
+                  />
                 </label>
                 <label className="text-xs font-bold">
                   Check-out
-                  <input className={input} type="date" min={form.checkIn} value={form.checkOut} onChange={(e) => setForm({ ...form, checkOut: e.target.value })} />
+                  <input
+                    className={input}
+                    type="date"
+                    min={form.checkIn}
+                    value={form.checkOut}
+                    onChange={(e) =>
+                      setForm({ ...form, checkOut: e.target.value })
+                    }
+                  />
                 </label>
               </div>
             )}
@@ -564,7 +644,9 @@ export default function ExpenseClaimsPage() {
                 type="file"
                 multiple
                 accept="image/*,application/pdf"
-                onChange={(e) => setBills(Array.from(e.target.files || []).slice(0, 5))}
+                onChange={(e) =>
+                  setBills(Array.from(e.target.files || []).slice(0, 5))
+                }
                 className="text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -608,7 +690,10 @@ export default function ExpenseClaimsPage() {
               a limit are flagged for approvers.
             </p>
             {CATEGORIES.map(([v, l]) => (
-              <label key={v} className="flex items-center gap-3 text-sm font-bold">
+              <label
+                key={v}
+                className="flex items-center gap-3 text-sm font-bold"
+              >
                 <span className="w-36">{l}</span>
                 <input
                   className={input}
@@ -619,7 +704,10 @@ export default function ExpenseClaimsPage() {
                   onChange={(e) =>
                     setPolForm({
                       ...polForm,
-                      limits: { ...polForm.limits, [v]: Number(e.target.value) },
+                      limits: {
+                        ...polForm.limits,
+                        [v]: Number(e.target.value),
+                      },
                     })
                   }
                 />
@@ -634,7 +722,10 @@ export default function ExpenseClaimsPage() {
                 placeholder="₹ (0 = never)"
                 value={polForm.billRequiredAbove || ""}
                 onChange={(e) =>
-                  setPolForm({ ...polForm, billRequiredAbove: Number(e.target.value) })
+                  setPolForm({
+                    ...polForm,
+                    billRequiredAbove: Number(e.target.value),
+                  })
                 }
               />
             </label>
@@ -739,7 +830,9 @@ export default function ExpenseClaimsPage() {
                   onChange={(e) =>
                     setFlow(
                       flow.map((x, j) =>
-                        j === i ? { ...x, aboveAmount: Number(e.target.value) } : x,
+                        j === i
+                          ? { ...x, aboveAmount: Number(e.target.value) }
+                          : x,
                       ),
                     )
                   }

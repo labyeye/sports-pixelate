@@ -32,13 +32,12 @@ interface CompanyFormData {
   pincode: string;
 }
 
-const RATE_INAPP = 30;
-const RATE_WHATSAPP = 50;
-const GST_RATE = 18;
+import PlanPicker from "@/components/billing/PlanPicker";
+import { GST_RATE, getPlan, inr, priceFor, type PlanId } from "@/lib/plans";
 
 const STEPS: { id: Step; label: string }[] = [
   { id: "company", label: "SportsClub" },
-  { id: "students", label: "Students" },
+  { id: "students", label: "Plan" },
   { id: "payment", label: "Payment" },
 ];
 
@@ -98,9 +97,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>(
     user?.company ? "students" : "company",
   );
-  const [studentCount, setStudentCount] = useState<number | "">("");
-  const [employeeCount, setEmployeeCount] = useState<number | "">("");
-  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
+  const [planId, setPlanId] = useState<PlanId | "">("");
   const [paying, setPaying] = useState(false);
   const [companyError, setCompanyError] = useState("");
   const [companyForm, setCompanyForm] = useState<CompanyFormData | null>(null);
@@ -111,13 +108,7 @@ export default function OnboardingPage() {
     }
   }, [user?.company, user?.subscription?.status, navigate]);
 
-  const count = Number(studentCount) || 0;
-  const empCount = Number(employeeCount) || 0;
-  const totalUsers = count + empCount;
-  const rate = wantsWhatsapp ? RATE_WHATSAPP : RATE_INAPP;
-  const monthlySubtotal = totalUsers * rate;
-  const monthlyGstAmount = Math.round(monthlySubtotal * (GST_RATE / 100));
-  const monthlyPrice = monthlySubtotal + monthlyGstAmount;
+  const price = planId ? priceFor(planId) : null;
 
   const handleCreateCompany = async (formData: CompanyFormData) => {
     // No API call here — the company is only persisted in the database
@@ -129,10 +120,10 @@ export default function OnboardingPage() {
   };
 
   const handleStudentContinue = () => {
-    if (!count || count < 1) {
+    if (!planId) {
       toast({
-        title: "Enter student count",
-        description: "How many students will you manage?",
+        title: "Choose a plan",
+        description: "Pick the plan that fits your number of students.",
         variant: "destructive",
       });
       return;
@@ -152,11 +143,7 @@ export default function OnboardingPage() {
     setPaying(true);
     try {
       const res = await billingAPI.createOrder(
-        count,
-        empCount,
-        wantsWhatsapp,
-        "monthly",
-        "cashfree",
+        planId as PlanId,
         user?.company ? undefined : companyForm!,
       );
       if (!res.success) throw new Error("Failed to create order");
@@ -253,97 +240,16 @@ export default function OnboardingPage() {
           <div>
             <div className="text-center mb-8">
               <h1 className="font-display font-bold text-3xl text-black mb-2">
-                How many users?
+                Choose your plan
               </h1>
               <p className="text-gray-500 font-medium text-sm">
-                ₹{RATE_INAPP}/user/month for in-app notifications, or ₹
-                {RATE_WHATSAPP}/user/month with WhatsApp included
+                Yearly plans by number of students. Staff are free.
               </p>
             </div>
 
-            <div className="bg-white border-2 border-black p-8 max-w-sm mx-auto">
-              <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
-                Number of students
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={studentCount}
-                onChange={(e) =>
-                  setStudentCount(
-                    e.target.value === ""
-                      ? ""
-                      : Math.max(1, parseInt(e.target.value) || 1),
-                  )
-                }
-                placeholder="e.g. 40"
-                autoFocus
-                className="w-full border-2 border-black px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-2"
-              />
-              <p className="text-xs text-gray-400 font-medium text-center mb-4">
-                Your current enrolled students, across all sports and batches
-              </p>
+            <PlanPicker value={planId} onChange={setPlanId} />
 
-              <label className="block text-xs font-bold uppercase tracking-wider text-black mb-3">
-                Number of employees
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={employeeCount}
-                onChange={(e) =>
-                  setEmployeeCount(
-                    e.target.value === ""
-                      ? ""
-                      : Math.max(0, parseInt(e.target.value) || 0),
-                  )
-                }
-                placeholder="e.g. 5"
-                className="w-full border-2 border-black px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-2"
-              />
-              <p className="text-xs text-gray-400 font-medium text-center mb-4">
-                Coaches and staff you'll track attendance for
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setWantsWhatsapp((v) => !v)}
-                className={cn(
-                  "w-full flex items-center justify-between border-2 border-black px-4 py-3 mb-4 text-left transition-colors",
-                  wantsWhatsapp ? "bg-[#00C48C]/10" : "bg-white",
-                )}
-              >
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-black">
-                    WhatsApp Notifications
-                  </p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
-                    ₹{RATE_WHATSAPP}/user/month instead of ₹{RATE_INAPP}
-                  </p>
-                </div>
-                <div
-                  className={cn(
-                    "w-10 h-6 border-2 border-black shrink-0 flex items-center px-0.5 transition-colors",
-                    wantsWhatsapp
-                      ? "bg-[#00C48C] justify-end"
-                      : "bg-white justify-start",
-                  )}
-                >
-                  <div className="w-4 h-4 bg-white border-2 border-black" />
-                </div>
-              </button>
-
-              {count > 0 && (
-                <div className="text-center mb-6">
-                  <p className="text-sm font-bold text-[#024BAB]">
-                    ₹{monthlyPrice.toLocaleString("en-IN")}/month
-                  </p>
-                  <p className="text-[11px] text-gray-400 font-medium mt-0.5">
-                    {totalUsers} users × ₹{rate} — inclusive of {GST_RATE}% GST
-                  </p>
-                </div>
-              )}
-
+            <div className="max-w-sm mx-auto mt-6">
               <button
                 onClick={handleStudentContinue}
                 className="w-full bg-[#024BAB] text-white border-2 border-black font-bold uppercase text-sm px-4 py-3 flex items-center justify-center gap-2 hover:bg-[#023590] transition-all"
@@ -379,23 +285,22 @@ export default function OnboardingPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Plan</span>
                     <span className="font-bold text-black">
-                      ₹{rate}/user/month
-                      {wantsWhatsapp ? " (WhatsApp)" : " (In-app)"}
+                      {getPlan(planId)?.name} · yearly
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-bold text-gray-600">Students</span>
-                    <span className="font-bold text-black">{studentCount}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-gray-600">Employees</span>
-                    <span className="font-bold text-black">{empCount}</span>
+                    <span className="font-bold text-black">
+                      {getPlan(planId)?.maxStudents
+                        ? `Up to ${getPlan(planId)?.maxStudents}`
+                        : "Unlimited"}
+                    </span>
                   </div>
                   <div className="border-t-2 border-black pt-3 space-y-2">
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-bold text-gray-600">Subtotal</span>
                       <span className="font-bold text-black">
-                        ₹{monthlySubtotal.toLocaleString("en-IN")}
+                        {inr(price?.subtotal ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
@@ -403,16 +308,16 @@ export default function OnboardingPage() {
                         GST ({GST_RATE}%)
                       </span>
                       <span className="font-bold text-black">
-                        ₹{monthlyGstAmount.toLocaleString("en-IN")}
+                        {inr(price?.gst ?? 0)}
                       </span>
                     </div>
                   </div>
                   <div className="border-t-2 border-black pt-3 flex justify-between items-center">
                     <span className="font-bold text-sm uppercase">
-                      Total / month
+                      Total / year
                     </span>
                     <span className="font-bold text-xl text-[#024BAB]">
-                      ₹{monthlyPrice.toLocaleString("en-IN")}
+                      {inr(price?.total ?? 0)}
                     </span>
                   </div>
                 </div>
@@ -464,7 +369,7 @@ export default function OnboardingPage() {
                 ) : (
                   <>
                     <ExternalLink className="w-5 h-5" />
-                    Pay ₹{monthlyPrice.toLocaleString("en-IN")} via Cashfree
+                    Pay {inr(price?.total ?? 0)} via Cashfree
                   </>
                 )}
               </button>

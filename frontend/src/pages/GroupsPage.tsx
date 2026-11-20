@@ -12,6 +12,7 @@ import { notifyError, useToast } from "@/hooks/use-toast";
 import { formatCurrency, getErrorMessage } from "@/lib/utils";
 import type { Sport } from "@/types/hrms";
 import { Layers, Plus, Loader2, Users, UserCheck, Power } from "lucide-react";
+import { GroupsInsights } from "@/components/insights/MoreInsightBlocks";
 
 export default function GroupsPage() {
   const { toast } = useToast();
@@ -105,6 +106,8 @@ export default function GroupsPage() {
           </button>
         </form>
       </div>
+
+      <GroupsInsights groups={groups} />
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="border-2 border-black p-3 bg-[#00C48C]/10">

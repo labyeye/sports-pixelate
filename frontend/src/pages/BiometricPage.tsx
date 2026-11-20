@@ -43,7 +43,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
-import { StatCard } from "@/components/ui/StatCard";
 import { confirmDialog } from "@/lib/confirmDialog";
 
 type Tab = "locations_devices" | "logs" | "adms";
@@ -826,27 +825,6 @@ export default function BiometricPage() {
         <div className="min-w-0">
           {tab === "locations_devices" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <StatCard
-                  label="Locations"
-                  value={locations.length}
-                  icon={MapPin}
-                  color="#024BAB"
-                />
-                <StatCard
-                  label="Devices"
-                  value={devices.length}
-                  icon={Cpu}
-                  color="#FA731C"
-                />
-                <StatCard
-                  label="Connected"
-                  value={devices.filter((d) => d.activated).length}
-                  icon={CheckCircle2}
-                  color="#00C48C"
-                />
-              </div>
-
               <section className="border-2 border-black bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b-2 border-black bg-[#F0F6FF]">
                   <div className="flex items-center gap-3">

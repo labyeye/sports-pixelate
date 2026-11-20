@@ -9,7 +9,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
 import { confirmDialog } from "@/lib/confirmDialog";
-import { FileText, Plus, Trash2, Edit2, Printer, Loader2, X } from "lucide-react";
+import {
+  FileText,
+  Plus,
+  Trash2,
+  Edit2,
+  Printer,
+  Loader2,
+  X,
+} from "lucide-react";
 
 interface Letter {
   _id: string;
@@ -27,11 +35,23 @@ export default function LettersPage() {
   const [letters, setLetters] = useState<Letter[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [edit, setEdit] = useState<{ id?: string; name: string; body: string } | null>(null);
-  const [gen, setGen] = useState<{ letter: Letter; empId: string; text: string } | null>(null);
+  const [edit, setEdit] = useState<{
+    id?: string;
+    name: string;
+    body: string;
+  } | null>(null);
+  const [gen, setGen] = useState<{
+    letter: Letter;
+    empId: string;
+    text: string;
+  } | null>(null);
 
   const fail = (e: unknown) =>
-    toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+    toast({
+      title: "Error",
+      description: getErrorMessage(e),
+      variant: "destructive",
+    });
 
   const load = useCallback(async () => {
     try {
@@ -82,7 +102,9 @@ export default function LettersPage() {
       designation: e?.designation || "",
       company: (user as any)?.company?.name || "",
       empId: e?.employeeId || "",
-      joiningDate: e?.joinDate ? new Date(e.joinDate).toLocaleDateString("en-IN") : "",
+      joiningDate: e?.joinDate
+        ? new Date(e.joinDate).toLocaleDateString("en-IN")
+        : "",
     };
     return body.replace(/{{(\w+)}}/g, (m, k) => vals[k] || m);
   };
@@ -103,7 +125,9 @@ export default function LettersPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-start justify-between mb-6 gap-3">
           <div>
-            <h1 className="font-display font-bold text-3xl text-black">Letters</h1>
+            <h1 className="font-display font-bold text-3xl text-black">
+              Letters
+            </h1>
             <p className="text-gray-600 font-medium mt-1">
               Offer, appointment and experience letter templates
             </p>
@@ -123,13 +147,18 @@ export default function LettersPage() {
         ) : (
           <div className="space-y-3">
             {letters.map((l) => (
-              <div key={l._id} className="border-2 border-black bg-white p-4 flex items-center gap-3">
+              <div
+                key={l._id}
+                className="border-2 border-black bg-white p-4 flex items-center gap-3"
+              >
                 <div className="w-10 h-10 bg-[#024BAB]/10 border-2 border-[#024BAB] flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5 text-[#024BAB]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-bold truncate">{l.name}</p>
-                  <p className="text-xs text-gray-600 truncate">{l.body.slice(0, 90)}</p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {l.body.slice(0, 90)}
+                  </p>
                 </div>
                 <button
                   onClick={() => setGen({ letter: l, empId: "", text: l.body })}
@@ -137,7 +166,11 @@ export default function LettersPage() {
                 >
                   Generate
                 </button>
-                <button onClick={() => setEdit({ id: l._id, name: l.name, body: l.body })}>
+                <button
+                  onClick={() =>
+                    setEdit({ id: l._id, name: l.name, body: l.body })
+                  }
+                >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button onClick={() => remove(l)}>
@@ -153,7 +186,9 @@ export default function LettersPage() {
         <div className="nb-backdrop fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="nb-modal border-2 border-black bg-white w-full max-w-lg p-5 space-y-3">
             <div className="flex justify-between">
-              <h2 className="font-bold text-lg">{edit.id ? "Edit" : "New"} template</h2>
+              <h2 className="font-bold text-lg">
+                {edit.id ? "Edit" : "New"} template
+              </h2>
               <button onClick={() => setEdit(null)}>
                 <X className="w-4 h-4" />
               </button>
@@ -170,7 +205,9 @@ export default function LettersPage() {
               value={edit.body}
               onChange={(e) => setEdit({ ...edit, body: e.target.value })}
             />
-            <p className="text-[11px] text-gray-500 break-words">Placeholders: {HINT}</p>
+            <p className="text-[11px] text-gray-500 break-words">
+              Placeholders: {HINT}
+            </p>
             <button
               onClick={save}
               className="w-full bg-[#024BAB] text-white border-2 border-black py-2 font-bold uppercase text-sm"
@@ -194,7 +231,11 @@ export default function LettersPage() {
               className="w-full border-2 border-black px-3 py-2 text-sm bg-white"
               value={gen.empId}
               onChange={(e) =>
-                setGen({ ...gen, empId: e.target.value, text: fill(gen.letter.body, e.target.value) })
+                setGen({
+                  ...gen,
+                  empId: e.target.value,
+                  text: fill(gen.letter.body, e.target.value),
+                })
               }
             >
               <option value="">Select staff member…</option>

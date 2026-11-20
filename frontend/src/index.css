@@ -1048,3 +1048,28 @@ span[class*="border-2"]:is(
 *::after {
   font-weight: 400 !important;
 }
+
+/* ------------------------------------------------------------------
+   Every page: headings, text and cards rise in when you open the page.
+   Cards inside grids/lists already stagger (nb-rise above); this covers
+   the title, subtitles and any other text or card sitting directly on the
+   page. Replays on every route change because a new page mounts new nodes.
+------------------------------------------------------------------- */
+@keyframes page-text-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+main :is(h1, h2, h3, h4, p, label, table, .border-2.bg-white) {
+  animation: page-text-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  main :is(h1, h2, h3, h4, p, label, table, .border-2.bg-white) {
+    animation: none;
+  }
+}

@@ -27,9 +27,15 @@ import { cn, getErrorMessage } from "@/lib/utils";
 
 import { payWithCashfree } from "@/lib/cashfree";
 
-const RATE_INAPP = 30;
-const RATE_WHATSAPP = 50;
-const GST_RATE = 18;
+import PlanPicker from "@/components/billing/PlanPicker";
+import {
+  GST_RATE,
+  inr,
+  getPlan,
+  planForStudents,
+  priceFor,
+  type PlanId,
+} from "@/lib/plans";
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -40,9 +46,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [newStudentCount, setNewStudentCount] = useState<number | "">("");
-  const [newEmployeeCount, setNewEmployeeCount] = useState<number | "">("");
-  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanId | "">("");
   const [gatewayModal, setGatewayModal] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponChecking, setCouponChecking] = useState(false);
@@ -56,9 +60,10 @@ export default function BillingPage() {
         .then((r) => {
           if (r.success) {
             setSubscription(r.data);
-            setNewStudentCount(r.data.maxStudents || "");
-            setNewEmployeeCount(r.data.maxEmployees || "");
-            setWantsWhatsapp(!!r.data.wantsWhatsapp);
+            setSelectedPlan(
+              (r.data.planId as PlanId) ||
+                planForStudents(r.data.currentStudentCount || 0).id,
+            );
           }
         })
         .catch(notifyError),
@@ -102,7 +107,7 @@ export default function BillingPage() {
   const daysLeft = expiryDate
     ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000))
     : null;
-  const totalDays = isTrial ? 60 : sub?.billingCycle === "yearly" ? 365 : 30;
+  const totalDays = isTrial ? 60 : sub?.billingCycle === "monthly" ? 30 : 365;
   const daysPct =
     daysLeft != null
       ? Math.min(Math.round((daysLeft / totalDays) * 100), 100)
@@ -110,7 +115,6 @@ export default function BillingPage() {
 
   const isActive =
     sub?.status === "active" || sub?.status === "pending_renewal";
-
 
   const handleDownloadInvoice = (inv: any) => {
     setDownloading(inv._id);
@@ -139,7 +143,7 @@ export default function BillingPage() {
     try {
       const res = await billingAPI.validateOfferCode(
         couponCode.trim(),
-        Number(newStudentCount) || undefined,
+        selectedPlan || undefined,
       );
       setAppliedCoupon(res.data);
       toast({ title: "Coupon applied", description: res.message });
@@ -171,12 +175,11 @@ export default function BillingPage() {
     });
   };
 
-  const handleUpdateStudentCount = () => {
-    const count = Number(newStudentCount);
-    if (!count || count < 1) {
+  const handlePayClick = () => {
+    if (!selectedPlan) {
       toast({
-        title: "Enter student count",
-        description: "How many students should this plan cover?",
+        title: "Choose a plan",
+        description: "Pick the plan that fits your students.",
         variant: "destructive",
       });
       return;
@@ -185,17 +188,12 @@ export default function BillingPage() {
   };
 
   const handleGatewaySelect = async (gateway: "cashfree") => {
-    const count = Number(newStudentCount);
-    if (!count) return;
+    if (!selectedPlan) return;
     setGatewayModal(false);
     setUpgrading(true);
     try {
       const res = await billingAPI.createOrder(
-        count,
-        Number(newEmployeeCount) || 0,
-        wantsWhatsapp,
-        "monthly",
-        gateway,
+        selectedPlan,
         undefined,
         appliedCoupon?.code,
       );
@@ -209,6 +207,10 @@ export default function BillingPage() {
         title: "Payment Successful!",
         description: "Subscription updated.",
       });
+      const fresh = await billingAPI.getSubscription();
+      if (fresh.success) setSubscription(fresh.data);
+      const inv = await billingAPI.getInvoices();
+      if (inv.success) setInvoices(inv.data);
     } catch (err: unknown) {
       if (getErrorMessage(err) !== "Payment cancelled") {
         toast({
@@ -325,8 +327,8 @@ export default function BillingPage() {
             {
               label: "Students",
               value: studentsUsed,
-              max: studentsMax,
-              pct: studentsPct,
+              max: studentsMax >= 1000000 ? "Unlimited" : studentsMax,
+              pct: studentsMax >= 1000000 ? 0 : studentsPct,
               icon: Users,
             },
             {
@@ -345,7 +347,10 @@ export default function BillingPage() {
             },
             {
               label: "Plan Limit",
-              value: `${studentsMax} students`,
+              value:
+                studentsMax >= 1000000
+                  ? "Unlimited"
+                  : `${studentsMax} students`,
               max: "",
               pct: 100,
               icon: Building2,
@@ -381,83 +386,21 @@ export default function BillingPage() {
 
         {}
         <div id="update-plan">
-          <h2 className="font-display font-bold text-2xl text-black mb-6">
-            Update Plan & User Count
+          <h2 className="font-display font-bold text-2xl text-black mb-2">
+            Choose your plan
           </h2>
-          <p className="text-sm text-muted-foreground -mt-4 mb-6">
-            ₹{RATE_INAPP}/user/month for in-app notifications, or ₹
-            {RATE_WHATSAPP}/user/month with WhatsApp notifications included —
-            billed per student + employee
+          <p className="text-sm text-muted-foreground mb-6">
+            Yearly plans by number of students. Staff are free, and renewing
+            early adds a full year on top of the time you have left.
           </p>
-          <div className="grid grid-cols-2">
-            <div className="border-2 p-5 bg-white max-w-sm">
-              <div className="grid grid-cols-2">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
-                  <Users className="w-3.5 h-3.5 text-[#024BAB]" />
-                  Number of students
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={newStudentCount}
-                  onChange={(e) =>
-                    setNewStudentCount(
-                      e.target.value === ""
-                        ? ""
-                        : Math.max(1, parseInt(e.target.value) || 1),
-                    )
-                  }
-                  className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
-                />
-
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
-                  <Briefcase className="w-3.5 h-3.5 text-[#024BAB]" />
-                  Number of employees
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={newEmployeeCount}
-                  onChange={(e) =>
-                    setNewEmployeeCount(
-                      e.target.value === ""
-                        ? ""
-                        : Math.max(0, parseInt(e.target.value) || 0),
-                    )
-                  }
-                  className="w-full border-2 border-black px-4 py-2.5 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#024BAB] mb-4"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setWantsWhatsapp((v) => !v)}
-                className={cn(
-                  "w-full flex items-center justify-between border-2 border-black px-4 py-3 mb-4 text-left transition-colors",
-                  wantsWhatsapp ? "bg-[#00C48C]/10" : "bg-white",
-                )}
-              >
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-black">
-                    WhatsApp Notifications
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    ₹{RATE_WHATSAPP}/user/month instead of ₹{RATE_INAPP} — adds
-                    WhatsApp alongside in-app
-                  </p>
-                </div>
-                <div
-                  className={cn(
-                    "w-10 h-6 border-2 border-black shrink-0 flex items-center px-0.5 transition-colors",
-                    wantsWhatsapp
-                      ? "bg-[#00C48C] justify-end"
-                      : "bg-white justify-start",
-                  )}
-                >
-                  <div className="w-4 h-4 bg-white border-2 border-black" />
-                </div>
-              </button>
-
+          <PlanPicker
+            value={selectedPlan}
+            onChange={setSelectedPlan}
+            students={sub?.currentStudentCount ?? 0}
+            current={sub?.planId}
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+            <div className="border-2 p-5 bg-white">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-black mb-2">
                 <Tag className="w-3.5 h-3.5 text-[#024BAB]" />
                 Coupon code
@@ -508,78 +451,52 @@ export default function BillingPage() {
                   {appliedCoupon.discountType === "bonus_months" &&
                     `${appliedCoupon.bonusMonths} bonus month(s)`}
                   {appliedCoupon.discountType === "flat_rate" &&
-                    `₹${appliedCoupon.flatRate}/user/month`}
+                    `plan at ${inr(appliedCoupon.flatRate)}`}
                   {appliedCoupon.discountType === "percent_off" &&
                     `${appliedCoupon.percentOff}% off`}
                 </p>
               )}
               {!appliedCoupon && !couponError && <div className="mb-3" />}
 
-              {Number(newStudentCount) > 0 && (
-                <div className="mb-4">
-                  {(() => {
-                    const units =
-                      Number(newStudentCount) + (Number(newEmployeeCount) || 0);
-                    const baseRate = wantsWhatsapp ? RATE_WHATSAPP : RATE_INAPP;
-                    let rate = baseRate;
-                    if (
-                      appliedCoupon?.discountType === "flat_rate" &&
-                      appliedCoupon.flatRate
-                    ) {
-                      rate = appliedCoupon.flatRate;
-                    }
-                    let monthly = units * rate;
-                    if (
-                      appliedCoupon?.discountType === "percent_off" &&
-                      appliedCoupon.percentOff
-                    ) {
-                      monthly = Math.round(
-                        monthly * (1 - appliedCoupon.percentOff / 100),
-                      );
-                    }
-                    const discounted = monthly !== units * baseRate;
-                    return (
-                      <>
-                        {discounted && (
-                          <span className="text-sm font-medium text-muted-foreground line-through mr-2">
-                            ₹{(units * baseRate).toLocaleString("en-IN")}
-                          </span>
-                        )}
-                        <span className="font-display font-bold text-3xl text-black">
-                          ₹{monthly.toLocaleString("en-IN")}
+              {selectedPlan &&
+                (() => {
+                  const price = priceFor(selectedPlan, appliedCoupon);
+                  const list = getPlan(selectedPlan)!.price;
+                  return (
+                    <div className="mb-4">
+                      {price.subtotal !== list && (
+                        <span className="text-sm font-medium text-muted-foreground line-through mr-2">
+                          {inr(list)}
                         </span>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          /mo
-                        </span>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          ₹{rate}/user/month × {units} users + {GST_RATE}% GST
-                          (₹
-                          {(
-                            monthly + Math.round((monthly * GST_RATE) / 100)
-                          ).toLocaleString("en-IN")}{" "}
-                          total)
-                          {appliedCoupon?.discountType === "bonus_months" &&
-                            ` + ${appliedCoupon.bonusMonths} bonus month(s)`}
-                        </p>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
+                      )}
+                      <span className="font-display font-bold text-3xl text-black">
+                        {inr(price.subtotal)}
+                      </span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        /year
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        + {GST_RATE}% GST ({inr(price.gst)}) = {inr(price.total)}{" "}
+                        total
+                        {appliedCoupon?.discountType === "bonus_months" &&
+                          ` + ${appliedCoupon.bonusMonths} bonus month(s)`}
+                      </p>
+                    </div>
+                  );
+                })()}
 
               <button
-                onClick={handleUpdateStudentCount}
-                disabled={
-                  upgrading ||
-                  (isActive && Number(newStudentCount) === studentsMax)
-                }
+                onClick={handlePayClick}
+                disabled={upgrading || !selectedPlan}
                 className="border-2 w-full py-2.5 text-sm flex items-center justify-center gap-2 bg-black text-white hover:bg-black/80 disabled:opacity-50"
               >
                 {upgrading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    Update & Pay
+                    {isActive && !isTrial && selectedPlan === sub?.planId
+                      ? "Renew & Pay"
+                      : "Pay & Activate"}
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -701,8 +618,8 @@ export default function BillingPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 shrink-0" />
-                Payments processed securely via Cashfree.
-                We never store your card details.
+                Payments processed securely via Cashfree. We never store your
+                card details.
               </p>
             </div>
           </div>

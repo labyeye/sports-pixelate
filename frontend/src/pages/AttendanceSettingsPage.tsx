@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Percent,
   Wallet,
+  GraduationCap,
 } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -323,6 +324,7 @@ interface BalanceRow {
 }
 
 export default function AttendanceSettingsPage() {
+  const [audience, setAudience] = useState<"staff" | "students">("staff");
   const [activeTab, setActiveTab] = useState<"rules" | "late" | "leave">(
     "rules",
   );
@@ -579,6 +581,25 @@ export default function AttendanceSettingsPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="flex border-2 border-black bg-white">
+              {(
+                [
+                  { key: "staff", label: "Staff", icon: Users },
+                  { key: "students", label: "Students", icon: GraduationCap },
+                ] as const
+              ).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setAudience(key)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-r-2 border-black last:border-r-0 transition-colors ${audience === key ? "bg-black text-white" : "bg-white text-black hover:bg-black/5"}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {audience === "staff" && (
             <div className="flex flex-wrap border-2 border-black bg-white">
               {(
                 [
@@ -605,8 +626,11 @@ export default function AttendanceSettingsPage() {
                 </button>
               ))}
             </div>
+            )}
 
-            {activeTab === "rules" && (
+            {(audience === "students" || activeTab === "rules") && (
+              <>
+              {audience === "staff" && (
               <>
                 <div className="bg-white border-2 border-black">
                   <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
@@ -709,6 +733,10 @@ export default function AttendanceSettingsPage() {
                   </div>
                 </div>
 
+              </>
+              )}
+              {audience === "students" && (
+              <>
                 <div className="bg-white border-2 border-black">
                   <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
                     <div className="flex items-center gap-3">
@@ -830,7 +858,7 @@ export default function AttendanceSettingsPage() {
                           min={0}
                           max={240}
                           onChange={(v) => set({ studentLateGraceMinutes: v })}
-                          hint={`Late if marked more than ${settings.studentLateGraceMinutes} min after the session starts`}
+                          hint={`Last on-time arrival = session start + ${settings.studentLateGraceMinutes} min (e.g. 10:00 session → on time till ${fmt(10, settings.studentLateGraceMinutes)}, 10:${String(settings.studentLateGraceMinutes + 1).padStart(2, "0")} is marked Late). Late is only a label — no deduction.`}
                         />
                       )}
                     </div>
@@ -921,6 +949,9 @@ export default function AttendanceSettingsPage() {
                   </div>
                 </div>
 
+              </>
+              )}
+
                 <button
                   onClick={handleSave}
                   disabled={saving}
@@ -937,7 +968,7 @@ export default function AttendanceSettingsPage() {
             )}
 
             {/* Late Allowance */}
-            {activeTab === "late" && (
+            {audience === "staff" && activeTab === "late" && (
               <div className="bg-white border-2 border-black">
                 <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
                   <div className="flex items-center gap-3">
@@ -996,7 +1027,7 @@ export default function AttendanceSettingsPage() {
             )}
 
             {/* Leave Allowance */}
-            {activeTab === "leave" && (
+            {audience === "staff" && activeTab === "leave" && (
               <div className="bg-white border-2 border-black">
                 <div className="p-4 border-b-2 border-black bg-[#F0F6FF]">
                   <div className="flex items-center gap-3">

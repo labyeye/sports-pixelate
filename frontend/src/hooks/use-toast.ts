@@ -48,9 +48,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const toast = React.useCallback((props: ToastInput) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { ...props, id }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    // Errors stay until the user taps "Got it" (see Toaster) so they can't be missed.
+    if (props.variant !== "destructive")
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 4000);
   }, []);
 
   React.useEffect(() => {

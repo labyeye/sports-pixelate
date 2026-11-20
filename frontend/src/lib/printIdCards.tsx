@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { IdCardView } from "@/components/idcard/IdCardView";
-import { cardDims, qrValue, type IdCardTemplate, type IdCompany } from "@/lib/idCard";
+import {
+  cardDims,
+  qrValue,
+  type IdCardTemplate,
+  type IdCompany,
+} from "@/lib/idCard";
 import { buildQrMap } from "@/lib/idCardQr";
 import { writePrintDocument } from "@/lib/printWindow";
 
@@ -20,7 +25,9 @@ export interface PrintIdOptions {
 export async function printIdCards(opts: PrintIdOptions): Promise<boolean> {
   const win = window.open("", "_blank");
   if (!win) return false;
-  win.document.write("<p style='font:14px sans-serif;padding:16px'>Preparing ID cards…</p>");
+  win.document.write(
+    "<p style='font:14px sans-serif;padding:16px'>Preparing ID cards…</p>",
+  );
 
   const { employees, template, company, layout } = opts;
   const withBack = opts.sides === "both" && template.backEnabled;
@@ -31,12 +38,19 @@ export async function printIdCards(opts: PrintIdOptions): Promise<boolean> {
   for (const emp of employees)
     for (const side of [template.front, template.back])
       for (const el of side.elements)
-        if (el.kind === "qr" && el.visible) values.push(qrValue(el, emp, company));
+        if (el.kind === "qr" && el.visible)
+          values.push(qrValue(el, emp, company));
   const qrMap = await buildQrMap(values);
 
   const card = (emp: any, side: "front" | "back") =>
     renderToStaticMarkup(
-      <IdCardView template={template} side={side} employee={emp} company={company} qrMap={qrMap} />,
+      <IdCardView
+        template={template}
+        side={side}
+        employee={emp}
+        company={company}
+        qrMap={qrMap}
+      />,
     );
 
   let body = "";
@@ -70,7 +84,10 @@ export async function printIdCards(opts: PrintIdOptions): Promise<boolean> {
         // Back sheet is mirrored per row so each back lines up behind its front when printed double-sided.
         const backs: string[] = [];
         for (let r = 0; r < chunk.length; r += cols) {
-          const row = chunk.slice(r, r + cols).map((e) => card(e, "back")).reverse();
+          const row = chunk
+            .slice(r, r + cols)
+            .map((e) => card(e, "back"))
+            .reverse();
           // pad short rows on the left, so a lone card ends up behind its front when the sheet is flipped
           while (row.length < cols) row.unshift("");
           backs.push(...row);

@@ -165,8 +165,9 @@ export default function WelcomePage() {
                 <span className="text-[#FA731C]">{userName}!</span>
               </h1>
               <p className="mt-3 text-white/80 text-sm font-medium max-w-md">
-                Your NestAcademy workspace is live. Everything you need to manage
-                your team — payroll, attendance, leaves, performance — is ready.
+                Your NestAcademy workspace is live. Everything you need to
+                manage your team — payroll, attendance, leaves, performance — is
+                ready.
               </p>
             </div>
 

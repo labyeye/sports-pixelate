@@ -37,6 +37,7 @@ const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const HolidaysPage = lazy(() => import("./pages/HolidaysPage"));
 const AnnouncementsPage = lazy(() => import("./pages/AnnouncementsPage"));
 const TrashPage = lazy(() => import("./pages/TrashPage"));
+const LeadsPage = lazy(() => import("./pages/LeadsPage"));
 const TasksPage = lazy(() => import("./pages/TasksPage"));
 const LettersPage = lazy(() => import("./pages/LettersPage"));
 const NfcManagerPage = lazy(() => import("./pages/NfcManagerPage"));
@@ -355,6 +356,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/leads"
+            element={
+              <ProtectedRoute>
+                <LeadsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/tasks"
             element={
               <ProtectedRoute>
@@ -619,8 +628,22 @@ function AppRoutes() {
               </ProtectedRoute>
             }
           />
-          <Route path="/timetable" element={<ProtectedRoute><TimetablePage /></ProtectedRoute>} />
-          <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+          <Route
+            path="/timetable"
+            element={
+              <ProtectedRoute>
+                <TimetablePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/progress"
+            element={
+              <ProtectedRoute>
+                <ProgressPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

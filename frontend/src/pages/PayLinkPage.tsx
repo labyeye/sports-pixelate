@@ -4,7 +4,6 @@ import { CheckCircle, Clock, Loader2, Lock, XCircle } from "lucide-react";
 import { payLinkAPI } from "@/services/api";
 import {
   loadCashfreeScript,
-  loadRazorpayScript,
   redirectToGatewayCheckout,
 } from "@/lib/paymentGateway";
 import { getErrorMessage } from "@/lib/utils";
@@ -89,7 +88,7 @@ export default function PayLinkPage() {
           );
         }
         const cashfree = await (window as any).Cashfree({
-          mode: import.meta.env.PROD ? "production" : "sandbox",
+          mode: order.mode || (import.meta.env.PROD ? "production" : "sandbox"),
         });
         const result = await cashfree.checkout({
           paymentSessionId: order.paymentSessionId,
@@ -98,36 +97,7 @@ export default function PayLinkPage() {
         if (result.error) throw new Error("Payment cancelled");
         await payLinkAPI.verify(token);
       } else {
-        if (!(await loadRazorpayScript())) {
-          throw new Error(
-            "Couldn't load the payment page. Check your connection.",
-          );
-        }
-        await new Promise<void>((resolve, reject) => {
-          const rzp = new window.Razorpay({
-            key: order.keyId,
-            order_id: order.orderId,
-            amount: order.amount * 100,
-            currency: order.currency || "INR",
-            name: details?.academyName || "NestAcademy",
-            description: `${order.planName} — ${details?.studentName || ""}`,
-            theme: { color: "#024BAB" },
-            handler: async (response: any) => {
-              try {
-                await payLinkAPI.verify(token, {
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                });
-                resolve();
-              } catch (err) {
-                reject(err);
-              }
-            },
-            modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
-          });
-          rzp.open();
-        });
+        throw new Error("This payment method is not supported. Please pay at the academy.");
       }
       await load();
     } catch (e: unknown) {

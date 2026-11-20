@@ -251,35 +251,6 @@ export default function SupportPage() {
       </div>
 
       {}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        {Object.entries(statusCounts).map(([status, count]) => {
-          const meta = STATUS_META[status];
-          const Icon = meta.icon;
-          return (
-            <div
-              key={status}
-              className="border-2 border-black bg-white p-4 flex items-center gap-3"
-            >
-              <div
-                className={cn(
-                  "w-10 h-10 border-2 flex items-center justify-center shrink-0",
-                  meta.bg,
-                  meta.classes.split(" ")[0],
-                )}
-              >
-                <Icon className={cn("w-5 h-5", meta.classes.split(" ")[1])} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  {meta.label}
-                </p>
-                <p className="text-2xl font-bold text-black">{count}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {}
       {loading ? (
         <div className="flex justify-center py-16">

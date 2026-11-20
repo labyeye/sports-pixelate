@@ -106,7 +106,7 @@ export default function RegisterPage() {
               placeholder="Create a strong password"
               className="flex-1 px-4 py-3 bg-white text-sm font-medium outline-none"
               required
-                            autoComplete="new-password"
+              autoComplete="new-password"
             />
             <button
               type="button"
@@ -127,9 +127,24 @@ export default function RegisterPage() {
           <input type="checkbox" required className="mt-0.5 accent-[#024BAB]" />
           <span>
             I agree to the{" "}
-            <a href="https://www.pixelatenest.com/legal/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="font-bold text-[#024BAB] hover:underline">Terms of Service</a>{" "}
+            <a
+              href="https://www.pixelatenest.com/legal/terms-of-service.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#024BAB] hover:underline"
+            >
+              Terms of Service
+            </a>{" "}
             and{" "}
-            <a href="https://www.pixelatenest.com/legal/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="font-bold text-[#024BAB] hover:underline">Privacy Policy</a>.
+            <a
+              href="https://www.pixelatenest.com/legal/privacy-policy.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#024BAB] hover:underline"
+            >
+              Privacy Policy
+            </a>
+            .
           </span>
         </label>
         <button

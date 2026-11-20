@@ -62,7 +62,9 @@ export default function AnnouncementsPage() {
   const open = (a: any) => {
     if (!isAdmin && !a.read) {
       announcementAPI.markRead(a._id).catch(() => {});
-      setItems((p) => p.map((x) => (x._id === a._id ? { ...x, read: true } : x)));
+      setItems((p) =>
+        p.map((x) => (x._id === a._id ? { ...x, read: true } : x)),
+      );
     }
   };
 

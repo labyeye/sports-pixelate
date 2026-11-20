@@ -27,7 +27,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { employeeAPI, settingsAPI } from "@/services/api";
+import { employeeAPI, studentAPI, settingsAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { IdCardView, assetUrl } from "@/components/idcard/IdCardView";
@@ -36,7 +36,11 @@ import { loadIdCardSetup } from "@/lib/idCardData";
 import { buildQrMap } from "@/lib/idCardQr";
 import { printIdCards } from "@/lib/printIdCards";
 import {
-  FIELD_OPTIONS,
+  fieldGroupsFor,
+  fieldOptionsFor,
+  toStudentTemplate,
+  SAMPLE_STUDENT,
+  type CardKind,
   FONT_LABELS,
   KIND_LABELS,
   PX_PER_MM,
@@ -63,10 +67,26 @@ const KIND_ICONS: Record<ElKind, typeof Type> = {
 };
 
 const BASE_SWATCHES = [
-  "#000000", "#111827", "#475569", "#94a3b8", "#ffffff",
-  "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16",
-  "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#1e3a8f",
-  "#8b5cf6", "#d946ef", "#ec4899", "#9f1239", "#78350f",
+  "#000000",
+  "#111827",
+  "#475569",
+  "#94a3b8",
+  "#ffffff",
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#eab308",
+  "#84cc16",
+  "#22c55e",
+  "#14b8a6",
+  "#06b6d4",
+  "#3b82f6",
+  "#1e3a8f",
+  "#8b5cf6",
+  "#d946ef",
+  "#ec4899",
+  "#9f1239",
+  "#78350f",
 ];
 
 const round = (n: number) => Math.round(n * 2) / 2; // snap to 0.5 %
@@ -85,7 +105,8 @@ type Drag = {
 
 const inputCls =
   "w-full border-2 border-black px-2 py-1 text-xs font-medium bg-white outline-none focus:border-[#024BAB]";
-const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-black mb-0.5";
+const labelCls =
+  "block text-[10px] font-bold uppercase tracking-wider text-black mb-0.5";
 const iconBtn = "p-1 border-2 border-black hover:bg-[#024BAB]/10";
 
 function Num({
@@ -119,7 +140,15 @@ function Num({
   );
 }
 
-function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  on,
+  onChange,
+}: {
+  label: string;
+  on: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <button
       type="button"
@@ -164,7 +193,8 @@ function ColorField({
           maxLength={7}
           onChange={(e) => {
             setHex(e.target.value);
-            if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) onChange(e.target.value);
+            if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
+              onChange(e.target.value);
           }}
         />
       </div>
@@ -177,7 +207,8 @@ function ColorField({
             onClick={() => onChange(c)}
             className={cn(
               "h-4 w-4 border border-black/40",
-              c.toLowerCase() === value.toLowerCase() && "ring-2 ring-[#024BAB] ring-offset-1",
+              c.toLowerCase() === value.toLowerCase() &&
+                "ring-2 ring-[#024BAB] ring-offset-1",
             )}
             style={{ background: c }}
           />
@@ -190,13 +221,16 @@ function ColorField({
 const imgSize = (src: string) =>
   new Promise<{ w: number; h: number }>((resolve) => {
     const i = new window.Image();
-    i.onload = () => resolve({ w: i.naturalWidth || 1, h: i.naturalHeight || 1 });
+    i.onload = () =>
+      resolve({ w: i.naturalWidth || 1, h: i.naturalHeight || 1 });
     i.onerror = () => resolve({ w: 1, h: 1 });
     i.src = src;
   });
 
-export function IdCardDesigner() {
+export function IdCardDesigner({ kind = "staff" }: { kind?: CardKind }) {
   const { toast } = useToast();
+  const isStudent = kind === "student";
+  const FIELD_OPTIONS = fieldOptionsFor(kind);
   const [template, setTemplate] = useState<IdCardTemplate | null>(null);
   const [company, setCompany] = useState<IdCompany | null>(null);
   const [savedJson, setSavedJson] = useState("");
@@ -286,11 +320,19 @@ export function IdCardDesigner() {
   };
   const uploadImage = async (file: File): Promise<string | null> => {
     if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      toast({ title: "Unsupported image", description: "Use a PNG, JPG or WebP image.", variant: "destructive" });
+      toast({
+        title: "Unsupported image",
+        description: "Use a PNG, JPG or WebP image.",
+        variant: "destructive",
+      });
       return null;
     }
     if (file.size > MAX_UPLOAD) {
-      toast({ title: "Image too large", description: "Please use an image under 5 MB.", variant: "destructive" });
+      toast({
+        title: "Image too large",
+        description: "Please use an image under 5 MB.",
+        variant: "destructive",
+      });
       return null;
     }
     setUploading(true);
@@ -298,7 +340,11 @@ export function IdCardDesigner() {
       const res = await settingsAPI.uploadIdCardImage(file);
       return res.url;
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description: e.message,
+        variant: "destructive",
+      });
       return null;
     } finally {
       setUploading(false);
@@ -307,8 +353,11 @@ export function IdCardDesigner() {
 
   useEffect(() => {
     Promise.all([
-      loadIdCardSetup(),
-      employeeAPI.getAll({ status: "active", limit: "200" }).catch(() => null),
+      loadIdCardSetup(kind),
+      (isStudent
+        ? studentAPI.getAll({ limit: "200" })
+        : employeeAPI.getAll({ status: "active", limit: "200" })
+      ).catch(() => null),
     ])
       .then(([setup, emps]) => {
         tplRef.current = setup.template;
@@ -347,8 +396,11 @@ export function IdCardDesigner() {
   }, [loaded]);
 
   const previewEmp = useMemo(
-    () => employees.find((e) => e._id === previewId) || employees[0] || SAMPLE_EMPLOYEE,
-    [employees, previewId],
+    () =>
+      employees.find((e) => e._id === previewId) ||
+      employees[0] ||
+      (isStudent ? SAMPLE_STUDENT : SAMPLE_EMPLOYEE),
+    [employees, previewId, isStudent],
   );
 
   useEffect(() => {
@@ -361,7 +413,11 @@ export function IdCardDesigner() {
   }, [template, company, previewEmp]);
 
   const dirty = !!template && JSON.stringify(template) !== savedJson;
-  const cur = template ? (side === "front" ? template.front : template.back) : null;
+  const cur = template
+    ? side === "front"
+      ? template.front
+      : template.back
+    : null;
   const sel = cur?.elements.find((e) => e.id === selId) || null;
 
   // the design's own colours, for the swatch rows
@@ -383,7 +439,9 @@ export function IdCardDesigner() {
     return [...set].filter((c) => /^#[0-9a-fA-F]{6}$/.test(c)).slice(0, 10);
   }, [template]);
   const swatches = useMemo(
-    () => [...new Set([...usedColors, ...BASE_SWATCHES].map((c) => c.toLowerCase()))],
+    () => [
+      ...new Set([...usedColors, ...BASE_SWATCHES].map((c) => c.toLowerCase())),
+    ],
     [usedColors],
   );
 
@@ -398,7 +456,9 @@ export function IdCardDesigner() {
   );
   const patchSide = (patch: Partial<IdCardTemplate["front"]>) =>
     setTpl((t) =>
-      side === "front" ? { ...t, front: { ...t.front, ...patch } } : { ...t, back: { ...t.back, ...patch } },
+      side === "front"
+        ? { ...t, front: { ...t.front, ...patch } }
+        : { ...t, back: { ...t.back, ...patch } },
     );
   const patchEl = (id: string, patch: Partial<IdEl>) =>
     setSideEls((els) => els.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -443,7 +503,13 @@ export function IdCardDesigner() {
         hMm = d.h * 0.8;
         wMm = (hMm * iw) / ih;
       }
-      addEl("image", { src: url, w: round((wMm / d.w) * 100), h: round((hMm / d.h) * 100), x: 10, y: 10 });
+      addEl("image", {
+        src: url,
+        w: round((wMm / d.w) * 100),
+        h: round((hMm / d.h) * 100),
+        x: 10,
+        y: 10,
+      });
     });
   const replaceImage = (id: string) =>
     askFile(async (file) => {
@@ -456,7 +522,8 @@ export function IdCardDesigner() {
       if (url) patchSide({ bgImage: url });
     });
 
-  const applyTemplate = (t: IdCardTemplate) => {
+  const applyTemplate = (picked: IdCardTemplate) => {
+    const t = isStudent ? toStudentTemplate(picked) : picked;
     setTpl(() => t);
     setSelId(null);
     setSide("front");
@@ -464,7 +531,8 @@ export function IdCardDesigner() {
     setZoomSel("fit");
     toast({
       title: "Template loaded",
-      description: "Not saved yet. Edit it, then click Save design. Ctrl/Cmd + Z undoes this.",
+      description:
+        "Not saved yet. Edit it, then click Save design. Ctrl/Cmd + Z undoes this.",
     });
   };
 
@@ -480,11 +548,22 @@ export function IdCardDesigner() {
     if (!template) return;
     setSaving(true);
     try {
-      await settingsAPI.update({ idCardTemplate: template });
+      await settingsAPI.update(
+        isStudent
+          ? { studentIdCardTemplate: template }
+          : { idCardTemplate: template },
+      );
       setSavedJson(JSON.stringify(template));
-      toast({ title: "ID card design saved", description: "It's now used when you print ID cards." });
+      toast({
+        title: "ID card design saved",
+        description: "It's now used when you print ID cards.",
+      });
     } catch (e: any) {
-      toast({ title: "Could not save", description: e.message, variant: "destructive" });
+      toast({
+        title: "Could not save",
+        description: e.message,
+        variant: "destructive",
+      });
     }
     setSaving(false);
   };
@@ -499,7 +578,11 @@ export function IdCardDesigner() {
       layout: "cards",
     });
     if (!ok)
-      toast({ title: "Pop-up blocked", description: "Allow pop-ups for this site to print.", variant: "destructive" });
+      toast({
+        title: "Pop-up blocked",
+        description: "Allow pop-ups for this site to print.",
+        variant: "destructive",
+      });
   };
 
   if (error) return <p className="text-sm font-bold text-[#EF4444]">{error}</p>;
@@ -511,10 +594,14 @@ export function IdCardDesigner() {
     );
 
   const { w, h } = cardDims(template);
-  const fitZoom = Math.max(0.5, Math.min(avail.w / (w * PX_PER_MM), avail.h / (h * PX_PER_MM), 3.5));
+  const fitZoom = Math.max(
+    0.5,
+    Math.min(avail.w / (w * PX_PER_MM), avail.h / (h * PX_PER_MM), 3.5),
+  );
   const zoom = zoomSel === "fit" ? fitZoom : zoomSel;
   zoomRef.current = zoom;
-  const stepZoom = (f: number) => setZoomSel(Math.min(4, Math.max(0.5, zoom * f)));
+  const stepZoom = (f: number) =>
+    setZoomSel(Math.min(4, Math.max(0.5, zoom * f)));
   const Wpx = w * PX_PER_MM * zoom;
   const Hpx = h * PX_PER_MM * zoom;
 
@@ -523,15 +610,29 @@ export function IdCardDesigner() {
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setSelId(el.id);
-    drag.current = { id: el.id, mode, sx: e.clientX, sy: e.clientY, ox: el.x, oy: el.y, ow: el.w, oh: el.h };
+    drag.current = {
+      id: el.id,
+      mode,
+      sx: e.clientX,
+      sy: e.clientY,
+      ox: el.x,
+      oy: el.y,
+      ow: el.w,
+      oh: el.h,
+    };
   };
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
     const dx = ((e.clientX - d.sx) / Wpx) * 100;
     const dy = ((e.clientY - d.sy) / Hpx) * 100;
-    if (d.mode === "move") patchEl(d.id, { x: round(d.ox + dx), y: round(d.oy + dy) });
-    else patchEl(d.id, { w: Math.max(0.5, round(d.ow + dx)), h: Math.max(0.5, round(d.oh + dy)) });
+    if (d.mode === "move")
+      patchEl(d.id, { x: round(d.ox + dx), y: round(d.oy + dy) });
+    else
+      patchEl(d.id, {
+        w: Math.max(0.5, round(d.ow + dx)),
+        h: Math.max(0.5, round(d.oh + dy)),
+      });
   };
   const onUp = () => {
     drag.current = null;
@@ -548,8 +649,12 @@ export function IdCardDesigner() {
   };
 
   const isText = sel && (sel.kind === "text" || sel.kind === "field");
-  const hasBorder = sel && (sel.kind === "photo" || sel.kind === "image" || sel.kind === "shape");
-  const hasShape = sel && (sel.kind === "photo" || sel.kind === "image" || sel.kind === "shape");
+  const hasBorder =
+    sel &&
+    (sel.kind === "photo" || sel.kind === "image" || sel.kind === "shape");
+  const hasShape =
+    sel &&
+    (sel.kind === "photo" || sel.kind === "image" || sel.kind === "shape");
 
   return (
     <div className="space-y-4">
@@ -578,7 +683,9 @@ export function IdCardDesigner() {
               }}
               className={cn(
                 "px-4 py-2 text-sm font-bold border-r-2 border-black last:border-r-0 capitalize disabled:opacity-40",
-                side === s ? "bg-[#024BAB] text-white" : "bg-white hover:bg-[#024BAB]/5",
+                side === s
+                  ? "bg-[#024BAB] text-white"
+                  : "bg-white hover:bg-[#024BAB]/5",
               )}
             >
               {s}
@@ -616,7 +723,12 @@ export function IdCardDesigner() {
           title="Whose data to preview"
         >
           <option value="">
-            Preview: {employees[0] ? `${employees[0].firstName} ${employees[0].lastName}` : "sample employee"}
+            Preview:{" "}
+            {employees[0]
+              ? `${employees[0].firstName} ${employees[0].lastName}`
+              : isStudent
+                ? "sample student"
+                : "sample employee"}
           </option>
           {employees.map((e) => (
             <option key={e._id} value={e._id}>
@@ -636,7 +748,11 @@ export function IdCardDesigner() {
             disabled={saving || !dirty}
             className="border-2 border-black bg-[#024BAB] text-white px-4 py-2 text-sm font-bold flex items-center gap-1.5 disabled:opacity-50"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
             {dirty ? "Save design" : "Saved"}
           </button>
         </div>
@@ -652,7 +768,9 @@ export function IdCardDesigner() {
               <select
                 className={inputCls}
                 value={template.size}
-                onChange={(e) => setTpl((t) => ({ ...t, size: e.target.value as any }))}
+                onChange={(e) =>
+                  setTpl((t) => ({ ...t, size: e.target.value as any }))
+                }
               >
                 {SIZE_OPTIONS.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -663,11 +781,32 @@ export function IdCardDesigner() {
             </div>
             {template.size === "custom" && (
               <div className="grid grid-cols-2 gap-2">
-                <Num label="Width mm" value={template.customW} min={30} max={210} step={1} onChange={(v) => setTpl((t) => ({ ...t, customW: v }))} />
-                <Num label="Height mm" value={template.customH} min={30} max={297} step={1} onChange={(v) => setTpl((t) => ({ ...t, customH: v }))} />
+                <Num
+                  label="Width mm"
+                  value={template.customW}
+                  min={30}
+                  max={210}
+                  step={1}
+                  onChange={(v) => setTpl((t) => ({ ...t, customW: v }))}
+                />
+                <Num
+                  label="Height mm"
+                  value={template.customH}
+                  min={30}
+                  max={297}
+                  step={1}
+                  onChange={(v) => setTpl((t) => ({ ...t, customH: v }))}
+                />
               </div>
             )}
-            <Num label="Corner radius (mm)" value={template.cornerRadius} min={0} max={10} step={0.5} onChange={(v) => setTpl((t) => ({ ...t, cornerRadius: v }))} />
+            <Num
+              label="Corner radius (mm)"
+              value={template.cornerRadius}
+              min={0}
+              max={10}
+              step={0.5}
+              onChange={(v) => setTpl((t) => ({ ...t, cornerRadius: v }))}
+            />
             <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
               <input
                 type="checkbox"
@@ -683,19 +822,44 @@ export function IdCardDesigner() {
           </div>
 
           <div className="border-2 border-black bg-white p-3 space-y-2">
-            <p className="text-xs font-bold uppercase tracking-wider">Background ({side})</p>
-            <ColorField label="Colour" value={cur.bg} swatches={swatches} onChange={(v) => patchSide({ bg: v })} />
+            <p className="text-xs font-bold uppercase tracking-wider">
+              Background ({side})
+            </p>
+            <ColorField
+              label="Colour"
+              value={cur.bg}
+              swatches={swatches}
+              onChange={(v) => patchSide({ bg: v })}
+            />
             <Toggle
               label={cur.bg2 ? "Gradient on" : "Add gradient"}
               on={!!cur.bg2}
-              onChange={(on) => patchSide({ bg2: on ? cur.bg2 || "#f59e0b" : "" })}
+              onChange={(on) =>
+                patchSide({ bg2: on ? cur.bg2 || "#f59e0b" : "" })
+              }
             />
             {cur.bg2 && (
               <>
-                <ColorField label="Second colour" value={cur.bg2} swatches={swatches} onChange={(v) => patchSide({ bg2: v })} />
+                <ColorField
+                  label="Second colour"
+                  value={cur.bg2}
+                  swatches={swatches}
+                  onChange={(v) => patchSide({ bg2: v })}
+                />
                 <div>
-                  <label className={labelCls}>Angle {cur.bgAngle ?? 135}°</label>
-                  <input type="range" min={0} max={360} value={cur.bgAngle ?? 135} onChange={(e) => patchSide({ bgAngle: Number(e.target.value) })} className="w-full accent-[#024BAB]" />
+                  <label className={labelCls}>
+                    Angle {cur.bgAngle ?? 135}°
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={360}
+                    value={cur.bgAngle ?? 135}
+                    onChange={(e) =>
+                      patchSide({ bgAngle: Number(e.target.value) })
+                    }
+                    className="w-full accent-[#024BAB]"
+                  />
                 </div>
               </>
             )}
@@ -705,11 +869,19 @@ export function IdCardDesigner() {
                 disabled={uploading}
                 className="flex-1 border-2 border-black bg-white px-2 py-1.5 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-[#024BAB]/5 disabled:opacity-50"
               >
-                {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {uploading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Upload className="w-3.5 h-3.5" />
+                )}
                 {cur.bgImage ? "Replace image" : "Background image"}
               </button>
               {cur.bgImage && (
-                <button onClick={() => patchSide({ bgImage: "" })} title="Remove background image" className={cn(iconBtn, "text-[#EF4444]")}>
+                <button
+                  onClick={() => patchSide({ bgImage: "" })}
+                  title="Remove background image"
+                  className={cn(iconBtn, "text-[#EF4444]")}
+                >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -717,9 +889,13 @@ export function IdCardDesigner() {
           </div>
 
           <div className="border-2 border-black bg-white p-3">
-            <p className="text-xs font-bold uppercase tracking-wider mb-2">Add to {side}</p>
+            <p className="text-xs font-bold uppercase tracking-wider mb-2">
+              Add to {side}
+            </p>
             <div className="grid grid-cols-2 gap-2">
-              {(["text", "field", "photo", "logo", "qr", "shape"] as ElKind[]).map((k) => {
+              {(
+                ["text", "field", "photo", "logo", "qr", "shape"] as ElKind[]
+              ).map((k) => {
                 const Icon = KIND_ICONS[k] ?? Shapes;
                 return (
                   <button
@@ -736,14 +912,20 @@ export function IdCardDesigner() {
                 disabled={uploading}
                 className="col-span-2 border-2 border-black bg-white px-2 py-1.5 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-[#024BAB]/5 disabled:opacity-50"
               >
-                {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                {uploading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ImagePlus className="w-3.5 h-3.5" />
+                )}
                 Upload image
               </button>
             </div>
           </div>
 
           <div className="border-2 border-black bg-white">
-            <p className="text-xs font-bold uppercase tracking-wider p-3 pb-2">Layers (top first)</p>
+            <p className="text-xs font-bold uppercase tracking-wider p-3 pb-2">
+              Layers (top first)
+            </p>
             <ul className="max-h-64 overflow-auto divide-y divide-black/10">
               {[...cur.elements].reverse().map((el) => {
                 const Icon = KIND_ICONS[el.kind] ?? Shapes;
@@ -771,13 +953,19 @@ export function IdCardDesigner() {
                         patchEl(el.id, { visible: !el.visible });
                       }}
                     >
-                      {el.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 opacity-40" />}
+                      {el.visible ? (
+                        <Eye className="w-3.5 h-3.5" />
+                      ) : (
+                        <EyeOff className="w-3.5 h-3.5 opacity-40" />
+                      )}
                     </button>
                   </li>
                 );
               })}
               {cur.elements.length === 0 && (
-                <li className="px-3 py-3 text-xs text-muted-foreground">Nothing here yet. Add an element above.</li>
+                <li className="px-3 py-3 text-xs text-muted-foreground">
+                  Nothing here yet. Add an element above.
+                </li>
               )}
             </ul>
           </div>
@@ -786,11 +974,21 @@ export function IdCardDesigner() {
         {/* Centre: canvas */}
         <div className="border-2 border-black bg-[#E5E7EB] min-w-0">
           <div className="flex items-center justify-center gap-1.5 p-2 border-b-2 border-black bg-white">
-            <button onClick={() => stepZoom(1 / 1.2)} title="Zoom out" className="p-1.5 border-2 border-black bg-white hover:bg-[#024BAB]/10">
+            <button
+              onClick={() => stepZoom(1 / 1.2)}
+              title="Zoom out"
+              className="p-1.5 border-2 border-black bg-white hover:bg-[#024BAB]/10"
+            >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold w-14 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => stepZoom(1.2)} title="Zoom in" className="p-1.5 border-2 border-black bg-white hover:bg-[#024BAB]/10">
+            <span className="text-xs font-bold w-14 text-center tabular-nums">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={() => stepZoom(1.2)}
+              title="Zoom in"
+              className="p-1.5 border-2 border-black bg-white hover:bg-[#024BAB]/10"
+            >
               <ZoomIn className="w-4 h-4" />
             </button>
             <button
@@ -798,23 +996,57 @@ export function IdCardDesigner() {
               title="Fit the card to this area"
               className={cn(
                 "px-2.5 py-1.5 text-xs font-bold border-2 border-black",
-                zoomSel === "fit" ? "bg-[#024BAB] text-white" : "bg-white hover:bg-[#024BAB]/10",
+                zoomSel === "fit"
+                  ? "bg-[#024BAB] text-white"
+                  : "bg-white hover:bg-[#024BAB]/10",
               )}
             >
               Fit
             </button>
-            <button onClick={() => setZoomSel(1)} title="Real card size" className="px-2.5 py-1.5 text-xs font-bold border-2 border-black bg-white hover:bg-[#024BAB]/10">
+            <button
+              onClick={() => setZoomSel(1)}
+              title="Real card size"
+              className="px-2.5 py-1.5 text-xs font-bold border-2 border-black bg-white hover:bg-[#024BAB]/10"
+            >
               100%
             </button>
           </div>
-          <div ref={canvasRef} className="p-4 overflow-auto" style={{ maxHeight: Math.max(420, avail.h + 40) }}>
+          <div
+            ref={canvasRef}
+            className="p-4 overflow-auto"
+            style={{ maxHeight: Math.max(420, avail.h + 40) }}
+          >
             <div className="mx-auto" style={{ width: Wpx, height: Hpx }}>
-              <div className="relative" style={{ width: Wpx, height: Hpx, boxShadow: "0 2px 10px rgba(0,0,0,.3)" }}>
-                <div style={{ transform: `scale(${zoom})`, transformOrigin: "top left", position: "absolute", left: 0, top: 0 }}>
-                  <IdCardView template={template} side={side} employee={previewEmp} company={company} qrMap={qrMap} />
+              <div
+                className="relative"
+                style={{
+                  width: Wpx,
+                  height: Hpx,
+                  boxShadow: "0 2px 10px rgba(0,0,0,.3)",
+                }}
+              >
+                <div
+                  style={{
+                    transform: `scale(${zoom})`,
+                    transformOrigin: "top left",
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                  }}
+                >
+                  <IdCardView
+                    template={template}
+                    side={side}
+                    employee={previewEmp}
+                    company={company}
+                    qrMap={qrMap}
+                  />
                 </div>
                 {/* hit boxes */}
-                <div className="absolute inset-0" onPointerDown={() => setSelId(null)}>
+                <div
+                  className="absolute inset-0"
+                  onPointerDown={() => setSelId(null)}
+                >
                   {cur.elements.map((el) => {
                     const on = el.id === selId;
                     return (
@@ -833,8 +1065,12 @@ export function IdCardDesigner() {
                           height: `${el.h}%`,
                           cursor: "move",
                           touchAction: "none",
-                          transform: el.rotate ? `rotate(${el.rotate}deg)` : undefined,
-                          outline: on ? "2px solid #024BAB" : "1px dashed rgba(2,75,171,.35)",
+                          transform: el.rotate
+                            ? `rotate(${el.rotate}deg)`
+                            : undefined,
+                          outline: on
+                            ? "2px solid #024BAB"
+                            : "1px dashed rgba(2,75,171,.35)",
                           background: on ? "rgba(2,75,171,.08)" : "transparent",
                           opacity: el.visible ? 1 : 0.4,
                         }}
@@ -864,8 +1100,9 @@ export function IdCardDesigner() {
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground text-center mt-3">
-              Drag an element to move it, drag the blue corner to resize, arrow keys nudge (Shift = bigger steps).
-              Zoom with the buttons or Ctrl / Cmd + scroll. Ctrl / Cmd + Z undoes.
+              Drag an element to move it, drag the blue corner to resize, arrow
+              keys nudge (Shift = bigger steps). Zoom with the buttons or Ctrl /
+              Cmd + scroll. Ctrl / Cmd + Z undoes.
             </p>
           </div>
         </div>
@@ -874,51 +1111,116 @@ export function IdCardDesigner() {
         <div className="border-2 border-black bg-white p-3 space-y-3">
           {!sel ? (
             <p className="text-xs text-muted-foreground">
-              Select an element on the card to edit it. Colours, borders, gradients, rotation and your own images are all
-              available here.
+              Select an element on the card to edit it. Colours, borders,
+              gradients, rotation and your own images are all available here.
             </p>
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider">{KIND_LABELS[sel.kind]}</p>
+                <p className="text-xs font-bold uppercase tracking-wider">
+                  {KIND_LABELS[sel.kind]}
+                </p>
                 <div className="flex gap-1">
-                  <button title="Bring forward" onClick={() => moveEl(sel.id, 1)} className={iconBtn}>
+                  <button
+                    title="Bring forward"
+                    onClick={() => moveEl(sel.id, 1)}
+                    className={iconBtn}
+                  >
                     <ArrowUp className="w-3.5 h-3.5" />
                   </button>
-                  <button title="Send backward" onClick={() => moveEl(sel.id, -1)} className={iconBtn}>
+                  <button
+                    title="Send backward"
+                    onClick={() => moveEl(sel.id, -1)}
+                    className={iconBtn}
+                  >
                     <ArrowDown className="w-3.5 h-3.5" />
                   </button>
-                  <button title="Duplicate" onClick={() => dupEl(sel.id)} className={iconBtn}>
+                  <button
+                    title="Duplicate"
+                    onClick={() => dupEl(sel.id)}
+                    className={iconBtn}
+                  >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
-                  <button title="Delete" onClick={() => removeEl(sel.id)} className={cn(iconBtn, "hover:bg-[#EF4444]/10 text-[#EF4444]")}>
+                  <button
+                    title="Delete"
+                    onClick={() => removeEl(sel.id)}
+                    className={cn(
+                      iconBtn,
+                      "hover:bg-[#EF4444]/10 text-[#EF4444]",
+                    )}
+                  >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <Num label="X %" value={sel.x} onChange={(v) => patchEl(sel.id, { x: v })} />
-                <Num label="Y %" value={sel.y} onChange={(v) => patchEl(sel.id, { y: v })} />
-                <Num label="Width %" value={sel.w} min={0.2} onChange={(v) => patchEl(sel.id, { w: v })} />
-                <Num label="Height %" value={sel.h} min={0.2} onChange={(v) => patchEl(sel.id, { h: v })} />
+                <Num
+                  label="X %"
+                  value={sel.x}
+                  onChange={(v) => patchEl(sel.id, { x: v })}
+                />
+                <Num
+                  label="Y %"
+                  value={sel.y}
+                  onChange={(v) => patchEl(sel.id, { y: v })}
+                />
+                <Num
+                  label="Width %"
+                  value={sel.w}
+                  min={0.2}
+                  onChange={(v) => patchEl(sel.id, { w: v })}
+                />
+                <Num
+                  label="Height %"
+                  value={sel.h}
+                  min={0.2}
+                  onChange={(v) => patchEl(sel.id, { h: v })}
+                />
               </div>
               <div className="flex gap-1.5">
-                <button title="Centre horizontally on the card" onClick={() => align(sel.id, "h")} className={cn(iconBtn, "flex-1 flex justify-center")}>
+                <button
+                  title="Centre horizontally on the card"
+                  onClick={() => align(sel.id, "h")}
+                  className={cn(iconBtn, "flex-1 flex justify-center")}
+                >
                   <AlignHorizontalJustifyCenter className="w-4 h-4" />
                 </button>
-                <button title="Centre vertically on the card" onClick={() => align(sel.id, "v")} className={cn(iconBtn, "flex-1 flex justify-center")}>
+                <button
+                  title="Centre vertically on the card"
+                  onClick={() => align(sel.id, "v")}
+                  className={cn(iconBtn, "flex-1 flex justify-center")}
+                >
                   <AlignVerticalJustifyCenter className="w-4 h-4" />
                 </button>
-                <button title="Full card width" onClick={() => align(sel.id, "full")} className={cn(iconBtn, "flex-1 flex justify-center")}>
+                <button
+                  title="Full card width"
+                  onClick={() => align(sel.id, "full")}
+                  className={cn(iconBtn, "flex-1 flex justify-center")}
+                >
                   <MoveHorizontal className="w-4 h-4" />
                 </button>
               </div>
               <div>
-                <label className={labelCls}>Rotate {Math.round(sel.rotate)}°</label>
-                <input type="range" min={-180} max={180} value={sel.rotate} onChange={(e) => patchEl(sel.id, { rotate: Number(e.target.value) })} className="w-full accent-[#024BAB]" />
+                <label className={labelCls}>
+                  Rotate {Math.round(sel.rotate)}°
+                </label>
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  value={sel.rotate}
+                  onChange={(e) =>
+                    patchEl(sel.id, { rotate: Number(e.target.value) })
+                  }
+                  className="w-full accent-[#024BAB]"
+                />
                 {sel.rotate !== 0 && (
-                  <button onClick={() => patchEl(sel.id, { rotate: 0 })} className="text-[11px] font-bold text-[#024BAB] underline">
+                  <button
+                    onClick={() => patchEl(sel.id, { rotate: 0 })}
+                    className="text-[11px] font-bold text-[#024BAB] underline"
+                  >
                     Reset rotation
                   </button>
                 )}
@@ -927,7 +1229,13 @@ export function IdCardDesigner() {
               {sel.kind === "text" && (
                 <div>
                   <label className={labelCls}>Text</label>
-                  <textarea rows={3} maxLength={200} className={inputCls} value={sel.text} onChange={(e) => patchEl(sel.id, { text: e.target.value })} />
+                  <textarea
+                    rows={3}
+                    maxLength={200}
+                    className={inputCls}
+                    value={sel.text}
+                    onChange={(e) => patchEl(sel.id, { text: e.target.value })}
+                  />
                 </div>
               )}
 
@@ -935,41 +1243,94 @@ export function IdCardDesigner() {
                 <>
                   <div>
                     <label className={labelCls}>Shows</label>
-                    <select className={inputCls} value={sel.field} onChange={(e) => patchEl(sel.id, { field: e.target.value as any })}>
-                      {["Employee", "Company"].map((g) => (
+                    <select
+                      className={inputCls}
+                      value={sel.field}
+                      onChange={(e) =>
+                        patchEl(sel.id, { field: e.target.value as any })
+                      }
+                    >
+                      {fieldGroupsFor(kind).map((g) => (
                         <optgroup key={g} label={g}>
-                          {FIELD_OPTIONS.filter((f) => f.group === g).map((f) => (
-                            <option key={f.key} value={f.key}>
-                              {f.label}
-                            </option>
-                          ))}
+                          {FIELD_OPTIONS.filter((f) => f.group === g).map(
+                            (f) => (
+                              <option key={f.key} value={f.key}>
+                                {f.label}
+                              </option>
+                            ),
+                          )}
                         </optgroup>
                       ))}
                     </select>
                   </div>
                   <div>
                     <label className={labelCls}>Label before it</label>
-                    <input className={inputCls} maxLength={40} placeholder='e.g. "ID: "' value={sel.prefix} onChange={(e) => patchEl(sel.id, { prefix: e.target.value })} />
+                    <input
+                      className={inputCls}
+                      maxLength={40}
+                      placeholder='e.g. "ID: "'
+                      value={sel.prefix}
+                      onChange={(e) =>
+                        patchEl(sel.id, { prefix: e.target.value })
+                      }
+                    />
                   </div>
                 </>
               )}
 
               {isText && (
                 <>
-                  <ColorField label="Text colour" value={sel.color} swatches={swatches} onChange={(v) => patchEl(sel.id, { color: v })} />
+                  <ColorField
+                    label="Text colour"
+                    value={sel.color}
+                    swatches={swatches}
+                    onChange={(v) => patchEl(sel.id, { color: v })}
+                  />
                   <div className="grid grid-cols-2 gap-2">
-                    <Num label="Size (pt)" value={sel.size} min={4} max={60} step={0.5} onChange={(v) => patchEl(sel.id, { size: v })} />
-                    <Num label="Letter spacing (em)" value={sel.spacing} min={0} max={0.5} step={0.02} onChange={(v) => patchEl(sel.id, { spacing: v })} />
+                    <Num
+                      label="Size (pt)"
+                      value={sel.size}
+                      min={4}
+                      max={60}
+                      step={0.5}
+                      onChange={(v) => patchEl(sel.id, { size: v })}
+                    />
+                    <Num
+                      label="Letter spacing (em)"
+                      value={sel.spacing}
+                      min={0}
+                      max={0.5}
+                      step={0.02}
+                      onChange={(v) => patchEl(sel.id, { spacing: v })}
+                    />
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <Toggle label="Bold" on={sel.bold} onChange={(v) => patchEl(sel.id, { bold: v })} />
-                    <Toggle label="Italic" on={sel.italic} onChange={(v) => patchEl(sel.id, { italic: v })} />
-                    <Toggle label="CAPS" on={sel.upper} onChange={(v) => patchEl(sel.id, { upper: v })} />
+                    <Toggle
+                      label="Bold"
+                      on={sel.bold}
+                      onChange={(v) => patchEl(sel.id, { bold: v })}
+                    />
+                    <Toggle
+                      label="Italic"
+                      on={sel.italic}
+                      onChange={(v) => patchEl(sel.id, { italic: v })}
+                    />
+                    <Toggle
+                      label="CAPS"
+                      on={sel.upper}
+                      onChange={(v) => patchEl(sel.id, { upper: v })}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelCls}>Align</label>
-                      <select className={inputCls} value={sel.align} onChange={(e) => patchEl(sel.id, { align: e.target.value as any })}>
+                      <select
+                        className={inputCls}
+                        value={sel.align}
+                        onChange={(e) =>
+                          patchEl(sel.id, { align: e.target.value as any })
+                        }
+                      >
                         <option value="left">Left</option>
                         <option value="center">Centre</option>
                         <option value="right">Right</option>
@@ -977,7 +1338,13 @@ export function IdCardDesigner() {
                     </div>
                     <div>
                       <label className={labelCls}>Font</label>
-                      <select className={inputCls} value={sel.font} onChange={(e) => patchEl(sel.id, { font: e.target.value as FontKey })}>
+                      <select
+                        className={inputCls}
+                        value={sel.font}
+                        onChange={(e) =>
+                          patchEl(sel.id, { font: e.target.value as FontKey })
+                        }
+                      >
                         {(Object.keys(FONT_LABELS) as FontKey[]).map((k) => (
                           <option key={k} value={k}>
                             {FONT_LABELS[k]}
@@ -997,12 +1364,23 @@ export function IdCardDesigner() {
                       disabled={uploading}
                       className="flex-1 border-2 border-black bg-white px-2 py-1.5 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-[#024BAB]/5 disabled:opacity-50"
                     >
-                      {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Replace image
+                      {uploading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}{" "}
+                      Replace image
                     </button>
                   </div>
                   <div>
                     <label className={labelCls}>Fit</label>
-                    <select className={inputCls} value={sel.fit} onChange={(e) => patchEl(sel.id, { fit: e.target.value as any })}>
+                    <select
+                      className={inputCls}
+                      value={sel.fit}
+                      onChange={(e) =>
+                        patchEl(sel.id, { fit: e.target.value as any })
+                      }
+                    >
                       <option value="cover">Fill the box (crop)</option>
                       <option value="contain">Fit inside (no crop)</option>
                     </select>
@@ -1012,17 +1390,26 @@ export function IdCardDesigner() {
 
               {sel.kind === "photo" && (
                 <p className="text-[11px] text-muted-foreground flex items-start gap-1">
-                  <ImageIcon className="w-3 h-3 mt-0.5 shrink-0" /> Uses each employee's profile photo.
+                  <ImageIcon className="w-3 h-3 mt-0.5 shrink-0" /> Uses each
+                  employee's profile photo.
                 </p>
               )}
               {sel.kind === "logo" && (
-                <p className="text-[11px] text-muted-foreground">Uses the company logo from Settings → General Info.</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Uses the company logo from Settings → General Info.
+                </p>
               )}
 
               {sel.kind === "qr" && (
                 <div>
                   <label className={labelCls}>Encodes</label>
-                  <select className={inputCls} value={sel.qrField} onChange={(e) => patchEl(sel.id, { qrField: e.target.value as any })}>
+                  <select
+                    className={inputCls}
+                    value={sel.qrField}
+                    onChange={(e) =>
+                      patchEl(sel.id, { qrField: e.target.value as any })
+                    }
+                  >
                     {FIELD_OPTIONS.map((f) => (
                       <option key={f.key} value={f.key}>
                         {f.label}
@@ -1034,18 +1421,41 @@ export function IdCardDesigner() {
 
               {sel.kind === "shape" && (
                 <>
-                  <ColorField label="Fill" value={sel.fill} swatches={swatches} onChange={(v) => patchEl(sel.id, { fill: v })} />
+                  <ColorField
+                    label="Fill"
+                    value={sel.fill}
+                    swatches={swatches}
+                    onChange={(v) => patchEl(sel.id, { fill: v })}
+                  />
                   <Toggle
                     label={sel.fill2 ? "Gradient on" : "Add gradient"}
                     on={!!sel.fill2}
-                    onChange={(on) => patchEl(sel.id, { fill2: on ? sel.fill2 || "#f59e0b" : "" })}
+                    onChange={(on) =>
+                      patchEl(sel.id, {
+                        fill2: on ? sel.fill2 || "#f59e0b" : "",
+                      })
+                    }
                   />
                   {sel.fill2 && (
                     <>
-                      <ColorField label="Second colour" value={sel.fill2} swatches={swatches} onChange={(v) => patchEl(sel.id, { fill2: v })} />
+                      <ColorField
+                        label="Second colour"
+                        value={sel.fill2}
+                        swatches={swatches}
+                        onChange={(v) => patchEl(sel.id, { fill2: v })}
+                      />
                       <div>
                         <label className={labelCls}>Angle {sel.angle}°</label>
-                        <input type="range" min={0} max={360} value={sel.angle} onChange={(e) => patchEl(sel.id, { angle: Number(e.target.value) })} className="w-full accent-[#024BAB]" />
+                        <input
+                          type="range"
+                          min={0}
+                          max={360}
+                          value={sel.angle}
+                          onChange={(e) =>
+                            patchEl(sel.id, { angle: Number(e.target.value) })
+                          }
+                          className="w-full accent-[#024BAB]"
+                        />
                       </div>
                     </>
                   )}
@@ -1056,30 +1466,68 @@ export function IdCardDesigner() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className={labelCls}>Corners</label>
-                    <select className={inputCls} value={sel.shape} onChange={(e) => patchEl(sel.id, { shape: e.target.value as any })}>
+                    <select
+                      className={inputCls}
+                      value={sel.shape}
+                      onChange={(e) =>
+                        patchEl(sel.id, { shape: e.target.value as any })
+                      }
+                    >
                       <option value="square">Square</option>
                       <option value="rounded">Rounded</option>
                       <option value="circle">Circle</option>
                     </select>
                   </div>
                   {sel.shape === "rounded" && (
-                    <Num label="Rounding %" value={sel.radius} min={0} max={50} step={1} onChange={(v) => patchEl(sel.id, { radius: v })} />
+                    <Num
+                      label="Rounding %"
+                      value={sel.radius}
+                      min={0}
+                      max={50}
+                      step={1}
+                      onChange={(v) => patchEl(sel.id, { radius: v })}
+                    />
                   )}
                 </div>
               )}
 
               {hasBorder && (
                 <div className="space-y-2">
-                  <Num label="Border (mm, 0 = none)" value={sel.borderWidth} min={0} max={3} step={0.1} onChange={(v) => patchEl(sel.id, { borderWidth: Math.max(0, v) })} />
+                  <Num
+                    label="Border (mm, 0 = none)"
+                    value={sel.borderWidth}
+                    min={0}
+                    max={3}
+                    step={0.1}
+                    onChange={(v) =>
+                      patchEl(sel.id, { borderWidth: Math.max(0, v) })
+                    }
+                  />
                   {sel.borderWidth > 0 && (
-                    <ColorField label="Border colour" value={sel.borderColor} swatches={swatches} onChange={(v) => patchEl(sel.id, { borderColor: v })} />
+                    <ColorField
+                      label="Border colour"
+                      value={sel.borderColor}
+                      swatches={swatches}
+                      onChange={(v) => patchEl(sel.id, { borderColor: v })}
+                    />
                   )}
                 </div>
               )}
 
               <div>
-                <label className={labelCls}>Opacity {Math.round(sel.opacity * 100)}%</label>
-                <input type="range" min={5} max={100} value={Math.round(sel.opacity * 100)} onChange={(e) => patchEl(sel.id, { opacity: Number(e.target.value) / 100 })} className="w-full accent-[#024BAB]" />
+                <label className={labelCls}>
+                  Opacity {Math.round(sel.opacity * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min={5}
+                  max={100}
+                  value={Math.round(sel.opacity * 100)}
+                  onChange={(e) =>
+                    patchEl(sel.id, { opacity: Number(e.target.value) / 100 })
+                  }
+                  className="w-full accent-[#024BAB]"
+                />
               </div>
             </>
           )}
@@ -1087,7 +1535,13 @@ export function IdCardDesigner() {
       </div>
 
       {showLibrary && (
-        <IdCardLibrary company={company} employee={previewEmp} onPick={applyTemplate} onClose={() => setShowLibrary(false)} />
+        <IdCardLibrary
+          company={company}
+          employee={previewEmp}
+          kind={kind}
+          onPick={applyTemplate}
+          onClose={() => setShowLibrary(false)}
+        />
       )}
     </div>
   );
