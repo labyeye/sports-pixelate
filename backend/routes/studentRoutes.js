@@ -3,6 +3,7 @@ const {
   getStudents,
   getStudent,
   createStudent,
+  recordStudentConsent,
   updateStudent,
   deleteStudent,
   bulkImportStudents,
@@ -56,6 +57,14 @@ router.post(
   protect,
   authorize("super_admin", "hr_manager"),
   bulkImportStudents,
+);
+
+router.post(
+  "/:id/consent",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  validateMongoId("id"),
+  recordStudentConsent,
 );
 
 router.post(

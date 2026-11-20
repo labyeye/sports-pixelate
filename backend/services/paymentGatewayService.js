@@ -1,7 +1,7 @@
 // Unified interface over the payment gateways a club can connect in
 // Settings. Each createOrder() call returns a shape the frontend can branch
 // on via `checkoutMode`:
-//   - "modal"    (razorpay, cashfree) — open the gateway's JS/RN SDK inline,
+//   - "modal"    (cashfree) — open the gateway's JS/RN SDK inline,
 //                 then call confirmPayment() with what the SDK handed back.
 //   - "redirect" (phonepe, paytm) — send the browser/webview to `redirectUrl`
 //                 (paytm also needs `redirectFields` posted as a form), the
@@ -9,7 +9,6 @@
 //                 confirm by calling the gateway's own status API — never
 //                 trust the redirect query params alone.
 const crypto = require("crypto");
-const razorpayService = require("./razorpayService");
 const paytmChecksum = require("./paytmChecksum");
 
 const CASHFREE_BASE =
@@ -37,6 +36,11 @@ function requireCreds(creds, fields, gateway) {
 }
 
 // ---------------------------------------------------------------- Cashfree
+// Cashfree only accepts a 10-digit mobile number; anything else (+91, spaces, missing) falls back to a placeholder.
+const tenDigits = (p) => {
+  const d = String(p || "").replace(/\D/g, "").slice(-10);
+  return d.length === 10 ? d : "9999999999";
+};
 async function cashfreeCreateOrder(
   { amount, orderId, customer, returnUrl },
   creds,
@@ -57,7 +61,7 @@ async function cashfreeCreateOrder(
       customer_details: {
         customer_id: customer.id,
         customer_name: customer.name,
-        customer_phone: customer.phone || "9999999999",
+        customer_phone: tenDigits(customer.phone),
         customer_email: customer.email || undefined,
       },
       order_meta: { return_url: returnUrl },
@@ -78,6 +82,7 @@ async function cashfreeCreateOrder(
     providerOrderId: data.order_id,
     paymentSessionId: data.payment_session_id,
     appId: creds.appId,
+    mode: process.env.CASHFREE_ENV === "production" ? "production" : "sandbox",
     // The web app uses the Cashfree JS SDK modal; the mobile app (no
     // native SDK wired in) opens this hosted checkout page in a WebView.
     checkoutUrl: `${checkoutHost}/order/#${data.payment_session_id}`,
@@ -270,24 +275,8 @@ async function createOrder(
       );
     case "paytm":
       return paytmCreateOrder({ amount, orderId, customer, returnUrl }, creds);
-    case "razorpay":
-    default: {
-      const result = await razorpayService.createOrder(
-        { amount, receipt: orderId, notes: { orderId } },
-        creds
-          ? { key_id: creds.keyId, key_secret: creds.keySecret }
-          : undefined,
-      );
-      return {
-        gateway: "razorpay",
-        checkoutMode: "modal",
-        orderId: result.orderId,
-        providerOrderId: result.orderId,
-        keyId: result.keyId,
-        amount,
-        currency: "INR",
-      };
-    }
+    default:
+      throw new Error(`Unsupported payment gateway: ${gateway}`);
   }
 }
 
@@ -303,16 +292,8 @@ async function confirmPayment(gateway, creds, providerOrderId, payload) {
       return phonepeCheckStatus(providerOrderId, creds);
     case "paytm":
       return paytmCheckStatus(providerOrderId, creds);
-    case "razorpay":
-    default: {
-      const isValid = razorpayService.verifySignature(
-        payload,
-        creds
-          ? { key_id: creds.keyId, key_secret: creds.keySecret }
-          : undefined,
-      );
-      return { isSuccess: isValid, status: isValid ? "PAID" : "FAILED" };
-    }
+    default:
+      throw new Error(`Unsupported payment gateway: ${gateway}`);
   }
 }
 

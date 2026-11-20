@@ -8,7 +8,11 @@ const recipientSchema = new mongoose.Schema(
     studentName: String,
     name: String,
     phone: String,
-    status: { type: String, enum: ["pending", "sent", "failed"], default: "pending" },
+    status: {
+      type: String,
+      enum: ["pending", "sent", "failed"],
+      default: "pending",
+    },
     error: String,
     wamid: String,
     attempts: { type: Number, default: 0 },
@@ -19,7 +23,12 @@ const recipientSchema = new mongoose.Schema(
 
 const bulkMessageSchema = new mongoose.Schema(
   {
-    company: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true, index: true },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     text: { type: String, default: "" },
     // Meta media id is reused for resends (valid ~30 days), so the file is never stored by us

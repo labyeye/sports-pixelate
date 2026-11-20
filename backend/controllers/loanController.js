@@ -11,6 +11,7 @@ const {
   sendLoanRejected,
   sendLoanAppliedHR,
 } = require("../services/whatsappService");
+const { notifyEmployee, notifyOwners } = require("../services/inAppNotify");
 
 async function syncLoanBalance(employeeId) {
   const empObjId = new mongoose.Types.ObjectId(String(employeeId));
@@ -120,6 +121,19 @@ const requestLoan = asyncHandler(async (req, res) => {
     requestedBy: req.user._id,
   });
 
+  const kind = loan.type === "advance" ? "advance" : "loan";
+  notifyEmployee(req.user.company, emp, {
+    type: "loan",
+    title: `${kind === "advance" ? "Advance" : "Loan"} request submitted`,
+    message: `Your ${kind} request of ₹${loan.amount} has been submitted.`,
+  });
+  notifyOwners(req.user.company, {
+    type: "loan",
+    title: `New ${kind} request`,
+    message: `${emp.firstName} ${emp.lastName} requested a ${kind} of ₹${loan.amount}.`,
+    employee: emp._id,
+  });
+
   try {
     if (emp.phone) {
       await sendLoanSubmitted(
@@ -201,6 +215,18 @@ const updateLoanStatus = asyncHandler(async (req, res) => {
   }
   await loan.save();
   await syncLoanBalance(loan.employee._id);
+
+  notifyEmployee(req.user.company, loan.employee, {
+    type: "loan",
+    title:
+      status === "approved"
+        ? `${loan.type === "advance" ? "Advance" : "Loan"} approved`
+        : `${loan.type === "advance" ? "Advance" : "Loan"} rejected`,
+    message:
+      status === "approved"
+        ? `Your ${loan.type} of ₹${loan.amount} has been approved.`
+        : `Your ${loan.type} of ₹${loan.amount} was rejected${loan.rejectionReason ? `: ${loan.rejectionReason}` : "."}`,
+  });
 
   try {
     if (loan.employee?.phone) {

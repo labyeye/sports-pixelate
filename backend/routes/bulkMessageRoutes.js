@@ -9,9 +9,14 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   fileFilter: (_req, f, cb) =>
-    ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(f.mimetype)
+    ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(
+      f.mimetype,
+    )
       ? cb(null, true)
-      : cb(new Error("Only PDF, JPG, PNG or WEBP documents are allowed"), false),
+      : cb(
+          new Error("Only PDF, JPG, PNG or WEBP documents are allowed"),
+          false,
+        ),
 }).single("doc");
 
 router.use(protect, authorize("super_admin", "hr_manager"));

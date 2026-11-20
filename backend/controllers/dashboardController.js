@@ -306,6 +306,39 @@ const getStats = asyncHandler(async (req, res) => {
       }),
     );
 
+    // Fee punctuality: subscriptions falling due in each of the last 6 months,
+    // split into paid by the due date vs late/unpaid (only dues already passed).
+    const feeStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const dueSubs = await StudentSubscription.find({
+      company: req.user.company,
+      status: { $in: ["active", "pending_renewal", "inactive"] },
+      renewalDate: { $gte: feeStart, $lte: now },
+    })
+      .select("renewalDate paymentStatus amount amountPaid payments")
+      .lean()
+      .catch(() => []);
+    const feeTrend = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return { month: d.getMonth() + 1, year: d.getFullYear(), paidOnTime: 0, notOnTime: 0 };
+    });
+    for (const sub of dueSubs) {
+      const due = new Date(sub.renewalDate);
+      const row = feeTrend.find(
+        (r) => r.month === due.getMonth() + 1 && r.year === due.getFullYear(),
+      );
+      if (!row) continue;
+      const verified = (sub.payments || []).filter((p) => p.status === "verified");
+      const lastPaidAt = verified.reduce(
+        (m, p) => (p.verifiedAt && new Date(p.verifiedAt) > m ? new Date(p.verifiedAt) : m),
+        new Date(0),
+      );
+      const endOfDue = new Date(due);
+      endOfDue.setHours(23, 59, 59, 999);
+      const fullyPaid = sub.paymentStatus === "completed";
+      if (fullyPaid && (!verified.length || lastPaidAt <= endOfDue)) row.paidOnTime++;
+      else row.notOnTime++;
+    }
+
     // Student attendance is stored at UTC midnight (see utils/dateOnly).
     const todayStudentDate = toDateOnly(now);
     const [studentsPresentToday, studentsAbsentToday] = await Promise.all([
@@ -320,6 +353,64 @@ const getStats = asyncHandler(async (req, res) => {
         status: "absent",
       }).catch(() => 0),
     ]);
+
+    // Daily present/late/absent for the last 14 days (staff + students).
+    const DAYS = 14;
+    const dayKeys = Array.from({ length: DAYS }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (DAYS - 1 - i));
+      return d;
+    });
+    const rangeStart = new Date(dayKeys[0]);
+    rangeStart.setHours(0, 0, 0, 0);
+    rangeStart.setDate(rangeStart.getDate() - 1); // tolerate UTC-midnight storage
+    const buildDaily = (rows) => {
+      const map = {};
+      rows.forEach((r) => {
+        map[`${r._id.d}|${r._id.s}`] = r.n;
+      });
+      return dayKeys.map((d) => {
+        const key = d.toISOString().slice(0, 10);
+        const g = (s) => map[`${key}|${s}`] || 0;
+        return {
+          label: d.toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+          }),
+          present: g("present"),
+          late: g("late"),
+          absent: g("absent"),
+          halfDay: g("half_day"),
+          onLeave: g("on_leave") + g("excused"),
+        };
+      });
+    };
+    const groupDaily = {
+      $group: {
+        _id: {
+          d: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+          s: "$status",
+        },
+        n: { $sum: 1 },
+      },
+    };
+    const [staffRows, studentRows] = await Promise.all([
+      Attendance.aggregate([
+        {
+          $match: {
+            employee: { $in: companyEmployeeIds },
+            date: { $gte: rangeStart },
+          },
+        },
+        groupDaily,
+      ]).catch(() => []),
+      StudentAttendance.aggregate([
+        { $match: { company: companyId, date: { $gte: rangeStart } } },
+        groupDaily,
+      ]).catch(() => []),
+    ]);
+    const staffAttDaily = buildDaily(staffRows);
+    const studentAttDaily = buildDaily(studentRows);
 
     const [todayLate, todayAbsent, todayOnLeave] = await Promise.all([
       Attendance.countDocuments({
@@ -372,7 +463,10 @@ const getStats = asyncHandler(async (req, res) => {
         pendingLeaveList,
         deptHeadcounts,
         attTrend,
+        staffAttDaily,
+        studentAttDaily,
         payTrend,
+        feeTrend,
         subscriptionAlerts,
       },
     });

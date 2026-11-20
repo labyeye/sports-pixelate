@@ -11,23 +11,14 @@ const BOOKING_SORT_FIELDS = ["date", "fee", "createdAt"];
 
 // Which gateway the club has connected in Settings, and that gateway's
 // credentials — so payments land in the club's own account instead of the
-// platform's. Falls back to Razorpay with no creds (platform env vars).
+// platform's. Never falls back to the platform account: with no creds the caller refuses online payment.
 async function getCompanyPaymentCreds(company) {
   const setting = await Setting.findOne({ company }).select(
-    "+razorpayKeySecret +cashfreeSecretKey +phonepeSaltKey +paytmMerchantKey",
+    "+cashfreeSecretKey +phonepeSaltKey +paytmMerchantKey",
   );
-  const gateway = setting?.paymentGateway || "razorpay";
+  const gateway = setting?.paymentGateway || "cashfree";
   let creds;
   if (
-    gateway === "razorpay" &&
-    setting?.razorpayKeyId &&
-    setting?.razorpayKeySecret
-  ) {
-    creds = {
-      keyId: setting.razorpayKeyId,
-      keySecret: setting.razorpayKeySecret,
-    };
-  } else if (
     gateway === "cashfree" &&
     setting?.cashfreeAppId &&
     setting?.cashfreeSecretKey
@@ -359,7 +350,7 @@ const verifyBookingPayment = asyncHandler(async (req, res) => {
     return;
   }
 
-  const gateway = existing.paymentGateway || "razorpay";
+  const gateway = existing.paymentGateway || "cashfree";
   const { creds } = await getCompanyPaymentCreds(req.user.company);
   const result = await paymentGatewayService.confirmPayment(
     gateway,

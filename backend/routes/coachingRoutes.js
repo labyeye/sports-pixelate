@@ -12,10 +12,21 @@ router.post("/schedules", protect, authorize(...OWNER), c.createSchedule);
 router
   .route("/schedules/:id")
   .put(protect, authorize(...OWNER), validateMongoId("id"), c.updateSchedule)
-  .delete(protect, authorize(...OWNER), validateMongoId("id"), c.deleteSchedule);
+  .delete(
+    protect,
+    authorize(...OWNER),
+    validateMongoId("id"),
+    c.deleteSchedule,
+  );
 
 router.get("/assessments", protect, c.getAssessments);
 router.post("/assessments", protect, authorize(...STAFF), c.createAssessment);
-router.delete("/assessments/:id", protect, authorize(...OWNER), validateMongoId("id"), c.deleteAssessment);
+router.delete(
+  "/assessments/:id",
+  protect,
+  authorize(...OWNER),
+  validateMongoId("id"),
+  c.deleteAssessment,
+);
 
 module.exports = router;

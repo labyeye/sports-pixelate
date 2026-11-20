@@ -72,7 +72,9 @@ const userView = (u, ownerId) => ({
   status: u.status,
   phone: u.phone,
   lastLogin: u.lastLogin,
-  terms: terms.userState(u), termsAcceptedAt: u.termsAcceptedAt, isOwner: String(u._id) === String(ownerId),
+  terms: terms.userState(u),
+  termsAcceptedAt: u.termsAcceptedAt,
+  isOwner: String(u._id) === String(ownerId),
 });
 
 exports.meta = meta;
@@ -130,7 +132,10 @@ exports.list = async (search) => {
       usage: `${stu[String(c._id)] || 0} / ${s?.maxStudents ?? "—"} students`,
       lastLogin: last[String(c._id)],
       createdAt: c.createdAt,
-    terms: terms.label(tstat[String(c._id)]), termsCount: tstat[String(c._id)] ? `${tstat[String(c._id)].done}/${tstat[String(c._id)].need}` : "—"
+      terms: terms.label(tstat[String(c._id)]),
+      termsCount: tstat[String(c._id)]
+        ? `${tstat[String(c._id)].done}/${tstat[String(c._id)].need}`
+        : "—",
     };
   });
 };
@@ -141,7 +146,9 @@ exports.get = async (id) => {
   const [s, users, activeStudents, activeStaff] = await Promise.all([
     Subscription.findOne({ company: c._id }).lean(),
     User.find({ company: c._id })
-      .select("name email role status phone lastLogin termsVersion termsAcceptedAt")
+      .select(
+        "name email role status phone lastLogin termsVersion termsAcceptedAt",
+      )
       .sort({ createdAt: 1 })
       .lean(),
     Student.countDocuments({ company: c._id, status: "active" }),

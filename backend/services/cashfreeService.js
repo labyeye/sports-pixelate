@@ -6,7 +6,9 @@ const API_VERSION = "2023-08-01";
 
 const isSandbox = () => process.env.CASHFREE_ENV === "sandbox";
 const baseUrl = () =>
-  isSandbox() ? "https://sandbox.cashfree.com/pg" : "https://api.cashfree.com/pg";
+  isSandbox()
+    ? "https://sandbox.cashfree.com/pg"
+    : "https://api.cashfree.com/pg";
 
 function creds() {
   const id = process.env.CASHFREE_APP_ID;
@@ -41,29 +43,39 @@ async function cf(method, path, body) {
 }
 
 const backendUrl = () =>
-  (process.env.BACKEND_URL || "https://sports-backend.pixelatenest.com").replace(/\/$/, "");
+  (process.env.BACKEND_URL || "http://localhost:5002").replace(/\/$/, "");
 
 /**
  * Create a Cashfree order. `customer` = { id, name, email, phone }. Returns what the checkout needs.
  * Cashfree wants a 10-digit phone, so anything else falls back to a placeholder (the customer still pays normally).
  */
 async function createOrder({ amount, receipt, notes = {}, customer = {} }) {
-  const orderId = receipt || `cf_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
-  const phone = String(customer.phone || "").replace(/\D/g, "").slice(-10);
+  const orderId =
+    receipt || `cf_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+  const phone = String(customer.phone || "")
+    .replace(/\D/g, "")
+    .slice(-10);
   const order = await cf("POST", "/orders", {
     order_id: orderId,
     order_amount: Math.round(amount * 100) / 100,
     order_currency: "INR",
     customer_details: {
-      customer_id: String(customer.id || "guest").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 50) || "guest",
+      customer_id:
+        String(customer.id || "guest")
+          .replace(/[^a-zA-Z0-9_-]/g, "")
+          .slice(0, 50) || "guest",
       customer_name: customer.name || undefined,
       customer_email: customer.email || undefined,
       customer_phone: phone.length === 10 ? phone : "9999999999",
     },
-    order_meta: {
-      return_url: `${backendUrl()}/api/billing/cashfree-return?order_id={order_id}`,
-      notify_url: `${backendUrl()}/api/webhooks/cashfree-billing`,
-    },
+    // Cashfree production only accepts https callback URLs; without a public BACKEND_URL the web modal still works
+    // (the app verifies the order itself) but the webhook safety net is off.
+    ...(backendUrl().startsWith("https://") && {
+      order_meta: {
+        return_url: `${backendUrl()}/api/billing/cashfree-return?order_id={order_id}`,
+        notify_url: `${backendUrl()}/api/webhooks/cashfree-billing`,
+      },
+    }),
     order_tags: Object.fromEntries(
       Object.entries(notes).map(([k, v]) => [k, String(v).slice(0, 255)]),
     ),
@@ -83,12 +95,19 @@ async function createOrder({ amount, receipt, notes = {}, customer = {} }) {
  * cannot fake it). Returns { paid, paymentId, amount }.
  */
 async function verifyOrder(orderId) {
-  const payments = await cf("GET", `/orders/${encodeURIComponent(orderId)}/payments`);
+  const payments = await cf(
+    "GET",
+    `/orders/${encodeURIComponent(orderId)}/payments`,
+  );
   const ok = (Array.isArray(payments) ? payments : []).find(
     (p) => p.payment_status === "SUCCESS",
   );
   return ok
-    ? { paid: true, paymentId: String(ok.cf_payment_id), amount: Number(ok.payment_amount) }
+    ? {
+        paid: true,
+        paymentId: String(ok.cf_payment_id),
+        amount: Number(ok.payment_amount),
+      }
     : { paid: false };
 }
 

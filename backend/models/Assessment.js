@@ -3,8 +3,16 @@ const mongoose = require("mongoose");
 // A coach's skill assessment of one student: 1–5 score per skill + remarks.
 const assessmentSchema = new mongoose.Schema(
   {
-    company: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true },
-    student: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
     assessedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     date: { type: Date, default: Date.now },
     level: { type: String, trim: true, maxlength: 40 }, // e.g. "Yellow belt", "Level 2"

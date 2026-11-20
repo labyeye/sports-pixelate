@@ -37,6 +37,7 @@ require("./jobs/celebrationWishes").startCelebrationWishesJob();
 const { startPaymentLinksJob } = require("./jobs/paymentLinks");
 startPaymentLinksJob();
 startSubscriptionLifecycleJob();
+require("./jobs/leadFollowUps").startLeadFollowUpJob();
 
 const app = express();
 
@@ -96,7 +97,10 @@ app.use(
   }),
 );
 // Cashfree "payment success" notices (see utils/paymentReconcile.js); signed with CASHFREE_SECRET_KEY
-app.post("/api/webhooks/cashfree-billing", require("./utils/paymentReconcile").webhook);
+app.post(
+  "/api/webhooks/cashfree-billing",
+  require("./utils/paymentReconcile").webhook,
+);
 app.use(require("./middleware/sanitizeInput"));
 // Uploaded images (avatars, guardian photos, etc.) are embedded via absolute
 // URL from the frontend, which runs on a different origin/port than this API.
@@ -196,6 +200,7 @@ app.use(apiRateLimit);
 app.use(require("./middleware/auditWrites"));
 app.use("/api/company", require("./routes/companyRoutes"));
 app.use("/api/dashboard", require("./routes/dashboardRoutes"));
+app.use("/api/insights", require("./routes/insightsRoutes"));
 app.use("/api/employees", require("./routes/employeeRoutes"));
 app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/leaves", require("./routes/leaveRoutes"));
@@ -228,6 +233,8 @@ app.use("/api/bulk-messages", require("./routes/bulkMessageRoutes"));
 app.use("/api/trash", require("./routes/trashRoutes"));
 app.use("/api/assets", require("./routes/assetRoutes"));
 app.use("/api/tasks", require("./routes/taskRoutes"));
+app.use("/api/leads", require("./routes/leadRoutes"));
+app.use("/api/makeup-classes", require("./routes/makeupRoutes"));
 app.use("/api/offer-letters", require("./routes/offerLetterRoutes"));
 app.use(
   "/api/attendance-corrections",
@@ -265,4 +272,6 @@ require("./utils/monitoring").attachExpress(app);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => console.log(`NestAcademy server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`NestAcademy server running on port ${PORT}`),
+);

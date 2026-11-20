@@ -42,6 +42,12 @@ const settingSchema = new mongoose.Schema(
     },
     // ID-card design (sizes, front/back elements). Validated by utils/idCardTemplate.js before it is saved.
     idCardTemplate: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Same shape, for the students' cards (fields: name, student ID, sport, batch, guardian, …).
+    studentIdCardTemplate: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Student admission-form design (A4 pages). Validated by utils/admissionFormTemplate.js before it is saved.
+    admissionFormTemplate: { type: mongoose.Schema.Types.Mixed, default: null },
+    // % off for a 2nd+ child of the same family (shared guardian phone/parent login).
+    siblingDiscountPercent: { type: Number, default: 0, min: 0, max: 50 },
     paymentQrUrl: {
       type: String,
       default: "",
@@ -82,11 +88,11 @@ const settingSchema = new mongoose.Schema(
     // The club's own payment gateway account — when credentials for the
     // selected gateway are set, student/booking payments are created
     // against this account (and land in the club's bank account) instead
-    // of the platform's default RAZORPAY_KEY_ID/SECRET.
+    // of the platform's account. Cashfree is the default; "razorpay" is only kept so older academies still work.
     paymentGateway: {
       type: String,
-      enum: ["razorpay", "cashfree", "phonepe", "paytm"],
-      default: "razorpay",
+      enum: ["cashfree", "phonepe", "paytm", "razorpay"],
+      default: "cashfree",
     },
     razorpayKeyId: {
       type: String,
@@ -185,5 +191,13 @@ const settingSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// The academy's own gateway secrets are stored encrypted (legacy plaintext still reads until re-saved).
+require("../utils/fieldCrypto").fieldEncryption(settingSchema, [
+  "razorpayKeySecret",
+  "cashfreeSecretKey",
+  "phonepeSaltKey",
+  "paytmMerchantKey",
+]);
 
 module.exports = mongoose.model("Setting", settingSchema);

@@ -4,7 +4,12 @@ const mongoose = require("mongoose");
 // balance/bonusBalance are integers in 1/config.UNIT credit.
 const schema = new mongoose.Schema(
   {
-    company: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true, unique: true },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      unique: true,
+    },
     metered: { type: Boolean, default: true },
     balance: { type: Number, default: 0 },
     bonusBalance: { type: Number, default: 0 },

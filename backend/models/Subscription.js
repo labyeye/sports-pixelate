@@ -8,12 +8,13 @@ const subscriptionSchema = new mongoose.Schema(
       required: true,
     },
     plan: { type: String, required: true },
+    planId: { type: String, enum: ["starter", "growth", "unlimited"] }, // fixed yearly tier (utils/pricing.js)
     studentCount: { type: Number },
     employeeCount: { type: Number, default: 0 },
     wantsWhatsapp: { type: Boolean, default: false },
     ratePerUnit: { type: Number },
     // GST-inclusive totals actually charged.
-    monthlyPrice: { type: Number, required: true },
+    monthlyPrice: { type: Number, default: 0 }, // legacy per-user plans only
     yearlyPrice: { type: Number, required: true },
     // Breakdown for the amount actually billed (matches billingCycle).
     gstRate: { type: Number, default: 18 },
@@ -24,7 +25,7 @@ const subscriptionSchema = new mongoose.Schema(
     billingCycle: {
       type: String,
       enum: ["monthly", "yearly"],
-      default: "monthly",
+      default: "yearly",
     },
     currentStudentCount: { type: Number, default: 0 },
     startDate: { type: Date, required: true },

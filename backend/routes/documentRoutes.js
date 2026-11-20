@@ -8,7 +8,11 @@ const {
 const { protect, authorize } = require("../middleware/auth");
 const { uploadDocumentVault } = require("../middleware/upload");
 
-const { sendDocOtp, verifyDocOtp, requireDocAccess } = require("../utils/docAccess");
+const {
+  sendDocOtp,
+  verifyDocOtp,
+  requireDocAccess,
+} = require("../utils/docAccess");
 
 const router = express.Router();
 const NON_PARENT = [

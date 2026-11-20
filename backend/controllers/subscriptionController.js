@@ -8,6 +8,8 @@ const User = require("../models/User");
 const Company = require("../models/Company");
 const Setting = require("../models/Setting");
 const paymentGatewayService = require("../services/paymentGatewayService");
+const { applyResume } = require("../utils/subscriptionPause");
+const { priceFor } = require("../utils/siblingDiscount");
 const { validateMagicBytes } = require("../middleware/upload");
 const { safePagination, safeSort } = require("../middleware/validate");
 const { generatePaymentReceiptPdf } = require("../services/pdfService");
@@ -16,26 +18,21 @@ const {
   sendPaymentVerifiedAdmin,
   sendPaymentRejected,
 } = require("../services/whatsappService");
+const {
+  notifyOwners,
+  notifyParentsOfStudent,
+} = require("../services/inAppNotify");
 
 // Which gateway the club has connected in Settings, and that gateway's
 // credentials — so payments land in the club's own account instead of the
-// platform's. Falls back to Razorpay with no creds (platform env vars).
+// platform's. Never falls back to the platform account: with no creds the caller refuses online payment.
 async function getCompanyPaymentCreds(company) {
   const setting = await Setting.findOne({ company }).select(
-    "+razorpayKeySecret +cashfreeSecretKey +phonepeSaltKey +paytmMerchantKey",
+    "+cashfreeSecretKey +phonepeSaltKey +paytmMerchantKey",
   );
-  const gateway = setting?.paymentGateway || "razorpay";
+  const gateway = setting?.paymentGateway || "cashfree";
   let creds;
   if (
-    gateway === "razorpay" &&
-    setting?.razorpayKeyId &&
-    setting?.razorpayKeySecret
-  ) {
-    creds = {
-      keyId: setting.razorpayKeyId,
-      keySecret: setting.razorpayKeySecret,
-    };
-  } else if (
     gateway === "cashfree" &&
     setting?.cashfreeAppId &&
     setting?.cashfreeSecretKey
@@ -112,6 +109,19 @@ async function notifyPaymentVerified(
       0,
     );
 
+    notifyParentsOfStudent(student._id, companyId, {
+      type: "payment",
+      title: "Payment received",
+      message: `We received ₹${payment.amount} for ${studentName} (${subscription.planName}).${balanceDue > 0 ? ` Balance due: ₹${balanceDue}.` : ""}`,
+      student: student._id,
+    });
+    notifyOwners(companyId, {
+      type: "payment",
+      title: "Payment verified",
+      message: `₹${payment.amount} verified for ${studentName} (${subscription.planName}).`,
+      student: student._id,
+    });
+
     const guardian = (student.guardians || []).find(
       (g) => g.receivesWhatsapp && g.phone,
     );
@@ -172,6 +182,12 @@ async function notifyPaymentRejected(subscription, payment, companyId) {
       "firstName lastName guardians",
     );
     if (!student) return;
+    notifyParentsOfStudent(student._id, companyId, {
+      type: "payment",
+      title: "Payment rejected",
+      message: `Your payment of ₹${payment.amount} for ${student.firstName} ${student.lastName} was rejected${payment.rejectionReason ? `: ${payment.rejectionReason}` : "."}`,
+      student: student._id,
+    });
     const guardian = (student.guardians || []).find(
       (g) => g.receivesWhatsapp && g.phone,
     );
@@ -333,8 +349,12 @@ const createOrder = asyncHandler(async (req, res) => {
     throw new Error("Plan not found");
   }
 
-  const amount =
-    billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+  const { amount, discountPercent } = await priceFor(
+    plan,
+    billingCycle,
+    student,
+    req.user.company,
+  );
 
   const { gateway, creds } = await getCompanyPaymentCreds(req.user.company);
   if (!creds) {
@@ -371,6 +391,7 @@ const createOrder = asyncHandler(async (req, res) => {
       planName: plan.name,
       billingCycle,
       amount,
+      discountPercent,
       startDate,
       renewalDate,
       status: "inactive",
@@ -438,7 +459,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
     return;
   }
 
-  const gateway = subscription.paymentGateway || "razorpay";
+  const gateway = subscription.paymentGateway || "cashfree";
   const { creds } = await getCompanyPaymentCreds(subscription.company);
   const result = await paymentGatewayService.confirmPayment(
     gateway,
@@ -584,8 +605,12 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
   });
   if (!plan) fail(404, "Plan not found");
 
-  const amount =
-    billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+  const { amount, discountPercent } = await priceFor(
+    plan,
+    billingCycle,
+    student,
+    req.user.company,
+  );
 
   let subscription = await StudentSubscription.findOne({
     student: student._id,
@@ -599,6 +624,7 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
       planName: plan.name,
       billingCycle,
       amount,
+      discountPercent,
       startDate: new Date(),
       renewalDate: new Date(),
       status: "pending_renewal",
@@ -615,6 +641,7 @@ const createQrRenewalRequest = asyncHandler(async (req, res) => {
     // — keep payments[] (history), just mark where this cycle starts.
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
+    subscription.discountPercent = discountPercent;
     subscription.status = "pending_renewal";
     subscription.paymentStatus = "pending";
     subscription.amountPaid = 0;
@@ -654,8 +681,12 @@ const assignSubscription = asyncHandler(async (req, res) => {
     throw new Error("Plan not found");
   }
 
-  const amount =
-    billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+  const { amount, discountPercent } = await priceFor(
+    plan,
+    billingCycle,
+    student,
+    req.user.company,
+  );
 
   let subscription = await StudentSubscription.findOne({
     student: student._id,
@@ -669,6 +700,7 @@ const assignSubscription = asyncHandler(async (req, res) => {
       planName: plan.name,
       billingCycle,
       amount,
+      discountPercent,
       startDate: new Date(),
       renewalDate: new Date(),
       status: "pending_renewal",
@@ -683,6 +715,7 @@ const assignSubscription = asyncHandler(async (req, res) => {
     // Keep payments[] (history) — just mark where this cycle starts.
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
+    subscription.discountPercent = discountPercent;
     subscription.status = "pending_renewal";
     subscription.paymentStatus = "pending";
     subscription.amountPaid = 0;
@@ -691,6 +724,7 @@ const assignSubscription = asyncHandler(async (req, res) => {
     // Already active/pending on this plan — just sync the billing cycle.
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
+    subscription.discountPercent = discountPercent;
   }
 
   await subscription.save();
@@ -778,8 +812,12 @@ const recordCashSubscription = asyncHandler(async (req, res) => {
     throw new Error("Plan not found");
   }
 
-  const amount =
-    billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+  const { amount, discountPercent } = await priceFor(
+    plan,
+    billingCycle,
+    student,
+    req.user.company,
+  );
 
   let subscription = await StudentSubscription.findOne({
     student: student._id,
@@ -793,6 +831,7 @@ const recordCashSubscription = asyncHandler(async (req, res) => {
       planName: plan.name,
       billingCycle,
       amount,
+      discountPercent,
       startDate: new Date(),
       renewalDate: new Date(),
       status: "pending_renewal",
@@ -811,6 +850,7 @@ const recordCashSubscription = asyncHandler(async (req, res) => {
     // this cycle's balance starts counting from (see recalcSubscriptionTotals).
     subscription.billingCycle = billingCycle;
     subscription.amount = amount;
+    subscription.discountPercent = discountPercent;
     subscription.status = "pending_renewal";
     subscription.paymentStatus = "pending";
     subscription.amountPaid = 0;
@@ -990,6 +1030,68 @@ const getPaymentReceipt = asyncHandler(async (req, res) => {
   res.send(Buffer.from(pdfBytes));
 });
 
+/** POST /subscriptions/:id/pause — freeze an active plan (owner/staff). */
+const pauseSubscription = asyncHandler(async (req, res) => {
+  const subscription = await StudentSubscription.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!subscription) {
+    res.status(404);
+    throw new Error("Subscription not found");
+  }
+  if (subscription.status !== "active") {
+    res.status(400);
+    throw new Error("Only an active subscription can be paused");
+  }
+  const { until, reason } = req.body;
+  let pauseUntil;
+  if (until) {
+    pauseUntil = new Date(until);
+    if (Number.isNaN(pauseUntil.getTime()) || pauseUntil <= new Date()) {
+      res.status(400);
+      throw new Error("Resume date must be in the future");
+    }
+  }
+  subscription.status = "paused";
+  subscription.pausedAt = new Date();
+  subscription.pauseUntil = pauseUntil;
+  subscription.pauseReason = reason ? String(reason).slice(0, 200) : undefined;
+  await subscription.save();
+  await logAudit(
+    req,
+    "subscription_paused",
+    "StudentSubscription",
+    subscription._id,
+  );
+  res.json({ success: true, data: subscription });
+});
+
+/** POST /subscriptions/:id/resume — unfreeze and extend the renewal date. */
+const resumeSubscription = asyncHandler(async (req, res) => {
+  const subscription = await StudentSubscription.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
+  if (!subscription) {
+    res.status(404);
+    throw new Error("Subscription not found");
+  }
+  if (subscription.status !== "paused") {
+    res.status(400);
+    throw new Error("This subscription is not paused");
+  }
+  const days = applyResume(subscription);
+  await subscription.save();
+  await logAudit(
+    req,
+    "subscription_resumed",
+    "StudentSubscription",
+    subscription._id,
+  );
+  res.json({ success: true, data: subscription, extendedByDays: days });
+});
+
 /** POST /subscriptions/:id/cancel — cancels a student subscription. */
 const cancelSubscription = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id, company: req.user.company };
@@ -1092,7 +1194,7 @@ const bulkImportSubscriptions = asyncHandler(async (req, res) => {
           : "active",
         paymentStatus: "completed",
         amountPaid: Number(row.amount) || 0,
-        paymentMethod: row.paymentMethod === "qr" ? "qr" : "razorpay",
+        paymentMethod: row.paymentMethod === "qr" ? "qr" : "cash",
       });
 
       results.push({
@@ -1124,6 +1226,8 @@ module.exports = {
   rejectQrPayment,
   getPaymentReceipt,
   cancelSubscription,
+  pauseSubscription,
+  resumeSubscription,
   bulkImportSubscriptions,
   // shared with the public payment-link flow (services/paymentLinkService.js)
   getCompanyPaymentCreds,

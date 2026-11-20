@@ -52,7 +52,7 @@ NestAcademy brings together staff/HR management, coaching operations, student en
 
 ### 4. Payments & Billing
 
-- **Razorpay** integration for plan checkout, subscription billing, and facility booking payments
+- **Cashfree** for plan checkout and WhatsApp credit top-ups; each academy connects its own Cashfree/PhonePe/Paytm account so parents' fee and booking payments go straight to the academy
 - **HDFC payment gateway** as a secondary payment rail
 - Discount/offer code support at checkout
 - Auto-generated invoices and payment success/failure confirmation pages
@@ -73,8 +73,8 @@ NestAcademy brings together staff/HR management, coaching operations, student en
 
 ### 7. Built for Growing Academies (SaaS Platform)
 
-- **Simple per-user pricing** — ₹30 per user per month (students + staff) with in-app notifications, ₹50 with WhatsApp notifications; GST extra. Yearly = 12× monthly. Offer codes supported.
-- **Subscription enforced end-to-end** — the API (not just the UI) rejects requests from academies whose plan has lapsed (7-day grace), and WhatsApp only sends if the academy bought it
+- **Three fixed yearly plans** — Starter ₹9,999 (up to 50 students), Growth ₹15,999 (up to 100), Unlimited ₹25,999; staff are free, GST (18%) extra. WhatsApp alerts run on prepaid credits. Offer codes supported.
+- **Subscription enforced end-to-end** — the API (not just the UI) rejects requests from academies whose plan has lapsed (7-day grace), and WhatsApp only sends while the academy has credits
 - Guided onboarding wizard — company setup → initial staff import → plan selection → payment, in a few guided steps
 - Multi-tenant architecture designed to serve many academies independently and securely
 
@@ -95,7 +95,7 @@ NestAcademy brings together staff/HR management, coaching operations, student en
 
 - **Frontend**: React, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Express, MongoDB
-- **Payments**: Razorpay, HDFC Payment Gateway
+- **Payments**: Cashfree (platform billing), Cashfree / PhonePe / Paytm (academy's own account)
 - **Biometrics**: Face recognition, fingerprint/device enrollment
 - **Communication**: WhatsApp Business API, email, web push notifications
 - **Security**: JWT authentication, two-factor authentication, geofencing, audit logging
@@ -109,12 +109,12 @@ NestAcademy brings together staff/HR management, coaching operations, student en
 cd backend
 cp .env.example .env        # fill MONGO_URI and JWT_SECRET at minimum
 npm install
-npm run dev                 # https://sports-backend.pixelatenest.com
+npm run dev                 # http://localhost:5002
 npm test                    # route-guard, pricing & subscription tests (no DB needed)
 
 # 2. Web
 cd ../frontend
-cp .env.example .env        # VITE_API_URL=https://sports-backend.pixelatenest.com/api
+cp .env.example .env        # VITE_API_URL=http://localhost:5002/api
 npm install
 npm run dev                 # http://localhost:5174
 npm run lint && npm run typecheck && npm run build

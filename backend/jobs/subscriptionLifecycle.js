@@ -4,6 +4,7 @@ const {
   notifyParentsOfStudent,
   notifyOwners,
 } = require("../services/inAppNotify");
+const { applyResume } = require("../utils/subscriptionPause");
 const { acquire, withJobLock } = require("../utils/jobLock");
 const logger = require("../utils/logger");
 
@@ -62,6 +63,16 @@ async function runSubscriptionLifecycle() {
     { status: "active", renewalDate: { $lt: today } },
     { $set: { status: "pending_renewal" } },
   );
+
+  // Frozen plans whose resume date has arrived go live again (renewal shifted).
+  const due = await StudentSubscription.find({
+    status: "paused",
+    pauseUntil: { $lte: new Date() },
+  });
+  for (const sub of due) {
+    applyResume(sub);
+    await sub.save();
+  }
 
   const horizon = new Date(today.getTime() + 8 * DAY);
   const subs = await StudentSubscription.find({

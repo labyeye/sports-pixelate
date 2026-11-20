@@ -12,6 +12,8 @@ const {
   rejectQrPayment,
   getPaymentReceipt,
   cancelSubscription,
+  pauseSubscription,
+  resumeSubscription,
   bulkImportSubscriptions,
 } = require("../controllers/subscriptionController");
 const { protect, authorize } = require("../middleware/auth");
@@ -70,6 +72,18 @@ router.post(
   rejectQrPayment,
 );
 router.get("/:id/payments/:paymentId/receipt", protect, getPaymentReceipt);
+router.post(
+  "/:id/pause",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  pauseSubscription,
+);
+router.post(
+  "/:id/resume",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  resumeSubscription,
+);
 // Parents may cancel only their own child's subscription (scoped in the handler).
 router.post(
   "/:id/cancel",

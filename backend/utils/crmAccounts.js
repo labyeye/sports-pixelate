@@ -21,8 +21,7 @@ const pick = (obj, keys) =>
 // Always satisfies STRONG (upper + lower + digit, 12 chars).
 const genPassword = () => generatePassword();
 const checkPassword = (p) => {
-  if (p && !STRONG.test(p))
-    throw fail(checkPasswordRules(p));
+  if (p && !STRONG.test(p)) throw fail(checkPasswordRules(p));
   return p || genPassword();
 };
 const cleanFeatures = (v) =>

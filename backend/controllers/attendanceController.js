@@ -736,6 +736,72 @@ const bulkMarkAttendance = asyncHandler(async (req, res) => {
   });
 });
 
+// Sets status and/or check-in / check-out times (HH:mm) for many employees on one day. Employees outside the
+// company or outside their employment dates are skipped and listed back.
+const bulkUpdateAttendance = asyncHandler(async (req, res) => {
+  const { date, employees, status, checkIn, checkOut } = req.body;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
+    res.status(400);
+    throw new Error("A valid date (YYYY-MM-DD) is required");
+  }
+  if (!Array.isArray(employees) || employees.length === 0 || employees.length > 500) {
+    res.status(400);
+    throw new Error("Pick between 1 and 500 employees");
+  }
+  const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if ((checkIn && !TIME.test(checkIn)) || (checkOut && !TIME.test(checkOut))) {
+    res.status(400);
+    throw new Error("Times must be HH:mm");
+  }
+  if (!status && !checkIn && !checkOut) {
+    res.status(400);
+    throw new Error("Nothing to update");
+  }
+  const STATUSES = ["present", "absent", "half_day", "late", "on_leave"];
+  if (status && !STATUSES.includes(status)) {
+    res.status(400);
+    throw new Error("Invalid status");
+  }
+
+  const d = new Date(`${date}T00:00:00`);
+  const inAt = checkIn ? new Date(`${date}T${checkIn}:00`) : null;
+  const outAt = checkOut ? new Date(`${date}T${checkOut}:00`) : null;
+  if (inAt && outAt && outAt <= inAt) {
+    res.status(400);
+    throw new Error("Check-out must be after check-in");
+  }
+
+  const emps = await Employee.find({
+    _id: { $in: employees },
+    company: req.user.company,
+  }).select("_id joinDate exitDate");
+  const byId = new Map(emps.map((e) => [e._id.toString(), e]));
+
+  let updated = 0;
+  const skipped = [];
+  for (const id of employees.map(String)) {
+    const emp = byId.get(id);
+    if (!emp || employmentBoundsError(emp, d)) {
+      skipped.push(id);
+      continue;
+    }
+    const rec =
+      (await Attendance.findOne({ employee: emp._id, date: d })) ||
+      new Attendance({ employee: emp._id, date: d });
+    if (inAt) rec.checkIn = inAt;
+    if (outAt) rec.checkOut = outAt;
+    if (status) rec.status = status;
+    else if (inAt && !rec.status) rec.status = "present";
+    if (rec.checkIn && rec.checkOut)
+      rec.workHours = parseFloat(((rec.checkOut - rec.checkIn) / 3_600_000).toFixed(2));
+    rec.markedBy = req.user._id;
+    rec.verifyMode = "manual";
+    await rec.save();
+    updated += 1;
+  }
+  res.json({ success: true, updated, skipped });
+});
+
 const getMonthSummary = asyncHandler(async (req, res) => {
   const { month, year } = req.query;
   const m = parseInt(month),
@@ -874,7 +940,9 @@ const getTimingInsights = asyncHandler(async (req, res) => {
               n: { $sum: 1 },
             },
           },
-          { $group: { _id: "$_id.dow", avg: { $avg: "$n" }, days: { $sum: 1 } } },
+          {
+            $group: { _id: "$_id.dow", avg: { $avg: "$n" }, days: { $sum: 1 } },
+          },
           { $sort: { _id: 1 } },
         ],
         byEmployee: [
@@ -899,7 +967,10 @@ const getTimingInsights = asyncHandler(async (req, res) => {
     .select("firstName lastName employeeId")
     .lean();
   const nameOf = Object.fromEntries(
-    emps.map((e) => [String(e._id), `${e.firstName} ${e.lastName || ""}`.trim()]),
+    emps.map((e) => [
+      String(e._id),
+      `${e.firstName} ${e.lastName || ""}`.trim(),
+    ]),
   );
   res.json({
     success: true,
@@ -931,6 +1002,7 @@ module.exports = {
   selfMarkAttendance,
   updateAttendance,
   bulkMarkAttendance,
+  bulkUpdateAttendance,
   getMonthSummary,
   handleLateAllowance,
 };

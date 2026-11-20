@@ -40,7 +40,7 @@ const bookingSchema = new mongoose.Schema(
     paymentGateway: {
       type: String,
       enum: ["razorpay", "cashfree", "phonepe", "paytm"],
-      default: "razorpay",
+      default: "cashfree",
     },
     notes: { type: String },
     // Inventory gear taken for this booking. Stock is deducted when the

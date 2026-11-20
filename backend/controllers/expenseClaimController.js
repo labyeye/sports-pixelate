@@ -13,11 +13,20 @@ const { validateMagicBytes } = require("../middleware/upload");
 
 const BILL_DIR = path.join(UPLOAD_DIR, "expense-bills");
 const ROLES = ["department_head", "hr_manager", "super_admin"];
-const CATEGORIES = ["travel", "food", "fuel", "lodging", "internet_phone", "office", "other"];
+const CATEGORIES = [
+  "travel",
+  "food",
+  "fuel",
+  "lodging",
+  "internet_phone",
+  "office",
+  "other",
+];
 const PAY_MODES = ["bank_transfer", "upi", "cash", "cheque"];
 
 const billsOf = (e) => [...(e.bills || []), ...(e.bill ? [e.bill] : [])];
-const dropFiles = (files) => (files || []).forEach((f) => fs.unlink(f.path, () => {}));
+const dropFiles = (files) =>
+  (files || []).forEach((f) => fs.unlink(f.path, () => {}));
 
 async function getPolicy(company) {
   const p = await ExpensePolicy.findOne({ company }).lean();
@@ -35,18 +44,47 @@ function parseClaim(body) {
   const category = CATEGORIES.includes(body.category) ? body.category : "other";
   if (!title || !(amount > 0) || isNaN(date) || date > new Date())
     throw new Error("Title, a valid amount and a past date are required");
-  const num = (v) => (v === undefined || v === "" || isNaN(Number(v)) ? undefined : Math.max(0, Number(v)));
+  const num = (v) =>
+    v === undefined || v === "" || isNaN(Number(v))
+      ? undefined
+      : Math.max(0, Number(v));
   const dt = (v) => (v && !isNaN(new Date(v)) ? new Date(v) : undefined);
-  const str = (v) => String(v || "").trim().slice(0, 100);
+  const str = (v) =>
+    String(v || "")
+      .trim()
+      .slice(0, 100);
   const d = {};
-  if (category === "travel") Object.assign(d, { from: str(body.from), to: str(body.to), distanceKm: num(body.distanceKm) });
-  if (category === "fuel") Object.assign(d, { distanceKm: num(body.distanceKm), fuelLitres: num(body.fuelLitres), vendor: str(body.vendor) });
+  if (category === "travel")
+    Object.assign(d, {
+      from: str(body.from),
+      to: str(body.to),
+      distanceKm: num(body.distanceKm),
+    });
+  if (category === "fuel")
+    Object.assign(d, {
+      distanceKm: num(body.distanceKm),
+      fuelLitres: num(body.fuelLitres),
+      vendor: str(body.vendor),
+    });
   if (category === "lodging") {
-    Object.assign(d, { checkIn: dt(body.checkIn), checkOut: dt(body.checkOut), vendor: str(body.vendor) });
-    if (d.checkIn && d.checkOut && d.checkOut < d.checkIn) throw new Error("Check-out cannot be before check-in");
+    Object.assign(d, {
+      checkIn: dt(body.checkIn),
+      checkOut: dt(body.checkOut),
+      vendor: str(body.vendor),
+    });
+    if (d.checkIn && d.checkOut && d.checkOut < d.checkIn)
+      throw new Error("Check-out cannot be before check-in");
   }
-  if (["food", "internet_phone", "office", "other"].includes(category)) d.vendor = str(body.vendor);
-  return { title: title.slice(0, 120), category, amount, date, notes: (body.notes || "").slice(0, 500), details: d };
+  if (["food", "internet_phone", "office", "other"].includes(category))
+    d.vendor = str(body.vendor);
+  return {
+    title: title.slice(0, 120),
+    category,
+    amount,
+    date,
+    notes: (body.notes || "").slice(0, 500),
+    details: d,
+  };
 }
 
 async function selfEmployee(req) {
@@ -54,7 +92,10 @@ async function selfEmployee(req) {
 }
 
 async function stepsFor(company, amount) {
-  const wf = await ApprovalWorkflow.findOne({ company, type: "expense" }).lean();
+  const wf = await ApprovalWorkflow.findOne({
+    company,
+    type: "expense",
+  }).lean();
   const steps = (wf?.steps?.length ? wf.steps : [{ role: "hr_manager" }])
     .filter((s) => amount >= (s.aboveAmount || 0))
     .map((s) => ({ role: s.role }));
@@ -93,7 +134,11 @@ async function syncPaid(company) {
   if (applied.length)
     await Expense.updateMany(
       { transaction: { $in: applied.map((t) => t._id) }, status: "approved" },
-      { status: "paid", "payment.mode": "payroll", "payment.paidOn": new Date() },
+      {
+        status: "paid",
+        "payment.mode": "payroll",
+        "payment.paidOn": new Date(),
+      },
     );
 }
 
@@ -134,8 +179,14 @@ const getExpenses = asyncHandler(async (req, res) => {
 // Applies policy to a claim that is being submitted; returns the fields to store.
 async function submitFields(company, fields, billCount) {
   const policy = await getPolicy(company);
-  if (policy.billRequiredAbove && fields.amount > policy.billRequiredAbove && !billCount)
-    throw new Error(`A bill is required for claims above ₹${policy.billRequiredAbove}`);
+  if (
+    policy.billRequiredAbove &&
+    fields.amount > policy.billRequiredAbove &&
+    !billCount
+  )
+    throw new Error(
+      `A bill is required for claims above ₹${policy.billRequiredAbove}`,
+    );
   const limit = policy.limits[fields.category] || 0;
   return {
     status: "pending",
@@ -163,10 +214,12 @@ const createExpense = asyncHandler(async (req, res) => {
     const isDraft = req.body.draft === "true";
     const extra = isDraft
       ? { status: "draft", steps: [] }
-      : await submitFields(req.user.company, fields, files.length).catch((e) => {
-          res.status(400);
-          throw e;
-        });
+      : await submitFields(req.user.company, fields, files.length).catch(
+          (e) => {
+            res.status(400);
+            throw e;
+          },
+        );
     const expense = await Expense.create({
       company: req.user.company,
       employee: emp._id,
@@ -185,7 +238,10 @@ const createExpense = asyncHandler(async (req, res) => {
 const updateExpense = asyncHandler(async (req, res) => {
   try {
     const emp = await selfEmployee(req);
-    const expense = await Expense.findOne({ _id: req.params.id, company: req.user.company });
+    const expense = await Expense.findOne({
+      _id: req.params.id,
+      company: req.user.company,
+    });
     if (!expense || !emp || String(expense.employee) !== String(emp._id)) {
       res.status(404);
       throw new Error("Claim not found");
@@ -204,7 +260,8 @@ const updateExpense = asyncHandler(async (req, res) => {
       throw e;
     }
     let remove = req.body.removeBills || [];
-    if (!Array.isArray(remove)) remove = String(remove).split(",").filter(Boolean);
+    if (!Array.isArray(remove))
+      remove = String(remove).split(",").filter(Boolean);
     const removed = expense.bills.filter((b) => remove.includes(b));
     const kept = expense.bills.filter((b) => !remove.includes(b));
     if (kept.length + files.length > 5) {
@@ -214,13 +271,23 @@ const updateExpense = asyncHandler(async (req, res) => {
     const extra =
       req.body.draft === "true"
         ? {}
-        : await submitFields(req.user.company, fields, kept.length + files.length + (expense.bill ? 1 : 0)).catch((e) => {
+        : await submitFields(
+            req.user.company,
+            fields,
+            kept.length + files.length + (expense.bill ? 1 : 0),
+          ).catch((e) => {
             res.status(400);
             throw e;
           });
-    expense.set({ ...fields, ...extra, bills: [...kept, ...files.map((f) => f.filename)] });
+    expense.set({
+      ...fields,
+      ...extra,
+      bills: [...kept, ...files.map((f) => f.filename)],
+    });
     await expense.save();
-    removed.forEach((b) => fs.unlink(path.join(BILL_DIR, path.basename(b)), () => {}));
+    removed.forEach((b) =>
+      fs.unlink(path.join(BILL_DIR, path.basename(b)), () => {}),
+    );
     res.json({ success: true, data: expense });
   } catch (e) {
     dropFiles(req.files);
@@ -231,7 +298,10 @@ const updateExpense = asyncHandler(async (req, res) => {
 // Rejected claim -> new pending claim (bills are shared by copying the file names' files).
 const resubmitExpense = asyncHandler(async (req, res) => {
   const emp = await selfEmployee(req);
-  const old = await Expense.findOne({ _id: req.params.id, company: req.user.company });
+  const old = await Expense.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!old || !emp || String(old.employee) !== String(emp._id)) {
     res.status(404);
     throw new Error("Claim not found");
@@ -255,7 +325,12 @@ const resubmitExpense = asyncHandler(async (req, res) => {
   }
   let fields;
   try {
-    fields = parseClaim({ ...old.toObject(), ...req.body, ...(old.details || {}), date: req.body.date || old.date });
+    fields = parseClaim({
+      ...old.toObject(),
+      ...req.body,
+      ...(old.details || {}),
+      date: req.body.date || old.date,
+    });
     const extra = await submitFields(req.user.company, fields, copies.length);
     const expense = await Expense.create({
       company: old.company,
@@ -287,7 +362,9 @@ const actOnExpense = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Claim not found");
   }
-  const emp = await Employee.findById(expense.employee).select("department user");
+  const emp = await Employee.findById(expense.employee).select(
+    "department user",
+  );
   if (emp && String(emp.user) === String(req.user._id)) {
     res.status(403);
     throw new Error("You cannot approve your own claim");
@@ -297,11 +374,17 @@ const actOnExpense = asyncHandler(async (req, res) => {
     throw new Error("This claim is not waiting for your approval");
   }
   let approvedAmount = expense.approvedAmount ?? expense.amount;
-  if (action === "approve" && req.body.approvedAmount !== undefined && req.body.approvedAmount !== "") {
+  if (
+    action === "approve" &&
+    req.body.approvedAmount !== undefined &&
+    req.body.approvedAmount !== ""
+  ) {
     approvedAmount = Number(req.body.approvedAmount);
     if (!(approvedAmount > 0) || approvedAmount > expense.amount) {
       res.status(400);
-      throw new Error("Approved amount must be above 0 and not more than the claimed amount");
+      throw new Error(
+        "Approved amount must be above 0 and not more than the claimed amount",
+      );
     }
     if (approvedAmount < expense.amount && !(note || "").trim()) {
       res.status(400);
@@ -334,7 +417,10 @@ const actOnExpense = asyncHandler(async (req, res) => {
       notifyUsers(req.user.company, [emp.user], {
         type: "general",
         employee: expense.employee,
-        title: expense.status === "approved" ? "Expense approved" : "Expense rejected",
+        title:
+          expense.status === "approved"
+            ? "Expense approved"
+            : "Expense rejected",
         message:
           expense.status === "approved"
             ? `Your claim "${expense.title}" was approved for ₹${expense.approvedAmount}`
@@ -359,7 +445,9 @@ const deleteExpense = asyncHandler(async (req, res) => {
     expense.steps.some((s) => s.status !== "pending")
   ) {
     res.status(400);
-    throw new Error("Only drafts and untouched pending claims can be withdrawn");
+    throw new Error(
+      "Only drafts and untouched pending claims can be withdrawn",
+    );
   }
   billsOf(expense).forEach((b) =>
     fs.unlink(path.join(BILL_DIR, path.basename(b)), () => {}),
@@ -402,18 +490,27 @@ const downloadBill = asyncHandler(async (req, res) => {
 // Short-lived signed link so the mobile app can open a bill in the phone's browser / PDF viewer.
 const getBillLink = asyncHandler(async (req, res) => {
   const file = await billFor(req, res);
-  const token = jwt.sign({ purpose: "expense-bill", file }, process.env.JWT_SECRET, {
-    algorithm: "HS256",
-    expiresIn: "2m",
+  const token = jwt.sign(
+    { purpose: "expense-bill", file },
+    process.env.JWT_SECRET,
+    {
+      algorithm: "HS256",
+      expiresIn: "2m",
+    },
+  );
+  res.json({
+    success: true,
+    data: { path: `/expense-claims/bill-file/${token}` },
   });
-  res.json({ success: true, data: { path: `/expense-claims/bill-file/${token}` } });
 });
 
 // Public: the token is the credential. Never usable as a login session (it carries a purpose).
 const serveBillByToken = asyncHandler(async (req, res) => {
   let decoded;
   try {
-    decoded = jwt.verify(req.params.token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    decoded = jwt.verify(req.params.token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
   } catch (_) {
     res.status(401);
     throw new Error("Link expired");
@@ -440,7 +537,11 @@ const getWorkflow = asyncHandler(async (req, res) => {
 
 const saveWorkflow = asyncHandler(async (req, res) => {
   const steps = Array.isArray(req.body.steps) ? req.body.steps : [];
-  if (!steps.length || steps.length > 4 || steps.some((s) => !ROLES.includes(s.role))) {
+  if (
+    !steps.length ||
+    steps.length > 4 ||
+    steps.some((s) => !ROLES.includes(s.role))
+  ) {
     res.status(400);
     throw new Error("Add 1-4 steps, each with a valid approver role");
   }
@@ -458,7 +559,10 @@ const saveWorkflow = asyncHandler(async (req, res) => {
 
 // HR settles an approved claim outside payroll (bank transfer, UPI, cash, cheque).
 const markPaid = asyncHandler(async (req, res) => {
-  const expense = await Expense.findOne({ _id: req.params.id, company: req.user.company });
+  const expense = await Expense.findOne({
+    _id: req.params.id,
+    company: req.user.company,
+  });
   if (!expense || expense.status !== "approved") {
     res.status(404);
     throw new Error("Approved claim not found");
@@ -471,7 +575,10 @@ const markPaid = asyncHandler(async (req, res) => {
   }
   // Remove the queued payroll allowance so the employee is not paid twice.
   if (expense.transaction) {
-    const del = await Transaction.deleteOne({ _id: expense.transaction, status: "pending" });
+    const del = await Transaction.deleteOne({
+      _id: expense.transaction,
+      status: "pending",
+    });
     if (!del.deletedCount) {
       res.status(400);
       throw new Error("Payroll already picked up this claim");
@@ -499,7 +606,10 @@ const savePolicy = asyncHandler(async (req, res) => {
     const v = Number(req.body.limits?.[c]);
     if (v > 0) limits[c] = v;
   }
-  const billRequiredAbove = Math.max(0, Number(req.body.billRequiredAbove) || 0);
+  const billRequiredAbove = Math.max(
+    0,
+    Number(req.body.billRequiredAbove) || 0,
+  );
   await ExpensePolicy.findOneAndUpdate(
     { company: req.user.company },
     { limits, billRequiredAbove },

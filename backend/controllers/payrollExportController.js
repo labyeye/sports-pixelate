@@ -21,7 +21,10 @@ async function fetchPayrolls(req) {
     month: m,
     year: y,
     status: { $in: ["processed", "paid"] },
-  }).populate("employee", "firstName lastName employeeId bankAccount accountHolderName ifscCode bankName");
+  }).populate(
+    "employee",
+    "firstName lastName employeeId bankAccount accountHolderName ifscCode bankName",
+  );
 }
 
 function empName(p) {
@@ -199,7 +202,10 @@ const exportBank = asyncHandler(async (req, res) => {
       const missing = !e.bankAccount || !e.ifscCode;
       csv += csvRow([
         i + 1,
-        guard(e.accountHolderName || `${e.firstName || ""} ${e.lastName || ""}`.trim()),
+        guard(
+          e.accountHolderName ||
+            `${e.firstName || ""} ${e.lastName || ""}`.trim(),
+        ),
         guard(e.bankAccount || ""),
         guard((e.ifscCode || "").toUpperCase()),
         guard(e.bankName || ""),

@@ -19,6 +19,11 @@ const {
   sendStudentCheckOut,
 } = require("../services/whatsappService");
 const User = require("../models/User");
+const {
+  notifyOwners,
+  notifyEmployee,
+  notifyParentsOfStudent,
+} = require("../services/inAppNotify");
 const logger = require("../utils/logger");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
@@ -84,6 +89,21 @@ function mapVerifyMode(verifyType) {
 }
 
 async function notifyEmployeeCheckIn(employee, locationName, time, companyId) {
+  const when = new Date(time).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  notifyEmployee(companyId, employee, {
+    type: "employee_attendance",
+    title: "Checked in",
+    message: `You checked in at ${when}${locationName ? ` (${locationName})` : ""}.`,
+  });
+  notifyOwners(companyId, {
+    type: "employee_attendance",
+    title: "Employee checked in",
+    message: `${employee.firstName} ${employee.lastName} checked in at ${when}.`,
+    employee: employee._id,
+  });
   try {
     const hrUsers = await User.find({
       company: companyId,
@@ -123,6 +143,21 @@ async function notifyEmployeeCheckOut(
   workHours,
   companyId,
 ) {
+  const when = new Date(time).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  notifyEmployee(companyId, employee, {
+    type: "employee_attendance",
+    title: "Checked out",
+    message: `You checked out at ${when}${workHours ? ` (${workHours}h worked)` : ""}.`,
+  });
+  notifyOwners(companyId, {
+    type: "employee_attendance",
+    title: "Employee checked out",
+    message: `${employee.firstName} ${employee.lastName} checked out at ${when}.`,
+    employee: employee._id,
+  });
   try {
     const hrUsers = await User.find({
       company: companyId,
@@ -157,8 +192,21 @@ async function notifyEmployeeCheckOut(
 }
 
 async function notifyGuardians(student, sendFn, locationName, time) {
+  const studentName = `${student.firstName} ${student.lastName}`;
+  const when = new Date(time).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const checkIn = sendFn === sendStudentCheckIn;
+  const payload = {
+    type: "student_attendance",
+    title: checkIn ? "Checked in" : "Checked out",
+    message: `${studentName} ${checkIn ? "arrived" : "left"} at ${when}${locationName ? ` (${locationName})` : ""}.`,
+    student: student._id,
+  };
+  notifyParentsOfStudent(student._id, student.company, payload);
+  notifyOwners(student.company, payload);
   try {
-    const studentName = `${student.firstName} ${student.lastName}`;
     // Only the one guardian opted in via receivesWhatsapp gets notified —
     // otherwise every listed guardian (father, mother, etc.) would be messaged.
     const guardian = (student.guardians || []).find(

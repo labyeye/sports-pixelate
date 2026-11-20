@@ -59,9 +59,16 @@ const studentSubscriptionSchema = new mongoose.Schema(
     renewalDate: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["active", "inactive", "cancelled", "pending_renewal"],
+      enum: ["active", "inactive", "cancelled", "pending_renewal", "paused"],
       default: "active",
     },
+    // Freeze: while "paused" the plan is excluded from fee reminders, overdue
+    // and auto-absent; on resume the renewal date shifts by the days paused.
+    pausedAt: { type: Date },
+    pauseUntil: { type: Date },
+    pauseReason: { type: String, maxlength: 200 },
+    // Sibling/family discount applied to `amount` (percent off plan price).
+    discountPercent: { type: Number, default: 0, min: 0, max: 100 },
     autoRenew: { type: Boolean, default: true },
     // "<renewalDate>:<stage>" keys of reminders already sent for the current
     // period, so each reminder goes out exactly once (a renewal changes the date).
@@ -79,7 +86,7 @@ const studentSubscriptionSchema = new mongoose.Schema(
     paymentGateway: {
       type: String,
       enum: ["razorpay", "cashfree", "phonepe", "paytm"],
-      default: "razorpay",
+      default: "cashfree",
     },
     // Derived — sum of `payments[].amount` where status === "verified".
     // Stored (not virtual) so existing sort/filter/report queries on it
@@ -88,7 +95,7 @@ const studentSubscriptionSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       enum: ["razorpay", "cashfree", "phonepe", "paytm", "qr", "cash"],
-      default: "razorpay",
+      default: "cashfree",
     },
     payments: [paymentAttemptSchema],
     // Legacy single-payment fields — kept for old documents written before

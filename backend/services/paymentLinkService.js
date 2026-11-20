@@ -5,6 +5,7 @@ const Company = require("../models/Company");
 const Setting = require("../models/Setting");
 const paymentGatewayService = require("./paymentGatewayService");
 const { sendFeePaymentLink } = require("./whatsappService");
+const { notifyParentsOfStudent } = require("./inAppNotify");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const LINK_TTL_DAYS = 30;
@@ -136,6 +137,12 @@ async function sendPendingLinks(companyId, now = new Date()) {
       companyId,
     );
     if (result.status === "sent") {
+      notifyParentsOfStudent(link.student?._id, companyId, {
+        type: "fee_reminder",
+        title: "Fee payment link",
+        message: `₹${link.amount} is due for ${link.student?.firstName || ""} ${link.student?.lastName || ""} (${link.planName}). Check WhatsApp for the payment link.`,
+        student: link.student?._id,
+      });
       link.sentAt = new Date();
       link.lastError = undefined;
       stats.sent++;
@@ -290,7 +297,7 @@ async function confirmPayment(token, payload = {}) {
 
   const { creds } = await getCompanyPaymentCreds(link.company);
   const result = await paymentGatewayService.confirmPayment(
-    link.gateway || "razorpay",
+    link.gateway || "cashfree",
     creds,
     link.orderId,
     {
@@ -326,10 +333,10 @@ async function confirmPayment(token, payload = {}) {
     const paymentId = payload.razorpayPaymentId || link.orderId;
     sub.razorpayOrderId = link.orderId;
     sub.razorpayPaymentId = paymentId;
-    sub.paymentGateway = link.gateway || "razorpay";
+    sub.paymentGateway = link.gateway || "cashfree";
     sub.payments.push({
       amount: link.amount,
-      method: link.gateway || "razorpay",
+      method: link.gateway || "cashfree",
       razorpayOrderId: link.orderId,
       razorpayPaymentId: paymentId,
       status: "verified",
@@ -340,7 +347,7 @@ async function confirmPayment(token, payload = {}) {
     await updated.populate("student", "firstName lastName");
 
     const payment = updated.payments[updated.payments.length - 1];
-    const gw = link.gateway || "razorpay";
+    const gw = link.gateway || "cashfree";
     notifyPaymentVerified(
       updated,
       payment,

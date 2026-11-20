@@ -4,6 +4,10 @@ const Student = require("../models/Student");
 const Company = require("../models/Company");
 const CelebrationLog = require("../models/CelebrationLog");
 const wa = require("../services/whatsappService");
+const {
+  notifyEmployee,
+  notifyParentsOfStudent,
+} = require("../services/inAppNotify");
 
 // Daily 09:00 IST: WhatsApp wishes. Students' birthdays go to the guardian marked "receivesWhatsapp";
 // staff get birthday + wedding-anniversary wishes. Templates come from env (see wa.sendCelebration).
@@ -25,12 +29,23 @@ async function run(now = new Date()) {
 
   // [template kind, log kind, person id, company, phone, first name]
   const todo = [];
-  const students = await Student.find({ status: "active", ...today("dateOfBirth") })
+  const students = await Student.find({
+    status: "active",
+    ...today("dateOfBirth"),
+  })
     .select("company firstName guardians")
     .lean();
   for (const s of students) {
     const g = (s.guardians || []).find((x) => x.receivesWhatsapp && x.phone);
-    if (g) todo.push(["student_birthday", "birthday", s._id, s.company, g.phone, s.firstName]);
+    if (g)
+      todo.push([
+        "student_birthday",
+        "birthday",
+        s._id,
+        s.company,
+        g.phone,
+        s.firstName,
+      ]);
   }
   for (const [kind, field] of [
     ["birthday", "dateOfBirth"],
@@ -43,7 +58,8 @@ async function run(now = new Date()) {
     })
       .select("company firstName phone")
       .lean();
-    for (const e of emps) todo.push([kind, kind, e._id, e.company, e.phone, e.firstName]);
+    for (const e of emps)
+      todo.push([kind, kind, e._id, e.company, e.phone, e.firstName]);
   }
 
   for (const [tplKind, logKind, id, company, phone, first] of todo) {
@@ -54,6 +70,24 @@ async function run(now = new Date()) {
       if (err.code === 11000) continue;
       throw err;
     }
+    const wish =
+      logKind === "anniversary"
+        ? {
+            title: "Happy work anniversary!",
+            message: `Happy anniversary, ${first || "there"}!`,
+          }
+        : {
+            title: "Happy birthday!",
+            message: `Happy birthday, ${first || "there"}! Wishing you a great year.`,
+          };
+    if (tplKind === "student_birthday")
+      notifyParentsOfStudent(id, company, {
+        ...wish,
+        type: "celebration",
+        student: id,
+      });
+    else notifyEmployee(company, { _id: id }, { ...wish, type: "celebration" });
+
     try {
       names[company] ??=
         (await Company.findById(company).select("name").lean())?.name || "us";

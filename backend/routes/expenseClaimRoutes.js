@@ -16,10 +16,20 @@ router.put(
 router.get("/bill-file/:token", c.serveBillByToken);
 router.get("/:id/bill-link/:index", protect, c.getBillLink);
 router.get("/policy", protect, c.getPolicy);
-router.put("/policy", protect, authorize("super_admin", "hr_manager"), c.savePolicy);
+router.put(
+  "/policy",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  c.savePolicy,
+);
 router.put("/:id", protect, uploadExpenseBill, c.updateExpense);
 router.post("/:id/resubmit", protect, c.resubmitExpense);
-router.put("/:id/pay", protect, authorize("super_admin", "hr_manager"), c.markPaid);
+router.put(
+  "/:id/pay",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  c.markPaid,
+);
 router.get("/:id/bill/:index", protect, c.downloadBill);
 router.get("/:id/bill", protect, c.downloadBill);
 router.put(

@@ -8,17 +8,26 @@ const days = (n) => {
   return d;
 };
 
-test("calculatePricing: ₹30/user, ₹50 with WhatsApp, +18% GST", () => {
-  const { calculatePricing } = require("../utils/pricing");
-  const base = calculatePricing(100, 5, false);
-  assert.strictEqual(base.ratePerUnit, 30);
-  assert.strictEqual(base.monthlySubtotal, 3150);
-  assert.strictEqual(base.monthlyGstAmount, 567);
-  assert.strictEqual(base.monthlyPrice, 3717);
-  assert.strictEqual(base.yearlyPrice, 44604);
-  const wa = calculatePricing(100, 5, true);
-  assert.strictEqual(wa.ratePerUnit, 50);
-  assert.strictEqual(wa.monthlySubtotal, 5250);
+test("pricing: 3 fixed yearly plans by student count, +18% GST", () => {
+  const { calculatePricing, planForStudents, PLANS } = require("../utils/pricing");
+  assert.deepStrictEqual(PLANS.map((p) => [p.id, p.price]), [
+    ["starter", 9999],
+    ["growth", 15999],
+    ["unlimited", 25999],
+  ]);
+  assert.strictEqual(planForStudents(1).id, "starter");
+  assert.strictEqual(planForStudents(50).id, "starter");
+  assert.strictEqual(planForStudents(51).id, "growth");
+  assert.strictEqual(planForStudents(100).id, "growth");
+  assert.strictEqual(planForStudents(101).id, "unlimited");
+  const s = calculatePricing("starter");
+  assert.strictEqual(s.yearlySubtotal, 9999);
+  assert.strictEqual(s.yearlyGstAmount, 1800);
+  assert.strictEqual(s.yearlyPrice, 11799);
+  assert.strictEqual(calculatePricing("unlimited").yearlyPrice, 30679);
+  const off = calculatePricing("growth", { discountType: "percent_off", percentOff: 10 });
+  assert.strictEqual(off.yearlySubtotal, 14399);
+  assert.throws(() => calculatePricing("nope"));
 });
 
 test("subscription is live only when paid, current and not past grace", () => {

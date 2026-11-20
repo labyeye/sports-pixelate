@@ -64,7 +64,9 @@ async function uploadGuard(req, res, next) {
       : req.query.token;
     if (!token || token === SENTINEL) token = readCookie(req) || token;
     if (!token) return res.sendStatus(401);
-    const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
+    const decoded = jwt.verify(String(token), process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
     const user = await User.findById(decoded.id).select("role company status");
     if (!user || user.status === "inactive") return res.sendStatus(401);
     if (!["super_admin", "hr_manager"].includes(user.role))

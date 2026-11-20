@@ -17,12 +17,28 @@ const stepSchema = new mongoose.Schema(
 
 const expenseSchema = new mongoose.Schema(
   {
-    company: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true },
-    employee: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
+    employee: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
     title: { type: String, required: true, trim: true, maxlength: 120 },
     category: {
       type: String,
-      enum: ["travel", "food", "fuel", "lodging", "internet_phone", "office", "other"],
+      enum: [
+        "travel",
+        "food",
+        "fuel",
+        "lodging",
+        "internet_phone",
+        "office",
+        "other",
+      ],
       default: "other",
     },
     amount: { type: Number, required: true, min: 1 },
@@ -45,12 +61,18 @@ const expenseSchema = new mongoose.Schema(
     policyExceeded: { type: Boolean, default: false },
     // Payment record, filled when the claim is settled
     payment: {
-      mode: { type: String, enum: ["payroll", "bank_transfer", "upi", "cash", "cheque"] },
+      mode: {
+        type: String,
+        enum: ["payroll", "bank_transfer", "upi", "cash", "cheque"],
+      },
       paidOn: Date,
       reference: { type: String, default: "", maxlength: 100 },
       paidBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     },
-    resubmissionOf: { type: mongoose.Schema.Types.ObjectId, ref: "ExpenseClaim" },
+    resubmissionOf: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ExpenseClaim",
+    },
     steps: [stepSchema],
     // draft: saved by employee, not submitted; pending: waiting on steps; approved: all steps done, queued for
     // payroll; paid: picked up by payroll / settled

@@ -166,7 +166,9 @@ const protectPlatformAdmin = (req, res, next) => {
   if (!token)
     return res.status(401).json({ success: false, message: "No token" });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
     if (decoded.role !== "platform_admin" || decoded.iss !== "nesthr-platform")
       return res.status(403).json({ success: false, message: "Forbidden" });
     next();

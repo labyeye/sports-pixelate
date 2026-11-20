@@ -35,8 +35,11 @@ router.delete(
   "/unsubscribe",
   protect,
   asyncHandler(async (req, res) => {
-    const { endpoint } = req.body;
-    if (endpoint) {
+    const { endpoint, fcmToken } = req.body;
+    if (fcmToken) {
+      // Native app signing out on one phone: drop only that device.
+      await PushSubscription.deleteOne({ fcmToken, employee: req.user._id });
+    } else if (endpoint) {
       await PushSubscription.deleteOne({ "subscription.endpoint": endpoint });
     } else {
       await PushSubscription.deleteMany({ employee: req.user._id });

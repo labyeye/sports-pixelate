@@ -32,12 +32,17 @@ class Saga {
   }
   async create(Model, doc) {
     const created = await Model.create(doc);
-    this.undos.push(["delete " + Model.modelName, () => Model.deleteOne({ _id: created._id })]);
+    this.undos.push([
+      "delete " + Model.modelName,
+      () => Model.deleteOne({ _id: created._id }),
+    ]);
     return created;
   }
   /** $set the given fields; undo puts the old values back (fields that did not exist are unset). */
   async patch(Model, id, fields) {
-    const before = await Model.findById(id).select(Object.keys(fields).join(" ")).lean();
+    const before = await Model.findById(id)
+      .select(Object.keys(fields).join(" "))
+      .lean();
     if (!before) throw new Error(`${Model.modelName} ${id} not found`);
     await Model.updateOne({ _id: id }, { $set: fields });
     this.undos.push([
@@ -45,14 +50,29 @@ class Saga {
       () => {
         const set = {};
         const unset = {};
-        for (const k of Object.keys(fields)) (before[k] === undefined ? unset : set)[k] = before[k];
-        return Model.updateOne({ _id: id }, { ...(Object.keys(set).length && { $set: set }), ...(Object.keys(unset).length && { $unset: unset }) });
+        for (const k of Object.keys(fields))
+          (before[k] === undefined ? unset : set)[k] = before[k];
+        return Model.updateOne(
+          { _id: id },
+          {
+            ...(Object.keys(set).length && { $set: set }),
+            ...(Object.keys(unset).length && { $unset: unset }),
+          },
+        );
       },
     ]);
   }
   async inc(Model, filter, field, by = 1) {
-    const doc = await Model.findOneAndUpdate(filter, { $inc: { [field]: by } }, { new: true });
-    if (doc) this.undos.push(["undo " + Model.modelName + "." + field, () => Model.updateOne({ _id: doc._id }, { $inc: { [field]: -by } })]);
+    const doc = await Model.findOneAndUpdate(
+      filter,
+      { $inc: { [field]: by } },
+      { new: true },
+    );
+    if (doc)
+      this.undos.push([
+        "undo " + Model.modelName + "." + field,
+        () => Model.updateOne({ _id: doc._id }, { $inc: { [field]: -by } }),
+      ]);
     return doc;
   }
   /** Any other undo (e.g. a counter you cannot rewind: leave it out; gaps in invoice numbers are fine). */
@@ -82,8 +102,16 @@ const _setClient = (c) => {
 async function tryRefund(inc) {
   inc.attempts += 1;
   try {
-    if (!inc.orderId || !inc.amount) throw new Error("order id / amount missing, refund it from the Cashfree dashboard");
-    const r = await client.refund({ orderId: inc.orderId, amount: inc.amount, refundId: `rf_${inc._id}`, note: "Subscription could not be activated" });
+    if (!inc.orderId || !inc.amount)
+      throw new Error(
+        "order id / amount missing, refund it from the Cashfree dashboard",
+      );
+    const r = await client.refund({
+      orderId: inc.orderId,
+      amount: inc.amount,
+      refundId: `rf_${inc._id}`,
+      note: "Subscription could not be activated",
+    });
     inc.refundId = String(r.cf_refund_id || r.refund_id || r.id);
     inc.status = "refund_initiated";
     inc.lastError = undefined;
@@ -105,12 +133,22 @@ async function sendRefundEmail(inc, payment) {
     const nodemailer = require("nodemailer");
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return;
     const M = mongoose.models;
-    let who = payment.userId && M.User ? await M.User.findById(payment.userId).select("name email") : null;
-    if (!who?.email && payment.ownerId) who = (M.Company && (await M.Company.findById(payment.ownerId).select("name email"))) || (M.Tenant && (await M.Tenant.findById(payment.ownerId).select("name email"))) || null;
+    let who =
+      payment.userId && M.User
+        ? await M.User.findById(payment.userId).select("name email")
+        : null;
+    if (!who?.email && payment.ownerId)
+      who =
+        (M.Company &&
+          (await M.Company.findById(payment.ownerId).select("name email"))) ||
+        (M.Tenant &&
+          (await M.Tenant.findById(payment.ownerId).select("name email"))) ||
+        null;
     if (!who?.email) return;
     const brand = String(payment.product || "Nest").split(" ")[0];
     const amt = inc.amount || payment.amount;
-    const started = inc.status === "refund_initiated" || inc.status === "refunded";
+    const started =
+      inc.status === "refund_initiated" || inc.status === "refunded";
     const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#F0F6FF;margin:0;padding:24px">
 <div style="max-width:520px;margin:0 auto;background:#fff;border:2px solid #000">
 <div style="background:#024BAB;padding:20px 28px;border-bottom:2px solid #000"><h1 style="color:#fff;margin:0;font-size:18px">${brand} — your payment and refund</h1></div>
@@ -122,8 +160,19 @@ async function sendRefundEmail(inc, payment) {
 <p>You are welcome to try again whenever you like. If you need help, just reply to this email.</p>
 </div></div></body></html>`;
     await nodemailer
-      .createTransport({ host: process.env.SMTP_HOST || "smtp.gmail.com", port: parseInt(process.env.SMTP_PORT || "587", 10), secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465", auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } })
-      .sendMail({ from: `"${process.env.SMTP_FROM_NAME || brand}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`, to: who.email, subject: `${brand} — your payment will be refunded`, html });
+      .createTransport({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.SMTP_PORT || "587", 10),
+        secure:
+          process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      })
+      .sendMail({
+        from: `"${process.env.SMTP_FROM_NAME || brand}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        to: who.email,
+        subject: `${brand} — your payment will be refunded`,
+        html,
+      });
     inc.emailedAt = new Date();
     await inc.save();
   } catch (e) {
@@ -151,10 +200,13 @@ async function refundAfterFailure(payment, error, rolledBack = []) {
     });
   }
   const firstTime = inc.isNew;
-  if (!["refund_initiated", "refunded"].includes(inc.status)) await tryRefund(inc);
+  if (!["refund_initiated", "refunded"].includes(inc.status))
+    await tryRefund(inc);
   await inc.save();
   if (firstTime) await sendRefundEmail(inc, payment);
-  console.error(`[PaymentSaga] ${payment.product} payment ${payment.paymentId} could not be provisioned (${error?.message}); refund ${inc.status}`);
+  console.error(
+    `[PaymentSaga] ${payment.product} payment ${payment.paymentId} could not be provisioned (${error?.message}); refund ${inc.status}`,
+  );
 
   const known = inc.amount || payment.amount;
   const paid = known ? `payment of ${inr(known)}` : "payment";
@@ -169,7 +221,10 @@ async function refundAfterFailure(payment, error, rolledBack = []) {
 
 /** Background sweep: keeps trying refunds that were queued or failed. Safe to run on an interval. */
 async function retryPendingRefunds() {
-  const list = await PaymentIncident.find({ status: "refund_pending", attempts: { $lt: 10 } }).limit(25);
+  const list = await PaymentIncident.find({
+    status: "refund_pending",
+    attempts: { $lt: 10 },
+  }).limit(25);
   for (const inc of list) {
     await tryRefund(inc);
     await inc.save();
@@ -179,11 +234,30 @@ async function retryPendingRefunds() {
 
 /** Starts the retry sweep (every 10 minutes). Refunds are idempotent, so running it on several workers is safe. */
 function startRefundSweep() {
-  const refunds = setInterval(() => retryPendingRefunds().catch((e) => console.error("[PaymentSaga] sweep:", e.message)), 10 * 60 * 1000);
+  const refunds = setInterval(
+    () =>
+      retryPendingRefunds().catch((e) =>
+        console.error("[PaymentSaga] sweep:", e.message),
+      ),
+    10 * 60 * 1000,
+  );
   refunds.unref();
   // payments the gateway told us about (webhook) but whose browser/app never called verify
-  const orphans = setInterval(() => require("./paymentReconcile").reconcile().catch((e) => console.error("[PaymentReconcile]", e.message)), 2 * 60 * 1000);
+  const orphans = setInterval(
+    () =>
+      require("./paymentReconcile")
+        .reconcile()
+        .catch((e) => console.error("[PaymentReconcile]", e.message)),
+    2 * 60 * 1000,
+  );
   orphans.unref();
 }
 
-module.exports = { startRefundSweep, Saga, PaymentRefundError, refundAfterFailure, retryPendingRefunds, _setClient };
+module.exports = {
+  startRefundSweep,
+  Saga,
+  PaymentRefundError,
+  refundAfterFailure,
+  retryPendingRefunds,
+  _setClient,
+};

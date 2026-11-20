@@ -252,7 +252,9 @@ const createEmployee = [
           throw new Error(pwProblem);
         }
       }
-      const tempPassword = providedPassword ? providedPassword : generatePassword();
+      const tempPassword = providedPassword
+        ? providedPassword
+        : generatePassword();
       const user = await User.create({
         name: `${firstName.trim()} ${lastName.trim()}`,
         email: normalizedEmail,
@@ -570,10 +572,7 @@ const bulkImportEmployees = asyncHandler(async (req, res) => {
         }
         userId = existingUser._id;
       } else {
-        const tempPassword =
-          row.password
-            ? row.password
-            : generatePassword();
+        const tempPassword = row.password ? row.password : generatePassword();
         const user = await User.create({
           name: `${firstName} ${lastName}`,
           email,

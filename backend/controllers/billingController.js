@@ -3,6 +3,7 @@ const { Saga, refundAfterFailure } = require("../utils/paymentSaga");
 const crypto = require("crypto");
 const Company = require("../models/Company");
 const Employee = require("../models/Employee");
+const Student = require("../models/Student");
 const Subscription = require("../models/Subscription");
 const Invoice = require("../models/Invoice");
 const Counter = require("../models/Counter");
@@ -12,31 +13,40 @@ const PendingOrder = require("../models/PendingOrder");
 const cashfreeService = require("../services/cashfreeService");
 const { sendPaymentConfirmations } = require("../services/notificationService");
 const {
-  RATE_INAPP,
-  RATE_WHATSAPP,
+  PLANS,
+  PLAN_NAME,
+  GST_RATE,
+  getPlan,
+  planForStudents,
   calculatePricing,
 } = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
+const { invalidateCompanyAccess } = require("../utils/subscriptionStatus");
 
-// Company-level SaaS billing (what an academy pays NestAcademy). Priced per user
-// (students + employees) per month, + 18% GST — see utils/pricing.js.
+// Company-level SaaS billing (what an academy pays NestAcademy): three fixed yearly plans chosen by student
+// count (utils/pricing.js) + 18% GST. Staff are not billed; WhatsApp runs on prepaid credits.
 //
-// New signup: createOrder stores a PendingOrder; the Company, Subscription and
-// Invoice are created only after the gateway payment is verified.
-// Existing company: createOrder updates its Subscription, which is activated on verify.
-const PLAN_NAME = "NestAcademy";
+// createOrder stores a PendingOrder. New signup: the Company, Subscription and Invoice are created only after the
+// gateway payment is verified. Existing academy (renewal/upgrade): its live Subscription is left untouched until
+// the payment is verified, so abandoning checkout never locks the academy out.
 
-/** GET /billing/plans — public; the single plan and its per-user monthly rates. */
+/** GET /billing/plans — public; the fixed yearly plans with GST worked out. */
 const getPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
-    data: [
-      {
-        name: PLAN_NAME,
-        rateInAppMonthly: RATE_INAPP,
-        rateWhatsappMonthly: RATE_WHATSAPP,
-      },
-    ],
+    data: PLANS.map((p) => {
+      const gst = Math.round((p.price * GST_RATE) / 100);
+      return {
+        id: p.id,
+        name: p.name,
+        maxStudents: p.maxStudents >= 1000000 ? null : p.maxStudents, // null = unlimited
+        price: p.price,
+        gst,
+        total: p.price + gst,
+        billingCycle: "yearly",
+      };
+    }),
+    gstRate: GST_RATE,
   });
 });
 
@@ -54,13 +64,18 @@ const getSubscription = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: "No active subscription found" });
-  const currentEmployeeCount = await Employee.countDocuments({
-    company: company._id,
-    status: "active",
-  });
+  const [currentEmployeeCount, currentStudentCount] = await Promise.all([
+    Employee.countDocuments({ company: company._id, status: "active" }),
+    Student.countDocuments({ company: company._id, status: "active" }),
+  ]);
   res.json({
     success: true,
-    data: { ...subscription.toObject(), currentEmployeeCount },
+    data: {
+      ...subscription.toObject(),
+      currentEmployeeCount,
+      currentStudentCount,
+      recommendedPlan: planForStudents(currentStudentCount).id,
+    },
   });
 });
 
@@ -97,30 +112,24 @@ function _offerMessage(offer) {
     return `Offer code applied! You will get ${offer.bonusMonths} bonus month(s) added to your subscription.`;
   }
   if (offer.discountType === "flat_rate") {
-    return `Offer code applied! Your rate is now ₹${offer.flatRate}/user/month.`;
+    return `Offer code applied! The plan now costs ₹${offer.flatRate} (before GST).`;
   }
   return `Offer code applied! ${offer.percentOff}% off your order.`;
 }
 
 /**
  * POST /billing/validate-offer — checks an offer code and returns a price
- * preview for the given headcount. Creates nothing and does not consume a use.
+ * preview for the chosen plan. Creates nothing and does not consume a use.
  */
 const validateOfferCode = asyncHandler(async (req, res) => {
-  const { code, studentCount, employeeCount, wantsWhatsapp } = req.body;
+  const { code, planId } = req.body;
   if (!code) {
     res.status(400);
     throw new Error("Offer code is required");
   }
 
   const offer = await _lookupAndCheckOffer(code, res);
-
-  const count = Number(studentCount) || 0;
-  const empCount = Number(employeeCount) || 0;
-  const preview =
-    count > 0 || empCount > 0
-      ? calculatePricing(count, empCount, !!wantsWhatsapp, offer)
-      : null;
+  const preview = getPlan(planId) ? calculatePricing(planId, offer) : null;
 
   res.json({
     success: true,
@@ -141,66 +150,38 @@ const validateOfferCode = asyncHandler(async (req, res) => {
 /**
  * POST /billing/create-order — prices the order server-side (never trusts a
  * client total) and opens a payment order on Cashfree.
- * Body: studentCount, employeeCount, wantsWhatsapp, billingCycle, gateway, offerCode,
- * and `company` details for a first-time signup.
+ * Body: planId ("starter" | "growth" | "unlimited"), offerCode, and `company` details for a first-time signup.
  */
 const createOrder = asyncHandler(async (req, res) => {
-  const {
-    studentCount,
-    employeeCount = 0,
-    wantsWhatsapp = false,
-    billingCycle = "monthly",
-    gateway = "cashfree",
-    offerCode,
-    company: companyDetails,
-  } = req.body;
+  const { planId, offerCode, company: companyDetails } = req.body;
 
-  const count = Number(studentCount);
-  if (!count || count < 1 || !Number.isInteger(count)) {
+  const plan = getPlan(planId);
+  if (!plan) {
     res.status(400);
-    throw new Error("Please provide a valid number of students");
+    throw new Error("Please choose a plan");
   }
-  const empCount = Number(employeeCount) || 0;
-  if (empCount < 0 || !Number.isInteger(empCount)) {
-    res.status(400);
-    throw new Error("Please provide a valid number of employees");
-  }
-  if (!["monthly", "yearly"].includes(billingCycle)) {
-    res.status(400);
-    throw new Error("Invalid billing cycle");
-  }
-  if (gateway !== "cashfree") {
-    res.status(400);
-    throw new Error("Invalid gateway. Only cashfree is supported");
-  }
-
-  const planName = PLAN_NAME;
 
   const existingCompany = await Company.findOne({ createdBy: req.user._id });
 
-  // Validate offer code if provided
+  // An academy can only pick a plan that fits the students it already has.
+  if (existingCompany) {
+    const active = await Student.countDocuments({
+      company: existingCompany._id,
+      status: "active",
+    });
+    if (active > plan.maxStudents) {
+      res.status(400);
+      throw new Error(
+        `You have ${active} active students, which is more than the ${plan.name} plan allows (${plan.maxStudents}). Choose a bigger plan.`,
+      );
+    }
+  }
+
   let validatedOffer = null;
   if (offerCode) {
     validatedOffer = await _lookupAndCheckOffer(offerCode, res);
   }
-
-  const pricing = calculatePricing(
-    count,
-    empCount,
-    !!wantsWhatsapp,
-    validatedOffer,
-  );
-
-  const amountRupees =
-    billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
-  const subtotal =
-    billingCycle === "yearly"
-      ? pricing.yearlySubtotal
-      : pricing.monthlySubtotal;
-  const gstAmount =
-    billingCycle === "yearly"
-      ? pricing.yearlyGstAmount
-      : pricing.monthlyGstAmount;
+  const pricing = calculatePricing(plan.id, validatedOffer);
 
   // New signup: no Company exists yet. Company/Subscription are only created
   // once payment is verified — don't touch either collection here.
@@ -241,106 +222,68 @@ const createOrder = asyncHandler(async (req, res) => {
     };
   }
 
-  let orderData;
+  const result = await cashfreeService.createOrder({
+    amount: pricing.yearlyPrice,
+    customer: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      phone:
+        req.user.phone ||
+        (existingCompany ? existingCompany.phone : companyDetails?.phone),
+    },
+    notes: {
+      kind: "subscription",
+      planId: plan.id,
+      userId: req.user._id.toString(),
+      companyId: existingCompany ? existingCompany._id.toString() : "",
+    },
+  });
 
-  if (gateway === "cashfree") {
-    const result = await cashfreeService.createOrder({
-      amount: amountRupees,
-      customer: {
-        id: req.user._id,
-        name: req.user.name,
-        email: req.user.email,
-        phone: req.user.phone || (existingCompany ? existingCompany.phone : companyDetails?.phone),
-      },
-      notes: {
-        studentCount: count,
-        employeeCount: empCount,
-        billingCycle,
-        userId: req.user._id.toString(),
-        companyId: existingCompany ? existingCompany._id.toString() : "",
-      },
-    });
+  await PendingOrder.create({
+    orderId: result.orderId,
+    gateway: "cashfree",
+    user: req.user._id,
+    company: existingCompany ? existingCompany._id : undefined,
+    planId: plan.id,
+    maxStudents: plan.maxStudents,
+    companyName: (existingCompany || newCompanyDetails).name,
+    companyEmail: (existingCompany || newCompanyDetails).email,
+    companyPhone: (existingCompany || newCompanyDetails).phone,
+    website: newCompanyDetails?.website,
+    gstNumber: newCompanyDetails?.gstNumber,
+    panNumber: newCompanyDetails?.panNumber,
+    address: newCompanyDetails?.address,
+    city: newCompanyDetails?.city,
+    state: newCompanyDetails?.state,
+    pincode: newCompanyDetails?.pincode,
+    billingCycle: "yearly",
+    yearlyPrice: pricing.yearlyPrice,
+    gstRate: pricing.gstRate,
+    subtotal: pricing.yearlySubtotal,
+    gstAmount: pricing.yearlyGstAmount,
+    offerCode: validatedOffer ? validatedOffer.code : null,
+    offerBonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
+  });
 
-    if (existingCompany) {
-      await Subscription.findOneAndUpdate(
-        { company: existingCompany._id },
-        {
-          company: existingCompany._id,
-          plan: planName,
-          studentCount: count,
-          employeeCount: empCount,
-          wantsWhatsapp: !!wantsWhatsapp,
-          ratePerUnit: pricing.ratePerUnit,
-          monthlyPrice: pricing.monthlyPrice,
-          yearlyPrice: pricing.yearlyPrice,
-          gstRate: pricing.gstRate,
-          subtotal,
-          gstAmount,
-          maxStudents: count,
-          maxEmployees: empCount,
-          billingCycle,
-          startDate: new Date(),
-          renewalDate: new Date(),
-          status: "inactive",
-          paymentStatus: "pending",
-          paymentMethod: "razorpay",
-          amountPaid: 0,
-          razorpayOrderId: result.orderId,
-          offerCode: validatedOffer ? validatedOffer.code : null,
-          offerBonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
-        },
-        { upsert: true, new: true },
-      );
-    } else {
-      await PendingOrder.create({
-        orderId: result.orderId,
-        gateway: "cashfree",
-        user: req.user._id,
-        companyName: newCompanyDetails.name,
-        companyEmail: newCompanyDetails.email,
-        companyPhone: newCompanyDetails.phone,
-        website: newCompanyDetails.website,
-        gstNumber: newCompanyDetails.gstNumber,
-        panNumber: newCompanyDetails.panNumber,
-        address: newCompanyDetails.address,
-        city: newCompanyDetails.city,
-        state: newCompanyDetails.state,
-        pincode: newCompanyDetails.pincode,
-        studentCount: count,
-        employeeCount: empCount,
-        wantsWhatsapp: !!wantsWhatsapp,
-        billingCycle,
-        ratePerUnit: pricing.ratePerUnit,
-        monthlyPrice: pricing.monthlyPrice,
-        yearlyPrice: pricing.yearlyPrice,
-        gstRate: pricing.gstRate,
-        subtotal,
-        gstAmount,
-        offerCode: validatedOffer ? validatedOffer.code : null,
-        offerBonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
-      });
-    }
-
-    orderData = {
+  res.json({
+    success: true,
+    data: {
       gateway: "cashfree",
       orderId: result.orderId,
       paymentSessionId: result.paymentSessionId,
       checkoutUrl: result.checkoutUrl,
       mode: result.mode,
-      amount: amountRupees,
-      subtotal,
+      amount: pricing.yearlyPrice,
+      subtotal: pricing.yearlySubtotal,
       gstRate: pricing.gstRate,
-      gstAmount,
+      gstAmount: pricing.yearlyGstAmount,
       currency: "INR",
-      studentCount: count,
-      employeeCount: empCount,
-      wantsWhatsapp: !!wantsWhatsapp,
-      ratePerUnit: pricing.ratePerUnit,
-      plan: planName,
-      billingCycle,
-      companyName: existingCompany
-        ? existingCompany.name
-        : newCompanyDetails.name,
+      planId: plan.id,
+      plan: plan.name,
+      maxStudents: plan.maxStudents >= 1000000 ? null : plan.maxStudents,
+      billingCycle: "yearly",
+      companyName: (existingCompany || newCompanyDetails).name,
       userName: req.user.name,
       userEmail: req.user.email,
       userPhone:
@@ -349,10 +292,8 @@ const createOrder = asyncHandler(async (req, res) => {
         "",
       offerApplied: !!validatedOffer,
       bonusMonths: validatedOffer ? validatedOffer.bonusMonths : 0,
-    };
-  }
-
-  res.json({ success: true, data: orderData });
+    },
+  });
 });
 
 /**
@@ -377,23 +318,38 @@ const verifyCashfreePayment = asyncHandler(async (req, res) => {
   const razorpayPaymentId = pay.paymentId;
 
   const pendingOrder = await PendingOrder.findOne({ orderId });
+  const args = {
+    pendingOrder,
+    req,
+    update: {
+      razorpayPaymentId,
+      paymentMethod: "cashfree",
+      paymentStatus: "completed",
+    },
+    invoiceExtra: { razorpayOrderId, razorpayPaymentId },
+    res,
+  };
   if (pendingOrder) {
-    await _createCompanyAndActivate({
-      pendingOrder,
-      req,
-      update: { razorpayPaymentId, paymentMethod: "cashfree", paymentStatus: "completed" },
-      invoiceExtra: { razorpayOrderId, razorpayPaymentId },
-      res,
-    });
+    await (pendingOrder.company
+      ? _activateSubscription(args)
+      : _createCompanyAndActivate(args));
     return;
   }
 
-  await _activateSubscription({
-    req,
-    lookup: { razorpayOrderId },
-    update: { razorpayPaymentId, paymentMethod: "cashfree", paymentStatus: "completed" },
-    invoiceExtra: { razorpayOrderId, razorpayPaymentId },
-    res,
+  // No pending order: either already processed (replayed verify) or not ours.
+  const done = await Subscription.findOne({ razorpayOrderId });
+  if (!done || String(done.company) !== String(req.user?.company)) {
+    res.status(404);
+    throw new Error("Order not found. Please contact support.");
+  }
+  res.json({
+    success: true,
+    message: "This payment was already processed.",
+    data: {
+      plan: done.plan,
+      billingCycle: done.billingCycle,
+      renewalDate: done.renewalDate,
+    },
   });
 });
 
@@ -405,7 +361,9 @@ async function _createCompanyAndActivateSteps({
   req,
   update,
   invoiceExtra,
-  res, saga }) {
+  res,
+  saga,
+}) {
   if (pendingOrder.user.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("This order does not belong to the current user.");
@@ -439,19 +397,12 @@ async function _createCompanyAndActivateSteps({
     createdBy: req.user._id,
   });
 
-  const amountPaid =
-    pendingOrder.billingCycle === "yearly"
-      ? pendingOrder.yearlyPrice
-      : pendingOrder.monthlyPrice;
+  const amountPaid = pendingOrder.yearlyPrice;
   saga.amount = amountPaid;
 
   const startDate = new Date();
   const renewalDate = new Date();
-  if (pendingOrder.billingCycle === "yearly") {
-    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
-  } else {
-    renewalDate.setMonth(renewalDate.getMonth() + 1);
-  }
+  renewalDate.setFullYear(renewalDate.getFullYear() + 1);
   const bonusMonths = pendingOrder.offerBonusMonths || 0;
   if (bonusMonths > 0) {
     renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
@@ -462,18 +413,14 @@ async function _createCompanyAndActivateSteps({
   const subscription = await saga.create(Subscription, {
     company: company._id,
     plan: planName,
-    studentCount: pendingOrder.studentCount,
-    employeeCount: pendingOrder.employeeCount,
-    wantsWhatsapp: pendingOrder.wantsWhatsapp,
-    ratePerUnit: pendingOrder.ratePerUnit,
-    monthlyPrice: pendingOrder.monthlyPrice,
+    planId: pendingOrder.planId,
     yearlyPrice: pendingOrder.yearlyPrice,
     gstRate: pendingOrder.gstRate,
     subtotal: pendingOrder.subtotal,
     gstAmount: pendingOrder.gstAmount,
-    maxStudents: pendingOrder.studentCount,
-    maxEmployees: pendingOrder.employeeCount,
-    billingCycle: pendingOrder.billingCycle,
+    maxStudents: pendingOrder.maxStudents,
+    maxEmployees: 0, // staff are not billed (0 = unlimited)
+    billingCycle: "yearly",
     startDate,
     renewalDate,
     status: "active",
@@ -489,11 +436,19 @@ async function _createCompanyAndActivateSteps({
   if (!req.user.phone && company.phone) {
     req.user.phone = company.phone;
   }
-  await saga.patch(User, req.user._id, { company: company._id, ...(req.user.phone ? { phone: req.user.phone } : {}) });
+  await saga.patch(User, req.user._id, {
+    company: company._id,
+    ...(req.user.phone ? { phone: req.user.phone } : {}),
+  });
 
   let offerCodeDoc = null;
   if (pendingOrder.offerCode) {
-    offerCodeDoc = await saga.inc(OfferCode, { code: pendingOrder.offerCode }, "usedCount", 1);
+    offerCodeDoc = await saga.inc(
+      OfferCode,
+      { code: pendingOrder.offerCode },
+      "usedCount",
+      1,
+    );
   }
 
   const invoiceSeq = await Counter.next("sportsInvoice", () =>
@@ -505,7 +460,7 @@ async function _createCompanyAndActivateSteps({
     subscription: subscription._id,
     invoiceNumber,
     plan: planName,
-    billingCycle: pendingOrder.billingCycle,
+    billingCycle: "yearly",
     amount: amountPaid,
     gstRate: pendingOrder.gstRate,
     subtotal: pendingOrder.subtotal,
@@ -535,7 +490,9 @@ async function _createCompanyAndActivateSteps({
     ? `${process.env.FRONTEND_URL}/`
     : "https://academy.pixelatenest.com/";
 
-  require("../services/creditsService").onSubscriptionPaid(company._id, subscription).catch((err) => console.error("[Credits]", err.message));
+  require("../services/creditsService")
+    .onSubscriptionPaid(company._id, subscription)
+    .catch((err) => console.error("[Credits]", err.message));
   sendPaymentConfirmations({
     toEmail: req.user.email || company.email,
     toName: req.user.name || company.name,
@@ -543,7 +500,7 @@ async function _createCompanyAndActivateSteps({
     companyName: company.name,
     planName: planName,
     amount: amountPaid,
-    billingCycle: pendingOrder.billingCycle,
+    billingCycle: "yearly",
     renewalDate,
     dashboardUrl,
     invoiceNumber,
@@ -560,7 +517,7 @@ async function _createCompanyAndActivateSteps({
         status: company.status,
       },
       plan: planName,
-      billingCycle: pendingOrder.billingCycle,
+      billingCycle: "yearly",
       amount: amountPaid,
       renewalDate,
       invoiceNumber,
@@ -574,76 +531,85 @@ async function _createCompanyAndActivateSteps({
   });
 }
 
-// Renewal / upgrade: activates the existing Subscription located by `lookup`,
-// applies `update`, extends the period (plus any bonus months) and issues the Invoice.
+// Renewal / upgrade: applies a verified PendingOrder to the academy's existing Subscription. The new year is added
+// after any time still left (an early renewal or upgrade never loses days), then the Invoice is issued.
 async function _activateSubscriptionSteps({
-  lookup,
+  pendingOrder,
   update,
   invoiceExtra,
   res,
-  req, saga }) {
-  const subscription = await Subscription.findOne(lookup);
-  if (!subscription) {
-    res.status(404);
-    throw new Error("Order not found. Please contact support.");
-  }
-  if (req?.user && String(subscription.company) !== String(req.user.company)) {
+  req,
+  saga,
+}) {
+  if (
+    req?.user &&
+    String(pendingOrder.company) !== String(req.user.company)
+  ) {
     res.status(403);
     throw new Error("This order does not belong to your academy.");
   }
-  // A Razorpay signature stays valid forever; without this, replaying an old (orderId, paymentId, signature)
-  // would re-activate an expired plan for free and stack invoices and offer-code usage.
-  if (subscription.paymentStatus === "completed") {
-    return res.json({
-      success: true,
-      message: "This payment was already processed.",
-      data: {
-        plan: subscription.plan,
-        billingCycle: subscription.billingCycle,
-        renewalDate: subscription.renewalDate,
-      },
-    });
-  }
 
-  const company = await Company.findById(subscription.company);
+  const company = await Company.findById(pendingOrder.company);
   if (!company) {
     res.status(404);
     throw new Error("Company not found");
   }
+  const subscription = await Subscription.findOne({ company: company._id });
 
-  const planName = subscription.plan;
-  const amountPaid =
-    subscription.billingCycle === "yearly"
-      ? subscription.yearlyPrice
-      : subscription.monthlyPrice;
+  const amountPaid = pendingOrder.yearlyPrice;
   saga.amount = amountPaid;
 
-  const startDate = new Date();
-  const renewalDate = new Date();
-  if (subscription.billingCycle === "yearly") {
-    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
-  } else {
-    renewalDate.setMonth(renewalDate.getMonth() + 1);
-  }
+  const now = new Date();
+  const stillLive =
+    subscription &&
+    !subscription.isTrial &&
+    subscription.status === "active" &&
+    subscription.paymentStatus === "completed" &&
+    subscription.renewalDate > now;
+  const startDate = now;
+  const renewalDate = new Date(stillLive ? subscription.renewalDate : now);
+  renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+  const bonusMonths = pendingOrder.offerBonusMonths || 0;
+  if (bonusMonths > 0) renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
 
-  // Apply bonus months from offer code if present
-  const bonusMonths = subscription.offerBonusMonths || 0;
-  if (bonusMonths > 0) {
-    renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
-  }
+  const fields = {
+    plan: PLAN_NAME,
+    planId: pendingOrder.planId,
+    yearlyPrice: pendingOrder.yearlyPrice,
+    gstRate: pendingOrder.gstRate,
+    subtotal: pendingOrder.subtotal,
+    gstAmount: pendingOrder.gstAmount,
+    maxStudents: pendingOrder.maxStudents,
+    maxEmployees: 0,
+    billingCycle: "yearly",
+    isTrial: false,
+    startDate,
+    renewalDate,
+    status: "active",
+    amountPaid,
+    offerCode: pendingOrder.offerCode,
+    offerBonusMonths: pendingOrder.offerBonusMonths,
+    razorpayOrderId: invoiceExtra.razorpayOrderId, // legacy field name: holds the Cashfree order id
+    ...update,
+  };
+  const sub = subscription
+    ? (await saga.patch(Subscription, subscription._id, fields),
+      await Subscription.findById(subscription._id))
+    : await saga.create(Subscription, { company: company._id, ...fields });
 
-  await saga.patch(Subscription, subscription._id, { startDate, renewalDate, status: "active", amountPaid, ...update });
-  const updatedSub = await Subscription.findById(subscription._id);
-
-  // Record offer code usage (invoiceNumber assigned just below)
   let offerCodeDoc = null;
-  if (subscription.offerCode) {
-    offerCodeDoc = await saga.inc(OfferCode, { code: subscription.offerCode }, "usedCount", 1);
+  if (pendingOrder.offerCode) {
+    offerCodeDoc = await saga.inc(
+      OfferCode,
+      { code: pendingOrder.offerCode },
+      "usedCount",
+      1,
+    );
   }
 
   await saga.patch(Company, company._id, {
     status: "active",
-    subscription: updatedSub._id,
+    subscription: sub._id,
   });
 
   const invoiceSeq = await Counter.next("sportsInvoice", () =>
@@ -652,20 +618,19 @@ async function _activateSubscriptionSteps({
   const invoiceNumber = `INV-SPORTS-${String(invoiceSeq).padStart(4, "0")}`;
   await saga.create(Invoice, {
     company: company._id,
-    subscription: updatedSub._id,
+    subscription: sub._id,
     invoiceNumber,
-    plan: planName,
-    billingCycle: subscription.billingCycle,
+    plan: PLAN_NAME,
+    billingCycle: "yearly",
     amount: amountPaid,
-    gstRate: subscription.gstRate,
-    subtotal: subscription.subtotal,
-    gstAmount: subscription.gstAmount,
+    gstRate: pendingOrder.gstRate,
+    subtotal: pendingOrder.subtotal,
+    gstAmount: pendingOrder.gstAmount,
     status: "paid",
     paidAt: new Date(),
     ...invoiceExtra,
   });
 
-  // Add invoice number to offer usage log
   if (offerCodeDoc) {
     await OfferCode.findByIdAndUpdate(offerCodeDoc._id, {
       $push: {
@@ -679,21 +644,25 @@ async function _activateSubscriptionSteps({
       },
     });
   }
+  await PendingOrder.deleteOne({ _id: pendingOrder._id }).catch(() => {});
+  invalidateCompanyAccess(company._id); // the paywall cache must see the renewal straight away
 
   const user = await User.findById(company.createdBy);
   const dashboardUrl = process.env.FRONTEND_URL
     ? `${process.env.FRONTEND_URL}/`
     : "https://academy.pixelatenest.com/";
 
-  require("../services/creditsService").onSubscriptionPaid(company._id, updatedSub).catch((err) => console.error("[Credits]", err.message));
+  require("../services/creditsService")
+    .onSubscriptionPaid(company._id, sub)
+    .catch((err) => console.error("[Credits]", err.message));
   sendPaymentConfirmations({
     toEmail: user?.email || company.email,
     toName: user?.name || company.name,
     toPhone: user?.phone || company.phone || "",
     companyName: company.name,
-    planName: planName,
+    planName: PLAN_NAME,
     amount: amountPaid,
-    billingCycle: subscription.billingCycle,
+    billingCycle: "yearly",
     renewalDate,
     dashboardUrl,
     invoiceNumber,
@@ -703,8 +672,8 @@ async function _activateSubscriptionSteps({
     success: true,
     message: "Subscription activated successfully",
     data: {
-      plan: planName,
-      billingCycle: subscription.billingCycle,
+      plan: PLAN_NAME,
+      billingCycle: "yearly",
       amount: amountPaid,
       renewalDate,
       invoiceNumber,
@@ -718,7 +687,6 @@ async function _activateSubscriptionSteps({
   });
 }
 
-/** POST /billing/verify-payment — verifies the Razorpay payment. */
 const SAGA_PRODUCT = "NestAcademy subscription";
 
 // Payment is already taken when these run. If anything below fails: undo what was written, refund the
@@ -746,8 +714,10 @@ async function _withRefundSaga(args, steps) {
     );
   }
 }
-const _createCompanyAndActivate = (args) => _withRefundSaga(args, _createCompanyAndActivateSteps);
-const _activateSubscription = (args) => _withRefundSaga(args, _activateSubscriptionSteps);
+const _createCompanyAndActivate = (args) =>
+  _withRefundSaga(args, _createCompanyAndActivateSteps);
+const _activateSubscription = (args) =>
+  _withRefundSaga(args, _activateSubscriptionSteps);
 
 // Activates a paid Cashfree order without a signed-in browser (used when only the webhook told us about the payment).
 // Same code path as the browser's verify call, so the saga/refund protection is identical.
@@ -764,15 +734,24 @@ async function provisionCashfree({ orderId, paymentId }) {
       return this;
     },
   };
-  const update = { razorpayPaymentId: paymentId, paymentMethod: "cashfree", paymentStatus: "completed" };
-  const invoiceExtra = { razorpayOrderId: orderId, razorpayPaymentId: paymentId };
+  const update = {
+    razorpayPaymentId: paymentId,
+    paymentMethod: "cashfree",
+    paymentStatus: "completed",
+  };
+  const invoiceExtra = {
+    razorpayOrderId: orderId,
+    razorpayPaymentId: paymentId,
+  };
   const pendingOrder = await PendingOrder.findOne({ orderId });
-  if (pendingOrder) {
-    const user = await User.findById(pendingOrder.user);
-    if (!user) throw new Error("The user who started this order no longer exists");
-    return _createCompanyAndActivate({ pendingOrder, req: { user }, update, invoiceExtra, res });
-  }
-  return _activateSubscription({ req: {}, lookup: { razorpayOrderId: orderId }, update, invoiceExtra, res });
+  if (!pendingOrder) throw new Error("No pending order for " + orderId);
+  const user = await User.findById(pendingOrder.user);
+  if (!user)
+    throw new Error("The user who started this order no longer exists");
+  const args = { pendingOrder, req: { user }, update, invoiceExtra, res };
+  return pendingOrder.company
+    ? _activateSubscription(args)
+    : _createCompanyAndActivate(args);
 }
 
 const verifyPayment = asyncHandler(async (req, res) => {

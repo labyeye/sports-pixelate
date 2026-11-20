@@ -23,7 +23,12 @@ const NOUNS = {
   "/api/admin": ["Admin", "admin"],
 };
 
-const VERBS = { POST: "created", PUT: "updated", PATCH: "updated", DELETE: "deleted" };
+const VERBS = {
+  POST: "created",
+  PUT: "updated",
+  PATCH: "updated",
+  DELETE: "deleted",
+};
 const ID_RE = /^[a-f0-9]{24}$/i;
 
 function describe(req) {

@@ -44,7 +44,11 @@ const demo = (company) => [
       state: "Maharashtra",
       indoorOutdoor: "outdoor",
     },
-    participation: { type: "team", maxRegistrations: 16, waitingListEnabled: true },
+    participation: {
+      type: "team",
+      maxRegistrations: 16,
+      waitingListEnabled: true,
+    },
     fees: { entryFee: 1500, currency: "INR" },
     awards: {
       winnerPrize: "Trophy + ₹25,000",
@@ -132,7 +136,10 @@ const demo = (company) => [
   const user = await User.findOne({ email }).select("company");
   if (!user?.company) throw new Error(`No academy found for ${email}`);
   for (const ev of demo(user.company)) {
-    const exists = await Event.findOne({ company: user.company, name: ev.name });
+    const exists = await Event.findOne({
+      company: user.company,
+      name: ev.name,
+    });
     if (exists) {
       console.log("skip (exists):", ev.name);
       continue;

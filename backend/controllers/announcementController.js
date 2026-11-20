@@ -126,9 +126,10 @@ exports.getAnnouncements = asyncHandler(async (req, res) => {
 
   // Audience targeting for everyone except the owner/HR.
   if (!isAdmin) {
-    const emp = req.user.role === "parent"
-      ? null
-      : await Employee.findOne({ user: req.user._id }).select("department");
+    const emp =
+      req.user.role === "parent"
+        ? null
+        : await Employee.findOne({ user: req.user._id }).select("department");
     announcements = announcements.filter((a) => {
       if (a.targetAudience === "all") return true;
       if (a.targetAudience === "department") {

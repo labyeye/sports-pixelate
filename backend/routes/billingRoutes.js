@@ -30,19 +30,27 @@ const page = (body) =>
 router.get("/cashfree-checkout", (req, res) => {
   const session = String(req.query.session || "");
   const mode = req.query.mode === "sandbox" ? "sandbox" : "production";
-  if (!/^[A-Za-z0-9_-]+$/.test(session)) return res.status(400).send("Bad request");
-  res.set("Content-Security-Policy", pageCsp).type("html").send(
-    page(
-      `<p>Opening secure payment...</p><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>` +
-        `<script>Cashfree({mode:"${mode}"}).checkout({paymentSessionId:"${session}",redirectTarget:"_self"});</script>`,
-    ),
-  );
+  if (!/^[A-Za-z0-9_-]+$/.test(session))
+    return res.status(400).send("Bad request");
+  res
+    .set("Content-Security-Policy", pageCsp)
+    .type("html")
+    .send(
+      page(
+        `<p>Opening secure payment...</p><script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>` +
+          `<script>Cashfree({mode:"${mode}"}).checkout({paymentSessionId:"${session}",redirectTarget:"_self"});</script>`,
+      ),
+    );
 });
 router.get("/cashfree-return", (req, res) =>
-  res.set("Content-Security-Policy", pageCsp).type("html").send(
-    page("<h3>Payment submitted</h3><p>You can close this page and return to the NestAcademy app.</p>"),
-  ),
+  res
+    .set("Content-Security-Policy", pageCsp)
+    .type("html")
+    .send(
+      page(
+        "<h3>Payment submitted</h3><p>You can close this page and return to the NestAcademy app.</p>",
+      ),
+    ),
 );
-
 
 module.exports = router;

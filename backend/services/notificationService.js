@@ -541,7 +541,10 @@ async function sendLowCreditsEmail({ to, name, credits, zero }) {
   const fromName = process.env.SMTP_FROM_NAME || "NestAcademy";
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   const esc = (v) =>
-    String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    String(v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   const subject = zero
     ? "NestAcademy — WhatsApp credits finished, messages are paused"
     : "NestAcademy — WhatsApp credits are running low";
@@ -557,7 +560,12 @@ async function sendLowCreditsEmail({ to, name, credits, zero }) {
 <p style="font-size:14px;color:#555;line-height:1.6">${line}</p>
 <p style="font-size:12px;color:#888">Open NestAcademy &rarr; Credits to add more.</p>
 </div></div></body></html>`;
-  await transporter.sendMail({ from: `"${fromName}" <${fromEmail}>`, to, subject, html });
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
 }
 
 module.exports = {

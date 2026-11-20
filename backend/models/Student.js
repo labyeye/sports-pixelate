@@ -72,6 +72,15 @@ const studentSchema = new mongoose.Schema(
         enum: ["School", "District", "State", "National"],
       },
     },
+    // A child's data (photo, medical notes, face data) is only held with a parent/guardian's consent, recorded by
+    // the academy at admission (DPDP Act, verifiable parental consent). Never client-settable on update.
+    guardianConsent: {
+      given: { type: Boolean, default: false },
+      at: { type: Date },
+      by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      version: { type: String },
+      guardianName: { type: String, trim: true },
+    },
     faceDescriptor: { type: [Number], default: [] },
     biometricUserId: { type: String, default: "" },
     rfidCard: { type: String, default: "" },

@@ -5,7 +5,11 @@ const OfferCode = require("../models/OfferCode");
 const Company = require("../models/Company");
 const Subscription = require("../models/Subscription");
 const User = require("../models/User");
-const { calculatePricing } = require("../utils/pricing");
+const {
+  calculatePricing,
+  getPlan,
+  planForStudents,
+} = require("../utils/pricing");
 const { lookupAndValidateOffer } = require("../utils/offerCode");
 const {
   sendCrmAccountCreatedEmail,
@@ -282,10 +286,8 @@ exports.createCrmCompany = async (req, res) => {
       panNumber,
       ownerName,
       ownerEmail,
+      planId,
       studentCount,
-      employeeCount = 0,
-      wantsWhatsapp = false,
-      billingCycle = "monthly",
       offerCode,
     } = req.body;
 
@@ -297,26 +299,7 @@ exports.createCrmCompany = async (req, res) => {
       });
     }
 
-    const count = Number(studentCount);
-    if (!count || count < 1 || !Number.isInteger(count)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a valid number of students",
-      });
-    }
-    const empCount = Number(employeeCount) || 0;
-    if (empCount < 0 || !Number.isInteger(empCount)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a valid number of employees",
-      });
-    }
-    if (!["monthly", "yearly"].includes(billingCycle)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid billing cycle" });
-    }
-
+    const plan = getPlan(planId) || planForStudents(Number(studentCount) || 0);
     const loginEmail = (ownerEmail || companyEmail).toLowerCase().trim();
 
     if (await User.findOne({ email: loginEmail })) {
@@ -343,22 +326,10 @@ exports.createCrmCompany = async (req, res) => {
       }
     }
 
-    const pricing = calculatePricing(
-      count,
-      empCount,
-      !!wantsWhatsapp,
-      validatedOffer,
-    );
-    const amountPaid =
-      billingCycle === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
-    const subtotal =
-      billingCycle === "yearly"
-        ? pricing.yearlySubtotal
-        : pricing.monthlySubtotal;
-    const gstAmount =
-      billingCycle === "yearly"
-        ? pricing.yearlyGstAmount
-        : pricing.monthlyGstAmount;
+    const pricing = calculatePricing(plan.id, validatedOffer);
+    const amountPaid = pricing.yearlyPrice;
+    const subtotal = pricing.yearlySubtotal;
+    const gstAmount = pricing.yearlyGstAmount;
 
     const ownerPassword = crypto.randomBytes(9).toString("base64").slice(0, 12);
     const user = await User.create({
@@ -382,11 +353,7 @@ exports.createCrmCompany = async (req, res) => {
 
     const startDate = new Date();
     const renewalDate = new Date();
-    if (billingCycle === "yearly") {
-      renewalDate.setFullYear(renewalDate.getFullYear() + 1);
-    } else {
-      renewalDate.setMonth(renewalDate.getMonth() + 1);
-    }
+    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
     const bonusMonths = validatedOffer ? validatedOffer.bonusMonths || 0 : 0;
     if (bonusMonths > 0) {
       renewalDate.setMonth(renewalDate.getMonth() + bonusMonths);
@@ -395,18 +362,14 @@ exports.createCrmCompany = async (req, res) => {
     const subscription = await Subscription.create({
       company: company._id,
       plan: PLAN_NAME,
-      studentCount: count,
-      employeeCount: empCount,
-      wantsWhatsapp: !!wantsWhatsapp,
-      ratePerUnit: pricing.ratePerUnit,
-      monthlyPrice: pricing.monthlyPrice,
+      planId: plan.id,
       yearlyPrice: pricing.yearlyPrice,
       gstRate: pricing.gstRate,
       subtotal,
       gstAmount,
-      maxStudents: count,
-      maxEmployees: empCount,
-      billingCycle,
+      maxStudents: plan.maxStudents,
+      maxEmployees: 0,
+      billingCycle: "yearly",
       startDate,
       renewalDate,
       status: "active",
@@ -440,7 +403,7 @@ exports.createCrmCompany = async (req, res) => {
       subscription: subscription._id,
       invoiceNumber,
       plan: PLAN_NAME,
-      billingCycle,
+      billingCycle: "yearly",
       amount: amountPaid,
       gstRate: pricing.gstRate,
       subtotal,
@@ -475,7 +438,7 @@ exports.createCrmCompany = async (req, res) => {
       tempPassword: ownerPassword,
       planName: PLAN_NAME,
       amount: amountPaid,
-      billingCycle,
+      billingCycle: "yearly",
       renewalDate,
       dashboardUrl,
       invoiceNumber,
@@ -492,7 +455,7 @@ exports.createCrmCompany = async (req, res) => {
           status: company.status,
         },
         plan: PLAN_NAME,
-        billingCycle,
+        billingCycle: "yearly",
         amount: amountPaid,
         renewalDate,
         invoiceNumber,

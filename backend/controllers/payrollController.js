@@ -7,6 +7,7 @@ const Transaction = require("../models/Transaction");
 const Loan = require("../models/Loan");
 const { safePagination } = require("../middleware/validate");
 const { sendSalaryPaid } = require("../services/whatsappService");
+const { notifyEmployee } = require("../services/inAppNotify");
 const { generatePayslipPdf } = require("../services/pdfService");
 const Setting = require("../models/Setting");
 const { computeEmployeePayroll } = require("../utils/payrollCalc");
@@ -273,6 +274,11 @@ const markPaid = asyncHandler(async (req, res) => {
   payroll.paidAt = new Date();
   if (paymentMode) payroll.paymentMode = paymentMode;
   await payroll.save();
+  notifyEmployee(req.user.company, payroll.employee, {
+    type: "salary",
+    title: "Salary paid",
+    message: `Your salary for ${new Date(payroll.year, (payroll.month || 1) - 1, 1).toLocaleString("en-IN", { month: "short", year: "numeric" })} (₹${Math.round(payroll.netSalary || 0)}) has been paid.`,
+  });
 
   if (payroll.employee?.phone) {
     (async () => {
@@ -390,6 +396,14 @@ const bulkMarkPaid = asyncHandler(async (req, res) => {
       $set: { status: "paid", paidAt, ...(paymentMode ? { paymentMode } : {}) },
     },
   );
+
+  for (const p of payrolls) {
+    notifyEmployee(req.user.company, p.employee, {
+      type: "salary",
+      title: "Salary paid",
+      message: `Your salary for ${period} (₹${Math.round(p.netSalary || 0)}) has been paid.`,
+    });
+  }
 
   // Fire WA notifications with PDF (non-blocking)
   (async () => {

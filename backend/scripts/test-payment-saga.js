@@ -34,7 +34,10 @@ const fakeModel = (name, log) => ({
   // 2. refund succeeds -> customer is told it is on the way
   const refunds = [];
   saga._setClient({
-    refund: async (b) => (refunds.push([b.orderId, b.amount]), { cf_refund_id: "rfnd_1" }),
+    refund: async (b) => (
+      refunds.push([b.orderId, b.amount]),
+      { cf_refund_id: "rfnd_1" }
+    ),
   });
   await assert.rejects(
     saga.refundAfterFailure(

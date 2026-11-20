@@ -13,6 +13,7 @@ const {
   sendLeaveRejected,
   sendLeaveAppliedHR,
 } = require("../services/whatsappService");
+const { notifyEmployee, notifyOwners } = require("../services/inAppNotify");
 const {
   sendLeaveStatusEmail,
   sendLeaveAppliedEmail,
@@ -309,6 +310,18 @@ const createLeave = asyncHandler(async (req, res) => {
     await balance.save();
   }
 
+  notifyEmployee(req.user.company, emp, {
+    type: "leave",
+    title: "Leave request submitted",
+    message: `Your ${leave.leaveType} leave request (${leave.days} day${leave.days === 1 ? "" : "s"}) has been submitted.`,
+  });
+  notifyOwners(req.user.company, {
+    type: "leave",
+    title: "New leave request",
+    message: `${emp.firstName} ${emp.lastName} applied for ${leave.leaveType} leave (${leave.days} day${leave.days === 1 ? "" : "s"}).`,
+    employee: emp._id,
+  });
+
   try {
     // Notify employee that their request was submitted
     if (emp.phone) {
@@ -419,6 +432,17 @@ const updateLeaveStatus = asyncHandler(async (req, res) => {
     }
   } catch (err) {
     console.error("[LeaveSync] Attendance sync failed:", err.message);
+  }
+
+  if (status === "approved" || status === "rejected") {
+    notifyEmployee(req.user.company, leave.employee, {
+      type: "leave",
+      title: status === "approved" ? "Leave approved" : "Leave rejected",
+      message:
+        status === "approved"
+          ? `Your ${leave.leaveType} leave has been approved.`
+          : `Your ${leave.leaveType} leave was rejected${rejectionReason ? `: ${rejectionReason}` : "."}`,
+    });
   }
 
   try {
@@ -607,6 +631,12 @@ const deleteLeave = asyncHandler(async (req, res) => {
     leave.status = "cancelled";
     leave.rejectionReason = cancellationReason.trim().slice(0, 500);
     await leave.save();
+
+    notifyEmployee(req.user.company, leave.employee, {
+      type: "leave",
+      title: "Leave cancelled",
+      message: `Your approved ${leave.leaveType} leave was cancelled — ${cancellationReason}`,
+    });
 
     try {
       if (leave.employee?.phone) {

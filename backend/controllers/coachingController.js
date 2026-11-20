@@ -4,9 +4,19 @@ const Assessment = require("../models/Assessment");
 const Student = require("../models/Student");
 const { notifyParentsOfStudent } = require("../services/inAppNotify");
 
-const SLOT_FIELDS = ["sport", "batch", "days", "startTime", "endTime", "coach", "venue"];
+const SLOT_FIELDS = [
+  "sport",
+  "batch",
+  "days",
+  "startTime",
+  "endTime",
+  "coach",
+  "venue",
+];
 const pick = (o, keys) =>
-  Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+  Object.fromEntries(
+    keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]),
+  );
 
 // ---- Batch timetable -------------------------------------------------------
 
@@ -79,7 +89,10 @@ const getAssessments = asyncHandler(async (req, res) => {
 
 const createAssessment = asyncHandler(async (req, res) => {
   const { student, date, level, ratings, remarks } = req.body;
-  const stu = await Student.findOne({ _id: student, company: req.user.company });
+  const stu = await Student.findOne({
+    _id: student,
+    company: req.user.company,
+  });
   if (!stu) {
     res.status(404);
     throw new Error("Student not found");

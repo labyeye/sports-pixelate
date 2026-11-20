@@ -14,7 +14,9 @@ const view = (u) => ({
   acceptedAt: terms.accepted(u) ? u.termsAcceptedAt : null,
 });
 
-router.get("/status", protect, (req, res) => res.json({ success: true, data: view(req.user) }));
+router.get("/status", protect, (req, res) =>
+  res.json({ success: true, data: view(req.user) }),
+);
 
 router.post(
   "/accept",

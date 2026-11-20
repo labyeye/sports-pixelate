@@ -2,7 +2,12 @@ const mongoose = require("mongoose");
 
 const schema = new mongoose.Schema(
   {
-    company: { type: mongoose.Schema.Types.ObjectId, ref: "Company", required: true, index: true },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+      index: true,
+    },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     packId: { type: String, required: true },
     credits: { type: Number, required: true },

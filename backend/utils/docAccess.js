@@ -20,9 +20,7 @@ const hashOtp = (otp) =>
     .digest("hex");
 
 const sendDocOtp = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id).select(
-    "+docOtpSentAt phone",
-  );
+  const user = await User.findById(req.user._id).select("+docOtpSentAt phone");
   if (!user?.phone) {
     res.status(400);
     throw new Error(
@@ -93,7 +91,10 @@ const verifyDocOtp = asyncHandler(async (req, res) => {
     process.env.JWT_SECRET,
     { algorithm: "HS256", expiresIn: ACCESS_TTL },
   );
-  res.json({ success: true, data: { docAccessToken: token, expiresInSec: 600 } });
+  res.json({
+    success: true,
+    data: { docAccessToken: token, expiresInSec: 600 },
+  });
 });
 
 // Guards a download route. The token travels in `x-doc-access` (API calls) or

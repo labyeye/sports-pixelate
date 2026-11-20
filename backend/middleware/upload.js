@@ -1,4 +1,7 @@
 const multer = require("multer");
+// Photos of children sit in public folders (an <img> cannot send a login), so their file names carry a random
+// token: the link works only for people who were shown it, and the name cannot be guessed from ids or dates.
+const nonce = () => require("crypto").randomBytes(12).toString("hex");
 const path = require("path");
 const fs = require("fs");
 // file-type is ESM-only from v17, so it is loaded on first use.
@@ -149,7 +152,10 @@ const expenseBillStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(_req, file, cb) {
-    cb(null, `${Date.now()}_${require("crypto").randomUUID()}${safeExt(file, ".bin")}`);
+    cb(
+      null,
+      `${Date.now()}_${require("crypto").randomUUID()}${safeExt(file, ".bin")}`,
+    );
   },
 });
 const uploadExpenseBill = multer({
@@ -237,7 +243,7 @@ const avatarStorage = multer.diskStorage({
   },
   filename(req, file, cb) {
     const ext = safeExt(file, ".jpg");
-    cb(null, `avatar_${req.params.id}_${Date.now()}${ext}`);
+    cb(null, `avatar_${req.params.id}_${Date.now()}_${nonce()}${ext}`);
   },
 });
 
@@ -259,7 +265,7 @@ const guardianPhotoStorage = multer.diskStorage({
   },
   filename(req, file, cb) {
     const ext = safeExt(file, ".jpg");
-    cb(null, `guardian_${req.params.guardianId}_${Date.now()}${ext}`);
+    cb(null, `guardian_${req.params.guardianId}_${Date.now()}_${nonce()}${ext}`);
   },
 });
 
@@ -321,7 +327,7 @@ const attendanceSelfieStorage = multer.diskStorage({
   },
   filename(req, file, cb) {
     const ext = safeExt(file, ".jpg");
-    const safe = `${req.user.company}_${req.user._id}_${Date.now()}${ext}`;
+    const safe = `${req.user.company}_${req.user._id}_${Date.now()}_${nonce()}${ext}`;
     cb(null, safe);
   },
 });

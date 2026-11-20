@@ -237,7 +237,9 @@ const TRUST_MS = 30 * 24 * 60 * 60 * 1000;
 const hashDeviceToken = (t) =>
   crypto.createHash("sha256").update(String(t)).digest("hex");
 const deviceLabel = (req) =>
-  String(req.headers["x-device-name"] || "").trim().slice(0, 80) ||
+  String(req.headers["x-device-name"] || "")
+    .trim()
+    .slice(0, 80) ||
   String(req.headers["user-agent"] || "").slice(0, 80) ||
   "Unknown device";
 
@@ -278,14 +280,14 @@ const login = [
     const user = await User.findOne({ email: email.toLowerCase() })
       .select("+trustedDevices")
       .populate({
-      path: "company",
-      select: "name email phone status subscription website",
-      populate: {
-        path: "subscription",
-        select:
-          "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
-      },
-    });
+        path: "company",
+        select: "name email phone status subscription website",
+        populate: {
+          path: "subscription",
+          select:
+            "status plan paymentStatus billingCycle monthlyPrice yearlyPrice maxStudents currentStudentCount renewalDate isTrial trialEndDate",
+        },
+      });
 
     if (user && user.lockUntil && user.lockUntil > new Date()) {
       res.status(429);
@@ -666,7 +668,9 @@ const verify2FA = asyncHandler(async (req, res) => {
 
   await checkTwoFactorCode(user, token, res);
   // "Keep me signed in": remember this device so the next password login skips the code.
-  const trustedDevice = req.body.remember ? trustThisDevice(req, user) : undefined;
+  const trustedDevice = req.body.remember
+    ? trustThisDevice(req, user)
+    : undefined;
   await user.save();
 
   const payload = await sessionPayload(req, user);
@@ -938,7 +942,7 @@ const switchAcademy = asyncHandler(async (req, res) => {
 const isEmail = (e) => typeof e === "string" && validator.isEmail(e);
 
 const STRONG_PASSWORD_MSG =
-  "Password needs 8+ characters with an uppercase, a lowercase, a number and a special character, no simple series like 1234 and nothing common like \"password\".";
+  'Password needs 8+ characters with an uppercase, a lowercase, a number and a special character, no simple series like 1234 and nothing common like "password".';
 
 // Tells the forgot-password screen which reset methods this account has set up.
 const forgotPasswordMethods = asyncHandler(async (req, res) => {

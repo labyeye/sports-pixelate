@@ -8,13 +8,15 @@ const consentSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
       index: true,
     },
+    // parental_consent records: the child and the staff member who recorded the guardian's agreement
+    student: { type: mongoose.Schema.Types.ObjectId, ref: "Student", index: true },
+    recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     company: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
     type: {
       type: String,
-      enum: ["terms_privacy", "biometric", "photo", "communications"],
+      enum: ["terms_privacy", "biometric", "photo", "communications", "parental_consent"],
       required: true,
     },
     version: { type: String, required: true },

@@ -16,5 +16,9 @@ module.exports = {
   DAILY_CAP: 5000, // messages per academy per day (every student alert is a message); a loop/bug can't drain a wallet
   BONUS_DAYS: 90,
   // free credits on a paid subscription: 10% of what was paid, to the nearest 50, between 0 and 1500
-  bonusFor: (subscription) => Math.min(1500, Math.floor(((subscription.amountPaid || 0) * 0.1) / 50) * 50),
+  bonusFor: (subscription) =>
+    Math.min(
+      1500,
+      Math.floor(((subscription.amountPaid || 0) * 0.1) / 50) * 50,
+    ),
 };

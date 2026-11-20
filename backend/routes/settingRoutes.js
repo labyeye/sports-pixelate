@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getSettings,
   updateSettings,
+  testGateway,
   uploadCompanyLogo,
   uploadPaymentQr,
   uploadIdCardImage,
@@ -22,6 +23,12 @@ router
   .put(authorize("super_admin", "admin", "hr_manager"), updateSettings);
 
 router.post(
+  "/test-gateway",
+  authorize("super_admin"),
+  testGateway,
+);
+
+router.post(
   "/logo",
   authorize("super_admin", "admin", "hr_manager"),
   (req, res, next) => {
@@ -38,7 +45,7 @@ router.post(
 
 router.post(
   "/payment-qr",
-  authorize("super_admin", "admin", "hr_manager"),
+  authorize("super_admin"),
   (req, res, next) => {
     paymentQrMulter(req, res, (err) => {
       if (err) {

@@ -2,6 +2,12 @@ const path = require("path");
 const { removeStoredUpload } = require("../utils/uploadFiles");
 const crypto = require("crypto");
 const { passwordProblem } = require("../utils/password");
+const consent = require("../utils/parentalConsent");
+const {
+  assertStudentSlot,
+  lastStudentNumber,
+} = require("../utils/studentLimit");
+const Subscription = require("../models/Subscription");
 const asyncHandler = require("express-async-handler");
 const { stripProtected } = require("../middleware/validate");
 const Student = require("../models/Student");
@@ -304,7 +310,12 @@ const createStudent = [
       throw err;
     }
 
-    const count = await Student.countDocuments({ company: req.user.company });
+    if (!consent.given(req.body)) {
+      res.status(400);
+      throw new Error(consent.MESSAGE);
+    }
+    await assertStudentSlot(req.user.company, res);
+    const count = await lastStudentNumber(req.user.company);
     const studentId = `STU${String(count + 1).padStart(4, "0")}`;
 
     const autoParentIds = await ensureParentAccounts(
@@ -338,7 +349,9 @@ const createStudent = [
       emergencyContactPerson,
       address,
       sportsProfile,
+      guardianConsent: consent.consentFor(req),
     });
+    await consent.recordConsent(req, student);
 
     if (autoParentIds.length) {
       await User.updateMany(
@@ -351,11 +364,30 @@ const createStudent = [
   }),
 ];
 
+// For students added before consent was recorded: the academy confirms the guardian's agreement now.
+const recordStudentConsent = asyncHandler(async (req, res) => {
+  if (!consent.given(req.body)) {
+    res.status(400);
+    throw new Error(consent.MESSAGE);
+  }
+  const student = await Student.findOneAndUpdate(
+    { _id: req.params.id, company: req.user.company },
+    { $set: { guardianConsent: consent.consentFor(req) } },
+    { new: true },
+  );
+  if (!student) {
+    res.status(404);
+    throw new Error("Student not found");
+  }
+  await consent.recordConsent(req, student);
+  res.json({ success: true, data: student });
+});
+
 const updateStudent = [
   validateBody(updateSchema),
   asyncHandler(async (req, res) => {
     // `parents` is derived from guardians; never client-settable.
-    const update = stripProtected(req.body, ["parents"]);
+    const update = stripProtected(req.body, ["parents", "guardianConsent"]);
     let autoParentIds = [];
     if (Object.prototype.hasOwnProperty.call(update, "guardians")) {
       try {
@@ -508,6 +540,10 @@ const enrollStudentFace = asyncHandler(async (req, res) => {
 // employeeController.bulkImportEmployees.
 const bulkImportStudents = asyncHandler(async (req, res) => {
   const { students: rows } = req.body;
+  if (!consent.given(req.body)) {
+    res.status(400);
+    throw new Error(consent.MESSAGE);
+  }
   if (!Array.isArray(rows) || rows.length === 0) {
     res.status(400);
     throw new Error("students array is required");
@@ -521,11 +557,30 @@ const bulkImportStudents = asyncHandler(async (req, res) => {
     company: req.user.company,
   }).select("firstName lastName");
 
-  let count = await Student.countDocuments({ company: req.user.company });
+  let count = await lastStudentNumber(req.user.company);
   const results = [];
+  // Plan limit: rows beyond the free slots are reported, not created.
+  const sub = await Subscription.findOne({ company: req.user.company }).select(
+    "maxStudents",
+  );
+  let slots = sub?.maxStudents
+    ? sub.maxStudents -
+      (await Student.countDocuments({
+        company: req.user.company,
+        status: "active",
+      }))
+    : Infinity;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    if (slots <= 0) {
+      results.push({
+        row: i + 1,
+        status: "error",
+        message: "Student limit of your plan reached — upgrade in Billing",
+      });
+      continue;
+    }
     try {
       const firstName = (row.firstName || "").trim();
       const lastName = (row.lastName || "").trim();
@@ -586,8 +641,11 @@ const bulkImportStudents = asyncHandler(async (req, res) => {
         emergencyContact: row.emergencyContact || undefined,
         medicalNotes: row.medicalNotes || undefined,
         enrollmentDate: row.enrollmentDate || Date.now(),
+        guardianConsent: consent.consentFor(req),
       });
+      await consent.recordConsent(req, student);
 
+      slots -= 1;
       results.push({
         row: i + 1,
         status: "success",
@@ -719,6 +777,7 @@ module.exports = {
   getStudents,
   getStudent,
   createStudent,
+  recordStudentConsent,
   updateStudent,
   deleteStudent,
   bulkImportStudents,

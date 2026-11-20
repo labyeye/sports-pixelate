@@ -84,7 +84,10 @@ const deleteMyAccount = asyncHandler(async (req, res) => {
       },
     },
   );
-  await Student.updateMany({ parents: user._id }, { $pull: { parents: user._id } });
+  await Student.updateMany(
+    { parents: user._id },
+    { $pull: { parents: user._id } },
+  );
   await Session.deleteMany({ userId: user._id });
   await User.updateOne(
     { _id: user._id },

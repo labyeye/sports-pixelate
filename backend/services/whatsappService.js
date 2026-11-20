@@ -107,17 +107,28 @@ async function sendTemplate(
 
   // WhatsApp credits: a metered academy pays per message, charged before sending and refunded if Meta rejects it.
   // companyId is null for platform messages (OTP, subscription welcome) which are never charged.
-  const hold = companyId ? await credits.reserve(companyId, { template: templateName, phone }) : null;
+  const hold = companyId
+    ? await credits.reserve(companyId, { template: templateName, phone })
+    : null;
   if (hold && !hold.ok) {
     // callers that report a status (fee payment links) must not say "sent" when nothing went out
     throw Object.assign(
-      new Error(`WhatsApp not sent: ${hold.reason === "daily_cap" ? "daily message limit reached" : "not enough credits"}`),
+      new Error(
+        `WhatsApp not sent: ${hold.reason === "daily_cap" ? "daily message limit reached" : "not enough credits"}`,
+      ),
       { code: "NO_CREDITS" },
     );
   }
   let sent;
   try {
-    sent = await postToMeta(phoneNumberId, accessToken, body, templateName, toNumber, lang);
+    sent = await postToMeta(
+      phoneNumberId,
+      accessToken,
+      body,
+      templateName,
+      toNumber,
+      lang,
+    );
   } catch (err) {
     if (hold) await credits.refund(hold);
     throw err;
@@ -125,7 +136,14 @@ async function sendTemplate(
   if (hold) await credits.commit(hold, sent?.messages?.[0]?.id);
 }
 
-function postToMeta(phoneNumberId, accessToken, body, templateName, toNumber, lang) {
+function postToMeta(
+  phoneNumberId,
+  accessToken,
+  body,
+  templateName,
+  toNumber,
+  lang,
+) {
   return new Promise((resolve, reject) => {
     const req = https.request(
       {
@@ -159,14 +177,25 @@ function postToMeta(phoneNumberId, accessToken, body, templateName, toNumber, la
 
 // ─── Internal: check company WhatsApp gate ────────────────────────────────────
 
-async function getCompanySetting(eventKey, companyId, audience = null, alertKey = null) {
+async function getCompanySetting(
+  eventKey,
+  companyId,
+  audience = null,
+  alertKey = null,
+) {
   if (!companyId) {
     console.warn(`[WA-DEBUG] getCompanySetting: companyId is null/undefined`);
     return null;
   }
   const features = await getCompanyFeatures(companyId);
   // a metered academy does not need the WhatsApp tier, but a lapsed subscription still stops everything
-  if (!features.whatsapp && !((await getCompanyAccess(companyId)).live && (await credits.isMetered(companyId)))) {
+  if (
+    !features.whatsapp &&
+    !(
+      (await getCompanyAccess(companyId)).live &&
+      (await credits.isMetered(companyId))
+    )
+  ) {
     console.warn(
       `[WA-DEBUG] getCompanySetting: plan does not include whatsapp for company=${companyId}`,
     );
@@ -195,7 +224,12 @@ async function getCompanySetting(eventKey, companyId, audience = null, alertKey 
   }
   // who gets it: Both (default) | Employee | HR | Off. Every copy costs a credit, so the academy decides.
   const who = (alertKey && setting[alertKey]) || "Both";
-  if (audience && (who === "Off" || (who === "Employee" && audience === "hr") || (who === "HR" && audience === "employee"))) {
+  if (
+    audience &&
+    (who === "Off" ||
+      (who === "Employee" && audience === "hr") ||
+      (who === "HR" && audience === "employee"))
+  ) {
     return null;
   }
   logger.debug(
@@ -216,7 +250,12 @@ async function sendCheckIn(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "employee",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -250,7 +289,12 @@ async function sendCheckOut(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "employee",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -283,7 +327,12 @@ async function sendLeaveSubmitted(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "employee",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     const from = new Date(startDate).toLocaleDateString("en-IN");
@@ -311,7 +360,12 @@ async function sendLeaveApproved(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "employee",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     const from = new Date(startDate).toLocaleDateString("en-IN");
@@ -339,7 +393,12 @@ async function sendLeaveRejected(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "employee",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     await sendTemplate(
@@ -365,7 +424,12 @@ async function sendLeaveAppliedHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "hr", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "hr",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const type = leaveType.charAt(0).toUpperCase() + leaveType.slice(1);
     const from = new Date(startDate).toLocaleDateString("en-IN");
@@ -395,7 +459,12 @@ async function sendCheckInHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "hr", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "hr",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -425,7 +494,12 @@ async function sendCheckOutHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "hr", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "hr",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -461,7 +535,12 @@ async function sendStudentCheckIn(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "employee",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -493,7 +572,12 @@ async function sendFeePaymentLink(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "employee", "whatsappSendTxnAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifySubscription",
+      companyId,
+      "employee",
+      "whatsappSendTxnAlert",
+    );
     if (!s) return { status: "skipped", error: "WhatsApp is not enabled" };
     const inr = new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -525,7 +609,12 @@ async function sendStudentCheckOut(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "employee",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const t = new Date(time).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -615,7 +704,12 @@ async function sendSalaryPaid(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifyPayroll", companyId, "employee", "whatsappSendTxnAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyPayroll",
+      companyId,
+      "employee",
+      "whatsappSendTxnAlert",
+    );
     if (!s) return;
 
     const extraComponents = [];
@@ -745,7 +839,12 @@ async function sendPaymentVerified(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "employee", "whatsappSendTxnAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifySubscription",
+      companyId,
+      "employee",
+      "whatsappSendTxnAlert",
+    );
     if (!s) return;
 
     const extraComponents = [];
@@ -854,7 +953,12 @@ async function sendPaymentVerifiedAdmin(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "hr", "whatsappSendTxnAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifySubscription",
+      companyId,
+      "hr",
+      "whatsappSendTxnAlert",
+    );
     if (!s) return;
 
     const extraComponents = [];
@@ -942,7 +1046,12 @@ async function sendPaymentRejected(
       maximumFractionDigits: 0,
     }).format(n || 0);
   try {
-    const s = await getCompanySetting("whatsappNotifySubscription", companyId, "employee", "whatsappSendTxnAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifySubscription",
+      companyId,
+      "employee",
+      "whatsappSendTxnAlert",
+    );
     if (!s) return;
     await sendTemplate(
       phone,
@@ -994,7 +1103,12 @@ async function sendAttendanceStatus(
   const statusLabel = ATTENDANCE_STATUS_LABELS[status];
   if (!statusLabel) return; // skip holiday / weekend / on_leave
   try {
-    const s = await getCompanySetting("whatsappNotifyCheckIn", companyId, "employee", "whatsappSendPunchAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyCheckIn",
+      companyId,
+      "employee",
+      "whatsappSendPunchAlert",
+    );
     if (!s) return;
     const d = new Date(date).toLocaleDateString("en-IN");
     await sendTemplate(
@@ -1025,7 +1139,12 @@ async function sendLoanSubmitted(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "employee",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -1051,7 +1170,12 @@ async function sendLoanApproved(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "employee",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -1077,7 +1201,12 @@ async function sendLoanRejected(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "employee", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "employee",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -1103,7 +1232,12 @@ async function sendLoanAppliedHR(
   companyId,
 ) {
   try {
-    const s = await getCompanySetting("whatsappNotifyLeave", companyId, "hr", "whatsappSendLeaveAlert");
+    const s = await getCompanySetting(
+      "whatsappNotifyLeave",
+      companyId,
+      "hr",
+      "whatsappSendLeaveAlert",
+    );
     if (!s) return;
     const label = type === "advance" ? "Salary Advance" : "Loan";
     await sendTemplate(
@@ -1294,24 +1428,49 @@ async function sendCelebration(kind, phone, params, companyId) {
   return true;
 }
 
-
 // ─── Bulk (owner → parents): free text / document, no template ───────────────
 // WhatsApp only delivers these inside the recipient's 24h window; otherwise Meta rejects (e.g. 131047)
 // and the caller marks that recipient failed so it can be resent later.
 async function sendFreeform(phone, { text, mediaId, filename }, companyId) {
   const accessToken = process.env.META_WA_TOKEN;
   const phoneNumberId = process.env.META_WA_PHONE_ID;
-  if (!accessToken || !phoneNumberId) throw new Error("WhatsApp is not configured");
+  if (!accessToken || !phoneNumberId)
+    throw new Error("WhatsApp is not configured");
   let to = String(phone).replace(/^\+/, "").replace(/[\s-]/g, "");
   if (/^[6-9]\d{9}$/.test(to)) to = "91" + to;
   const msg = mediaId
-    ? { type: "document", document: { id: mediaId, filename, ...(text ? { caption: text.slice(0, 1024) } : {}) } }
+    ? {
+        type: "document",
+        document: {
+          id: mediaId,
+          filename,
+          ...(text ? { caption: text.slice(0, 1024) } : {}),
+        },
+      }
     : { type: "text", text: { body: text, preview_url: true } };
   const body = JSON.stringify({ messaging_product: "whatsapp", to, ...msg });
-  const hold = await credits.reserve(companyId, { template: "bulk_message", phone });
-  if (!hold.ok) throw Object.assign(new Error(hold.reason === "daily_cap" ? "daily message limit reached" : "not enough credits"), { code: "NO_CREDITS" });
+  const hold = await credits.reserve(companyId, {
+    template: "bulk_message",
+    phone,
+  });
+  if (!hold.ok)
+    throw Object.assign(
+      new Error(
+        hold.reason === "daily_cap"
+          ? "daily message limit reached"
+          : "not enough credits",
+      ),
+      { code: "NO_CREDITS" },
+    );
   try {
-    const sent = await postToMeta(phoneNumberId, accessToken, body, "bulk_message", to, "-");
+    const sent = await postToMeta(
+      phoneNumberId,
+      accessToken,
+      body,
+      "bulk_message",
+      to,
+      "-",
+    );
     await credits.commit(hold, sent?.messages?.[0]?.id);
     return sent?.messages?.[0]?.id;
   } catch (err) {

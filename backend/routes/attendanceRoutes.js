@@ -5,6 +5,7 @@ const {
   selfMarkAttendance,
   updateAttendance,
   bulkMarkAttendance,
+  bulkUpdateAttendance,
   getDailySummary,
   getTimingInsights,
   getMonthSummary,
@@ -21,8 +22,18 @@ const NON_PARENT = [
   "employee",
 ];
 
-router.get("/daily-summary", protect, authorize(...NON_PARENT), getDailySummary);
-router.get("/timing-insights", protect, authorize("super_admin", "hr_manager"), getTimingInsights);
+router.get(
+  "/daily-summary",
+  protect,
+  authorize(...NON_PARENT),
+  getDailySummary,
+);
+router.get(
+  "/timing-insights",
+  protect,
+  authorize("super_admin", "hr_manager"),
+  getTimingInsights,
+);
 router.get("/", protect, authorize(...NON_PARENT), getAttendance);
 router.get("/summary", protect, authorize(...NON_PARENT), getMonthSummary);
 router.post("/self-mark", protect, uploadAttendanceSelfie, selfMarkAttendance);
@@ -43,6 +54,13 @@ router.post(
   protect,
   authorize("super_admin", "hr_manager", "hr_executive"),
   bulkMarkAttendance,
+);
+
+router.post(
+  "/bulk-update",
+  protect,
+  authorize("super_admin", "hr_manager", "hr_executive"),
+  bulkUpdateAttendance,
 );
 
 router.post(

@@ -1,4 +1,5 @@
-// Validates and cleans the ID-card design before it is saved on Setting.idCardTemplate.
+// Validates and cleans the ID-card design before it is saved on Setting.idCardTemplate (staff cards) or
+// Setting.studentIdCardTemplate (student cards) — both use the same shape and the same safe field list.
 // The shape mirrors frontend/src/lib/idCard.ts: a card size plus a front (and optional back) made of positioned
 // elements. Anything unknown is dropped, numbers are clamped and strings are length-limited, so a stored design can
 // never carry scripts, huge payloads or arbitrary CSS (colours are hex only, fonts come from a fixed list).
@@ -19,6 +20,14 @@ const FIELDS = [
   "companyPhone",
   "companyEmail",
   "companyWebsite",
+  // student cards
+  "studentId",
+  "sport",
+  "batch",
+  "guardianName",
+  "guardianPhone",
+  "emergencyContact",
+  "address",
 ];
 const FONTS = [
   "sans",
@@ -135,11 +144,28 @@ if (require.main === module) {
     front: {
       bg: "#fff",
       elements: [
-        { kind: "text", text: "<script>x</script>", x: 5, y: 5, w: 50, h: 10, color: "red; background:url(x)" },
+        {
+          kind: "text",
+          text: "<script>x</script>",
+          x: 5,
+          y: 5,
+          w: 50,
+          h: 10,
+          color: "red; background:url(x)",
+        },
         { kind: "evil", x: 1 },
         { kind: "field", field: "nope", size: 999 },
-        { kind: "image", src: "https://evil.example/x.png", rotate: 999, fill2: "red" },
-        { kind: "image", src: "/uploads/id-card-images/idc_ab_1.png", borderWidth: 99 },
+        {
+          kind: "image",
+          src: "https://evil.example/x.png",
+          rotate: 999,
+          fill2: "red",
+        },
+        {
+          kind: "image",
+          src: "/uploads/id-card-images/idc_ab_1.png",
+          borderWidth: 99,
+        },
       ],
     },
   });
@@ -147,7 +173,10 @@ if (require.main === module) {
   assert.strictEqual(ok.front.elements[2].src, ""); // external URL refused
   assert.strictEqual(ok.front.elements[2].rotate, 180); // clamped
   assert.strictEqual(ok.front.elements[2].fill2, ""); // non-hex gradient colour ignored
-  assert.strictEqual(ok.front.elements[3].src, "/uploads/id-card-images/idc_ab_1.png"); // own upload kept
+  assert.strictEqual(
+    ok.front.elements[3].src,
+    "/uploads/id-card-images/idc_ab_1.png",
+  ); // own upload kept
   assert.strictEqual(ok.front.elements[3].borderWidth, 3); // clamped
   assert.strictEqual(ok.front.bg, "#ffffff"); // bad hex falls back
   assert.strictEqual(ok.front.elements[0].color, "#111111"); // CSS injection falls back
