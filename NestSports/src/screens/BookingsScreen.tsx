@@ -16,14 +16,10 @@ import {
   ArrowUpDown,
   Plus,
   X,
-  CalendarClock,
-  CheckCircle2,
-  IndianRupee,
   Calendar,
   Clock,
   Package,
-  RotateCcw,
-} from 'lucide-react-native';
+  } from 'lucide-react-native';
 import {
   bookingAPI,
   facilityAPI,
@@ -42,13 +38,13 @@ import {
   SortOption,
   TextField,
   SectionTitle,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -245,6 +241,20 @@ export default function BookingsScreen() {
         title="Bookings"
         right={
           <>
+            <ExportAction
+              name="bookings"
+              rows={bookings}
+              cols={[
+                { header: 'Facility', value: (r: any) => r.facility?.name },
+                { header: 'Student', value: (r: any) => `${r.student?.firstName || ''} ${r.student?.lastName || ''}`.trim() },
+                { header: 'Date', value: (r: any) => String(r.date || '').slice(0, 10) },
+                { header: 'Start', value: (r: any) => r.startTime },
+                { header: 'End', value: (r: any) => r.endTime },
+                { header: 'Fee', value: (r: any) => r.fee },
+                { header: 'Status', value: (r: any) => r.status },
+                { header: 'Payment', value: (r: any) => r.paymentStatus },
+              ]}
+            />
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
@@ -253,10 +263,10 @@ export default function BookingsScreen() {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+                <ArrowUpDown size={22} color={colors.black} />
               </TouchableOpacity>
               <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
-                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                <Plus size={24} color={colors.blue} />
               </TouchableOpacity>
             </View>
           </>
@@ -265,32 +275,6 @@ export default function BookingsScreen() {
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <Text style={styles.subtitle}>Facility bookings and schedules</Text>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Bookings"
-            value={bookings.length}
-            color={colors.blue}
-            icon={CalendarClock}
-          />
-          <KpiTile
-            label="Confirmed"
-            value={bookings.filter(b => b.status === 'confirmed').length}
-            color={colors.green}
-            icon={CheckCircle2}
-          />
-          <KpiTile
-            label="Total Revenue"
-            value={`₹${bookings
-              .reduce(
-                (s, b) =>
-                  s + (b.paymentStatus === 'completed' ? b.fee || 0 : 0),
-                0,
-              )
-              .toLocaleString('en-IN')}`}
-            color={colors.blue}
-            icon={IndianRupee}
-          />
-        </View>
 
         <FilterPills
           options={STATUS_OPTIONS}

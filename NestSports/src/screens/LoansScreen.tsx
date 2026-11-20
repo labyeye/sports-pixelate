@@ -20,9 +20,6 @@ import {
   Edit2,
   X,
   IndianRupee,
-  Wallet,
-  CheckCircle2,
-  Clock,
   Download,
   FileSpreadsheet,
   Banknote,
@@ -39,8 +36,7 @@ import {
   TextField,
   ChipSelect,
   SectionTitle,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import {
   ImportExportModal,
   ImportHeader,
@@ -231,13 +227,6 @@ export default function LoansScreen() {
 
   if (loading) return <LoadingView />;
 
-  const totalDisbursed = loans.reduce((sum, l) => sum + (l.amount || 0), 0);
-  const outstanding = loans.reduce(
-    (sum, l) => sum + (l.remainingBalance || 0),
-    0,
-  );
-  const activeCount = loans.filter(l => l.status === 'active').length;
-  const pendingCount = loans.filter(l => l.status === 'pending').length;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -273,7 +262,7 @@ export default function LoansScreen() {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <Download size={20} color={colors.black} strokeWidth={2.5} />
+                <Download size={22} color={colors.black} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setImportVisible(true)}
@@ -287,7 +276,7 @@ export default function LoansScreen() {
                 />
               </TouchableOpacity>
               <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
-                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                <Plus size={24} color={colors.blue} />
               </TouchableOpacity>
             </View>
           </>
@@ -302,36 +291,6 @@ export default function LoansScreen() {
       >
         <Text style={styles.subtitle}>Employee loan and advance requests</Text>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Disbursed"
-            value={formatCurrency(totalDisbursed)}
-            sub="All loans/advances"
-            color={colors.blue}
-            icon={IndianRupee}
-          />
-          <KpiTile
-            label="Outstanding"
-            value={formatCurrency(outstanding)}
-            sub="Remaining balance"
-            color={colors.orange}
-            icon={Wallet}
-          />
-          <KpiTile
-            label="Active"
-            value={activeCount}
-            sub="Currently active"
-            color={colors.green}
-            icon={CheckCircle2}
-          />
-          <KpiTile
-            label="Pending"
-            value={pendingCount}
-            sub="Awaiting approval"
-            color={colors.purple}
-            icon={Clock}
-          />
-        </View>
 
         {loans.length === 0 ? (
           <Card>

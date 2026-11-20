@@ -14,10 +14,6 @@ import {
   ArrowUpDown,
   Edit2,
   Trash2,
-  ListChecks,
-  Trophy,
-  IndianRupee,
-  CalendarClock,
   Download,
   FileSpreadsheet,
 } from 'lucide-react-native';
@@ -31,8 +27,7 @@ import {
   SortSheet,
   LoadMoreFooter,
   SortOption,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import {
   ImportExportModal,
   ImportHeader,
@@ -221,13 +216,6 @@ export default function PlansScreen({ navigation }: any) {
 
   if (loading) return <LoadingView />;
 
-  const uniqueSports = new Set(plans.map(p => p.sport).filter(Boolean)).size;
-  const avgMonthlyPrice = plans.length
-    ? plans.reduce((sum, p) => sum + (p.monthlyPrice || 0), 0) / plans.length
-    : 0;
-  const avgSessionsPerWeek = plans.length
-    ? plans.reduce((sum, p) => sum + (p.sessionsPerWeek || 0), 0) / plans.length
-    : 0;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -253,7 +241,7 @@ export default function PlansScreen({ navigation }: any) {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <Download size={20} color={colors.black} strokeWidth={2.5} />
+                <Download size={22} color={colors.black} />
               </TouchableOpacity>
               {isOwner && (
                 <TouchableOpacity
@@ -261,11 +249,7 @@ export default function PlansScreen({ navigation }: any) {
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <FileSpreadsheet
-                    size={18}
-                    color={colors.black}
-                    strokeWidth={2.5}
-                  />
+                  <FileSpreadsheet size={22} color={colors.black} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -273,7 +257,7 @@ export default function PlansScreen({ navigation }: any) {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+                <ArrowUpDown size={22} color={colors.black} />
               </TouchableOpacity>
               {isOwner && (
                 <TouchableOpacity
@@ -281,7 +265,7 @@ export default function PlansScreen({ navigation }: any) {
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                  <Plus size={24} color={colors.blue} />
                 </TouchableOpacity>
               )}
             </View>
@@ -291,36 +275,6 @@ export default function PlansScreen({ navigation }: any) {
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <Text style={styles.subtitle}>Available sports coaching plans</Text>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Plans"
-            value={plans.length}
-            sub="Coaching plans"
-            color={colors.blue}
-            icon={ListChecks}
-          />
-          <KpiTile
-            label="Sports Offered"
-            value={uniqueSports}
-            sub="Unique sports"
-            color={colors.purple}
-            icon={Trophy}
-          />
-          <KpiTile
-            label="Avg Monthly Price"
-            value={formatCurrency(avgMonthlyPrice)}
-            sub="Per plan"
-            color={colors.orange}
-            icon={IndianRupee}
-          />
-          <KpiTile
-            label="Avg Sessions/Week"
-            value={avgSessionsPerWeek.toFixed(1)}
-            sub="Per plan"
-            color={colors.green}
-            icon={CalendarClock}
-          />
-        </View>
 
         <SearchBar
           value={searchInput}

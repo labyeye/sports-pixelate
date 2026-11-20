@@ -28,7 +28,6 @@ import {
   ChipSelect,
   EmptyState,
   FilterPills,
-  KpiTile,
   LoadingView,
   Row,
   SearchBar,
@@ -264,15 +263,6 @@ export default function PayrollScreen() {
     }
   };
 
-  const totals = useMemo(
-    () => ({
-      gross: payrolls.reduce((s, p) => s + (p.grossSalary || 0), 0),
-      ded: payrolls.reduce((s, p) => s + (p.totalDeductions || 0), 0),
-      net: payrolls.reduce((s, p) => s + (p.netSalary || 0), 0),
-      paid: payrolls.filter(p => p.status === 'paid').length,
-    }),
-    [payrolls],
-  );
 
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -301,14 +291,14 @@ export default function PayrollScreen() {
               style={headerBtn}
               hitSlop={8}
             >
-              <Download size={20} color={colors.black} strokeWidth={2.5} />
+              <Download size={22} color={colors.black} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={openProcess}
               style={headerBtn}
               hitSlop={8}
             >
-              <Play size={20} color={colors.black} strokeWidth={2.5} />
+              <Play size={22} color={colors.black} />
             </TouchableOpacity>
           </>
         }
@@ -334,30 +324,6 @@ export default function PayrollScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.kpiRow}>
-          <KpiTile
-            label="Gross"
-            value={formatCurrency(totals.gross)}
-            color={colors.blue}
-          />
-          <KpiTile
-            label="Deductions"
-            value={formatCurrency(totals.ded)}
-            color={colors.red}
-          />
-        </View>
-        <View style={styles.kpiRow}>
-          <KpiTile
-            label="Net Payable"
-            value={formatCurrency(totals.net)}
-            color={colors.green}
-          />
-          <KpiTile
-            label="Paid"
-            value={`${totals.paid}/${payrolls.length}`}
-            color={colors.purple}
-          />
-        </View>
 
         <SearchBar
           value={search}

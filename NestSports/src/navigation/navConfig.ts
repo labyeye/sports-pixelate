@@ -1,4 +1,5 @@
 import { UserRole } from '../types';
+import WhatsAppIcon from '../components/WhatsAppIcon';
 import { isScreenDisabled } from '../config/features';
 import {
   ListChecks,
@@ -35,7 +36,6 @@ import {
   FileBarChart,
   UserMinus,
   Megaphone,
-  MessageCircle,
   Trash2,
   ScanFace,
 } from 'lucide-react-native';
@@ -49,6 +49,7 @@ import {
 export interface NavItem {
   title: string;
   screen: string;
+  params?: Record<string, unknown>; // passed to the screen (e.g. which ID-card kind to design)
   icon: LucideIcon;
   roles: UserRole[];
   desc: string;
@@ -70,9 +71,9 @@ const ALL: UserRole[] = [
   'parent',
 ];
 
-export const navGroups: NavGroup[] = [
+const baseGroups: NavGroup[] = [
   {
-    label: 'Academy',
+    label: 'Students',
     items: [
       {
         title: 'Students',
@@ -81,6 +82,25 @@ export const navGroups: NavGroup[] = [
         roles: OWNER_STAFF,
         desc: 'Manage student profiles & enrollment',
       },
+      {
+        title: 'Student Attendance',
+        screen: 'StudentAttendance',
+        icon: Clock,
+        roles: OWNER_STAFF,
+        desc: 'Mark & track student attendance',
+      },
+      {
+        title: 'Coaching Plans',
+        screen: 'Plans',
+        icon: Gift,
+        roles: OWNER,
+        desc: 'Manage coaching plans & pricing',
+      }
+    ],
+  },
+  {
+    label: 'Employees',
+    items: [
       {
         title: 'Staff',
         screen: 'Employees',
@@ -103,114 +123,18 @@ export const navGroups: NavGroup[] = [
         desc: 'Reset staff login credentials',
       },
       {
-        title: 'Letters',
-        screen: 'Letters',
-        icon: FileText,
-        roles: OWNER,
-        desc: 'Offer & appointment letter templates',
-      },
-      {
-        title: 'Documents',
-        screen: 'Documents',
-        icon: FolderOpen,
-        roles: OWNER_STAFF,
-        desc: 'Staff & student document vault',
-      },
-      {
-        title: 'Announcements',
-        screen: 'Announcements',
-        icon: Megaphone,
-        roles: ALL,
-        desc: 'Notices for parents and staff',
-      },
-      {
-        title: 'WhatsApp to Parents',
-        screen: 'BulkMessage',
-        icon: MessageCircle,
-        roles: OWNER,
-        desc: 'Send a message or document to all or selected parents',
-      },
-      {
-        title: 'Tasks',
-        screen: 'Tasks',
-        icon: ListChecks,
-        roles: OWNER_STAFF,
-        desc: 'Assign and track staff tasks',
-      },
-      {
-        title: 'ID Card Designer',
-        screen: 'IdCardDesigner',
-        icon: CreditCard,
-        roles: OWNER,
-        desc: 'Design & print staff ID cards',
-      },
-      {
-        title: 'NFC Cards',
-        screen: 'NfcManager',
-        icon: CreditCard,
-        roles: OWNER,
-        desc: 'Assign NFC cards to staff',
-      },
-      {
-        title: 'Expense Claims',
-        screen: 'ExpenseClaims',
-        icon: Receipt,
-        roles: OWNER_STAFF,
-        desc: 'Claim reimbursements & approve requests',
-      },
-      {
-        title: 'My Assets',
-        screen: 'Assets',
-        icon: Package,
-        roles: OWNER_STAFF,
-        desc: 'Laptops, devices & items assigned to you',
-      },
-      {
-        title: 'Events',
-        screen: 'Events',
-        icon: Trophy,
-        roles: ALL,
-        desc: 'Manage tournaments, competitions & events',
-      },
-      {
-        title: 'Exit Management',
-        screen: 'ExitManagement',
-        icon: UserMinus,
-        roles: OWNER,
-        desc: 'Offboard staff & students',
-      },
-      {
-        title: 'Trash',
-        screen: 'Trash',
-        icon: Trash2,
-        roles: OWNER,
-        desc: 'Restore deleted items (kept 30 days)',
-      },
-    ],
-  },
-  {
-    label: 'Attendance',
-    items: [
-      {
-        title: 'Student Attendance',
-        screen: 'StudentAttendance',
-        icon: Clock,
-        roles: OWNER_STAFF,
-        desc: 'Mark & track student attendance',
-      },
-      {
-        title: 'Face Kiosk',
-        screen: 'FaceKiosk',
-        icon: ScanFace,
-        roles: OWNER,
-        desc: 'Hands-free face check-in and check-out for students & staff',
-      },
-      {
         title: 'Staff Attendance',
         screen: 'Attendance',
         icon: Clock,
         roles: OWNER,
         desc: 'Mark & track staff attendance',
+      },
+      {
+        title: 'Late Approvals',
+        screen: 'LateApprovals',
+        icon: AlertCircle,
+        roles: OWNER,
+        desc: 'Resolve late check-ins beyond allowance',
       },
       {
         title: 'Leave',
@@ -227,11 +151,148 @@ export const navGroups: NavGroup[] = [
         desc: 'Academy holidays calendar',
       },
       {
-        title: 'Attendance Settings',
-        screen: 'AttendanceSettings',
-        icon: ShieldAlert,
+        title: 'Tasks',
+        screen: 'Tasks',
+        icon: ListChecks,
+        roles: OWNER_STAFF,
+        desc: 'Assign and track staff tasks',
+      },
+      {
+        title: 'Exit Management',
+        screen: 'ExitManagement',
+        icon: UserMinus,
         roles: OWNER,
-        desc: 'Shift, late & leave allowance rules',
+        desc: 'Offboard staff & students',
+      }
+    ],
+  },
+  {
+    label: 'Inventory & POS',
+    items: [
+      {
+        title: 'Inventory',
+        screen: 'Inventory',
+        icon: Package,
+        roles: OWNER_STAFF,
+        desc: 'Track sports equipment & gear',
+      },
+      {
+        title: 'My Assets',
+        screen: 'Assets',
+        icon: Package,
+        roles: OWNER_STAFF,
+        desc: 'Laptops, devices & items assigned to you',
+      }
+    ],
+  },
+  {
+    label: 'Booking',
+    items: [
+      {
+        title: 'Facilities',
+        screen: 'Facilities',
+        icon: MapPin,
+        roles: OWNER,
+        desc: 'Manage courts & facilities',
+      },
+      {
+        title: 'Bookings',
+        screen: 'Bookings',
+        icon: CalendarClock,
+        roles: OWNER_STAFF,
+        desc: 'Facility & court bookings',
+      },
+      {
+        title: 'Events',
+        screen: 'Events',
+        icon: Trophy,
+        roles: ALL,
+        desc: 'Manage tournaments, competitions & events',
+      }
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      {
+        title: 'Subscriptions',
+        screen: 'Subscriptions',
+        icon: Wallet,
+        roles: OWNER,
+        desc: 'Manage student subscriptions',
+      },
+      {
+        title: 'Expenses',
+        screen: 'Expenses',
+        icon: Receipt,
+        roles: OWNER,
+        desc: 'Track academy expenses',
+      },
+      {
+        title: 'Expense Claims',
+        screen: 'ExpenseClaims',
+        icon: Receipt,
+        roles: OWNER_STAFF,
+        desc: 'Claim reimbursements & approve requests',
+      },
+      {
+        title: 'Payroll',
+        screen: 'Payroll',
+        icon: IndianRupee,
+        roles: OWNER,
+        desc: 'Manage staff salaries & payslips',
+      },
+      {
+        title: 'Loans & Advances',
+        screen: 'Loans',
+        icon: Banknote,
+        roles: OWNER,
+        desc: 'Employee loan management',
+      }
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      {
+        title: 'Announcements',
+        screen: 'Announcements',
+        icon: Megaphone,
+        roles: ALL,
+        desc: 'Notices for parents and staff',
+      },
+      {
+        title: 'WhatsApp to Parents',
+        screen: 'BulkMessage',
+        icon: WhatsAppIcon,
+        roles: OWNER,
+        desc: 'Send a message or document to all or selected parents',
+      },
+      {
+        title: 'Letters',
+        screen: 'Letters',
+        icon: FileText,
+        roles: OWNER,
+        desc: 'Offer & appointment letter templates',
+      },
+      {
+        title: 'Documents',
+        screen: 'Documents',
+        icon: FolderOpen,
+        roles: OWNER_STAFF,
+        desc: 'Staff & student document vault',
+      }
+    ],
+  },
+  {
+    label: 'Devices & Setup',
+    items: [
+      {
+        title: 'Face Kiosk',
+        screen: 'FaceKiosk',
+        icon: ScanFace,
+        roles: OWNER,
+        desc: 'Hands-free face check-in and check-out for students & staff',
       },
       {
         title: 'Biometric Devices',
@@ -241,12 +302,34 @@ export const navGroups: NavGroup[] = [
         desc: 'Manage biometric attendance devices',
       },
       {
-        title: 'Late Approvals',
-        screen: 'LateApprovals',
-        icon: AlertCircle,
+        title: 'NFC Cards',
+        screen: 'NfcManager',
+        icon: CreditCard,
         roles: OWNER,
-        desc: 'Resolve late check-ins beyond allowance',
+        desc: 'Assign NFC cards to staff',
       },
+      {
+        title: 'ID Card Designer',
+        screen: 'IdCardDesigner',
+        icon: CreditCard,
+        roles: OWNER,
+        desc: 'Design & print staff ID cards',
+      },
+      {
+        title: 'Student ID Card Designer',
+        screen: 'IdCardDesigner',
+        params: { kind: 'student' },
+        icon: CreditCard,
+        roles: OWNER,
+        desc: "Design & print students' ID cards",
+      },
+      {
+        title: 'Attendance Settings',
+        screen: 'AttendanceSettings',
+        icon: ShieldAlert,
+        roles: OWNER,
+        desc: 'Shift, late & leave allowance rules',
+      }
     ],
   },
   {
@@ -279,7 +362,7 @@ export const navGroups: NavGroup[] = [
         icon: Banknote,
         roles: ['employee'],
         desc: 'Request a loan or salary advance',
-      },
+      }
     ],
   },
   {
@@ -312,73 +395,7 @@ export const navGroups: NavGroup[] = [
         icon: FileBarChart,
         roles: ['parent'],
         desc: "Generate your child's report card",
-      },
-    ],
-  },
-  {
-    label: 'Billing & Plans',
-    items: [
-      {
-        title: 'Coaching Plans',
-        screen: 'Plans',
-        icon: Gift,
-        roles: OWNER,
-        desc: 'Manage coaching plans & pricing',
-      },
-      {
-        title: 'Subscriptions',
-        screen: 'Subscriptions',
-        icon: Wallet,
-        roles: OWNER,
-        desc: 'Manage student subscriptions',
-      },
-      {
-        title: 'Expenses',
-        screen: 'Expenses',
-        icon: Receipt,
-        roles: OWNER,
-        desc: 'Track academy expenses',
-      },
-      {
-        title: 'Payroll',
-        screen: 'Payroll',
-        icon: IndianRupee,
-        roles: OWNER,
-        desc: 'Manage staff salaries & payslips',
-      },
-      {
-        title: 'Loans & Advances',
-        screen: 'Loans',
-        icon: Banknote,
-        roles: OWNER,
-        desc: 'Employee loan management',
-      },
-    ],
-  },
-  {
-    label: 'Facilities',
-    items: [
-      {
-        title: 'Inventory',
-        screen: 'Inventory',
-        icon: Package,
-        roles: OWNER_STAFF,
-        desc: 'Track sports equipment & gear',
-      },
-      {
-        title: 'Facilities',
-        screen: 'Facilities',
-        icon: MapPin,
-        roles: OWNER,
-        desc: 'Manage courts & facilities',
-      },
-      {
-        title: 'Bookings',
-        screen: 'Bookings',
-        icon: CalendarClock,
-        roles: OWNER_STAFF,
-        desc: 'Facility & court bookings',
-      },
+      }
     ],
   },
   {
@@ -454,6 +471,13 @@ export const navGroups: NavGroup[] = [
         roles: ALL,
         desc: 'Report issues & track tickets',
       },
+      {
+        title: 'Trash',
+        screen: 'Trash',
+        icon: Trash2,
+        roles: OWNER,
+        desc: 'Restore deleted items (kept 30 days)',
+      }
     ],
   },
   {
@@ -472,10 +496,44 @@ export const navGroups: NavGroup[] = [
         icon: ShieldCheck,
         roles: ALL,
         desc: 'Two-factor authentication',
-      },
+      }
     ],
   },
 ];
+
+// Rarely-used screens are folded into one "Others" group so the Menu stays
+// short. Mirrors OTHERS_HREFS in frontend/src/config/navigation.ts.
+const OTHERS_SCREENS = [
+  'Holidays',
+  'Tasks',
+  'LateApprovals',
+  'EmployeeCredentials',
+  'ExitManagement',
+  'Inventory',
+  'Assets',
+  'Letters',
+  'Documents',
+];
+
+export const navGroups: NavGroup[] = (() => {
+  const others: NavItem[] = [];
+  const groups = baseGroups.map(g => ({
+    ...g,
+    items: g.items.filter(item => {
+      if (OTHERS_SCREENS.includes(item.screen)) {
+        others.push(item);
+        return false;
+      }
+      return true;
+    }),
+  }));
+  const at = groups.findIndex(g => g.label === 'My Workspace');
+  groups.splice(at < 0 ? groups.length : at, 0, {
+    label: 'Others',
+    items: others,
+  });
+  return groups.filter(g => g.items.length > 0);
+})();
 
 export function getNavGroupsForRole(
   role: UserRole,

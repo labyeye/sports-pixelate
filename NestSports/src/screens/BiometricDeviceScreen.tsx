@@ -19,7 +19,6 @@ import {
   Trash2,
   Edit2,
   X,
-  Save,
   Wifi,
   WifiOff,
   Check,
@@ -44,7 +43,7 @@ import {
 } from '../api/client';
 import { colors, FONT } from '../theme/colors';
 import ScreenHeader from '../components/ScreenHeader';
-import { Button, ChipSelect, LoadingView, KpiTile } from '../components/ui';
+import { Button, ChipSelect, LoadingView, } from '../components/ui';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -536,26 +535,6 @@ export default function BiometricDeviceScreen() {
             />
           }
         >
-          <View style={styles.kpiRow}>
-            <KpiTile
-              label="Locations"
-              value={locations.length}
-              color={colors.blue}
-              icon={MapPin}
-            />
-            <KpiTile
-              label="Devices"
-              value={devices.length}
-              color={colors.orange}
-              icon={Cpu}
-            />
-            <KpiTile
-              label="Connected"
-              value={devices.filter(d => d.activated).length}
-              color={colors.green}
-              icon={CheckCircle2}
-            />
-          </View>
           {tab === 'locations' ? (
             locations.length === 0 ? (
               <View style={styles.empty}>

@@ -11,11 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { AlertOctagon, Clock, ListChecks, Timer } from 'lucide-react-native';
+import { AlertOctagon, Clock, } from 'lucide-react-native';
 import { lateApprovalAPI } from '../api/client';
-import { Card, EmptyState, LoadingView, KpiTile } from '../components/ui';
+import { Card, EmptyState, LoadingView, } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import ScreenHeader from '../components/ScreenHeader';
+import ExportAction from '../components/common/ExportAction';
 
 const RESOLUTIONS: { key: string; label: string; color: string }[] = [
   { key: 'present', label: 'Present', color: colors.green },
@@ -75,7 +76,21 @@ export default function LateApprovalsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScreenHeader title="Late Approvals" />
+      <ScreenHeader title="Late Approvals"
+        right={
+          <ExportAction
+            name="late_approvals"
+            rows={items}
+            cols={[
+              { header: 'Employee', value: (r: any) => `${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim() },
+              { header: 'Date', value: (r: any) => String(r.date || '').slice(0, 10) },
+              { header: 'Check In', value: (r: any) => r.checkInTime },
+              { header: 'Minutes Late', value: (r: any) => r.minutesLate },
+              { header: 'Reason', value: (r: any) => r.reason },
+            ]}
+          />
+        }
+      />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -87,34 +102,6 @@ export default function LateApprovalsScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {items.length > 0 && (
-          <View style={styles.kpiGrid}>
-            <KpiTile
-              label="Pending Requests"
-              value={items.length}
-              sub="Awaiting resolution"
-              color={colors.orange}
-              icon={ListChecks}
-            />
-            <KpiTile
-              label="Total Minutes Late"
-              value={items.reduce((sum, i) => sum + (i.minutesLate || 0), 0)}
-              sub="Across all requests"
-              color={colors.red}
-              icon={Clock}
-            />
-            <KpiTile
-              label="Avg Minutes Late"
-              value={Math.round(
-                items.reduce((sum, i) => sum + (i.minutesLate || 0), 0) /
-                  items.length,
-              )}
-              sub="Per request"
-              color={colors.blue}
-              icon={Timer}
-            />
-          </View>
-        )}
         {items.length === 0 ? (
           <EmptyState
             icon={AlertOctagon}

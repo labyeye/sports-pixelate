@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { User } from '../types';
 import { authAPI, setToken, removeToken, getToken } from '../api/client';
+import { unregisterPush } from '../services/pushNotificationService';
 import { resetDisabledFeatures } from '../utils/disabledFeatures';
 import { getErrorMessage } from '../utils/format';
 
@@ -143,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    await unregisterPush();
     // Drop this device from the signed-in devices list (best effort)
     try {
       await authAPI.removeCurrentSession();

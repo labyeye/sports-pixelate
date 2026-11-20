@@ -14,14 +14,16 @@ import { C } from '../theme';
 import IdCardView from './IdCardView';
 import { loadIdCardSetup } from './data';
 import { printIdCards } from './printHtml';
-import type { IdCardTemplate, IdCompany } from './idCard';
+import type { CardKind, IdCardTemplate, IdCompany } from './idCard';
 
 /** "Print ID card(s)" for one or more employees, using the design saved in the ID Card Designer. */
 export default function PrintIdCardModal({
   employees,
+  kind = 'staff',
   onClose,
 }: {
   employees: any[] | null;
+  kind?: CardKind;
   onClose: () => void;
 }) {
   const [setup, setSetup] = useState<{
@@ -38,7 +40,7 @@ export default function PrintIdCardModal({
     if (!open) return;
     setSetup(null);
     setError('');
-    loadIdCardSetup()
+    loadIdCardSetup(kind)
       .then(s => {
         setSetup(s);
         setSides(s.template.backEnabled ? 'both' : 'front');
@@ -89,7 +91,7 @@ export default function PrintIdCardModal({
             {setup && first && (
               <>
                 <Text style={s.body}>
-                  <Text style={{ fontWeight: '700' }}>{employees!.length}</Text> employee
+                  <Text style={{ fontWeight: '700' }}>{employees!.length}</Text> {kind === 'student' ? 'student' : 'employee'}
                   {employees!.length > 1 ? 's' : ''}:{' '}
                   {employees!
                     .slice(0, 3)

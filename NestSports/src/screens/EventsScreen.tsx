@@ -1,7 +1,6 @@
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useState,
 } from 'react';
 import {
@@ -20,23 +19,16 @@ import {
   ChevronRight,
   Search,
   SlidersHorizontal,
-  CalendarClock,
-  PlayCircle,
-  CheckCircle2,
-} from 'lucide-react-native';
+  } from 'lucide-react-native';
 import { eventAPI } from '../api/client';
 import {
   Card,
   EmptyState,
   LoadingView,
   Badge,
-  SearchBar,
-  FilterPills,
-  SortSheet,
   LoadMoreFooter,
   SortOption,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import HeaderIconBtn from '../components/common/HeaderIconBtn';
 import SearchModal from '../components/common/SearchModal';
@@ -47,6 +39,7 @@ import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { eventTypes } from '../config/eventTypeConfig';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: colors.muted,
@@ -160,22 +153,28 @@ export default function EventsScreen({ navigation }: any) {
         title="Events"
         right={
           <>
+            <ExportAction
+              name="events"
+              rows={events}
+              cols={[
+                { header: 'Name', value: (r: any) => r.name },
+                { header: 'Type', value: (r: any) => r.eventType },
+                { header: 'Status', value: (r: any) => r.status },
+                { header: 'Date', value: (r: any) => String(r.schedule?.eventDate || '').slice(0, 10) },
+              ]}
+            />
             <HeaderIconBtn
               label="Search"
               onPress={() => setSearchVisible(true)}
               dot={!!search}
-              icon={<Search size={20} color={colors.black} strokeWidth={2.5} />}
+              icon={<Search size={22} color={colors.black} />}
             />
             <HeaderIconBtn
               label="Filter and sort"
               onPress={() => setSortVisible(true)}
               dot={!!status}
               icon={
-                <SlidersHorizontal
-                  size={20}
-                  color={colors.black}
-                  strokeWidth={2.5}
-                />
+                <SlidersHorizontal size={22} color={colors.black} />
               }
             />
             {!isParent && (
@@ -184,43 +183,13 @@ export default function EventsScreen({ navigation }: any) {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                <Plus size={24} color={colors.blue} />
               </TouchableOpacity>
             )}
           </>
         }
       />
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Events"
-            value={events.length}
-            sub="Total"
-            color={colors.blue}
-            icon={Trophy}
-          />
-          <KpiTile
-            label="Upcoming"
-            value={events.filter(e => e.status === 'upcoming').length}
-            sub="Not started"
-            color={colors.orange}
-            icon={CalendarClock}
-          />
-          <KpiTile
-            label="Live"
-            value={events.filter(e => e.status === 'live').length}
-            sub="In progress"
-            color={colors.green}
-            icon={PlayCircle}
-          />
-          <KpiTile
-            label="Complete"
-            value={events.filter(e => e.status === 'completed').length}
-            sub="Finished"
-            color={colors.purple}
-            icon={CheckCircle2}
-          />
-        </View>
 
         <FlatList
           data={events}

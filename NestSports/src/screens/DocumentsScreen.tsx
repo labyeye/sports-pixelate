@@ -286,14 +286,14 @@ export default function DocumentsScreen() {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+                <ArrowUpDown size={22} color={colors.black} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={openUpload}
                 style={headerBtn}
                 hitSlop={8}
               >
-                <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                <Plus size={24} color={colors.blue} />
               </TouchableOpacity>
             </View>
           </>

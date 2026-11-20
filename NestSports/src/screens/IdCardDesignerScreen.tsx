@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ArrowDown,
   ArrowUp,
@@ -43,7 +43,10 @@ import {
   type Palette,
 } from '../idcard/idCardLibrary';
 import {
-  FIELD_OPTIONS,
+  fieldOptionsFor,
+  toStudentTemplate,
+  SAMPLE_STUDENT,
+  type CardKind,
   FONT_LABELS,
   KIND_LABELS,
   SAMPLE_EMPLOYEE,
@@ -123,6 +126,11 @@ function Chip({ on, label, onPress }: { on: boolean; label: string; onPress: () 
 
 export default function IdCardDesignerScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const kind: CardKind = route.params?.kind === 'student' ? 'student' : 'staff';
+  const isStudent = kind === 'student';
+  const FIELD_OPTIONS = fieldOptionsFor(kind);
+  const SAMPLE = isStudent ? SAMPLE_STUDENT : SAMPLE_EMPLOYEE;
   const { width: winW } = useWindowDimensions();
   const [template, setTemplate] = useState<IdCardTemplate | null>(null);
   const [company, setCompany] = useState<IdCompany | null>(null);
@@ -137,7 +145,7 @@ export default function IdCardDesignerScreen() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadIdCardSetup()
+    loadIdCardSetup(kind)
       .then(r => {
         setTemplate(r.template);
         setCompany(r.company);
@@ -191,7 +199,9 @@ export default function IdCardDesignerScreen() {
     if (!template) return;
     setSaving(true);
     try {
-      await settingsAPI.update({ idCardTemplate: template });
+      await settingsAPI.update(
+        isStudent ? { studentIdCardTemplate: template } : { idCardTemplate: template },
+      );
       setSavedJson(JSON.stringify(template));
       Alert.alert('Saved', "It's now used when you print ID cards.");
     } catch (e: any) {
@@ -202,7 +212,7 @@ export default function IdCardDesignerScreen() {
 
   const testPrint = async () => {
     try {
-      await printIdCards([SAMPLE_EMPLOYEE], template!, company!, 'both');
+      await printIdCards([SAMPLE], template!, company!, 'both');
     } catch (e: any) {
       if (e?.message && !/cancel/i.test(e.message)) Alert.alert('Print failed', e.message);
     }
@@ -219,8 +229,12 @@ export default function IdCardDesignerScreen() {
   const portrait = template?.size === 'cr80-portrait';
   const previewW = Math.min(winW - 64, portrait ? 220 : 340);
   const libItems = useMemo(
-    () => LIBRARY.map(l => ({ ...l, t: l.build(palette) })),
-    [palette],
+    () =>
+      LIBRARY.map(l => ({
+        ...l,
+        t: isStudent ? toStudentTemplate(l.build(palette)) : l.build(palette),
+      })),
+    [palette, isStudent],
   );
 
   if (error)
@@ -245,7 +259,7 @@ export default function IdCardDesignerScreen() {
           <ChevronLeft size={22} color={C.black} />
         </TouchableOpacity>
         <IdCard size={20} color={C.primary} />
-        <Text style={s.title}>ID Card Designer</Text>
+        <Text style={s.title}>{isStudent ? 'Student ID Card Designer' : 'ID Card Designer'}</Text>
         <TouchableOpacity
           disabled={!undo.length}
           onPress={() => {
@@ -299,7 +313,7 @@ export default function IdCardDesignerScreen() {
             <IdCardView
               template={template}
               side={side}
-              employee={SAMPLE_EMPLOYEE}
+              employee={SAMPLE}
               company={company}
               width={previewW}
               selectedId={selId}
@@ -352,7 +366,7 @@ export default function IdCardDesignerScreen() {
               <>
                 <Text style={s.mini}>QR encodes</Text>
                 <View style={s.rowWrap}>
-                  {FIELD_OPTIONS.filter(f => f.group === 'Employee').map(f => (
+                  {FIELD_OPTIONS.filter(f => f.group !== 'Company').map(f => (
                     <Chip key={f.key} on={sel.qrField === f.key} label={f.label} onPress={() => patchEl({ qrField: f.key })} />
                   ))}
                 </View>
@@ -523,7 +537,7 @@ export default function IdCardDesignerScreen() {
                   <IdCardView
                     template={it.t}
                     side="front"
-                    employee={SAMPLE_EMPLOYEE}
+                    employee={SAMPLE}
                     company={company}
                     width={it.orientation === 'portrait' ? 100 : 150}
                   />

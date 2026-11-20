@@ -19,7 +19,6 @@ import {
   Trash2,
   X,
   Users,
-  Building2,
   Tag,
   Hash,
   FileText,
@@ -35,12 +34,12 @@ import {
   TextField,
   Button,
   SectionTitle,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import SlideInCard from '../components/motion/SlideInCard';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 const SORT_OPTIONS: SortOption[] = [
   { key: 'name', label: 'Name' },
@@ -211,15 +210,26 @@ export default function DepartmentsScreen() {
       <View style={styles.header}>
         <BackTitle title="Departments" />
         <View style={styles.headerActions}>
+          <ExportAction
+            name="departments"
+            rows={departments}
+            cols={[
+              { header: 'Name', value: (r: any) => r.name },
+              { header: 'Code', value: (r: any) => r.code },
+              { header: 'Headcount', value: (r: any) => r.headcount },
+              { header: 'Status', value: (r: any) => r.status },
+              { header: 'Description', value: (r: any) => r.description },
+            ]}
+          />
           <TouchableOpacity
             onPress={() => setSortVisible(true)}
             style={headerBtn}
             hitSlop={8}
           >
-            <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+            <ArrowUpDown size={22} color={colors.black} />
           </TouchableOpacity>
           <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
-            <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            <Plus size={24} color={colors.blue} />
           </TouchableOpacity>
         </View>
       </View>
@@ -232,22 +242,6 @@ export default function DepartmentsScreen() {
         />
       </View>
 
-      <View style={styles.kpiGrid}>
-        <KpiTile
-          label="Departments"
-          value={departments.length}
-          sub="Total"
-          color={colors.blue}
-          icon={Building2}
-        />
-        <KpiTile
-          label="Headcount"
-          value={departments.reduce((sum, d) => sum + (d.headcount || 0), 0)}
-          sub="Across all departments"
-          color={colors.purple}
-          icon={Users}
-        />
-      </View>
 
       <FlatList
         data={departments}

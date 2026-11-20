@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary, Asset } from 'react-native-image-picker';
-import RazorpayCheckout from 'react-native-razorpay';
 import { Upload } from 'lucide-react-native';
 import { settingsAPI, subscriptionAPI } from '../api/client';
 import { API_BASE_URL } from '../config';
@@ -77,42 +76,14 @@ export default function QrRenewalScreen({ route, navigation }: any) {
       });
       const data = order.data || order;
 
-      // Cashfree (hosted checkout page) and PhonePe/Paytm (redirect-based)
-      // have no first-party RN SDK wired into this app — a WebView hosts
-      // their checkout page and verifies once it lands back on our
-      // /payment-return URL. Only Razorpay uses its native modal SDK here.
-      if (data.checkoutMode === 'redirect' || data.gateway === 'cashfree') {
-        navigation.navigate('PaymentWebView', { order: data });
-        return;
-      }
-
-      const result = await RazorpayCheckout.open({
-        key: data.keyId,
-        order_id: data.orderId,
-        amount: data.amount * 100,
-        currency: data.currency || 'INR',
-        name: 'NestAcademy',
-        description: `${data.planName} — ${data.studentName}`,
-        theme: { color: colors.black },
-      });
-      await subscriptionAPI.verifyPayment({
-        razorpayOrderId: result.razorpay_order_id,
-        razorpayPaymentId: result.razorpay_payment_id,
-        razorpaySignature: result.razorpay_signature,
-      });
-      Alert.alert('Payment successful', 'Your subscription is now active.', [
-        { text: 'OK', onPress: goToNextScreen },
-      ]);
+      // Cashfree (hosted checkout page) and PhonePe/Paytm (redirect-based) open in a WebView, which verifies
+      // once it lands back on our /payment-return URL.
+      navigation.navigate('PaymentWebView', { order: data });
     } catch (e: unknown) {
-      if ((e as { code?: string | number })?.code !== 0) {
-        // code 0 = user cancelled the Razorpay sheet, nothing to report
-        Alert.alert(
-          'Payment failed',
-          (e as { description?: string })?.description ||
-            (e as Error)?.message ||
-            'Please try again.',
-        );
-      }
+      Alert.alert(
+        'Payment failed',
+        (e as Error)?.message || 'Please try again.',
+      );
     } finally {
       setPayingOnline(false);
     }

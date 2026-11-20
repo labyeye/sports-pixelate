@@ -260,7 +260,7 @@ export default function EmployeeCredentialsScreen() {
               style={headerBtn}
               hitSlop={8}
             >
-              <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+              <ArrowUpDown size={22} color={colors.black} />
             </TouchableOpacity>
           </>
         }

@@ -20,8 +20,6 @@ import {
   Edit2,
   Trash2,
   X,
-  Wallet,
-  ListChecks,
   IndianRupee,
   Tag,
   Layers,
@@ -38,8 +36,7 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
@@ -180,7 +177,6 @@ export default function ExpensesScreen() {
 
   if (loading) return <LoadingView />;
 
-  const avgExpense = expenses.length ? totalAmount / expenses.length : 0;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -207,10 +203,10 @@ export default function ExpensesScreen() {
               style={headerBtn}
               hitSlop={8}
             >
-              <Download size={20} color={colors.black} strokeWidth={2.5} />
+              <Download size={22} color={colors.black} />
             </TouchableOpacity>
             <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
-              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              <Plus size={24} color={colors.blue} />
             </TouchableOpacity>
           </>
         }
@@ -222,30 +218,6 @@ export default function ExpensesScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Spent"
-            value={formatCurrency(totalAmount)}
-            sub="This month"
-            color={colors.orange}
-            icon={Wallet}
-          />
-          <KpiTile
-            label="Entries"
-            value={expenses.length}
-            sub="This month"
-            color={colors.blue}
-            icon={ListChecks}
-          />
-          <KpiTile
-            label="Avg. Expense"
-            value={formatCurrency(avgExpense)}
-            sub="Per entry"
-            color={colors.green}
-            icon={IndianRupee}
-          />
-        </View>
-
         {expenses.length === 0 ? (
           <Card>
             <EmptyState title="No expenses found" />

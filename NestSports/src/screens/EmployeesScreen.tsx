@@ -28,10 +28,6 @@ import PrintIdCardModal from '../idcard/PrintIdCardModal';
 import {
   EmptyState,
   LoadingView,
-  SearchBar,
-  StatPills,
-  FilterPills,
-  SortSheet,
   LoadMoreFooter,
   SortOption,
 } from '../components/ui';
@@ -40,27 +36,36 @@ import {
   ImportHeader,
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
+import DashStatCard, { dashStatRow } from '../components/common/DashStatCard';
+import {
+  Users as StatUsers,
+  UserCheck as StatUserCheck,
+  CalendarDays as StatCalendar,
+  UserPlus as StatUserPlus,
+  CheckCircle2 as StatCheck,
+  XCircle as StatX,
+  Clock as StatClock,
+} from 'lucide-react-native';
 import { colors, FONT } from '../theme/colors';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
-import { StatRow } from '../components/common/StatTile';
 import HeaderIconBtn from '../components/common/HeaderIconBtn';
 import SearchModal from '../components/common/SearchModal';
 import FilterSortModal from '../components/common/FilterSortModal';
-import SlideInCard from '../components/motion/SlideInCard';
 import {
-  Users as SUsers,
-  UserCheck as SUserCheck,
-  UserX as SUserX,
-  Pause as SPause,
-  CheckCircle2 as SCheck,
-  XCircle as SX,
-  AlertCircle as SAlert,
-  Calendar as SCal,
-  Wallet as SWallet,
-  Repeat as SRepeat,
-  IndianRupee as SRupee,
-} from 'lucide-react-native';
+  AttendanceTableFooter,
+  AttendanceTableHeader,
+  AttendanceTableRow,
+  TableCol,
+} from '../components/common/AttendanceTable';
+import SlideInCard from '../components/motion/SlideInCard';
+
+const EMPLOYEE_COLS: TableCol[] = [
+  { key: 'name', label: 'Employee', flex: 1, icon: 'users' },
+  { key: 'desig', label: 'Role', width: 62 },
+  { key: 'status', label: 'Status', width: 64 },
+  { key: 'kebab', label: '', width: 56 },
+];
 
 const EMPLOYEE_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Rahul' },
@@ -234,15 +239,6 @@ export default function EmployeesScreen({ navigation }: any) {
   };
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const statPillOptions = [
-    { value: '', label: 'All', count: totalCount, color: colors.blue },
-    ...STATUS_ORDER.map(s => ({
-      value: s,
-      label: STATUS_CONFIG[s].label,
-      count: counts[s] || 0,
-      color: STATUS_CONFIG[s].color,
-    })),
-  ];
 
   if (loading) return <LoadingView />;
 
@@ -266,31 +262,27 @@ export default function EmployeesScreen({ navigation }: any) {
             style={headerBtn}
             hitSlop={8}
           >
-            <Download size={20} color={colors.black} strokeWidth={2.5} />
+            <Download size={22} color={colors.black} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setImportVisible(true)}
             style={headerBtn}
             hitSlop={8}
           >
-            <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+            <FileSpreadsheet size={22} color={colors.black} />
           </TouchableOpacity>
           <HeaderIconBtn
             label="Search"
             onPress={() => setSearchVisible(true)}
             dot={!!search}
-            icon={<Search size={20} color={colors.black} strokeWidth={2.5} />}
+            icon={<Search size={22} color={colors.black} />}
           />
           <HeaderIconBtn
             label="Filter and sort"
             onPress={() => setSortVisible(true)}
             dot={!!status || !!department}
             icon={
-              <SlidersHorizontal
-                size={20}
-                color={colors.black}
-                strokeWidth={2.5}
-              />
+              <SlidersHorizontal size={22} color={colors.black} />
             }
           />
           <TouchableOpacity
@@ -298,43 +290,15 @@ export default function EmployeesScreen({ navigation }: any) {
             style={headerBtn}
             hitSlop={8}
           >
-            <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            <Plus size={24} color={colors.blue} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <StatRow
-        items={[
-          {
-            label: 'Total',
-            value: totalCount,
-            color: colors.blue,
-            icon: SUsers,
-          },
-          {
-            label: 'Active',
-            value: counts.active || 0,
-            color: colors.green,
-            icon: SUserCheck,
-          },
-          {
-            label: 'On Leave',
-            value: counts.on_leave || 0,
-            color: colors.orange,
-            icon: SPause,
-          },
-          {
-            label: 'Inactive',
-            value: counts.inactive || 0,
-            color: colors.muted,
-            icon: SUserX,
-          },
-        ]}
-      />
       <FlatList
         data={employees}
         keyExtractor={e => e._id}
-        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -342,113 +306,105 @@ export default function EmployeesScreen({ navigation }: any) {
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
-          <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          <>
+            <AttendanceTableFooter />
+            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          </>
+        }
+        ListHeaderComponent={
+          <>
+            <View style={dashStatRow}>
+              <DashStatCard
+                index={0}
+                label="Total"
+                value={totalCount}
+                icon={StatUsers}
+                color={colors.blue}
+              />
+              <DashStatCard
+                index={1}
+                label="Active"
+                value={counts.active || 0}
+                icon={StatUserCheck}
+                color={colors.green}
+              />
+              <DashStatCard
+                index={2}
+                label="On Leave"
+                value={counts.on_leave || 0}
+                icon={StatCalendar}
+                color={colors.orange}
+              />
+              <DashStatCard
+                index={3}
+                label="Inactive"
+                value={counts.inactive || 0}
+                icon={StatUserPlus}
+                color={colors.muted}
+              />
+            </View>
+            <AttendanceTableHeader cols={EMPLOYEE_COLS} />
+          </>
         }
         ListEmptyComponent={<EmptyState title="No staff found" />}
         renderItem={({ item: e, index }) => {
-          const statusColor = STATUS_CONFIG[e.status]?.color || colors.muted;
+          const color = STATUS_CONFIG[e.status]?.color || colors.muted;
           return (
-            <SlideInCard index={index}>
-              <TouchableOpacity
-                style={styles.card}
-                activeOpacity={0.85}
-                onPress={() =>
-                  navigation.navigate('AddEmployee', { employee: e })
-                }
-              >
-                <View style={styles.cardTop}>
-                  {e.avatar ? (
-                    <Image
-                      source={{ uri: e.avatar }}
-                      style={[styles.avatarImg, { borderColor: statusColor }]}
-                    />
-                  ) : (
-                    <View style={[styles.avatar, { borderColor: statusColor }]}>
-                      <Text style={styles.avatarText}>
-                        {(e.firstName?.[0] || '').toUpperCase()}
-                        {(e.lastName?.[0] || '').toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.empName}>
-                      {e.firstName} {e.lastName}
-                    </Text>
-                    <Text style={styles.empId}>{e.employeeId}</Text>
-                    <Text style={styles.empDesig} numberOfLines={1}>
-                      {e.designation || e.department?.name || ''}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: statusColor },
-                    ]}
-                  >
-                    <Text style={styles.statusText}>
-                      {(
-                        STATUS_CONFIG[e.status]?.label ||
-                        e.status ||
-                        ''
-                      ).toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-
-                {(e.email || e.phone) && (
-                  <View style={styles.cardMeta}>
-                    {e.email ? (
-                      <View style={styles.metaItem}>
-                        <Mail size={11} color={colors.muted} />
-                        <Text style={styles.metaText} numberOfLines={1}>
-                          {e.email}
-                        </Text>
-                      </View>
-                    ) : null}
-                    {e.phone ? (
-                      <View style={styles.metaItem}>
-                        <Phone size={11} color={colors.muted} />
-                        <Text style={styles.metaText}>{e.phone}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                )}
-
-                <View style={styles.cardBottom}>
-                  <View style={styles.typePill}>
-                    <Text style={styles.typePillText}>
-                      {(e.employmentType || '').replace('_', ' ').toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      style={styles.editBtn}
-                      onPress={() =>
-                        navigation.navigate('AddEmployee', { employee: e })
-                      }
-                    >
-                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.editBtn}
-                      onPress={() => setActionEmp(e)}
-                    >
-                      <MoreHorizontal
-                        size={14}
-                        color={colors.blue}
-                        strokeWidth={2.5}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteBtn}
-                      onPress={() => onDelete(e)}
-                    >
-                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </SlideInCard>
+            <AttendanceTableRow
+              index={index}
+              cols={EMPLOYEE_COLS}
+              avatar={e.avatar}
+              initials={`${e.firstName?.[0] || ''}${
+                e.lastName?.[0] || ''
+              }`.toUpperCase()}
+              name={`${e.firstName} ${e.lastName}`}
+              sub={e.designation || e.employeeId}
+              status={{
+                label: (
+                  STATUS_CONFIG[e.status]?.label ||
+                  e.status ||
+                  ''
+                ).toUpperCase(),
+                color,
+                bg: color + '1A',
+              }}
+              cells={{ desig: e.designation || e.department?.name || '—' }}
+              details={[
+                { label: 'Department', value: e.department?.name },
+                { label: 'Designation', value: e.designation },
+                {
+                  label: 'Type',
+                  value: (e.employmentType || '').replace('_', ' '),
+                },
+                { label: 'Phone', value: e.phone },
+                { label: 'Email', value: e.email },
+                {
+                  label: 'Joined',
+                  value: e.joinDate
+                    ? new Date(e.joinDate).toLocaleDateString('en-IN')
+                    : '',
+                },
+              ]}
+              menu={[
+                {
+                  label: 'Edit',
+                  icon: Edit2,
+                  onPress: () =>
+                    navigation.navigate('AddEmployee', { employee: e }),
+                },
+                {
+                  label: 'Print ID card',
+                  icon: MoreHorizontal,
+                  onPress: () => setIdPrint([e]),
+                },
+                {
+                  label: 'Delete',
+                  icon: Trash2,
+                  color: colors.red,
+                  onPress: () => onDelete(e),
+                },
+              ]}
+            />
           );
         }}
       />

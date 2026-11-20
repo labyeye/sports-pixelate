@@ -495,7 +495,7 @@ export default function InventoryScreen() {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <Download size={20} color={colors.black} strokeWidth={2.5} />
+                <Download size={22} color={colors.black} />
               </TouchableOpacity>
               {isOwner && (
                 <TouchableOpacity
@@ -503,11 +503,7 @@ export default function InventoryScreen() {
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <FileSpreadsheet
-                    size={18}
-                    color={colors.black}
-                    strokeWidth={2.5}
-                  />
+                  <FileSpreadsheet size={22} color={colors.black} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -515,7 +511,7 @@ export default function InventoryScreen() {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+                <ArrowUpDown size={22} color={colors.black} />
               </TouchableOpacity>
               {isOwner && (
                 <TouchableOpacity
@@ -523,7 +519,7 @@ export default function InventoryScreen() {
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                  <Plus size={24} color={colors.blue} />
                 </TouchableOpacity>
               )}
             </View>

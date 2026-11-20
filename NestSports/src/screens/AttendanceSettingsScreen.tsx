@@ -137,6 +137,7 @@ function NumField({
 }
 
 export default function AttendanceSettingsScreen() {
+  const [audience, setAudience] = useState<'staff' | 'students'>('staff');
   const [activeTab, setActiveTab] = useState<'rules' | 'late' | 'leave'>(
     'rules',
   );
@@ -316,7 +317,37 @@ export default function AttendanceSettingsScreen() {
       >
         <Text style={styles.subtitle}>Shift, late & leave allowance rules</Text>
 
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, { marginBottom: 12 }]}>
+          {(
+            [
+              ['staff', 'Staff'],
+              ['students', 'Students'],
+            ] as const
+          ).map(([key, label], idx) => (
+            <TouchableOpacity
+              key={key}
+              onPress={() => setAudience(key)}
+              activeOpacity={0.8}
+              style={[
+                styles.tabBtn,
+                idx > 0 && styles.tabBtnDivider,
+                audience === key && styles.tabBtnActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  audience === key && styles.tabTextActive,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {audience === 'staff' ? (
+          <View style={styles.tabBar}>
           {(
             [
               ['rules', 'Deduction Rules'],
@@ -346,9 +377,12 @@ export default function AttendanceSettingsScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        ) : null}
 
-        {activeTab === 'rules' ? (
+        {audience === 'students' || activeTab === 'rules' ? (
           <>
+            {audience === 'staff' ? (
+              <>
             <Card>
               <SectionTitle title="Shift Timings" />
               <View style={{ flexDirection: 'row', gap: 16 }}>
@@ -493,6 +527,9 @@ export default function AttendanceSettingsScreen() {
               ) : null}
             </Card>
 
+              </>
+            ) : (
+              <>
             <Card>
               <SectionTitle title="Student Fee Lock" />
               <View style={styles.toggleRow}>
@@ -609,7 +646,7 @@ export default function AttendanceSettingsScreen() {
                   onChange={v =>
                     set('studentLateGraceMinutes', Math.min(240, v))
                   }
-                  hint="Late if marked more than this long after the session starts"
+                  hint="Last on-time arrival = session start + this. e.g. 10:00 session, 15 min → 10:15 is on time, 10:16 is marked Late. Only a label, no deduction."
                   suffix="min"
                 />
               ) : null}
@@ -695,6 +732,9 @@ export default function AttendanceSettingsScreen() {
               </Text>
             </Card>
 
+              </>
+            )}
+
             <Button
               title="Save Attendance Settings"
               onPress={handleSave}
@@ -705,7 +745,7 @@ export default function AttendanceSettingsScreen() {
 
         <View style={{ height: 20 }} />
 
-        {activeTab === 'late' ? (
+        {audience === 'staff' && activeTab === 'late' ? (
           <Card>
             <SectionTitle title="Late Allowance / Month" />
             <ChipSelect
@@ -759,7 +799,7 @@ export default function AttendanceSettingsScreen() {
           </Card>
         ) : null}
 
-        {activeTab === 'leave' ? (
+        {audience === 'staff' && activeTab === 'leave' ? (
           <Card>
             <SectionTitle title="Leave Allowance / Month" />
             <ChipSelect
@@ -820,6 +860,7 @@ export default function AttendanceSettingsScreen() {
           </Card>
         ) : null}
 
+        {audience === 'staff' ? (
         <Card>
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
@@ -867,6 +908,7 @@ export default function AttendanceSettingsScreen() {
             )
           ) : null}
         </Card>
+        ) : null}
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>

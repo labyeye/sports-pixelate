@@ -119,7 +119,7 @@ export default function StudentPerformanceReportScreen() {
       <View style={styles.header}>
         <BackTitle title="Student Performance Report" />
         <TouchableOpacity onPress={onExport} style={headerBtn} hitSlop={8}>
-          <Download size={20} color={colors.black} strokeWidth={2.5} />
+          <Download size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
 

@@ -24,14 +24,13 @@ import {
   Check,
   X,
   Droplet,
+  FileText,
+  CreditCard,
 } from 'lucide-react-native';
 import { studentAPI } from '../api/client';
 import {
   EmptyState,
   LoadingView,
-  SearchBar,
-  StatPills,
-  SortSheet,
   LoadMoreFooter,
   SortOption,
 } from '../components/ui';
@@ -40,27 +39,38 @@ import {
   ImportHeader,
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
+import DashStatCard, { dashStatRow } from '../components/common/DashStatCard';
+import {
+  Users as StatUsers,
+  UserCheck as StatUserCheck,
+  CalendarDays as StatCalendar,
+  UserPlus as StatUserPlus,
+  CheckCircle2 as StatCheck,
+  XCircle as StatX,
+  Clock as StatClock,
+} from 'lucide-react-native';
 import { colors, FONT } from '../theme/colors';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
-import { StatRow } from '../components/common/StatTile';
+import { printAdmissionForm } from '../admission/print';
 import HeaderIconBtn from '../components/common/HeaderIconBtn';
 import SearchModal from '../components/common/SearchModal';
 import FilterSortModal from '../components/common/FilterSortModal';
-import SlideInCard from '../components/motion/SlideInCard';
 import {
-  Users as SUsers,
-  UserCheck as SUserCheck,
-  UserX as SUserX,
-  Pause as SPause,
-  CheckCircle2 as SCheck,
-  XCircle as SX,
-  AlertCircle as SAlert,
-  Calendar as SCal,
-  Wallet as SWallet,
-  Repeat as SRepeat,
-  IndianRupee as SRupee,
-} from 'lucide-react-native';
+  AttendanceTableFooter,
+  AttendanceTableHeader,
+  AttendanceTableRow,
+  TableCol,
+} from '../components/common/AttendanceTable';
+import SlideInCard from '../components/motion/SlideInCard';
+import PrintIdCardModal from '../idcard/PrintIdCardModal';
+
+const STUDENT_COLS: TableCol[] = [
+  { key: 'name', label: 'Student', flex: 1, icon: 'users' },
+  { key: 'sport', label: 'Sport', width: 56 },
+  { key: 'status', label: 'Status', width: 64 },
+  { key: 'kebab', label: '', width: 56 },
+];
 
 const STUDENT_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'firstName', label: 'First Name', required: true, example: 'Aarav' },
@@ -174,6 +184,7 @@ let searchDebounce: ReturnType<typeof setTimeout>;
 
 export default function StudentsScreen({ navigation }: any) {
   const [students, setStudents] = useState<any[]>([]);
+  const [idPrint, setIdPrint] = useState<any[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -276,8 +287,6 @@ export default function StudentsScreen({ navigation }: any) {
     );
   };
 
-  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-
   if (loading) return <LoadingView />;
 
   return (
@@ -300,31 +309,27 @@ export default function StudentsScreen({ navigation }: any) {
             style={headerBtn}
             hitSlop={8}
           >
-            <Download size={20} color={colors.black} strokeWidth={2.5} />
+            <Download size={22} color={colors.black} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setImportVisible(true)}
             style={headerBtn}
             hitSlop={8}
           >
-            <FileSpreadsheet size={18} color={colors.black} strokeWidth={2.5} />
+            <FileSpreadsheet size={22} color={colors.black} />
           </TouchableOpacity>
           <HeaderIconBtn
             label="Search"
             onPress={() => setSearchVisible(true)}
             dot={!!search}
-            icon={<Search size={20} color={colors.black} strokeWidth={2.5} />}
+            icon={<Search size={22} color={colors.black} />}
           />
           <HeaderIconBtn
             label="Filter and sort"
             onPress={() => setSortVisible(true)}
             dot={!!status}
             icon={
-              <SlidersHorizontal
-                size={20}
-                color={colors.black}
-                strokeWidth={2.5}
-              />
+              <SlidersHorizontal size={22} color={colors.black} />
             }
           />
           <TouchableOpacity
@@ -332,44 +337,15 @@ export default function StudentsScreen({ navigation }: any) {
             style={headerBtn}
             hitSlop={8}
           >
-            <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            <Plus size={24} color={colors.blue} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <StatRow
-        items={[
-          {
-            label: 'Total',
-            value: totalCount,
-            color: colors.blue,
-            icon: SUsers,
-          },
-          {
-            label: 'Active',
-            value: counts.active || 0,
-            color: colors.green,
-            icon: SUserCheck,
-          },
-          {
-            label: 'On Hold',
-            value: counts.on_hold || 0,
-            color: colors.orange,
-            icon: SPause,
-          },
-          {
-            label: 'Inactive',
-            value: counts.inactive || 0,
-            color: colors.muted,
-            icon: SUserX,
-          },
-        ]}
-      />
-
       <FlatList
         data={students}
         keyExtractor={s => s._id}
-        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -377,122 +353,147 @@ export default function StudentsScreen({ navigation }: any) {
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
-          <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          <>
+            <AttendanceTableFooter />
+            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+          </>
+        }
+        ListHeaderComponent={
+          <>
+            <View style={dashStatRow}>
+              <DashStatCard
+                index={0}
+                label="Total"
+                value={Object.values(counts).reduce((a, b) => a + b, 0)}
+                icon={StatUsers}
+                color={colors.blue}
+              />
+              <DashStatCard
+                index={1}
+                label="Active"
+                value={counts.active || 0}
+                icon={StatUserCheck}
+                color={colors.green}
+              />
+              <DashStatCard
+                index={2}
+                label="On Hold"
+                value={counts.on_hold || 0}
+                icon={StatClock}
+                color={colors.orange}
+              />
+              <DashStatCard
+                index={3}
+                label="Inactive"
+                value={counts.inactive || 0}
+                icon={StatX}
+                color={colors.muted}
+              />
+            </View>
+            <AttendanceTableHeader cols={STUDENT_COLS} />
+          </>
         }
         ListEmptyComponent={<EmptyState title="No students found" />}
         renderItem={({ item: s, index }) => {
-          const statusColor = STATUS_CONFIG[s.status]?.color || colors.muted;
+          const sc = STATUS_CONFIG[s.status];
+          const color = sc?.color || colors.muted;
           return (
-            <SlideInCard index={index}>
-              <TouchableOpacity
-                style={styles.card}
-                activeOpacity={0.85}
-                onPress={() =>
-                  navigation.navigate('AddStudent', { student: s })
-                }
-              >
-                <View style={styles.cardTop}>
-                  {s.avatar ? (
-                    <Image
-                      source={{ uri: s.avatar }}
-                      style={[styles.avatarImg, { borderColor: statusColor }]}
-                    />
-                  ) : (
-                    <View style={[styles.avatar, { borderColor: statusColor }]}>
-                      <Text style={styles.avatarText}>
-                        {(s.firstName?.[0] || '?').toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.empName}>
-                      {s.firstName} {s.lastName}
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
-                      <Text style={styles.empId}>{s.studentId}</Text>
-                      <Text style={styles.empDesig} numberOfLines={1}>
-                        {s.batch || 'No batch'}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: statusColor },
-                    ]}
-                  >
-                    <Text style={styles.statusText}>
-                      {(
-                        STATUS_CONFIG[s.status]?.label ||
-                        s.status ||
-                        ''
-                      ).toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.cardMeta}>
-                  {s.coach ? (
-                    <View style={styles.metaItem}>
-                      <User size={11} color={colors.muted} />
-                      <Text style={styles.metaText} numberOfLines={1}>
-                        Coach: {s.coach.firstName} {s.coach.lastName}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {s.bloodGroup ? (
-                    <View style={styles.metaItem}>
-                      <Droplet size={11} color={colors.red} />
-                      <Text style={styles.metaText}>
-                        Blood Group: {s.bloodGroup}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <View style={{ marginTop: 4, gap: 3 }}>
-                    <ParentIndicator
-                      icon={Mars}
-                      name={getGuardianName(s, 'father')}
-                      color={colors.blue}
-                    />
-                    <ParentIndicator
-                      icon={Venus}
-                      name={getGuardianName(s, 'mother')}
-                      color={colors.purple}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.cardBottom}>
-                  <View style={styles.typePill}>
-                    <Text style={styles.typePillText}>
-                      {(s.sport || '').toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      style={styles.editBtn}
-                      onPress={() =>
-                        navigation.navigate('AddStudent', { student: s })
-                      }
-                    >
-                      <Edit2 size={14} color={colors.blue} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteBtn}
-                      onPress={() => onDelete(s)}
-                    >
-                      <Trash2 size={14} color={colors.red} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </SlideInCard>
+            <AttendanceTableRow
+              index={index}
+              cols={STUDENT_COLS}
+              avatar={s.avatar}
+              initials={`${s.firstName?.[0] || ''}${
+                s.lastName?.[0] || ''
+              }`.toUpperCase()}
+              name={`${s.firstName} ${s.lastName}`}
+              sub={s.studentId}
+              status={{
+                label: (sc?.label || s.status || '').toUpperCase(),
+                color,
+                bg: color + '1A',
+              }}
+              cells={{ sport: s.sport || '—', batch: s.batch || '—' }}
+              details={[
+                {
+                  label: 'Coach',
+                  value: s.coach
+                    ? `${s.coach.firstName} ${s.coach.lastName}`
+                    : '',
+                },
+                { label: 'Blood Group', value: s.bloodGroup },
+                {
+                  label: 'Enrolled',
+                  value: s.enrollmentDate
+                    ? new Date(s.enrollmentDate).toLocaleDateString('en-IN')
+                    : '',
+                },
+                {
+                  label: 'Experience',
+                  value: s.sportsProfile?.experienceLevel,
+                },
+                {
+                  label: 'Playing Level',
+                  value: s.sportsProfile?.playingLevel,
+                },
+                {
+                  label: 'Guardians',
+                  value: (s.guardians || [])
+                    .map((g: any) => `${g.name} (${g.relation})`)
+                    .join(', '),
+                },
+                {
+                  label: 'Guardian Phone',
+                  value: (s.guardians || [])
+                    .map((g: any) => g.phone)
+                    .filter(Boolean)
+                    .join(', '),
+                },
+                {
+                  label: 'Emergency Contact',
+                  value: s.emergencyContactPerson?.name
+                    ? `${s.emergencyContactPerson.name} · ${
+                        s.emergencyContactPerson.phone || ''
+                      }`
+                    : '',
+                },
+                {
+                  label: 'Address',
+                  value: [
+                    s.address?.line1,
+                    s.address?.city,
+                    s.address?.state,
+                    s.address?.pincode,
+                  ]
+                    .filter(Boolean)
+                    .join(', '),
+                },
+              ]}
+              menu={[
+                {
+                  label: 'Admission form',
+                  icon: FileText,
+                  onPress: () =>
+                    printAdmissionForm(s).catch(e => notifyError(e)),
+                },
+                {
+                  label: 'Print ID Card',
+                  icon: CreditCard,
+                  onPress: () => setIdPrint([s]),
+                },
+                {
+                  label: 'Edit',
+                  icon: Edit2,
+                  onPress: () =>
+                    navigation.navigate('AddStudent', { student: s }),
+                },
+                {
+                  label: 'Delete',
+                  icon: Trash2,
+                  color: colors.red,
+                  onPress: () => onDelete(s),
+                },
+              ]}
+            />
           );
         }}
       />
@@ -548,8 +549,31 @@ export default function StudentsScreen({ navigation }: any) {
           'Maximum 200 students per import.',
         ]}
         previewLine={r => `${r.firstName} ${r.lastName} — ${r.sport || '—'}`}
-        onImport={rows => studentAPI.bulkImport(rows) as any}
+        onImport={rows =>
+          new Promise((resolve, reject) =>
+            Alert.alert(
+              'Guardian consent',
+              "Do the parents/guardians of ALL these students agree to the Terms & Privacy Policy and to the academy storing their child's data?",
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                  onPress: () => reject(new Error('Import cancelled')),
+                },
+                {
+                  text: 'Yes, import',
+                  onPress: () => resolve(studentAPI.bulkImport(rows)),
+                },
+              ],
+            ),
+          ) as any
+        }
         onImported={load}
+      />
+      <PrintIdCardModal
+        employees={idPrint}
+        kind="student"
+        onClose={() => setIdPrint(null)}
       />
     </SafeAreaView>
   );

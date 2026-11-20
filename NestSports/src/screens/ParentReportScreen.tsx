@@ -133,7 +133,7 @@ export default function ParentReportScreen() {
             style={headerBtn}
             hitSlop={8}
           >
-            <Share2 size={18} color={colors.black} strokeWidth={2.5} />
+            <Share2 size={22} color={colors.black} />
           </TouchableOpacity>
         ) : null}
       </View>

@@ -126,6 +126,9 @@ export default function AddStudentScreen({ navigation, route }: any) {
   const [gender, setGender] = useState<(typeof GENDERS)[number]>(
     editingStudent?.gender || 'male',
   );
+  // Verifiable parental consent, confirmed by the academy (DPDP Act).
+  const hasConsent = !!editingStudent?.guardianConsent?.given;
+  const [guardianConsent, setGuardianConsent] = useState(false);
   const [avatarFile, setAvatarFile] = useState<RNFile | undefined>();
   const [faceFile, setFaceFile] = useState<RNFile | undefined>();
   const [guardians, setGuardians] = useState<GuardianForm[]>(
@@ -315,9 +318,18 @@ export default function AddStudentScreen({ navigation, route }: any) {
       return;
     }
 
+    if (!hasConsent && !guardianConsent) {
+      Alert.alert(
+        'Guardian consent needed',
+        "Confirm that the parent/guardian agreed to the Terms & Privacy Policy and to storing the child's data.",
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
+        guardianConsent: true,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         sport: sport.trim(),
@@ -376,6 +388,8 @@ export default function AddStudentScreen({ navigation, route }: any) {
         ? await studentAPI.update(editingStudent._id, payload)
         : await studentAPI.create(payload);
       const student = res.data;
+      if (isEditing && !hasConsent && guardianConsent)
+        await studentAPI.recordConsent(editingStudent._id);
 
       if (avatarFile) {
         await studentAPI
@@ -801,6 +815,28 @@ export default function AddStudentScreen({ navigation, route }: any) {
             <Text style={styles.addGuardianText}>Add Guardian</Text>
           </TouchableOpacity>
         </Card>
+
+        {!hasConsent && (
+          <TouchableOpacity
+            onPress={() => setGuardianConsent(v => !v)}
+            style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}
+          >
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderWidth: 2,
+                borderColor: colors.black,
+                backgroundColor: guardianConsent ? colors.blue : colors.white,
+              }}
+            />
+            <Text style={{ flex: 1, color: colors.black, fontSize: 13 }}>
+              The parent/guardian has agreed to the Terms & Privacy Policy and
+              to this academy storing the child's photo, medical, attendance
+              and payment data. (Required)
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <Button
           title={

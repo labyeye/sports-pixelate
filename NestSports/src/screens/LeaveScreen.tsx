@@ -14,9 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Plus,
   X,
-  Clock,
-  CheckCircle2,
-  XCircle,
   FileText,
   CalendarDays,
   Calendar,
@@ -35,13 +32,13 @@ import {
   TextField,
   ChipSelect,
   SectionTitle,
-  KpiTile,
   ToggleRow,
 } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import SlideInCard from '../components/motion/SlideInCard';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: colors.yellow,
@@ -259,9 +256,25 @@ export default function LeaveScreen() {
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
         <BackTitle title="Leave" />
-        <TouchableOpacity onPress={openApply} style={headerBtn} hitSlop={8}>
-          <Plus size={20} color={colors.black} strokeWidth={2.5} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <ExportAction
+            name="leave_requests"
+            rows={leaves}
+            cols={[
+              { header: 'Emp Code', value: (r: any) => r.employee?.employeeId },
+              { header: 'Employee', value: (r: any) => `${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim() },
+              { header: 'Type', value: (r: any) => r.leaveType },
+              { header: 'From', value: (r: any) => String(r.startDate || '').slice(0, 10) },
+              { header: 'To', value: (r: any) => String(r.endDate || '').slice(0, 10) },
+              { header: 'Days', value: (r: any) => r.days },
+              { header: 'Status', value: (r: any) => r.status },
+              { header: 'Reason', value: (r: any) => r.reason },
+            ]}
+          />
+          <TouchableOpacity onPress={openApply} style={headerBtn} hitSlop={8}>
+          <Plus size={24} color={colors.blue} />
         </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -271,30 +284,6 @@ export default function LeaveScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Pending"
-            value={leaves.filter(l => l.status === 'pending').length}
-            sub="Awaiting approval"
-            color={colors.yellow}
-            icon={Clock}
-          />
-          <KpiTile
-            label="Approved"
-            value={leaves.filter(l => l.status === 'approved').length}
-            sub="Approved leaves"
-            color={colors.green}
-            icon={CheckCircle2}
-          />
-          <KpiTile
-            label="Rejected"
-            value={leaves.filter(l => l.status === 'rejected').length}
-            sub="Rejected leaves"
-            color={colors.red}
-            icon={XCircle}
-          />
-        </View>
-
         <Card>
           {leaves.length === 0 ? (
             <EmptyState title="No leave requests found" />

@@ -13,11 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Search,
   SlidersHorizontal,
   Eye,
   X,
-  XCircle,
   Download,
   FileSpreadsheet,
   FileText,
@@ -32,8 +30,6 @@ import {
   LoadingView,
   Badge,
   Button,
-  FilterPills,
-  SortSheet,
   LoadMoreFooter,
   SortOption,
   PickerField,
@@ -46,6 +42,22 @@ import {
 } from '../components/ImportExportModal';
 import { exportRowsToExcel } from '../utils/excelImportExport';
 import { colors, FONT } from '../theme/colors';
+import {
+  AttendanceTableFooter,
+  AttendanceTableHeader,
+  AttendanceTableRow,
+  TableCol,
+} from '../components/common/AttendanceTable';
+import {
+  Pause,
+  Play,
+  XCircle,
+  Plus,
+  Wallet,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react-native';
+import DashStatCard, { dashStatRow } from '../components/common/DashStatCard';
 import HeaderIconBtn from '../components/common/HeaderIconBtn';
 import SearchModal from '../components/common/SearchModal';
 import FilterSortModal from '../components/common/FilterSortModal';
@@ -55,20 +67,6 @@ import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency, getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
-import { StatRow } from '../components/common/StatTile';
-import {
-  Users as SUsers,
-  UserCheck as SUserCheck,
-  UserX as SUserX,
-  Pause as SPause,
-  CheckCircle2 as SCheck,
-  XCircle as SX,
-  AlertCircle as SAlert,
-  Calendar as SCal,
-  Wallet as SWallet,
-  Repeat as SRepeat,
-  IndianRupee as SRupee,
-} from 'lucide-react-native';
 
 const SUBSCRIPTION_IMPORT_HEADERS: ImportHeader[] = [
   { key: 'studentId', label: 'Student ID', required: true, example: 'STU0001' },
@@ -119,13 +117,22 @@ const STATUS_COLORS: Record<string, string> = {
   pending_renewal: colors.orange,
   inactive: colors.orange,
   cancelled: colors.red,
+  paused: colors.blue,
 };
+
+const SUB_COLS: TableCol[] = [
+  { key: 'name', label: 'Student', flex: 1, icon: 'users' },
+  { key: 'amount', label: 'Amount', width: 60 },
+  { key: 'status', label: 'Status', width: 64 },
+  { key: 'kebab', label: '', width: 56 },
+];
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'active', label: 'Active' },
   { value: 'pending_renewal', label: 'Pending Renewal' },
   { value: 'inactive', label: 'Inactive' },
+  { value: 'paused', label: 'Paused' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
@@ -225,6 +232,43 @@ export default function SubscriptionsScreen({ navigation }: any) {
       // ignore, user can retry by scrolling again
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handlePause = (id: string) => {
+    const run = async (until?: string) => {
+      try {
+        await subscriptionAPI.pause(id, { until });
+        await load();
+      } catch (e: unknown) {
+        Alert.alert('Error', getErrorMessage(e) || 'Failed to pause');
+      }
+    };
+    if (Alert.prompt) {
+      Alert.prompt(
+        'Pause subscription',
+        'Resume automatically on (YYYY-MM-DD)? Leave blank to resume manually.',
+        v => run(v?.trim() || undefined),
+      );
+    } else {
+      Alert.alert('Pause subscription', 'Pause until you resume it manually?', [
+        { text: 'No', style: 'cancel' },
+        { text: 'Pause', onPress: () => run() },
+      ]);
+    }
+  };
+
+  const handleResume = async (id: string) => {
+    try {
+      const r: any = await subscriptionAPI.resume(id);
+      if (r?.extendedByDays)
+        Alert.alert(
+          'Resumed',
+          `Renewal date extended by ${r.extendedByDays} day(s).`,
+        );
+      await load();
+    } catch (e: unknown) {
+      Alert.alert('Error', getErrorMessage(e) || 'Failed to resume');
     }
   };
 
@@ -378,30 +422,22 @@ export default function SubscriptionsScreen({ navigation }: any) {
     }
   };
 
+  const subCount = {
+    total: subscriptions.length,
+    active: subscriptions.filter((x: any) => x.status === 'active').length,
+    pending_renewal: subscriptions.filter(
+      (x: any) => x.status === 'pending_renewal',
+    ).length,
+    paused: subscriptions.filter((x: any) => x.status === 'paused').length,
+  };
+
   if (loading) return <LoadingView />;
 
-  const activeCount = subscriptions.filter(s => s.status === 'active').length;
-  const pendingRenewalCount = subscriptions.filter(
-    s => s.status === 'pending_renewal',
-  ).length;
   // Same definition as the dashboard's "Collected": verified payments whose
   // verifiedAt falls in the current month.
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
-  const collectedThisMonth = subscriptions.reduce(
-    (sum, s: any) =>
-      sum +
-      (Array.isArray(s.payments) ? s.payments : [])
-        .filter(
-          (p: any) =>
-            p.status === 'verified' &&
-            p.verifiedAt &&
-            new Date(p.verifiedAt) >= monthStart,
-        )
-        .reduce((a: number, p: any) => a + (p.amount || 0), 0),
-    0,
-  );
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -433,18 +469,14 @@ export default function SubscriptionsScreen({ navigation }: any) {
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <Download size={20} color={colors.black} strokeWidth={2.5} />
+                  <Download size={22} color={colors.black} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setImportVisible(true)}
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <FileSpreadsheet
-                    size={18}
-                    color={colors.black}
-                    strokeWidth={2.5}
-                  />
+                  <FileSpreadsheet size={22} color={colors.black} />
                 </TouchableOpacity>
               </>
             )}
@@ -452,13 +484,18 @@ export default function SubscriptionsScreen({ navigation }: any) {
               label="Filter and sort"
               onPress={() => setSortVisible(true)}
               dot={!!status}
-              icon={
-                <SlidersHorizontal
-                  size={20}
-                  color={colors.black}
-                  strokeWidth={2.5}
-                />
+              icon={<SlidersHorizontal size={22} color={colors.black} />}
+            />
+            <HeaderIconBtn
+              label={
+                isParent ? 'Subscribe a child to a plan' : 'Record cash payment'
               }
+              onPress={() =>
+                isParent
+                  ? navigation.navigate('ChoosePlan')
+                  : openCashModalNew()
+              }
+              icon={<Plus size={24} color={colors.blue} />}
             />
           </>
         }
@@ -471,66 +508,55 @@ export default function SubscriptionsScreen({ navigation }: any) {
           flex: 1,
         }}
       >
-        <View style={{ marginHorizontal: -16 }}>
-          <StatRow
-            items={[
-              {
-                label: 'Total',
-                value: subscriptions.length,
-                color: colors.blue,
-                icon: SRepeat,
-              },
-              {
-                label: 'Active',
-                value: activeCount,
-                color: colors.green,
-                icon: SCheck,
-              },
-              {
-                label: 'Renewal',
-                value: pendingRenewalCount,
-                color: colors.orange,
-                icon: SAlert,
-              },
-              {
-                label: 'Collected',
-                value: formatCurrency(collectedThisMonth),
-                color: colors.purple,
-                icon: SRupee,
-              },
-            ]}
+        <View style={{ marginHorizontal: -16 }}></View>
+
+        <View style={[dashStatRow, { marginTop: 12, marginBottom: 12 }]}>
+          <DashStatCard
+            index={0}
+            label="Total"
+            value={subCount.total}
+            icon={Wallet}
+            color={colors.blue}
+          />
+          <DashStatCard
+            index={1}
+            label="Active"
+            value={subCount.active}
+            icon={CheckCircle2}
+            color={colors.green}
+          />
+          <DashStatCard
+            index={2}
+            label="Renewal"
+            value={subCount.pending_renewal}
+            icon={Clock}
+            color={colors.orange}
+          />
+          <DashStatCard
+            index={3}
+            label="Paused"
+            value={subCount.paused}
+            icon={Pause}
+            color={colors.purple}
           />
         </View>
-
-        {isParent && (
-          <TouchableOpacity
-            style={styles.choosePlanBtn}
-            onPress={() => navigation.navigate('ChoosePlan')}
-          >
-            <Text style={styles.choosePlanBtnText}>
-              + Subscribe a Child to a Plan
-            </Text>
-          </TouchableOpacity>
-        )}
-        {!isParent && (
-          <TouchableOpacity style={styles.cashBtn} onPress={openCashModalNew}>
-            <Banknote size={16} color={colors.white} strokeWidth={2.5} />
-            <Text style={styles.choosePlanBtnText}>Record Cash Payment</Text>
-          </TouchableOpacity>
-        )}
 
         <FlatList
           data={subscriptions}
           keyExtractor={s => s._id}
-          contentContainerStyle={{ paddingBottom: 24, gap: 12 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.4}
           ListFooterComponent={
-            <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+            <>
+              <AttendanceTableFooter />
+              <LoadMoreFooter loading={loadingMore} hasMore={hasMore} />
+            </>
           }
+          ListHeaderComponent={<AttendanceTableHeader cols={SUB_COLS} />}
           ListEmptyComponent={
             <EmptyState
               title="No subscriptions found"
@@ -541,181 +567,189 @@ export default function SubscriptionsScreen({ navigation }: any) {
               }
             />
           }
-          renderItem={({ item: s, index }) => (
-            <SlideInCard index={index}>
-              <Card>
-                <View style={styles.cardHeaderRow}>
-                  {s.student?.avatar ? (
-                    <Image
-                      source={{ uri: s.student.avatar }}
-                      style={styles.avatar}
-                    />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback]}>
-                      <Text style={styles.avatarText}>
-                        {`${s.student?.firstName?.[0] || ''}${
-                          s.student?.lastName?.[0] || ''
-                        }`.toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.name} numberOfLines={1}>
-                      {s.student?.firstName} {s.student?.lastName}
-                    </Text>
-                    <Text style={styles.planName} numberOfLines={1}>
-                      {s.planName} · Renews{' '}
-                      {s.renewalDate
-                        ? new Date(s.renewalDate).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                          })
-                        : '—'}
-                    </Text>
-                  </View>
-                  <Badge
-                    label={s.status?.replace('_', ' ')}
-                    color={STATUS_COLORS[s.status] || colors.muted}
-                  />
-                </View>
-                <Text style={styles.amountLine}>
-                  {formatCurrency(s.amountPaid || 0)} /{' '}
-                  {formatCurrency(s.amount)}
-                </Text>
-
-                {Array.isArray(s.payments) && s.payments.length > 0 && (
-                  <View style={styles.paymentHistory}>
-                    {[...s.payments].reverse().map((p: any) => (
-                      <View key={p._id} style={styles.paymentEntryRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.paymentEntryAmount}>
-                            {formatCurrency(p.amount)}
-                          </Text>
-                          <Text style={styles.paymentEntryDate}>
-                            {new Date(p.submittedAt).toLocaleDateString(
-                              'en-IN',
-                              {
-                                day: '2-digit',
-                                month: 'short',
-                              },
-                            )}
-                          </Text>
-                        </View>
-                        <Badge
-                          label={
-                            p.status === 'verified' ? 'Verified' : p.status
-                          }
-                          color={PAYMENT_ENTRY_COLORS[p.status] || colors.muted}
-                        />
-                        {p.status === 'verified' && (
-                          <View style={styles.methodTicks}>
-                            <View style={styles.methodTickItem}>
-                              {p.method === 'cash' && (
-                                <Check
-                                  size={10}
-                                  color={colors.green}
-                                  strokeWidth={3}
-                                />
-                              )}
-                              <Text style={styles.methodTickText}>Cash</Text>
+          renderItem={({ item: s }) => {
+            const stColor = STATUS_COLORS[s.status] || colors.muted;
+            const pending = s.payments?.some(
+              (p: any) => p.status === 'pending',
+            );
+            const menu: any[] = [];
+            if (!isParent && s.status === 'active')
+              menu.push({
+                label: 'Pause',
+                icon: Pause,
+                onPress: () => handlePause(s._id),
+              });
+            if (!isParent && s.status === 'paused')
+              menu.push({
+                label: 'Resume',
+                icon: Play,
+                color: colors.green,
+                onPress: () => handleResume(s._id),
+              });
+            if (!isParent && pending)
+              menu.push({
+                label: 'Review payment',
+                icon: Eye,
+                onPress: () => setReviewSub(s),
+              });
+            if (
+              !isParent &&
+              s.status !== 'cancelled' &&
+              (s.amountPaid || 0) < s.amount &&
+              !pending
+            )
+              menu.push({
+                label: 'Record cash',
+                icon: Banknote,
+                color: colors.green,
+                onPress: () => openCashModalTopUp(s),
+              });
+            if (
+              isParent &&
+              s.status !== 'active' &&
+              s.status !== 'cancelled' &&
+              !pending
+            )
+              menu.push({
+                label: s.amountPaid > 0 ? 'Pay remaining' : 'Renew',
+                icon: Banknote,
+                onPress: () =>
+                  navigation.navigate('QrRenewal', { subscription: s }),
+              });
+            if (isParent && s.status === 'active')
+              menu.push({
+                label: 'Cancel subscription',
+                icon: XCircle,
+                color: colors.red,
+                onPress: () => handleCancel(s._id),
+              });
+            return (
+              <AttendanceTableRow
+                cols={SUB_COLS}
+                avatar={s.student?.avatar}
+                initials={`${s.student?.firstName?.[0] || ''}${
+                  s.student?.lastName?.[0] || ''
+                }`.toUpperCase()}
+                name={`${s.student?.firstName || ''} ${
+                  s.student?.lastName || ''
+                }`}
+                sub={`${s.planName || ''} · Renews ${
+                  s.renewalDate
+                    ? new Date(s.renewalDate).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                      })
+                    : '—'
+                }`}
+                status={{
+                  label: (s.status || '').replace('_', ' '),
+                  color: stColor,
+                  bg: stColor + '1A',
+                }}
+                cells={{ amount: formatCurrency(s.amount) }}
+                menu={menu}
+                details={[
+                  { label: 'Plan', value: s.planName },
+                  { label: 'Billing', value: s.billingCycle },
+                  {
+                    label: 'Renews',
+                    value: s.renewalDate
+                      ? new Date(s.renewalDate).toLocaleDateString('en-IN')
+                      : '',
+                  },
+                  { label: 'Total', value: formatCurrency(s.amount) },
+                  { label: 'Paid', value: formatCurrency(s.amountPaid || 0) },
+                  {
+                    label: 'Due',
+                    value: formatCurrency(
+                      Math.max(0, (s.amount || 0) - (s.amountPaid || 0)),
+                    ),
+                  },
+                  { label: 'Payment', value: s.paymentStatus },
+                  {
+                    label: 'Sibling discount',
+                    value: s.discountPercent > 0 ? `${s.discountPercent}%` : '',
+                  },
+                ]}
+                extra={
+                  <>
+                    {Array.isArray(s.payments) && s.payments.length > 0 && (
+                      <View style={styles.paymentHistory}>
+                        {[...s.payments].reverse().map((p: any) => (
+                          <View key={p._id} style={styles.paymentEntryRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.paymentEntryAmount}>
+                                {formatCurrency(p.amount)}
+                              </Text>
+                              <Text style={styles.paymentEntryDate}>
+                                {new Date(p.submittedAt).toLocaleDateString(
+                                  'en-IN',
+                                  {
+                                    day: '2-digit',
+                                    month: 'short',
+                                  },
+                                )}
+                              </Text>
                             </View>
-                            <View style={styles.methodTickItem}>
-                              {p.method !== 'cash' && (
-                                <Check
-                                  size={10}
-                                  color={colors.blue}
-                                  strokeWidth={3}
-                                />
-                              )}
-                              <Text style={styles.methodTickText}>UPI</Text>
-                            </View>
-                          </View>
-                        )}
-                        {p.status === 'verified' && (
-                          <TouchableOpacity
-                            style={styles.receiptBtn}
-                            onPress={() => handleDownloadReceipt(s._id, p._id)}
-                            disabled={downloadingId === p._id}
-                            hitSlop={8}
-                          >
-                            <FileText
-                              size={14}
-                              color={colors.blue}
-                              strokeWidth={2.5}
+                            <Badge
+                              label={
+                                p.status === 'verified' ? 'Verified' : p.status
+                              }
+                              color={
+                                PAYMENT_ENTRY_COLORS[p.status] || colors.muted
+                              }
                             />
-                          </TouchableOpacity>
-                        )}
+                            {p.status === 'verified' && (
+                              <View style={styles.methodTicks}>
+                                <View style={styles.methodTickItem}>
+                                  {p.method === 'cash' && (
+                                    <Check
+                                      size={10}
+                                      color={colors.green}
+                                      strokeWidth={3}
+                                    />
+                                  )}
+                                  <Text style={styles.methodTickText}>
+                                    Cash
+                                  </Text>
+                                </View>
+                                <View style={styles.methodTickItem}>
+                                  {p.method !== 'cash' && (
+                                    <Check
+                                      size={10}
+                                      color={colors.blue}
+                                      strokeWidth={3}
+                                    />
+                                  )}
+                                  <Text style={styles.methodTickText}>UPI</Text>
+                                </View>
+                              </View>
+                            )}
+                            {p.status === 'verified' && (
+                              <TouchableOpacity
+                                style={styles.receiptBtn}
+                                onPress={() =>
+                                  handleDownloadReceipt(s._id, p._id)
+                                }
+                                disabled={downloadingId === p._id}
+                                hitSlop={8}
+                              >
+                                <FileText
+                                  size={14}
+                                  color={colors.blue}
+                                  strokeWidth={2.5}
+                                />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                )}
-
-                {isParent &&
-                  s.status !== 'active' &&
-                  s.status !== 'cancelled' && (
-                    <Button
-                      title={
-                        s.payments?.some((p: any) => p.status === 'pending')
-                          ? 'Awaiting Verification'
-                          : s.amountPaid > 0
-                          ? 'Pay Remaining'
-                          : 'Renew'
-                      }
-                      onPress={() =>
-                        navigation.navigate('QrRenewal', { subscription: s })
-                      }
-                      color={colors.blue}
-                      disabled={s.payments?.some(
-                        (p: any) => p.status === 'pending',
-                      )}
-                    />
-                  )}
-                {isParent && s.status === 'active' && (
-                  <Button
-                    title="Cancel Subscription"
-                    onPress={() => handleCancel(s._id)}
-                    color={colors.red}
-                    variant="outline"
-                    loading={cancellingId === s._id}
-                  />
-                )}
-                {!isParent && (
-                  <View style={styles.paymentRow}>
-                    <Badge
-                      label={s.paymentStatus}
-                      color={
-                        PAYMENT_STATUS_COLORS[s.paymentStatus] || colors.muted
-                      }
-                    />
-                    {s.payments?.some((p: any) => p.status === 'pending') && (
-                      <TouchableOpacity
-                        style={styles.reviewBtn}
-                        onPress={() => setReviewSub(s)}
-                      >
-                        <Eye size={14} color={colors.blue} strokeWidth={2.5} />
-                        <Text style={styles.reviewBtnText}>Review</Text>
-                      </TouchableOpacity>
                     )}
-                    {s.status !== 'cancelled' &&
-                      (s.amountPaid || 0) < s.amount &&
-                      !s.payments?.some((p: any) => p.status === 'pending') && (
-                        <TouchableOpacity
-                          style={styles.cashRowBtn}
-                          onPress={() => openCashModalTopUp(s)}
-                        >
-                          <Banknote
-                            size={14}
-                            color={colors.green}
-                            strokeWidth={2.5}
-                          />
-                          <Text style={styles.cashRowBtnText}>Record Cash</Text>
-                        </TouchableOpacity>
-                      )}
-                  </View>
-                )}
-              </Card>
-            </SlideInCard>
-          )}
+                  </>
+                }
+              />
+            );
+          }}
         />
       </View>
 

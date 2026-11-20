@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { Menu, Search, Bell, Hand, Coins } from 'lucide-react-native';
+import { Menu, Search, Bell, Hand, Coins, Crown } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../contexts/AuthContext';
 import { fmtCredits, useCreditBalance } from '../../hooks/useCreditBalance';
 import { colors } from '../../theme/colors';
 
@@ -46,6 +47,11 @@ export default function AppHeader({
   const first = (name || 'User').split(' ')[0];
   const navigation = useNavigation<any>();
   const { credits } = useCreditBalance();
+  const { user } = useAuth();
+  // Crown on the avatar: Premium once the paid plan is active, Trial while on the free trial.
+  const sub: any = user?.subscription;
+  const isPaid = !!sub && !sub.isTrial && sub.status === 'active';
+  const badge = isPaid ? 'Premium' : sub?.isTrial ? 'Trial' : null;
   return (
     <View style={s.wrap}>
       <View style={s.row}>
@@ -74,6 +80,20 @@ export default function AppHeader({
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={onAvatar} activeOpacity={0.8}>
+            {badge && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Billing')}
+                activeOpacity={0.8}
+                hitSlop={6}
+                accessibilityLabel={`${badge} plan`}
+                style={[s.crown, badge === 'Trial' && s.crownTrial]}
+              >
+                <Crown
+                  size={10}
+                  color={badge === 'Trial' ? C.black : '#B45309'}
+                />
+              </TouchableOpacity>
+            )}
             {avatar ? (
               <Image source={{ uri: avatar }} style={s.avatar} />
             ) : (
@@ -129,6 +149,21 @@ const s = StyleSheet.create({
     borderWidth: 2,
     borderColor: C.black,
   },
+  crown: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    zIndex: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FDE68A',
+    borderWidth: 1.5,
+    borderColor: C.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crownTrial: { backgroundColor: '#E5E7EB' },
   pillLow: { backgroundColor: C.secondary },
   pillZero: { backgroundColor: C.danger },
   pillText: { color: C.white, fontSize: 12, fontWeight: '400' },

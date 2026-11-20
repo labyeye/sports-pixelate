@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import WhatsAppIcon from '../components/WhatsAppIcon';
 import {
   ScrollView,
   View,
@@ -13,7 +14,6 @@ import {
 import {
   Pencil,
   KeyRound,
-  MessageCircle,
   ShieldCheck,
   X,
 } from 'lucide-react-native';
@@ -376,7 +376,7 @@ export default function ProfileScreen({ navigation }: any) {
           />
           <ActionTile
             brutal
-            icon={MessageCircle}
+            icon={WhatsAppIcon}
             title="WhatsApp"
             sub="Verify your number"
             onPress={() => setSheet('whatsapp')}

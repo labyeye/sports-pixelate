@@ -1,11 +1,15 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { API_BASE_URL as TRACK_BASE } from '../config';
 import {
   initUsageTracker,
   setUsageIdentity,
   trackNavState,
 } from '../utils/usageTracker';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
+import { setupPushNotifications } from '../services/pushNotificationService';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import AnimatedSplash from '../components/AnimatedSplash';
@@ -37,6 +41,7 @@ import AnnouncementsScreen from '../screens/AnnouncementsScreen';
 import BulkMessageScreen from '../screens/BulkMessageScreen';
 import TrashScreen from '../screens/TrashScreen';
 import TasksScreen from '../screens/TasksScreen';
+import LeadsScreen from '../screens/LeadsScreen';
 import AssetsScreen from '../screens/AssetsScreen';
 import NfcManagerScreen from '../screens/NfcManagerScreen';
 import IdCardDesignerScreen from '../screens/IdCardDesignerScreen';
@@ -107,6 +112,7 @@ import PermissionsScreen from '../screens/PermissionsScreen';
 import AuditLogScreen from '../screens/AuditLogScreen';
 import SupportScreen from '../screens/SupportScreen';
 import NotFoundScreen from '../screens/NotFoundScreen';
+import ScreenEntrance from '../components/motion/ScreenEntrance';
 
 initUsageTracker(TRACK_BASE);
 
@@ -144,8 +150,27 @@ export default function RootNavigator() {
   );
 }
 
+const navigationRef = createNavigationContainerRef<any>();
+
 function RootNavigatorContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
+
+  // Push notifications (FCM): register this phone once signed in; tapping a push opens the notification centre.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let stop: () => void = () => {};
+    let alive = true;
+    setupPushNotifications(() => {
+      if (navigationRef.isReady()) navigationRef.navigate('Notifications');
+    }).then(fn => {
+      if (alive) stop = fn;
+      else fn();
+    });
+    return () => {
+      alive = false;
+      stop();
+    };
+  }, [isAuthenticated, user?.id]);
   setUsageIdentity(user);
 
   if (isLoading) return <LoadingScreen />;
@@ -157,8 +182,15 @@ function RootNavigatorContent() {
 
   return (
     // Keyed on the account so switching academy remounts every screen.
-    <NavigationContainer key={user?.id} onStateChange={trackNavState}>
+    <NavigationContainer
+      key={user?.id}
+      ref={navigationRef}
+      onStateChange={trackNavState}
+    >
       <Stack.Navigator
+        screenLayout={({ navigation, children }) => (
+          <ScreenEntrance navigation={navigation}>{children}</ScreenEntrance>
+        )}
         screenOptions={{
           headerShown: false,
         }}
@@ -254,6 +286,7 @@ function RootNavigatorContent() {
             <Stack.Screen name="BulkMessage" component={BulkMessageScreen} />
             <Stack.Screen name="Trash" component={TrashScreen} />
             <Stack.Screen name="Tasks" component={TasksScreen} />
+            <Stack.Screen name="Leads" component={LeadsScreen} />
             <Stack.Screen name="Assets" component={AssetsScreen} />
             <Stack.Screen name="NfcManager" component={NfcManagerScreen} />
             <Stack.Screen name="IdCardDesigner" component={IdCardDesignerScreen} />

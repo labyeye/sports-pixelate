@@ -407,6 +407,13 @@ export const authAPI = {
     }),
 };
 
+export const insightsAPI = {
+  students: () => request('/insights/students'),
+  plans: () => request('/insights/plans'),
+  expenses: () => request('/insights/expenses'),
+  studentAttendance: () => request('/insights/student-attendance'),
+};
+
 export const dashboardAPI = {
   getStats: () => request('/dashboard/stats'),
   getEmployeeStats: () => request('/dashboard/employee'),
@@ -567,6 +574,7 @@ export const settingsAPI = {
   get: () => request('/settings'),
   update: (settings: any) =>
     request('/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+  testGateway: () => request('/settings/test-gateway', { method: 'POST' }),
   uploadLogo: (logo: RNFile) => upload('/settings/logo', toFormData({ logo })),
   uploadPaymentQr: (qrCode: RNFile) =>
     upload('/settings/payment-qr', toFormData({ qrCode })),
@@ -582,20 +590,11 @@ export const billingAPI = {
   getPlans: () => request('/billing/plans'),
   getSubscription: () => request('/billing/subscription'),
   getInvoices: () => request('/billing/invoices'),
-  createOrder: (
-    studentCount: number,
-    billingCycle: 'monthly' | 'yearly',
-    gateway: 'cashfree' = 'cashfree',
-    company?: object,
-  ) =>
+  // planId: 'starter' | 'growth' | 'unlimited'
+  createOrder: (planId: string, company?: object, offerCode?: string) =>
     request('/billing/create-order', {
       method: 'POST',
-      body: JSON.stringify({
-        studentCount,
-        billingCycle,
-        gateway,
-        company,
-      }),
+      body: JSON.stringify({ planId, company, offerCode }),
     }),
   verifyCashfree: (orderId: string) =>
     request('/billing/verify-cashfree', {
@@ -882,7 +881,14 @@ export const studentAPI = {
   bulkImport: (students: object[]) =>
     request('/students/bulk-import', {
       method: 'POST',
-      body: JSON.stringify({ students }),
+      // the screen asks the owner to confirm guardian consent before importing
+      body: JSON.stringify({ students, guardianConsent: true }),
+    }),
+  // Academy confirms a guardian's consent for a student added before consent was recorded.
+  recordConsent: (id: string) =>
+    request(`/students/${id}/consent`, {
+      method: 'POST',
+      body: JSON.stringify({ guardianConsent: true }),
     }),
 };
 
@@ -1216,6 +1222,13 @@ export const subscriptionAPI = {
     }),
   cancel: (id: string) =>
     request(`/subscriptions/${id}/cancel`, { method: 'POST' }),
+  pause: (id: string, body: { until?: string; reason?: string } = {}) =>
+    request(`/subscriptions/${id}/pause`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  resume: (id: string) =>
+    request(`/subscriptions/${id}/resume`, { method: 'POST' }),
   bulkImport: (subscriptions: object[]) =>
     request('/subscriptions/bulk-import', {
       method: 'POST',
@@ -1518,6 +1531,48 @@ export const taskAPI = {
       body: JSON.stringify({ message }),
     }),
   delete: (id: string) => request(`/tasks/${id}`, { method: 'DELETE' }),
+};
+
+export const leadAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/leads${q}`);
+  },
+  create: (body: object) =>
+    request('/leads', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/leads/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  updateStatus: (id: string, body: object) =>
+    request(`/leads/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  addNote: (id: string, text: string) =>
+    request(`/leads/${id}/notes`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+  convert: (id: string, body: object = {}) =>
+    request(`/leads/${id}/convert`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/leads/${id}`, { method: 'DELETE' }),
+};
+
+export const makeupAPI = {
+  getAll: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request(`/makeup-classes${q}`);
+  },
+  create: (body: object) =>
+    request('/makeup-classes', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: object) =>
+    request(`/makeup-classes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request(`/makeup-classes/${id}`, { method: 'DELETE' }),
 };
 
 export const offerLetterAPI = {

@@ -15,9 +15,7 @@ import {
   Plus,
   Trash2,
   X,
-  CalendarDays,
-  CalendarClock,
-} from 'lucide-react-native';
+  } from 'lucide-react-native';
 import { holidayAPI } from '../api/client';
 import {
   Card,
@@ -28,12 +26,12 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import SlideInCard from '../components/motion/SlideInCard';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 const TYPE_OPTIONS = ['national', 'optional', 'restricted'] as const;
 
@@ -153,9 +151,21 @@ export default function HolidaysScreen() {
     <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
         <BackTitle title="Holidays" />
-        <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
-          <Plus size={20} color={colors.black} strokeWidth={2.5} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <ExportAction
+            name="holidays"
+            rows={holidays}
+            cols={[
+              { header: 'Name', value: (r: any) => r.name },
+              { header: 'Date', value: (r: any) => String(r.date || '').slice(0, 10) },
+              { header: 'Type', value: (r: any) => r.type },
+              { header: 'Description', value: (r: any) => r.description },
+            ]}
+          />
+          <TouchableOpacity onPress={openAdd} style={headerBtn} hitSlop={8}>
+          <Plus size={24} color={colors.blue} />
         </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -165,27 +175,6 @@ export default function HolidaysScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Holidays"
-            value={holidays.length}
-            sub="Total"
-            color={colors.blue}
-            icon={CalendarDays}
-          />
-          <KpiTile
-            label="Upcoming"
-            value={
-              holidays.filter(
-                h => new Date(h.date) >= new Date(new Date().toDateString()),
-              ).length
-            }
-            sub="From today onward"
-            color={colors.orange}
-            icon={CalendarClock}
-          />
-        </View>
-
         <Card>
           {holidays.length === 0 ? (
             <EmptyState title="No holidays found" />

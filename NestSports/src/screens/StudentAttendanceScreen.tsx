@@ -39,29 +39,33 @@ import {
   RNFile,
 } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import DashStatCard, { dashStatRow } from '../components/common/DashStatCard';
+import {
+  Users as StatUsers,
+  UserCheck as StatUserCheck,
+  CalendarDays as StatCalendar,
+  UserPlus as StatUserPlus,
+  CheckCircle2 as StatCheck,
+  XCircle as StatX,
+  Clock as StatClock,
+} from 'lucide-react-native';
 import { colors, FONT } from '../theme/colors';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
-import { DateTimeField, FilterPills, StatusPill } from '../components/ui';
+import { DateTimeField, StatusPill } from '../components/ui';
+import {
+  AttendanceTableFooter,
+  AttendanceTableHeader,
+  AttendanceTableRow,
+  TableCol,
+} from '../components/common/AttendanceTable';
 import FeeOverdueModal, {
   FeeOverdueStudent,
 } from '../components/FeeOverdueModal';
 import { requestSelfMarkPermissions } from '../utils/location';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
-import { StatRow } from '../components/common/StatTile';
-import {
-  Users as SUsers,
-  UserCheck as SUserCheck,
-  UserX as SUserX,
-  Pause as SPause,
-  CheckCircle2 as SCheck,
-  XCircle as SX,
-  AlertCircle as SAlert,
-  Calendar as SCal,
-  Wallet as SWallet,
-  Repeat as SRepeat,
-  IndianRupee as SRupee,
-} from 'lucide-react-native';
+import ExportAction from '../components/common/ExportAction';
+import { attendanceSource } from '../utils/attendanceSource';
 
 // Mirrors AttendanceScreen's (staff) STATUS_CONFIG 1:1 — same colors, same
 // bg tints, same icon set — so the two attendance screens read as one
@@ -74,6 +78,13 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> =
     excused: { color: colors.blue, bg: '#E8F0FB', icon: Calendar },
     not_marked: { color: colors.blue, bg: '#E8F0FB', icon: Clock },
   };
+
+const STUDENT_COLS: TableCol[] = [
+  { key: 'name', label: 'Student', flex: 1, icon: 'users' },
+  { key: 'inn', label: 'In', width: 56, icon: 'in' },
+  { key: 'out', label: 'Out', width: 56, icon: 'out' },
+  { key: 'kebab', label: '', width: 56 },
+];
 
 function toDateStr(d: Date) {
   const y = d.getFullYear();
@@ -134,7 +145,6 @@ export default function StudentAttendanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState(toDateStr(new Date()));
-  const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -390,7 +400,6 @@ export default function StudentAttendanceScreen() {
       ? `${st.firstName || ''} ${st.lastName || ''}`.toLowerCase()
       : '';
     if (search && !name.includes(search.toLowerCase())) return false;
-    if (statusFilter && r.status !== statusFilter) return false;
     return true;
   });
 
@@ -457,40 +466,46 @@ export default function StudentAttendanceScreen() {
           <BackTitle title="Student Attendance" />
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          <ExportAction
+            name="student_attendance"
+            rows={records}
+            cols={[
+              { header: 'Student ID', value: (r: any) => r.student?.studentId },
+              {
+                header: 'Student',
+                value: (r: any) =>
+                  `${r.student?.firstName || ''} ${
+                    r.student?.lastName || ''
+                  }`.trim(),
+              },
+              {
+                header: 'Date',
+                value: (r: any) => String(r.date || '').slice(0, 10),
+              },
+              { header: 'Status', value: (r: any) => r.status },
+              { header: 'Batch', value: (r: any) => r.batch },
+              {
+                header: 'Check In',
+                value: (r: any) =>
+                  r.checkIn
+                    ? new Date(r.checkIn).toLocaleTimeString('en-IN')
+                    : '',
+              },
+              {
+                header: 'Check Out',
+                value: (r: any) =>
+                  r.checkOut
+                    ? new Date(r.checkOut).toLocaleTimeString('en-IN')
+                    : '',
+              },
+            ]}
+          />
           <TouchableOpacity style={headerBtn} onPress={openNew}>
-            <CheckCircle2 size={20} color={colors.black} strokeWidth={2.5} />
+            <CheckCircle2 size={22} color={colors.black} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <StatRow
-        items={[
-          {
-            label: 'Present',
-            value: summary.present || 0,
-            color: colors.green,
-            icon: SCheck,
-          },
-          {
-            label: 'Absent',
-            value: summary.absent || 0,
-            color: colors.red,
-            icon: SX,
-          },
-          {
-            label: 'Late',
-            value: summary.late || 0,
-            color: colors.orange,
-            icon: SAlert,
-          },
-          {
-            label: 'Excused',
-            value: summary.excused || 0,
-            color: colors.blue,
-            icon: SCal,
-          },
-        ]}
-      />
       <View style={styles.dateRow}>
         <TouchableOpacity
           onPress={() => shiftDate(-1)}
@@ -525,21 +540,6 @@ export default function StudentAttendanceScreen() {
         </TouchableOpacity>
       </View>
 
-      <FilterPills
-        inset
-        options={[
-          { value: '', label: 'All' },
-          ...Object.keys(summary).map(status => ({
-            value: status,
-            label:
-              status.charAt(0).toUpperCase() +
-              status.slice(1).replace('_', ' '),
-          })),
-        ]}
-        value={statusFilter}
-        onChange={v => setStatusFilter(v)}
-      />
-
       <View style={styles.searchWrap}>
         <Search size={15} color={colors.muted} />
         <TextInput
@@ -565,7 +565,7 @@ export default function StudentAttendanceScreen() {
           data={filtered}
           keyExtractor={item => item._id}
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -574,13 +574,49 @@ export default function StudentAttendanceScreen() {
             />
           }
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={<AttendanceTableFooter />}
+          ListHeaderComponent={
+            <>
+              <View style={dashStatRow}>
+                <DashStatCard
+                  index={0}
+                  label="Present"
+                  value={summary.present || 0}
+                  icon={StatCheck}
+                  color={colors.green}
+                />
+                <DashStatCard
+                  index={1}
+                  label="Absent"
+                  value={summary.absent || 0}
+                  icon={StatX}
+                  color={colors.red}
+                />
+                <DashStatCard
+                  index={2}
+                  label="Late"
+                  value={summary.late || 0}
+                  icon={StatClock}
+                  color={colors.orange}
+                />
+                <DashStatCard
+                  index={3}
+                  label="Total"
+                  value={mergedRows.length}
+                  icon={StatUsers}
+                  color={colors.blue}
+                />
+              </View>
+              <AttendanceTableHeader cols={STUDENT_COLS} />
+            </>
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Clock size={40} color="#D1D5DB" />
               <Text style={styles.emptyText}>No records for this date</Text>
             </View>
           }
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const st = item.student;
             const cfg = STATUS_CONFIG[item.status] || {
               color: colors.muted,
@@ -590,13 +626,13 @@ export default function StudentAttendanceScreen() {
             const Icon = cfg.icon;
             const ciTime = item.checkIn
               ? new Date(item.checkIn).toLocaleTimeString([], {
-                  hour: '2-digit',
+                  hour: 'numeric',
                   minute: '2-digit',
                 })
               : null;
             const coTime = item.checkOut
               ? new Date(item.checkOut).toLocaleTimeString([], {
-                  hour: '2-digit',
+                  hour: 'numeric',
                   minute: '2-digit',
                 })
               : null;
@@ -607,209 +643,101 @@ export default function StudentAttendanceScreen() {
               : '?';
             const statusLabel = item.status.replace(/_/g, ' ').toUpperCase();
             const sessionDay = isSessionDay(st, dateFilter);
+            const src = item._id.startsWith('v_')
+              ? null
+              : attendanceSource(item);
             return (
-              <View
-                style={[
-                  styles.card,
-                  { borderColor: colors.black },
-                  !sessionDay && { backgroundColor: '#FFFBEB' },
+              <AttendanceTableRow
+                index={index}
+                cols={STUDENT_COLS}
+                avatar={st?.avatar}
+                initials={initials}
+                name={st ? `${st.firstName} ${st.lastName}` : 'Unknown'}
+                sub={`${st?.studentId || ''}${
+                  st?.batch ? ` · ${st.batch}` : ''
+                }${src ? ` · ${src.label}` : ''}`}
+                warn={!sessionDay}
+                status={{
+                  label: statusLabel,
+                  color: cfg.color,
+                  bg: cfg.bg,
+                  icon: Icon,
+                }}
+                cells={{ inn: ciTime || '—', out: coTime || '—' }}
+                details={[
+                  { label: 'Date', value: item.date?.slice(0, 10) },
+                  { label: 'Status', value: statusLabel },
+                  { label: 'Check In', value: ciTime },
+                  { label: 'Check Out', value: coTime },
+                  { label: 'Sport', value: st?.sport },
+                  { label: 'Batch', value: st?.batch },
+                  { label: 'Plan', value: st?.activePlan?.name },
+                  {
+                    label: 'Schedule',
+                    value:
+                      st?.activePlan?.scheduleType === 'custom_days'
+                        ? (st.activePlan.scheduleDays || []).join(', ')
+                        : st?.activePlan
+                        ? 'Any day'
+                        : '',
+                  },
+                  { label: 'Marked By', value: src?.detail },
                 ]}
-              >
-                <View style={styles.cardRow}>
-                  <View style={styles.photoWrap}>
-                    {st?.avatar ? (
-                      <Image
-                        source={{ uri: st.avatar }}
-                        style={styles.stPhoto}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.stPhoto,
-                          styles.stPhotoFallback,
-                          { backgroundColor: cfg.bg },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.stPhotoInitials, { color: cfg.color }]}
-                        >
-                          {initials}
-                        </Text>
-                      </View>
-                    )}
-                    <View
-                      style={[
-                        styles.statusBadgeOverlay,
+                menu={
+                  item._id.startsWith('v_')
+                    ? [
                         {
-                          backgroundColor: colors.white,
-                          borderColor: cfg.color,
+                          label: 'Mark present',
+                          icon: CheckCircle2,
+                          onPress: () => openMarkForStudent(st?._id),
                         },
-                      ]}
-                    >
-                      <Icon size={11} color={cfg.color} strokeWidth={2.5} />
-                    </View>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.stName} numberOfLines={1}>
-                      {st
-                        ? `${st.firstName} ${st.lastName}`.toUpperCase()
-                        : 'UNKNOWN'}
-                    </Text>
-                    <Text style={styles.stSub}>
-                      {st?.studentId || ''}
-                      {st?.batch ? ` · ${st.batch}` : ''}
-                    </Text>
-                    {!!st?.sport && (
-                      <View style={styles.stSportRow}>
-                        <Trophy size={11} color="#9CA3AF" />
-                        <Text style={styles.stSportText}>{st.sport}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <StatusPill
-                    label={statusLabel}
-                    color={cfg.color}
-                    bg={cfg.bg}
-                  />
-                </View>
-                <View style={styles.cardActions}>
-                  <View style={styles.cardLeft}>
-                    <View style={styles.planChips}>
-                      {!!st?.activePlan && !sessionDay && (
-                        <View style={[styles.planChip, styles.planChipWarn]}>
-                          <Text
-                            style={[styles.planChipText, { color: '#B45309' }]}
-                          >
-                            Not scheduled today
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.inOutRow}>
-                      <View style={styles.inOutCard}>
-                        <LogIn
-                          size={13}
-                          color={colors.green}
-                          strokeWidth={2.5}
-                        />
-                        <Text style={styles.inOutTime}>
-                          {ciTime || '--:--'}
-                        </Text>
-                      </View>
-                      {!singleTime && (
-                        <View style={styles.inOutCard}>
-                          <LogOut
-                            size={13}
-                            color={colors.red}
-                            strokeWidth={2.5}
-                          />
-                          <Text style={styles.inOutTime}>
-                            {coTime || '--:--'}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  {item._id.startsWith('v_') ? (
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <TouchableOpacity
-                        style={styles.absentBtn}
-                        onPress={() => markAbsent(item.student?._id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <XCircle
-                          size={13}
-                          color={colors.white}
-                          strokeWidth={2.5}
-                        />
-                      </TouchableOpacity>
-                      {Array.isArray(st?.faceDescriptor) &&
-                        st.faceDescriptor.length === 128 && (
-                          <TouchableOpacity
-                            style={styles.faceBtn}
-                            onPress={() => markByFace(st)}
-                            disabled={markingByFaceId === st._id}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          >
-                            {markingByFaceId === st._id ? (
-                              <ActivityIndicator
-                                size="small"
-                                color={colors.white}
-                              />
-                            ) : (
-                              <ScanFace
-                                size={13}
-                                color={colors.white}
-                                strokeWidth={2.5}
-                              />
-                            )}
-                          </TouchableOpacity>
-                        )}
-                      {canResetFace &&
-                        Array.isArray(st?.faceDescriptor) &&
-                        st.faceDescriptor.length === 128 && (
-                          <TouchableOpacity
-                            style={styles.faceResetBtn}
-                            onPress={() => resetStudentFace(st)}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          >
-                            <RotateCcw
-                              size={13}
-                              color={colors.white}
-                              strokeWidth={2.5}
-                            />
-                          </TouchableOpacity>
-                        )}
-                      <TouchableOpacity
-                        style={styles.markBtn}
-                        onPress={() => openMarkForStudent(item.student?._id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <CheckCircle2
-                          size={13}
-                          color={colors.white}
-                          strokeWidth={2.5}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {!singleTime &&
+                        {
+                          label: 'Mark absent',
+                          icon: XCircle,
+                          color: colors.red,
+                          onPress: () => markAbsent(st?._id),
+                        },
+                        ...(Array.isArray(st?.faceDescriptor) &&
+                        st.faceDescriptor.length === 128
+                          ? [
+                              {
+                                label: 'Mark by face',
+                                icon: ScanFace,
+                                onPress: () => markByFace(st),
+                              },
+                              ...(canResetFace
+                                ? [
+                                    {
+                                      label: 'Reset face',
+                                      icon: RotateCcw,
+                                      onPress: () => resetStudentFace(st),
+                                    },
+                                  ]
+                                : []),
+                            ]
+                          : []),
+                      ]
+                    : [
+                        ...(!singleTime &&
                         !!item.checkIn &&
                         !item.checkOut &&
-                        (item.status === 'present' ||
-                          item.status === 'late') && (
-                          <TouchableOpacity
-                            style={styles.absentBtn}
-                            onPress={() => checkOutNow(item.student?._id)}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          >
-                            <LogOut
-                              size={13}
-                              color={colors.white}
-                              strokeWidth={2.5}
-                            />
-                          </TouchableOpacity>
-                        )}
-                      <TouchableOpacity
-                        style={styles.editBtn}
-                        onPress={() => openEdit(item)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Pencil
-                          size={14}
-                          color={colors.blue}
-                          strokeWidth={2.5}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-
-                {item.notes && (
-                  <Text style={styles.noteText}>{item.notes}</Text>
-                )}
-              </View>
+                        (item.status === 'present' || item.status === 'late')
+                          ? [
+                              {
+                                label: 'Check out now',
+                                icon: LogOut,
+                                onPress: () => checkOutNow(st?._id),
+                              },
+                            ]
+                          : []),
+                        {
+                          label: 'Edit',
+                          icon: Pencil,
+                          onPress: () => openEdit(item),
+                        },
+                      ]
+                }
+              />
             );
           }}
         />

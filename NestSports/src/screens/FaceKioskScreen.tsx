@@ -19,6 +19,7 @@ import {
   useCameraFormat,
   useCameraPermission,
   useFrameProcessor,
+  VisionCameraProxy,
 } from 'react-native-vision-camera';
 import { useFaceDetector } from 'react-native-vision-camera-face-detector';
 import { Worklets } from 'react-native-worklets-core';
@@ -39,7 +40,36 @@ const GUIDE_SIZE = 260;
 
 type Result = { ok: boolean; title: string; sub: string; out?: boolean };
 
-export default function FaceKioskScreen({ navigation }: any) {
+// The native face detector is left out of simulator builds (see react-native.config.js); detect that up front so the
+// screen explains itself instead of throwing when the detector hook initialises.
+const faceDetectorAvailable = (() => {
+  try {
+    return !!VisionCameraProxy.initFrameProcessorPlugin('detectFaces', {});
+  } catch {
+    return false;
+  }
+})();
+
+export default function FaceKioskScreen(props: any) {
+  if (faceDetectorAvailable) return <FaceKioskInner {...props} />;
+  return (
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Face Attendance</Text>
+        <TouchableOpacity onPress={() => props.navigation.goBack()} hitSlop={12}>
+          <X size={22} color={C.white} />
+        </TouchableOpacity>
+      </View>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Text style={{ color: C.white, fontSize: 16, textAlign: 'center' }}>
+          Face detection isn't included in this build (simulator). Run the app on a real device to use the kiosk.
+        </Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function FaceKioskInner({ navigation }: any) {
   const isFocused = useIsFocused();
   const device = useCameraDevice('front');
   const format = useCameraFormat(device, [

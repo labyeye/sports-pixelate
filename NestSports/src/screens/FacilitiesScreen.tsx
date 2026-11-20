@@ -18,9 +18,6 @@ import {
   Edit2,
   Trash2,
   X,
-  Building2,
-  Users2,
-  MapPin,
   Tag,
   Layers,
   Trophy,
@@ -42,13 +39,13 @@ import {
   ChipSelect,
   Button,
   SectionTitle,
-  KpiTile,
-} from '../components/ui';
+  } from '../components/ui';
 import { colors, FONT } from '../theme/colors';
 import SlideInCard from '../components/motion/SlideInCard';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 const TYPES = ['court', 'pool', 'turf', 'gym', 'equipment', 'other'] as const;
 
@@ -223,6 +220,17 @@ export default function FacilitiesScreen() {
         title="Facilities"
         right={
           <>
+            <ExportAction
+              name="facilities"
+              rows={facilities}
+              cols={[
+                { header: 'Name', value: (r: any) => r.name },
+                { header: 'Type', value: (r: any) => r.type },
+                { header: 'Sport', value: (r: any) => r.sport },
+                { header: 'Capacity', value: (r: any) => r.capacity },
+                { header: 'Hourly Fee', value: (r: any) => r.hourlyFee },
+              ]}
+            />
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
@@ -231,7 +239,7 @@ export default function FacilitiesScreen() {
                 style={headerBtn}
                 hitSlop={8}
               >
-                <ArrowUpDown size={18} color={colors.black} strokeWidth={2.5} />
+                <ArrowUpDown size={22} color={colors.black} />
               </TouchableOpacity>
               {isOwner && (
                 <TouchableOpacity
@@ -239,7 +247,7 @@ export default function FacilitiesScreen() {
                   style={headerBtn}
                   hitSlop={8}
                 >
-                  <Plus size={20} color={colors.black} strokeWidth={2.5} />
+                  <Plus size={24} color={colors.blue} />
                 </TouchableOpacity>
               )}
             </View>
@@ -249,26 +257,6 @@ export default function FacilitiesScreen() {
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <Text style={styles.subtitle}>Sports facilities and hourly rates</Text>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Facilities"
-            value={facilities.length}
-            color={colors.blue}
-            icon={Building2}
-          />
-          <KpiTile
-            label="Total Capacity"
-            value={facilities.reduce((s, f) => s + (f.capacity || 0), 0)}
-            color={colors.green}
-            icon={Users2}
-          />
-          <KpiTile
-            label="Free to Book"
-            value={facilities.filter(f => !f.hourlyFee).length}
-            color={colors.blue}
-            icon={MapPin}
-          />
-        </View>
 
         <SearchBar
           value={searchInput}

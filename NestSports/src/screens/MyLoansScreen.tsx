@@ -11,9 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  IndianRupee,
-  Wallet,
-  CheckCircle2,
   Plus,
   X,
 } from 'lucide-react-native';
@@ -24,7 +21,6 @@ import {
   Card,
   ChipSelect,
   EmptyState,
-  KpiTile,
   LoadingView,
   Row,
   TextField,
@@ -105,12 +101,6 @@ export default function MyLoansScreen() {
 
   if (loading) return <LoadingView />;
 
-  const totalBorrowed = loans.reduce((sum, l) => sum + (l.amount || 0), 0);
-  const outstandingBalance = loans.reduce(
-    (sum, l) => sum + (l.remainingBalance || 0),
-    0,
-  );
-  const activeCount = loans.filter(l => l.status === 'active').length;
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -123,7 +113,7 @@ export default function MyLoansScreen() {
               style={headerBtn}
               hitSlop={8}
             >
-              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              <Plus size={24} color={colors.blue} />
             </TouchableOpacity>
           </>
         }
@@ -135,29 +125,6 @@ export default function MyLoansScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Borrowed"
-            value={formatCurrency(totalBorrowed)}
-            sub="All loans/advances"
-            color={colors.blue}
-            icon={IndianRupee}
-          />
-          <KpiTile
-            label="Outstanding"
-            value={formatCurrency(outstandingBalance)}
-            sub="Remaining balance"
-            color={colors.orange}
-            icon={Wallet}
-          />
-          <KpiTile
-            label="Active Loans"
-            value={activeCount}
-            sub="Currently active"
-            color={colors.green}
-            icon={CheckCircle2}
-          />
-        </View>
 
         <Card>
           {loans.length === 0 ? (

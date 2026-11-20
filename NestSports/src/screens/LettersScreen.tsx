@@ -109,7 +109,7 @@ export default function LettersScreen() {
             style={headerBtn}
             hitSlop={8}
           >
-            <Plus size={20} color={colors.black} strokeWidth={2.5} />
+            <Plus size={24} color={colors.blue} />
           </TouchableOpacity>
         }
       />

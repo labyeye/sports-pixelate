@@ -3,6 +3,7 @@
 // (settingsAPI). Web counterpart: frontend/src/pages/SettingsPage.tsx.
 
 import React, { useCallback, useEffect, useState } from 'react';
+import WhatsAppIcon from '../components/WhatsAppIcon';
 import {
   ScrollView,
   View,
@@ -27,7 +28,6 @@ import { cropFile } from '../utils/cropImage';
 import {
   Building2,
   Landmark,
-  MessageCircle,
   CheckCircle2,
   AlertCircle,
   Users,
@@ -49,6 +49,7 @@ import {
   Search,
   X,
   Check,
+  ChevronDown,
 } from 'lucide-react-native';
 import { settingsAPI, RNFile } from '../api/client';
 import { INDIAN_BANKS } from '../constants/indianBanks';
@@ -80,7 +81,7 @@ type TabKey =
 const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: 'general', label: 'General Info', icon: Building2 },
   { key: 'bank', label: 'Bank Details', icon: Landmark },
-  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { key: 'whatsapp', label: 'WhatsApp', icon: WhatsAppIcon },
   { key: 'salary_mode', label: 'Salary Mode', icon: CheckCircle2 },
   { key: 'punch', label: 'Punch Settings', icon: AlertCircle },
   { key: 'ess', label: 'Employee App', icon: Users },
@@ -94,7 +95,7 @@ const SINGLE_PUNCH_ACTIONS = ['half_day', 'present', 'absent'] as const;
 const DASHBOARD_TYPES = ['Normal', 'Advanced', 'Compact'] as const;
 const TIME_FORMATS = ['12', '24'] as const;
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED'] as const;
-const PAYMENT_GATEWAYS = ['razorpay', 'cashfree', 'phonepe', 'paytm'] as const;
+const PAYMENT_GATEWAYS = ['cashfree', 'phonepe', 'paytm'] as const;
 
 const GST_REGEX = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z[A-Z\d]{1}$/;
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -261,6 +262,7 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
   const [settings, setSettings] = useState<any>(null);
   const [tab, setTab] = useState<TabKey>('general');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -349,6 +351,7 @@ export default function SettingsScreen() {
     return null;
   };
 
+  const [testingGateway, setTestingGateway] = useState(false);
   const handleSave = async () => {
     const err = validate();
     if (err) {
@@ -375,39 +378,69 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <ScreenHeader title="Settings" />
-      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-        <Text style={styles.subtitle}>SportsClub & app configuration</Text>
+      <Text style={styles.subtitle}>SportsClub & app configuration</Text>
+
+      <View style={styles.dropWrap}>
+        <TouchableOpacity
+          style={styles.dropBtn}
+          activeOpacity={0.7}
+          onPress={() => setMenuOpen(true)}
+        >
+          {(() => {
+            const cur = TABS.find(t => t.key === tab)!;
+            const Icon = cur.icon;
+            return (
+              <>
+                <Icon size={18} color={colors.blue} strokeWidth={2} />
+                <Text style={styles.dropBtnText}>{cur.label}</Text>
+              </>
+            );
+          })()}
+          <ChevronDown size={18} color={colors.muted} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabScroll}
-        contentContainerStyle={styles.tabBar}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
       >
-        {TABS.map(t => {
-          const active = tab === t.key;
-          const Icon = t.icon;
-          return (
-            <TouchableOpacity
-              key={t.key}
-              onPress={() => setTab(t.key)}
-              style={[styles.tabChip, active && styles.tabChipActive]}
-            >
-              <Icon
-                size={14}
-                color={active ? colors.white : colors.black}
-                strokeWidth={2.5}
-              />
-              <Text
-                style={[styles.tabChipText, active && { color: colors.white }]}
-              >
-                {t.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuOpen(false)}
+        >
+          <View style={styles.menuCard}>
+            {TABS.map(t => {
+              const active = tab === t.key;
+              const Icon = t.icon;
+              return (
+                <TouchableOpacity
+                  key={t.key}
+                  style={[styles.menuRow, active && styles.menuRowActive]}
+                  onPress={() => {
+                    setTab(t.key);
+                    setMenuOpen(false);
+                  }}
+                >
+                  <Icon
+                    size={18}
+                    color={active ? colors.blue : colors.muted}
+                    strokeWidth={2}
+                  />
+                  <Text
+                    style={[styles.menuText, active && styles.menuTextActive]}
+                  >
+                    {t.label}
+                  </Text>
+                  {active && <Check size={16} color={colors.blue} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <ScrollView
         style={styles.screen}
@@ -472,6 +505,21 @@ export default function SettingsScreen() {
               value={settings?.companyPAN || ''}
               onChangeText={v => set({ companyPAN: v.toUpperCase() })}
               placeholder="AAAAA0000A"
+            />
+            <TextField
+              label="Sibling discount (%)"
+              icon={CreditCard}
+              value={String(settings?.siblingDiscountPercent ?? 0)}
+              onChangeText={v =>
+                set({
+                  siblingDiscountPercent: Math.min(
+                    50,
+                    Number(v.replace(/\D/g, '')) || 0,
+                  ),
+                })
+              }
+              keyboardType="number-pad"
+              placeholder="0 = off"
             />
             <TextField
               label="Website"
@@ -555,41 +603,16 @@ export default function SettingsScreen() {
             <ChipSelect
               label="Gateway"
               options={PAYMENT_GATEWAYS}
-              value={settings?.paymentGateway || 'razorpay'}
+              value={settings?.paymentGateway || 'cashfree'}
               onChange={v => set({ paymentGateway: v })}
               labels={{
-                razorpay: 'Razorpay',
                 cashfree: 'Cashfree',
                 phonepe: 'PhonePe',
                 paytm: 'Paytm',
               }}
             />
 
-            {(settings?.paymentGateway || 'razorpay') === 'razorpay' && (
-              <>
-                <TextField
-                  label="Razorpay Key ID"
-                  icon={Hash}
-                  value={settings?.razorpayKeyId || ''}
-                  onChangeText={v => set({ razorpayKeyId: v.trim() })}
-                  placeholder="rzp_live_xxxxxxxxxxxx"
-                />
-                <TextField
-                  label="Razorpay Key Secret"
-                  icon={CreditCard}
-                  secureTextEntry
-                  value={settings?.razorpayKeySecret || ''}
-                  onChangeText={v => set({ razorpayKeySecret: v.trim() })}
-                  placeholder={
-                    settings?.razorpayKeyId
-                      ? 'Connected — leave blank to keep unchanged'
-                      : 'Paste your Key Secret'
-                  }
-                />
-              </>
-            )}
-
-            {settings?.paymentGateway === 'cashfree' && (
+            {(settings?.paymentGateway || 'cashfree') === 'cashfree' && (
               <>
                 <TextField
                   label="Cashfree App ID"
@@ -609,6 +632,26 @@ export default function SettingsScreen() {
                       ? 'Connected — leave blank to keep unchanged'
                       : 'Paste your Secret Key'
                   }
+                />
+                <Button
+                  title={testingGateway ? 'Checking…' : 'Save & test connection'}
+                  variant="outline"
+                  loading={testingGateway}
+                  onPress={async () => {
+                    setTestingGateway(true);
+                    try {
+                      await settingsAPI.update(settings);
+                      const r: any = await settingsAPI.testGateway();
+                      Alert.alert('Connected', r?.message || 'Cashfree connected');
+                    } catch (e: unknown) {
+                      Alert.alert(
+                        'Could not connect',
+                        (e as Error)?.message || 'Please check your keys.',
+                      );
+                    } finally {
+                      setTestingGateway(false);
+                    }
+                  }}
                 />
               </>
             )}
@@ -939,56 +982,90 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.white },
+  screen: { flex: 1, backgroundColor: '#F6F7F9' },
   title: { fontSize: 24, fontWeight: '400', color: colors.black },
-  subtitle: { color: colors.muted, marginTop: 2, marginBottom: 12 },
-  tabScroll: { flexGrow: 0 },
-  tabBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
-  tabChip: {
+  subtitle: {
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    color: colors.muted,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 10,
+    backgroundColor: colors.white,
+  },
+  dropWrap: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dropBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderColor: colors.black,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
     backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  tabChipActive: { backgroundColor: colors.blue },
-  tabChipText: {
+  dropBtnText: {
+    flex: 1,
     fontFamily: FONT.bold,
-    fontWeight: '400',
-    fontSize: 12,
+    fontSize: 14,
     color: colors.black,
   },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  menuCard: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    paddingVertical: 6,
+    overflow: 'hidden',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  menuRowActive: { backgroundColor: '#EEF4FF' },
+  menuText: {
+    flex: 1,
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    color: colors.black,
+  },
+  menuTextActive: { fontFamily: FONT.bold, color: colors.blue },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
     backgroundColor: colors.white,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderColor: colors.black,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: '#E5E7EB',
   },
   toggleLabel: {
     fontFamily: FONT.bold,
     fontWeight: '400',
-    fontSize: 13,
+    fontSize: 14,
     color: colors.black,
   },
   toggleSub: {
     fontFamily: FONT.medium,
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   logoRow: {
@@ -1000,9 +1077,10 @@ const styles = StyleSheet.create({
   logoBox: {
     width: 64,
     height: 64,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderColor: colors.black,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderColor: '#D1D5DB',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
@@ -1013,22 +1091,19 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     fontSize: 11,
     fontWeight: '400',
-    color: colors.black,
+    color: colors.muted,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
     marginBottom: 6,
   },
   pickerField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderWidth: 2,
-    borderRightWidth: 5,
-    borderBottomWidth: 5,
-    borderRightColor: '#0A0A0A',
-    borderBottomColor: '#0A0A0A',
-    borderRadius: 8,
-    borderColor: colors.black,
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: '#D1D5DB',
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
     paddingVertical: 12,
   },

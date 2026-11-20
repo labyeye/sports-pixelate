@@ -17,6 +17,7 @@ import { colors, FONT } from '../theme/colors';
 import ScreenHeader from '../components/ScreenHeader';
 import { formatCurrency } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 interface Group {
   _id: string;
@@ -93,7 +94,22 @@ export default function GroupsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <ScreenHeader title="Groups" />
+      <ScreenHeader title="Groups"
+        right={
+          <ExportAction
+            name="groups"
+            rows={groups}
+            cols={[
+              { header: 'Name', value: (r: any) => r.name },
+              { header: 'Students', value: (r: any) => r.studentCount },
+              { header: 'Coaches', value: (r: any) => r.coachCount },
+              { header: 'Collected', value: (r: any) => r.collectedThisMonth },
+              { header: 'Pending', value: (r: any) => r.remainingThisMonth },
+              { header: 'Active', value: (r: any) => (r.active ? 'Yes' : 'No') },
+            ]}
+          />
+        }
+      />
       <View style={styles.addRow}>
         <TextInput
           value={name}

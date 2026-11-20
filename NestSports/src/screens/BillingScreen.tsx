@@ -111,7 +111,9 @@ export default function BillingScreen() {
                 />
               </View>
               <Text style={styles.sub}>
-                {subscription.maxStudents
+                {subscription.maxStudents >= 1000000
+                  ? 'Unlimited students'
+                  : subscription.maxStudents
                   ? `Up to ${subscription.maxStudents} students`
                   : ''}
                 {subscription.maxEmployees
@@ -125,9 +127,14 @@ export default function BillingScreen() {
                 </Text>
               ) : null}
               <Text style={styles.sub}>
-                {subscription.wantsWhatsapp
-                  ? '₹50/user/month + GST · WhatsApp notifications included'
-                  : '₹30/user/month + GST · in-app notifications (WhatsApp not included)'}
+                Students: {subscription.currentStudentCount ?? 0} /{' '}
+                {subscription.maxStudents >= 1000000
+                  ? 'Unlimited'
+                  : subscription.maxStudents}
+                {' · '}Staff: unlimited
+              </Text>
+              <Text style={styles.sub}>
+                Yearly plan + GST · WhatsApp alerts run on prepaid credits
               </Text>
               {subscription.renewalDate ? (
                 <Text style={styles.sub}>

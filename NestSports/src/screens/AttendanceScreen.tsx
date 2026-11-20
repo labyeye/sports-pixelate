@@ -43,26 +43,29 @@ import {
   attendanceCorrectionAPI,
   RNFile,
 } from '../api/client';
+import {
+  AttendanceTableFooter,
+  AttendanceTableHeader,
+  AttendanceTableRow,
+  TableCol,
+} from '../components/common/AttendanceTable';
+import DashStatCard, { dashStatRow } from '../components/common/DashStatCard';
+import {
+  Users as StatUsers,
+  UserCheck as StatUserCheck,
+  CalendarDays as StatCalendar,
+  UserPlus as StatUserPlus,
+  CheckCircle2 as StatCheck,
+  XCircle as StatX,
+  Clock as StatClock,
+} from 'lucide-react-native';
 import { colors, FONT } from '../theme/colors';
 import { BackTitle, headerBtn } from '../components/ScreenHeader';
 import { DateTimeField, FilterPills, StatusPill } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
-import { StatRow } from '../components/common/StatTile';
-import {
-  Users as SUsers,
-  UserCheck as SUserCheck,
-  UserX as SUserX,
-  Pause as SPause,
-  CheckCircle2 as SCheck,
-  XCircle as SX,
-  AlertCircle as SAlert,
-  Calendar as SCal,
-  Wallet as SWallet,
-  Repeat as SRepeat,
-  IndianRupee as SRupee,
-} from 'lucide-react-native';
+import ExportAction from '../components/common/ExportAction';
 
 function openLocationInMaps(loc: { lat: number; lng: number }) {
   Linking.openURL(
@@ -112,6 +115,13 @@ function isWeekendForEmployee(dateStr: string, emp: any): boolean {
   if (days === 6) return day === 0;
   return false;
 }
+
+const EMP_COLS: TableCol[] = [
+  { key: 'name', label: 'Employee', flex: 1, icon: 'users' },
+  { key: 'inn', label: 'In', width: 56, icon: 'in' },
+  { key: 'out', label: 'Out', width: 56, icon: 'out' },
+  { key: 'kebab', label: '', width: 56 },
+];
 
 function toDateStr(d: Date) {
   const y = d.getFullYear();
@@ -602,8 +612,45 @@ export default function AttendanceScreen() {
         </View>
         {!isEmployee && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            <ExportAction
+              name="staff_attendance"
+              rows={records}
+              cols={[
+                {
+                  header: 'Emp Code',
+                  value: (r: any) => r.employee?.employeeId,
+                },
+                {
+                  header: 'Employee',
+                  value: (r: any) =>
+                    `${r.employee?.firstName || ''} ${
+                      r.employee?.lastName || ''
+                    }`.trim(),
+                },
+                {
+                  header: 'Date',
+                  value: (r: any) => String(r.date || '').slice(0, 10),
+                },
+                {
+                  header: 'Check In',
+                  value: (r: any) =>
+                    r.checkIn
+                      ? new Date(r.checkIn).toLocaleTimeString('en-IN')
+                      : '',
+                },
+                {
+                  header: 'Check Out',
+                  value: (r: any) =>
+                    r.checkOut
+                      ? new Date(r.checkOut).toLocaleTimeString('en-IN')
+                      : '',
+                },
+                { header: 'Status', value: (r: any) => r.status },
+                { header: 'Hours', value: (r: any) => r.workHours },
+              ]}
+            />
             <TouchableOpacity style={headerBtn} onPress={openNew}>
-              <CheckCircle2 size={20} color={colors.black} strokeWidth={2.5} />
+              <CheckCircle2 size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
         )}
@@ -617,34 +664,6 @@ export default function AttendanceScreen() {
         )}
       </View>
 
-      <StatRow
-        items={[
-          {
-            label: 'Present',
-            value: summary.present || 0,
-            color: colors.green,
-            icon: SCheck,
-          },
-          {
-            label: 'Absent',
-            value: summary.absent || 0,
-            color: colors.red,
-            icon: SX,
-          },
-          {
-            label: 'Late',
-            value: summary.late || 0,
-            color: colors.orange,
-            icon: SAlert,
-          },
-          {
-            label: 'Excused',
-            value: summary.excused || 0,
-            color: colors.blue,
-            icon: SCal,
-          },
-        ]}
-      />
       <View style={styles.dateRow}>
         <TouchableOpacity
           onPress={() => shiftDate(-1)}
@@ -822,7 +841,7 @@ export default function AttendanceScreen() {
           data={filtered}
           keyExtractor={item => item._id}
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -831,13 +850,49 @@ export default function AttendanceScreen() {
             />
           }
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={<AttendanceTableFooter />}
+          ListHeaderComponent={
+            <>
+              <View style={dashStatRow}>
+                <DashStatCard
+                  index={0}
+                  label="Present"
+                  value={summary.present || 0}
+                  icon={StatCheck}
+                  color={colors.green}
+                />
+                <DashStatCard
+                  index={1}
+                  label="Absent"
+                  value={summary.absent || 0}
+                  icon={StatX}
+                  color={colors.red}
+                />
+                <DashStatCard
+                  index={2}
+                  label="Late"
+                  value={summary.late || 0}
+                  icon={StatClock}
+                  color={colors.orange}
+                />
+                <DashStatCard
+                  index={3}
+                  label="Total"
+                  value={mergedRows.length}
+                  icon={StatUsers}
+                  color={colors.blue}
+                />
+              </View>
+              <AttendanceTableHeader cols={EMP_COLS} />
+            </>
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Clock size={40} color="#D1D5DB" />
               <Text style={styles.emptyText}>No records for this date</Text>
             </View>
           }
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const emp = item.employee;
             const cfg = STATUS_CONFIG[item.status] || {
               color: colors.muted,
@@ -847,13 +902,13 @@ export default function AttendanceScreen() {
             const Icon = cfg.icon;
             const ciTime = item.checkIn
               ? new Date(item.checkIn).toLocaleTimeString([], {
-                  hour: '2-digit',
+                  hour: 'numeric',
                   minute: '2-digit',
                 })
               : null;
             const coTime = item.checkOut
               ? new Date(item.checkOut).toLocaleTimeString([], {
-                  hour: '2-digit',
+                  hour: 'numeric',
                   minute: '2-digit',
                 })
               : null;
@@ -875,215 +930,72 @@ export default function AttendanceScreen() {
                     .toUpperCase()
                 : item.status.replace(/_/g, ' ').toUpperCase();
             return (
-              <View style={[styles.card, { borderColor: colors.black }]}>
-                <View style={styles.cardRow}>
-                  <View style={styles.photoWrap}>
-                    {emp?.avatar ? (
-                      <Image
-                        source={{ uri: emp.avatar }}
-                        style={styles.empPhoto}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.empPhoto,
-                          styles.empPhotoFallback,
-                          { backgroundColor: cfg.bg },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.empPhotoInitials,
-                            { color: cfg.color },
-                          ]}
-                        >
-                          {initials}
-                        </Text>
-                      </View>
-                    )}
-                    <View
-                      style={[
-                        styles.statusBadgeOverlay,
+              <AttendanceTableRow
+                index={index}
+                cols={EMP_COLS}
+                avatar={emp?.avatar}
+                initials={initials}
+                name={emp ? `${emp.firstName} ${emp.lastName}` : 'Unknown'}
+                sub={emp?.designation || emp?.employeeId}
+                status={{
+                  label: statusLabel,
+                  color: cfg.color,
+                  bg: cfg.bg,
+                  icon: Icon,
+                }}
+                cells={{
+                  inn: ciTime || '—',
+                  out: coTime || '—',
+                  hrs: workHours ? `${workHours}h` : '—',
+                }}
+                details={[
+                  { label: 'Date', value: item.date?.slice(0, 10) },
+                  { label: 'Status', value: statusLabel },
+                  { label: 'Check In', value: ciTime },
+                  { label: 'Check Out', value: coTime },
+                  {
+                    label: 'Work Hours',
+                    value: workHours ? `${workHours}h` : '',
+                  },
+                  {
+                    label: 'Overtime',
+                    value: overtime > 0 ? `${overtime}h` : '',
+                  },
+                  { label: 'Verified Via', value: item.verifyMode || 'manual' },
+                  {
+                    label: 'Early Leave',
+                    value: item.earlyLeaving ? 'Yes' : '',
+                  },
+                  { label: 'Department', value: deptName },
+                  { label: 'Designation', value: emp?.designation },
+                ]}
+                menu={
+                  isEmployee ||
+                  (item._id.startsWith('v_') && item.status === 'weekend')
+                    ? []
+                    : item._id.startsWith('v_')
+                    ? [
                         {
-                          backgroundColor: colors.white,
-                          borderColor: cfg.color,
+                          label: 'Mark present',
+                          icon: CheckCircle2,
+                          onPress: () => openMarkForEmp(emp?._id),
                         },
-                      ]}
-                    >
-                      <Icon size={11} color={cfg.color} strokeWidth={2.5} />
-                    </View>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.empName} numberOfLines={1}>
-                      {emp
-                        ? `${emp.firstName} ${emp.lastName}`.toUpperCase()
-                        : 'UNKNOWN'}
-                    </Text>
-                    <Text style={styles.empSub}>
-                      {emp?.employeeId || ''}
-                      {emp?.designation ? ` · ${emp.designation}` : ''}
-                    </Text>
-                    {!!deptName && (
-                      <View style={styles.empDeptRow}>
-                        <Building2 size={11} color="#9CA3AF" />
-                        <Text style={styles.empDeptText}>{deptName}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <StatusPill
-                    label={statusLabel}
-                    color={cfg.color}
-                    bg={cfg.bg}
-                  />
-                </View>
-                {!(item._id.startsWith('v_') && item.status === 'weekend') && (
-                  <View style={styles.cardActions}>
-                    <View style={styles.cardLeft}>
-                      <View style={styles.inOutRow}>
-                        <View style={styles.inOutCard}>
-                          <LogIn
-                            size={13}
-                            color={colors.green}
-                            strokeWidth={2.5}
-                          />
-                          <Text style={styles.inOutTime}>
-                            {ciTime || '--:--'}
-                          </Text>
-                        </View>
-                        <View style={styles.inOutCard}>
-                          <LogOut
-                            size={13}
-                            color={colors.red}
-                            strokeWidth={2.5}
-                          />
-                          <Text style={styles.inOutTime}>
-                            {coTime || '--:--'}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    {!isEmployee &&
-                      (item._id.startsWith('v_') ? (
-                        item.status === 'weekend' ? null : (
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
-                            <TouchableOpacity
-                              style={styles.absentBtn}
-                              onPress={() => markAbsent(item.employee?._id)}
-                              hitSlop={{
-                                top: 8,
-                                bottom: 8,
-                                left: 8,
-                                right: 8,
-                              }}
-                            >
-                              <XCircle
-                                size={13}
-                                color={colors.white}
-                                strokeWidth={2.5}
-                              />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.markBtn}
-                              onPress={() => openMarkForEmp(item.employee?._id)}
-                              hitSlop={{
-                                top: 8,
-                                bottom: 8,
-                                left: 8,
-                                right: 8,
-                              }}
-                            >
-                              <CheckCircle2
-                                size={13}
-                                color={colors.white}
-                                strokeWidth={2.5}
-                              />
-                            </TouchableOpacity>
-                          </View>
-                        )
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.editBtn}
-                          onPress={() => openEdit(item)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Pencil
-                            size={14}
-                            color={colors.blue}
-                            strokeWidth={2.5}
-                          />
-                        </TouchableOpacity>
-                      ))}
-                  </View>
-                )}
-
-                {(workHours ||
-                  overtime > 0 ||
-                  item.earlyLeaving ||
-                  item.checkInLocation ||
-                  item.checkOutLocation) && (
-                  <View style={styles.timeRow}>
-                    {workHours ? (
-                      <View style={styles.timePill}>
-                        <Clock
-                          size={11}
-                          color={colors.blue}
-                          strokeWidth={2.5}
-                        />
-                        <Text style={styles.timeText}>{workHours}h</Text>
-                      </View>
-                    ) : null}
-                    {overtime > 0 && (
-                      <View
-                        style={[
-                          styles.timePill,
-                          { borderColor: colors.yellow },
-                        ]}
-                      >
-                        <Clock
-                          size={11}
-                          color={colors.yellow}
-                          strokeWidth={2.5}
-                        />
-                        <Text
-                          style={[styles.timeText, { color: colors.yellow }]}
-                        >
-                          OT: {overtime}h
-                        </Text>
-                      </View>
-                    )}
-                    {item.earlyLeaving && (
-                      <View
-                        style={[styles.timePill, { borderColor: colors.blue }]}
-                      >
-                        <LogOut
-                          size={11}
-                          color={colors.blue}
-                          strokeWidth={2.5}
-                        />
-                        <Text style={[styles.timeText, { color: colors.blue }]}>
-                          Early Leave
-                        </Text>
-                      </View>
-                    )}
-                    {(item.checkInLocation || item.checkOutLocation) && (
-                      <TouchableOpacity
-                        style={styles.timePill}
-                        onPress={() => showLocationOptions(item)}
-                      >
-                        <MapPin
-                          size={11}
-                          color={colors.blue}
-                          strokeWidth={2.5}
-                        />
-                        <Text style={styles.timeText}>Location</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-                {item.notes && (
-                  <Text style={styles.noteText}>{item.notes}</Text>
-                )}
-              </View>
+                        {
+                          label: 'Mark absent',
+                          icon: XCircle,
+                          color: colors.red,
+                          onPress: () => markAbsent(emp?._id),
+                        },
+                      ]
+                    : [
+                        {
+                          label: 'Edit',
+                          icon: Pencil,
+                          onPress: () => openEdit(item),
+                        },
+                      ]
+                }
+              />
             );
           }}
         />

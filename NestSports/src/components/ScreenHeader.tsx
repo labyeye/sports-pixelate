@@ -1,7 +1,16 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  ArrowLeft,
+  CalendarClock,
+  Layers,
+  LayoutGrid,
+  Receipt,
+  UserPlus,
+  Wallet,
+} from 'lucide-react-native';
+import { navGroups } from '../navigation/navConfig';
 import { colors, FONT } from '../theme/colors';
 
 interface Props {
@@ -28,13 +37,37 @@ export default function ScreenHeader({
   );
 }
 
-// Back button + title, for screens that already draw their own header row.
+// Page icon per screen, taken from the menu config so every main page gets the
+// same blue icon NestHR shows next to its title.
+const PAGE_ICONS: Record<string, any> = {};
+navGroups.forEach(g => g.items.forEach(i => (PAGE_ICONS[i.screen] = i.icon)));
+Object.assign(PAGE_ICONS, {
+  Groups: Layers,
+  Plans: Wallet,
+  Subscriptions: Wallet,
+  Bookings: CalendarClock,
+  ExpenseClaims: Receipt,
+  Expenses: Receipt,
+  Leads: UserPlus,
+  MakeupClasses: CalendarClock,
+  Notifications: LayoutGrid,
+});
+
+// Title row in NestHR's style: page icon + title, no back arrow on main pages
+// (swipe / system back still works). Detail, form and report screens have no
+// page icon, so they keep an explicit back arrow.
 export function BackTitle({ title, showBack, onBack }: Omit<Props, 'right'>) {
   const navigation = useNavigation<any>();
+  const route = useRoute();
+  const PageIcon =
+    PAGE_ICONS[route.name] || PAGE_ICONS[route.name.replace(/Tab$/, '')];
   const canGoBack = navigation.canGoBack();
-  const back = showBack ?? canGoBack;
+  const back = showBack ?? (PageIcon ? false : canGoBack);
   return (
     <View style={styles.left}>
+      {PageIcon && !back ? (
+        <PageIcon size={20} color={colors.blue} strokeWidth={2.5} />
+      ) : null}
       {back && (
         <TouchableOpacity
           onPress={onBack ?? (() => navigation.goBack())}
@@ -101,8 +134,7 @@ const styles = StyleSheet.create({
 
 // Plain header action: no border or background, just the icon.
 export const headerBtn = {
-  width: 36,
-  height: 36,
+  padding: 4,
   alignItems: 'center',
   justifyContent: 'center',
 } as const;

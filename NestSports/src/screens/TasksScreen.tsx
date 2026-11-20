@@ -16,10 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
-  CheckCircle2,
-  Clock,
   ListChecks,
-  Loader,
   Plus,
   Trash2,
   X,
@@ -37,10 +34,10 @@ import {
   TextField,
 } from '../components/ui';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
-import StatTile from '../components/common/StatTile';
 import SlideInCard from '../components/motion/SlideInCard';
 import { colors, FONT } from '../theme/colors';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 type Status = 'pending' | 'in_progress' | 'completed';
 const STATUSES: Status[] = ['pending', 'in_progress', 'completed'];
@@ -130,7 +127,6 @@ export default function TasksScreen() {
     () => (filter ? tasks.filter(t => t.status === filter) : tasks),
     [tasks, filter],
   );
-  const count = (s: Status) => tasks.filter(t => t.status === s).length;
 
   const merge = (t: any) => {
     setTasks(p => p.map(x => (x._id === t._id ? { ...x, ...t } : x)));
@@ -213,15 +209,28 @@ export default function TasksScreen() {
       <ScreenHeader
         title="Tasks"
         right={
-          canAssign ? (
+          <>
+            <ExportAction
+              name="tasks"
+              rows={tasks}
+              cols={[
+                { header: 'Title', value: (r: any) => r.title },
+                { header: 'Assigned To', value: (r: any) => r.assignedTo?.name },
+                { header: 'Priority', value: (r: any) => r.priority },
+                { header: 'Status', value: (r: any) => r.status },
+                { header: 'Due', value: (r: any) => String(r.dueDate || '').slice(0, 10) },
+              ]}
+            />
+            {canAssign ? (
             <TouchableOpacity
               onPress={() => setFormOpen(true)}
               style={headerBtn}
               hitSlop={8}
             >
-              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              <Plus size={24} color={colors.blue} />
             </TouchableOpacity>
-          ) : undefined
+          ) : null}
+          </>
         }
       />
       <FlatList
@@ -239,32 +248,6 @@ export default function TasksScreen() {
         }
         ListHeaderComponent={
           <View>
-            <View style={styles.kpiGrid}>
-              <StatTile
-                label="Total"
-                value={tasks.length}
-                color={colors.blue}
-                icon={ListChecks}
-              />
-              <StatTile
-                label="Pending"
-                value={count('pending')}
-                color={colors.orange}
-                icon={Clock}
-              />
-              <StatTile
-                label="In Progress"
-                value={count('in_progress')}
-                color={colors.purple}
-                icon={Loader}
-              />
-              <StatTile
-                label="Completed"
-                value={count('completed')}
-                color={colors.green}
-                icon={CheckCircle2}
-              />
-            </View>
             <FilterPills
               options={[
                 { value: '', label: 'All' },

@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../config';
 import { settingsAPI } from '../api/client';
 import { normalizeTemplate } from './idCardLibrary';
-import type { IdCardTemplate, IdCompany } from './idCard';
+import { toStudentTemplate, type CardKind, type IdCardTemplate, type IdCompany } from './idCard';
 
 const ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
@@ -24,16 +24,19 @@ export function companyFromSettings(s: any): IdCompany {
 }
 
 /** This company's saved ID-card design and company details (the default design when none is saved yet). */
-export async function loadIdCardSetup(): Promise<{
+export async function loadIdCardSetup(kind: CardKind = 'staff'): Promise<{
   template: IdCardTemplate;
   company: IdCompany;
   saved: boolean;
 }> {
   const res: any = await settingsAPI.get();
   const s = res?.data ?? res;
+  const raw = kind === 'student' ? s?.studentIdCardTemplate : s?.idCardTemplate;
+  const template = normalizeTemplate(raw);
   return {
-    template: normalizeTemplate(s?.idCardTemplate),
+    // nothing saved yet: students start from the default design with student fields
+    template: !raw && kind === 'student' ? toStudentTemplate(template) : template,
     company: companyFromSettings(s),
-    saved: !!s?.idCardTemplate,
+    saved: !!raw,
   };
 }

@@ -12,11 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import {
   IndianRupee,
   Wallet,
-  UserPlus,
   Users,
   UserCheck,
-  UserX,
-  CreditCard,
   CalendarClock,
   Phone,
 } from 'lucide-react-native';
@@ -25,9 +22,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card, SectionTitle, StatusPill, LoadingView } from '../components/ui';
 import AppHeader from '../components/common/AppHeader';
 import StatTile from '../components/common/StatTile';
-import AnimatedBarChart from '../components/common/AnimatedBarChart';
+import AnimatedLineChart from '../components/common/AnimatedLineChart';
+import TwoLineChart from '../components/common/TwoLineChart';
 import FadeInUp from '../components/motion/FadeInUp';
 import { colors, FONT } from '../theme/colors';
+import {
+  AttendanceTableFooter,
+  AttendanceTableHeader,
+  AttendanceTableRow,
+  TableCol,
+} from '../components/common/AttendanceTable';
 import { formatCurrency, formatDateOrDash } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
 
@@ -41,7 +45,6 @@ const compactInr = (n: number) =>
     ? `₹${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
     : `₹${Math.round(n)}`;
 
-type Series = 'income' | 'expense';
 type Range = '1M' | '3M' | '6M' | '1Y';
 const RANGES: Range[] = ['1M', '3M', '6M', '1Y'];
 
@@ -51,8 +54,8 @@ export default function DashboardScreen() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [series, setSeries] = useState<Series>('income');
   const [range, setRange] = useState<Range>('6M');
+  const [attTab, setAttTab] = useState<'students' | 'staff'>('students');
   const [trend, setTrend] = useState<any>(null);
   const [unread, setUnread] = useState(0);
 
@@ -98,10 +101,20 @@ export default function DashboardScreen() {
   if (loading || !data) return <LoadingView />;
 
   const { stats, feeSummary, subscriptionAlerts = [] } = data;
-  const chartColor = series === 'income' ? colors.green : colors.red;
+  const hasStudents = (stats.totalStudents || 0) > 0;
+  const hasStaff = (stats.totalEmployees || 0) > 0;
+  const showAttendance = hasStudents || hasStaff;
+  const activeAttTab =
+    attTab === 'students'
+      ? hasStudents
+        ? 'students'
+        : 'staff'
+      : hasStaff
+      ? 'staff'
+      : 'students';
   const points = (trend?.points || []).map((p: any) => ({
     label: p.label,
-    value: p[series] || 0,
+    values: { income: p.income || 0, expense: p.expense || 0 },
   }));
 
   return (
@@ -149,10 +162,10 @@ export default function DashboardScreen() {
             <StatTile
               compact
               width="100%"
-              label="NEW STUDENTS"
-              value={stats.newStudents ?? 0}
+              label="PRESENT TODAY"
+              value={stats.studentsPresentToday ?? 0}
               color={colors.purple}
-              icon={UserPlus}
+              icon={UserCheck}
             />
           </FadeInUp>
           <FadeInUp delay={3 * 70} style={styles.tileCell4}>
@@ -168,24 +181,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.chartHead}>
-          <View style={styles.pillGroup}>
-            {(['income', 'expense'] as Series[]).map(s => (
-              <TouchableOpacity
-                key={s}
-                onPress={() => setSeries(s)}
-                style={[styles.pill, series === s && styles.pillActive]}
-              >
-                <Text
-                  style={[
-                    styles.pillText,
-                    series === s && { color: colors.white },
-                  ]}
-                >
-                  {s === 'income' ? 'Income' : 'Expense'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <View />
           <View style={styles.pillGroup}>
             {RANGES.map(r => (
               <TouchableOpacity
@@ -212,75 +208,29 @@ export default function DashboardScreen() {
 
         <Card>
           <SectionTitle
-            title={series === 'income' ? 'Income' : 'Expense'}
+            title="Income vs Expense"
             sub={`${formatCurrency(
-              trend?.totals?.[series] || 0,
-            )} in the last ${range}`}
+              trend?.totals?.income || 0,
+            )} in · ${formatCurrency(
+              trend?.totals?.expense || 0,
+            )} out, last ${range}`}
           />
           {points.length > 0 ? (
-            <AnimatedBarChart
-              key={`${series}-${range}`}
+            <AnimatedLineChart
+              morph
+              dots={false}
+              legend
               series={[
-                {
-                  key: 'v',
-                  label: series === 'income' ? 'Income' : 'Expense',
-                  color: chartColor,
-                },
+                { key: 'income', label: 'Income', color: colors.green },
+                { key: 'expense', label: 'Expense', color: colors.red },
               ]}
-              data={points.map((p: any) => ({
-                label: p.label,
-                values: { v: p.value },
-              }))}
+              data={points}
               format={n => (n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`)}
             />
           ) : (
             <Text style={styles.empty}>No data for this period</Text>
           )}
         </Card>
-
-        <Text style={styles.sectionLabel}>Today & Subscriptions</Text>
-        <View style={styles.row4}>
-          <FadeInUp delay={0 * 70} style={styles.tileCell4}>
-            <StatTile
-              compact
-              width="100%"
-              label="Present Today"
-              value={stats.studentsPresentToday ?? 0}
-              color={colors.green}
-              icon={UserCheck}
-            />
-          </FadeInUp>
-          <FadeInUp delay={1 * 70} style={styles.tileCell4}>
-            <StatTile
-              compact
-              width="100%"
-              label="Absent Today"
-              value={stats.studentsAbsentToday ?? 0}
-              color={colors.red}
-              icon={UserX}
-            />
-          </FadeInUp>
-          <FadeInUp delay={2 * 70} style={styles.tileCell4}>
-            <StatTile
-              compact
-              width="100%"
-              label="Active Plans"
-              value={stats.activeSubscriptions ?? 0}
-              color={colors.blue}
-              icon={CreditCard}
-            />
-          </FadeInUp>
-          <FadeInUp delay={3 * 70} style={styles.tileCell4}>
-            <StatTile
-              compact
-              width="100%"
-              label="Ending Soon"
-              value={stats.endingSoon ?? 0}
-              color={colors.orange}
-              icon={CalendarClock}
-            />
-          </FadeInUp>
-        </View>
 
         <Text style={styles.sectionLabel}>Recent Students</Text>
         <FadeInUp delay={80} style={styles.tableCard}>
@@ -335,7 +285,7 @@ export default function DashboardScreen() {
           <Text style={styles.growthSub}>
             New registrations vs students who subscribed again
           </Text>
-          <AnimatedBarChart
+          <AnimatedLineChart
             legend
             series={[
               { key: 'new', label: 'New students', color: colors.purple },
@@ -348,25 +298,108 @@ export default function DashboardScreen() {
           />
         </FadeInUp>
 
+        <Text style={styles.sectionLabel}>Fee Payments · Last 6 Months</Text>
+        <FadeInUp delay={130} style={styles.tableCard}>
+          <Text style={styles.growthSub}>Paid on time vs not on time</Text>
+          <TwoLineChart
+            series={[
+              { key: 'paid', label: 'Paid on time', color: colors.green },
+              { key: 'late', label: 'Not on time', color: colors.red },
+            ]}
+            data={(data.feeTrend || []).map((t: any) => ({
+              label: MONTHS[t.month - 1],
+              values: { paid: t.paidOnTime, late: t.notOnTime },
+            }))}
+          />
+        </FadeInUp>
+
+        {showAttendance && (
+          <>
+            <View style={styles.chartHead}>
+              <Text style={styles.sectionLabel}>
+                Daily Attendance · Last 7 Days
+              </Text>
+              <View
+                style={[
+                  styles.pillGroup,
+                  !(hasStudents && hasStaff) && { display: 'none' },
+                ]}
+              >
+                {(['students', 'staff'] as const)
+                  .filter(k => (k === 'students' ? hasStudents : hasStaff))
+                  .map(k => (
+                    <TouchableOpacity
+                      key={k}
+                      onPress={() => setAttTab(k)}
+                      style={[
+                        styles.pill,
+                        activeAttTab === k && styles.pillActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pillText,
+                          activeAttTab === k && { color: colors.white },
+                        ]}
+                      >
+                        {k === 'students' ? 'Students' : 'Staff'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </View>
+            <FadeInUp delay={140} style={styles.tableCard}>
+              <AnimatedLineChart
+                key={activeAttTab}
+                legend
+                series={[
+                  { key: 'present', label: 'Present', color: '#00C48C' },
+                  { key: 'late', label: 'Late', color: '#CA8A04' },
+                  { key: 'halfDay', label: 'Half day', color: '#F59E0B' },
+                  { key: 'onLeave', label: 'On leave', color: '#3B82F6' },
+                  { key: 'absent', label: 'Absent', color: '#EF4444' },
+                ]}
+                data={(
+                  (activeAttTab === 'students'
+                    ? data.studentAttDaily
+                    : data.staffAttDaily) || []
+                )
+                  .slice(-7)
+                  .map((d: any) => ({
+                    label: d.label,
+                    values: {
+                      present: d.present || 0,
+                      late: d.late || 0,
+                      halfDay: d.halfDay || 0,
+                      onLeave: d.onLeave || 0,
+                      absent: d.absent || 0,
+                    },
+                  }))}
+              />
+            </FadeInUp>
+          </>
+        )}
+
         <Text style={styles.sectionLabel}>Payroll Trend · Last 6 Months</Text>
-        <FadeInUp delay={140} style={styles.tableCard}>
+        <FadeInUp delay={160} style={styles.tableCard}>
           <Text style={styles.growthSub}>Net payout (₹K)</Text>
-          <AnimatedBarChart
-            series={[{ key: 'total', label: 'Net pay', color: colors.orange }]}
+          <AnimatedLineChart
+            color={colors.blue}
             data={(data.payTrend || []).map((t: any) => ({
               label: MONTHS[t.month - 1],
-              values: { total: Math.round((t.total || 0) / 1000) },
+              value: Math.round((t.total || 0) / 1000),
             }))}
+            format={n => `${n}k`}
           />
         </FadeInUp>
 
         <Text style={styles.sectionLabel}>Headcount by Department</Text>
         <FadeInUp delay={160} style={styles.tableCard}>
-          <AnimatedBarChart
-            series={[{ key: 'count', label: 'Employees', color: colors.blue }]}
+          <AnimatedLineChart
+            color={colors.blue}
             data={(data.deptHeadcounts || []).map((d: any) => ({
               label: d.name,
-              values: { count: d.count },
+              value: d.count,
             }))}
           />
         </FadeInUp>
@@ -407,7 +440,9 @@ export default function DashboardScreen() {
         <Text style={styles.sectionLabel}>Pending Leave Requests</Text>
         <FadeInUp delay={200} style={styles.tableCard}>
           {(data.pendingLeaveList || []).length === 0 ? (
-            <Text style={styles.empty}>All clear! No pending leave requests</Text>
+            <Text style={styles.empty}>
+              All clear! No pending leave requests
+            </Text>
           ) : (
             (data.pendingLeaveList || []).map(
               (l: any, i: number, arr: any[]) => (
@@ -431,7 +466,9 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text style={[styles.tdSub, { flex: 0.8, textAlign: 'right' }]}>
+                  <Text
+                    style={[styles.tdSub, { flex: 0.8, textAlign: 'right' }]}
+                  >
                     Pending
                   </Text>
                 </TouchableOpacity>
@@ -447,118 +484,73 @@ export default function DashboardScreen() {
           />
         </View>
         {subscriptionAlerts.length > 0 ? (
-          subscriptionAlerts.map((sub: any) => {
-            const days = Math.ceil(
-              (new Date(sub.renewalDate).getTime() - Date.now()) / 86400000,
-            );
-            const isPastDue = days < 0;
-            const accent = isPastDue ? colors.red : colors.orange;
-            const balance = Math.max(
-              0,
-              (sub.amount || 0) - (sub.amountPaid || 0),
-            );
-            const g = sub.student?.guardians?.[0];
-            const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
-            return (
-              <View
-                key={sub._id}
-                style={[styles.renewCard, { borderLeftColor: accent }]}
-              >
-                <View style={styles.renewTop}>
-                  <View
-                    style={[
-                      styles.renewAvatar,
-                      { backgroundColor: accent + '1A', borderColor: accent },
-                    ]}
-                  >
-                    <Text style={[styles.renewAvatarText, { color: accent }]}>
-                      {(sub.student?.firstName?.[0] || '?').toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.renewInfo}>
-                    <Text style={styles.renewalName} numberOfLines={1}>
-                      {sub.student?.firstName} {sub.student?.lastName}
-                    </Text>
-                    <Text style={styles.renewalSub} numberOfLines={1}>
-                      {sub.student?.studentId} · {sub.student?.sport || '—'}
-                      {sub.student?.batch ? ` · ${sub.student.batch}` : ''}
-                    </Text>
-                  </View>
-                  <StatusPill
-                    label={isPastDue ? 'Ended' : 'Ending Soon'}
-                    color={accent}
-                  />
-                </View>
-
-                <View style={styles.renewMeta}>
-                  <View style={styles.metaCol}>
-                    <Text style={styles.metaLabel}>Plan</Text>
-                    <Text style={styles.metaValue} numberOfLines={1}>
-                      {sub.planName}
-                    </Text>
-                    {sub.billingCycle ? (
-                      <Text style={styles.metaHint}>{sub.billingCycle}</Text>
-                    ) : null}
-                  </View>
-                  <View style={styles.metaDivider} />
-                  <View style={styles.metaCol}>
-                    <Text style={styles.metaLabel}>Renews</Text>
-                    <Text style={styles.metaValue} numberOfLines={1}>
-                      {formatDateOrDash(sub.renewalDate)}
-                    </Text>
-                    <Text style={styles.metaHint}>
-                      from {formatDateOrDash(sub.startDate)}
-                    </Text>
-                  </View>
-                  <View style={styles.metaDivider} />
-                  <View style={styles.metaCol}>
-                    <Text style={styles.metaLabel}>Status</Text>
-                    <Text style={[styles.metaValue, { color: accent }]}>
-                      {isPastDue
-                        ? `${Math.abs(days)}d overdue`
-                        : days === 0
-                        ? 'Due today'
-                        : `${days}d left`}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.moneyRow}>
-                  <View style={styles.moneyCell}>
-                    <Text style={styles.metaLabel}>Total</Text>
-                    <Text style={styles.moneyValue}>{inr(sub.amount)}</Text>
-                  </View>
-                  <View style={styles.moneyCell}>
-                    <Text style={styles.metaLabel}>Paid</Text>
-                    <Text style={[styles.moneyValue, { color: colors.green }]}>
-                      {inr(sub.amountPaid)}
-                    </Text>
-                  </View>
-                  <View style={styles.moneyCell}>
-                    <Text style={styles.metaLabel}>Due</Text>
-                    <Text
-                      style={[
-                        styles.moneyValue,
-                        { color: balance > 0 ? colors.red : colors.muted },
-                      ]}
-                    >
-                      {inr(balance)}
-                    </Text>
-                  </View>
-                </View>
-
-                {g ? (
-                  <View style={styles.guardianRow}>
-                    <Phone size={12} color={colors.muted} strokeWidth={2.5} />
-                    <Text style={styles.guardianText} numberOfLines={1}>
-                      {g.name}
-                      {g.phone ? ` · ${g.phone}` : ''}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })
+          <>
+            <AttendanceTableHeader cols={RENEW_COLS} />
+            {subscriptionAlerts.map((sub: any) => {
+              const days = Math.ceil(
+                (new Date(sub.renewalDate).getTime() - Date.now()) / 86400000,
+              );
+              const isPastDue = days < 0;
+              const accent = isPastDue ? colors.red : colors.orange;
+              const balance = Math.max(
+                0,
+                (sub.amount || 0) - (sub.amountPaid || 0),
+              );
+              const g = sub.student?.guardians?.[0];
+              const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
+              return (
+                <AttendanceTableRow
+                  key={sub._id}
+                  cols={RENEW_COLS}
+                  avatar={sub.student?.avatar}
+                  initials={`${sub.student?.firstName?.[0] || ''}${
+                    sub.student?.lastName?.[0] || ''
+                  }`.toUpperCase()}
+                  name={`${sub.student?.firstName || ''} ${
+                    sub.student?.lastName || ''
+                  }`}
+                  sub={`${sub.student?.studentId || ''} · ${
+                    sub.student?.sport || '—'
+                  }`}
+                  status={{
+                    label: isPastDue ? 'Ended' : 'Ending soon',
+                    color: accent,
+                    bg: accent + '1A',
+                  }}
+                  cells={{
+                    left: isPastDue
+                      ? `${Math.abs(days)}d over`
+                      : days === 0
+                      ? 'Today'
+                      : `${days}d left`,
+                  }}
+                  details={[
+                    { label: 'Plan', value: sub.planName },
+                    { label: 'Billing', value: sub.billingCycle },
+                    {
+                      label: 'Renews',
+                      value: formatDateOrDash(sub.renewalDate),
+                    },
+                    {
+                      label: 'Started',
+                      value: formatDateOrDash(sub.startDate),
+                    },
+                    { label: 'Total', value: inr(sub.amount) },
+                    { label: 'Paid', value: inr(sub.amountPaid) },
+                    { label: 'Due', value: inr(balance) },
+                    { label: 'Batch', value: sub.student?.batch },
+                    {
+                      label: 'Guardian',
+                      value: g
+                        ? `${g.name}${g.phone ? ` · ${g.phone}` : ''}`
+                        : '',
+                    },
+                  ]}
+                />
+              );
+            })}
+            <AttendanceTableFooter />
+          </>
         ) : (
           <Card>
             <Text style={styles.empty}>No subscriptions ending soon</Text>
@@ -569,7 +561,27 @@ export default function DashboardScreen() {
   );
 }
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const RENEW_COLS: TableCol[] = [
+  { key: 'name', label: 'Student', flex: 1, icon: 'users' },
+  { key: 'left', label: 'Left', width: 64 },
+  { key: 'status', label: 'Status', width: 70 },
+  { key: 'kebab', label: '', width: 56 },
+];
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
@@ -628,6 +640,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     padding: 12,
     marginBottom: 16,
+  },
+  insightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  insightIcon: {
+    width: 28,
+    height: 28,
+    borderWidth: 2,
+    borderColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightText: {
+    flex: 1,
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    color: colors.black,
   },
   growthSub: {
     fontFamily: FONT.medium,

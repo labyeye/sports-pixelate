@@ -26,6 +26,7 @@ import InventoryScreen from '../screens/InventoryScreen';
 import MenuScreen from '../screens/MenuScreen';
 import { useDisabledFeatures } from '../utils/disabledFeatures';
 import CustomTabBar from '../components/common/CustomTabBar';
+import ScreenEntrance from '../components/motion/ScreenEntrance';
 
 const Tab = createBottomTabNavigator();
 const tabIconWrap = {
@@ -58,6 +59,9 @@ export default function MainTabs() {
 
   return (
     <Tab.Navigator
+      screenLayout={({ navigation, children }) => (
+        <ScreenEntrance navigation={navigation}>{children}</ScreenEntrance>
+      )}
       tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >

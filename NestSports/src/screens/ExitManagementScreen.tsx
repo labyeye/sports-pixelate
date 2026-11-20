@@ -14,12 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
   Check,
-  CheckCircle2,
-  Clock,
   Plus,
-  RotateCcw,
   UserMinus,
-  Users,
   X,
 } from 'lucide-react-native';
 import { employeeAPI, exitAPI, studentAPI } from '../api/client';
@@ -31,7 +27,6 @@ import {
   DateTimeField,
   EmptyState,
   FilterPills,
-  KpiTile,
   LoadingView,
   PickerField,
   SectionTitle,
@@ -42,6 +37,7 @@ import { colors, FONT } from '../theme/colors';
 import ScreenHeader, { headerBtn } from '../components/ScreenHeader';
 import { formatDateOrDash } from '../utils/format';
 import { notifyError } from '../utils/notifyError';
+import ExportAction from '../components/common/ExportAction';
 
 type PersonType = 'employee' | 'student';
 
@@ -135,12 +131,24 @@ export default function ExitManagementScreen() {
         title="Exit Management"
         right={
           <>
+            <ExportAction
+              name="exits"
+              rows={exits}
+              cols={[
+                { header: 'Name', value: (r: any) => r.personName },
+                { header: 'Code', value: (r: any) => r.personCode },
+                { header: 'Type', value: (r: any) => r.personType },
+                { header: 'Exit Type', value: (r: any) => r.exitType },
+                { header: 'Exit Date', value: (r: any) => String(r.exitDate || '').slice(0, 10) },
+                { header: 'Status', value: (r: any) => r.status },
+              ]}
+            />
             <TouchableOpacity
               onPress={() => setShowNew(true)}
               style={headerBtn}
               hitSlop={8}
             >
-              <Plus size={20} color={colors.black} strokeWidth={2.5} />
+              <Plus size={24} color={colors.blue} />
             </TouchableOpacity>
           </>
         }
@@ -148,32 +156,6 @@ export default function ExitManagementScreen() {
       <View style={{ padding: 16, paddingBottom: 0, flex: 1 }}>
         <Text style={styles.subtitle}>Offboard staff and students</Text>
 
-        <View style={styles.kpiGrid}>
-          <KpiTile
-            label="Total Exits"
-            value={summary.total}
-            color={colors.blue}
-            icon={UserMinus}
-          />
-          <KpiTile
-            label="In Progress"
-            value={summary.inProgress}
-            color={colors.orange}
-            icon={Clock}
-          />
-          <KpiTile
-            label="Completed"
-            value={summary.completed}
-            color={colors.green}
-            icon={CheckCircle2}
-          />
-          <KpiTile
-            label="Staff · Students"
-            value={`${summary.staff} · ${summary.students}`}
-            color={colors.purple}
-            icon={Users}
-          />
-        </View>
 
         <FilterPills options={TYPE_FILTERS} value={type} onChange={setType} />
         <FilterPills

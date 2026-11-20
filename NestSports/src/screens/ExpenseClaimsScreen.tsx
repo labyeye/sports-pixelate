@@ -45,6 +45,7 @@ import HeaderIconBtn from '../components/common/HeaderIconBtn';
 import SearchModal from '../components/common/SearchModal';
 import { C, useResponsive } from '../theme';
 import { CENTER } from '../components/common/centerModal';
+import ExportAction from '../components/common/ExportAction';
 
 const CATEGORIES: [string, string][] = [
   ['travel', 'Travel'],
@@ -662,6 +663,18 @@ export default function ExpenseClaimsScreen() {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <ExportAction
+            name="expense_claims"
+            rows={claims}
+            cols={[
+              { header: 'Employee', value: (r: any) => `${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim() },
+              { header: 'Title', value: (r: any) => r.title },
+              { header: 'Category', value: (r: any) => r.category },
+              { header: 'Amount', value: (r: any) => r.amount },
+              { header: 'Date', value: (r: any) => String(r.date || '').slice(0, 10) },
+              { header: 'Status', value: (r: any) => r.status },
+            ]}
+          />
           <HeaderIconBtn
             label="Search"
             icon={<Search size={22} color={C.black} />}
