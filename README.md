@@ -109,12 +109,12 @@ NestAcademy brings together staff/HR management, coaching operations, student en
 cd backend
 cp .env.example .env        # fill MONGO_URI and JWT_SECRET at minimum
 npm install
-npm run dev                 # https://academy-backend.pixelatenest.com
+npm run dev                 # https://sports-backend.pixelatenest.com
 npm test                    # route-guard, pricing & subscription tests (no DB needed)
 
 # 2. Web
 cd ../frontend
-cp .env.example .env        # VITE_API_URL=https://academy-backend.pixelatenest.com/api
+cp .env.example .env        # VITE_API_URL=https://sports-backend.pixelatenest.com/api
 npm install
 npm run dev                 # http://localhost:5174
 npm run lint && npm run typecheck && npm run build

@@ -2,7 +2,7 @@ import { compressImageFile } from "@/lib/imageCompress";
 import { announceRefund, isRefundMessage } from "@/lib/refundNotice";
 import { withDocAccess } from "./docAccess";
 
-const BASE_URL = "https://academy-backend.pixelatenest.com/api";
+const BASE_URL = "https://sports-backend.pixelatenest.com/api";
 
 export const getToken = () => localStorage.getItem("hrms_token");
 export const setToken = (t: string) => localStorage.setItem("hrms_token", t);
