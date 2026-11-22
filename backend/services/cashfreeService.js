@@ -43,7 +43,7 @@ async function cf(method, path, body) {
 }
 
 const backendUrl = () =>
-  (process.env.BACKEND_URL || "http://localhost:5002").replace(/\/$/, "");
+  (process.env.BACKEND_URL || "https://academy-backend.pixelatenest.com").replace(/\/$/, "");
 
 /**
  * Create a Cashfree order. `customer` = { id, name, email, phone }. Returns what the checkout needs.
